@@ -66,7 +66,7 @@ describe("Nice Array", function() {
 
     a(1, 2, 3, 4, 5);
     even.listenBy(spy);
-    //TODO: expect(spy).to.have.been.called.once().with(even);
+    expect(spy).to.have.been.called.once().with(even);
     expect(even()).to.deep.equal([2,4]);
   });
 
@@ -225,14 +225,6 @@ describe("Nice Array", function() {
     expect(spy).to.have.been.called.with(16);
     expect(spy).to.have.been.called.twice.with(17);
   });
-
-
-  //TODO:
-//  it("of", () => {
-//    var a = nice.Array().of('Number');
-//    a('7');
-//    expect(a()[0]()).to.equal(7);
-//  });
 
 
   it("count", () => {

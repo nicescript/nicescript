@@ -213,13 +213,12 @@ describe("Object", function() {
     expect(add).to.have.been.called.once.with(2, 'asd');
   });
 
-  //TODO:
-//  it("timeout", function(done){
-//    var a = nice.Object().timeout(1);
-//
-//    a.listenBy(() => {}, e => {
-//      expect(a.error().message).to.equal('Timeout');
-//      done();
-//    });
-//  });
+  it("timeout", function(done){
+    var a = nice.Object().by(()=>{}).timeout(1);
+
+    a.listenBy(() => {}, e => {
+      expect(a.error().message).to.equal('Timeout');
+      done();
+    });
+  });
 });
