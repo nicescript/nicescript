@@ -15,7 +15,9 @@ nice.NumberPrototype = {
   multiply: function (n) { this(this() * n); return this.obj; },
   negate: function () { this(-this()); return this.obj; },
   setMax: function (n) { n > this() && this(n); return this.obj; },
-  setMin: function (n) { n < this() && this(n); return this.obj; }
+  setMin: function (n) { n < this() && this(n); return this.obj; },
+
+  between: function (a, b) { return this() > a && this() < b; }
 };
 
 "acos,asin,atan,ceil,clz32,floor,fround,imul,max,min,round,sqrt,trunc,abs,exp,log,atan2,pow,sign,asinh,acosh,atanh,hypot,cbrt,cos,sin,tan,sinh,cosh,tanh,log10,log2,log1p,expm1"
