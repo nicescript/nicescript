@@ -23,7 +23,7 @@ nice.block('Input')
   })
   .Method(function focus(){
     this.pane && this.pane.focus();
-//    this.isFocused = 1;
+    this.isFocused = 1;
     return this;
   });
 
@@ -55,7 +55,7 @@ nice.block('Textarea')
   })
   .Method(function focus(){
     this.pane && this.pane.focus();
-//    this.isFocused = 1;
+    this.isFocused = 1;
     return this;
   });
 

@@ -220,6 +220,7 @@ function dom(){
 
   var pane = z.pane = document.createElement(z.tag());
   z.bindPane(pane);
+  z.isFocused && setTimeout(() => z.pane.focus(), 50);
   return pane;
 };
 

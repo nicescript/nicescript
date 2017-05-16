@@ -39,7 +39,7 @@ tasks.listenBy(save);
   
 var search = nice.Input("search").placeholder('Type no search or add tasks')
   .boxSizing('border-box').width("100%").fontSize("20px")
-  .on('keyup', e => e.keyCode === 13 && create(e));
+  .on('keyup', e => e.keyCode === 13 && create(e)).focus();
   
 var currentFilter = nice.String('All');  
   
@@ -74,7 +74,6 @@ function create(e){
 nice.Div().font("20px Arial").padding("1em")
   .Div().display('flex').add(search.focus().width('50%'), ...filterBlock).up
   .add(list, addLink).show();
-search.focus();
 </script>
   </body>
 </html>
