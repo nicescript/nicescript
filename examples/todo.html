@@ -1,0 +1,69 @@
+<html>
+  <head>
+    <title>TODO list example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0">
+<script>
+var dataKey = 'NiceToDo';
+nice.Class('Task')
+  .String('text')
+  .Boolean('status')
+  .Number('date')
+  .Method(function show(){
+    return nice.Div().padding("1em 0").borderBottom("1px #eee solid")
+      .Checkbox(this.status()).onSwitch(isOn => this.status(isOn)).up
+      .Span(this.text()).marginLeft("1em")
+        .textDecorationBy(z => z.use(this).status() ? 'line-through' : 'none')
+        .I(' ' + Date(this.date()).toLocaleString()).color('gray').up.up;
+  })
+  .initBy((z, text) => z.text(text).date(Date.now()).listenBy(save));
+  
+var tasks = nice.Array();
+
+var search = nice.Input("search")
+  .boxSizing('border-box').width("100%").fontSize("20px")
+  .on('keyup', e => e.keyCode === 13 && create());
+  
+var statusFilter = nice.SwitchButtons('All', 'New', 'Done')
+  .selectedButton(b => b.color('white').backgroundColor('#03A9F4'))
+  .button(b => b.display('inline-block').padding("1px 5px").marginLeft("1em")
+      .borderRadius('0.3em').cursor('pointer'))
+  .current('All');
+
+
+var list = nice.Div().childrenBy(z => {
+  var text = z.use(search.value)();
+  var type = z.use(statusFilter.current);
+  return z.use(tasks)
+    .filter(task => task.text().includes(text) 
+      && type.is('All') || (task.status() ? type.is('Done') : type.is('New')))
+    .map(task => task.show());
+});
+
+var addLink = nice.A().display('block').marginTop('1em').on('click', create)
+  .childrenBy(z => z.use(search.value).ifThen(v => [nice.B('Add: '), v()], []));
+
+function create(e){
+  tasks(nice.Task(search.value()));
+  search.value("");
+  e.preventDefault();
+}
+
+function save(){
+  localStorage.setItem(dataKey, JSON.stringify(tasks().map(v => v())));
+}
+(JSON.parse(localStorage.getItem(dataKey)) || [])
+    .forEach(t => tasks(nice.Task()(t)));
+tasks.listenBy(save);
+
+
+nice.Div().font("20px Arial").padding("1em")
+  .Div().display('flex').add(search.focus().width('50%'), statusFilter).up
+  .add(list, addLink).show();
+search.focus();
+</script>
+  </body>
+</html>

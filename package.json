@@ -1,0 +1,28 @@
+{
+  "name": "nicescript",
+  "version": "0.0.1",
+  "keywords": [
+    "util",
+    "framework",
+    "server",
+    "client",
+    "reactive"
+  ],
+  "author": "Sergey Kashulin",
+  "licence": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter spec",
+    "build": "node build.js"
+  },
+  "license": "MIT",
+  "description": "",
+  "engines" : {
+    "node" : ">=6.0" 
+  },
+  "devDependencies": {
+    "chai": "3.x",
+    "chai-spies": "^0.7.1",
+    "mocha": "3.x"
+  }
+}

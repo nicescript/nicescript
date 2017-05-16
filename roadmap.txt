@@ -1,0 +1,9 @@
+//TODO: nice.expect(x).toBe.Function.or.Item();
+
+//TODO: promise integration
+
+//TODO: make smth nice with niceMap.of(type).set(k, item2);
+
+//  utils.includesAll
+//  utils.includesAny
+//  utils.intersection
