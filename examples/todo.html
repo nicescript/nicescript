@@ -13,35 +13,54 @@ nice.Class('Task')
   .Boolean('status')
   .Number('date')
   .Method(function show(){
-    return nice.Div().padding("1em 0").borderBottom("1px #eee solid")
+    return nice.Div().padding("1em 0")//.borderBottom("1px #eee solid")
       .Checkbox(this.status()).onSwitch(isOn => this.status(isOn)).up
       .Span(this.text()).marginLeft("1em")
-        .textDecorationBy(z => z.use(this).status() ? 'line-through' : 'none')
-        .I(' ' + Date(this.date()).toLocaleString()).color('gray').up.up;
+        .by(z => z.textDecoration(z.use(this.status)() ? 'line-through' : 'none'))
+        .up
+      .Div().add(new Date(this.date()).toLocaleString().slice(0, 24))
+        .color('gray').fontSize('.7em').marginTop('.3em').up;
   })
   .initBy((z, text) => z.text(text).date(Date.now()).listenBy(save));
   
 var tasks = nice.Array();
+function save(){
+  localStorage.setItem(dataKey, JSON.stringify(tasks().map(v => v())));
+}
 
-var search = nice.Input("search")
-  .boxSizing('border-box').width("100%").fontSize("20px")
-  .on('keyup', e => e.keyCode === 13 && create());
+(JSON.parse(localStorage.getItem(dataKey)) || [
+  {"date":1494934275526,"text":"Buy milk"},
+  {"date":1494934275527,"text":"Walk the dog"},
+  {"date":1494934275527,"text":"Feed the fish"},
+  {"text":"Wash windows","date":1494934354030}
+]).forEach(t => tasks(nice.Task()(t)));
+
+tasks.listenBy(save);
   
-var statusFilter = nice.SwitchButtons('All', 'New', 'Done')
-  .selectedButton(b => b.color('white').backgroundColor('#03A9F4'))
-  .button(b => b.display('inline-block').padding("1px 5px").marginLeft("1em")
-      .borderRadius('0.3em').cursor('pointer'))
-  .current('All');
+var search = nice.Input("search").placeholder('Type no search or add tasks')
+  .boxSizing('border-box').width("100%").fontSize("20px")
+  .on('keyup', e => e.keyCode === 13 && create(e));
+  
+var currentFilter = nice.String('All');  
+  
+var filterBlock = ['All', 'New', 'Done']
+  .map(status => nice.Span().marginLeft('1em').childrenBy(z => [
+      status === z.use(currentFilter)()
+        ? nice.B(status)
+        : nice.A(() => currentFilter(status)).add(status)
+    ]));  
 
-
-var list = nice.Div().childrenBy(z => {
-  var text = z.use(search.value)();
-  var type = z.use(statusFilter.current);
-  return z.use(tasks)
-    .filter(task => task.text().includes(text) 
-      && type.is('All') || (task.status() ? type.is('Done') : type.is('New')))
-    .map(task => task.show());
-});
+var list = nice.PagedList().step(3)
+  .pageNumberBy(span => span.marginRight('.5em'))
+  .childrenBy(z => {
+      var text = z.use(search.value)();
+      var type = z.use(currentFilter);
+      return z.use(tasks)
+        .filter(task => task.text().includes(text) 
+          && type.is('All') || (task.status() ? type.is('Done') : type.is('New')))
+        .sortBy(task => task.status())
+        .map(task => task.show());
+    });
 
 var addLink = nice.A().display('block').marginTop('1em').on('click', create)
   .childrenBy(z => z.use(search.value).ifThen(v => [nice.B('Add: '), v()], []));
@@ -52,16 +71,8 @@ function create(e){
   e.preventDefault();
 }
 
-function save(){
-  localStorage.setItem(dataKey, JSON.stringify(tasks().map(v => v())));
-}
-(JSON.parse(localStorage.getItem(dataKey)) || [])
-    .forEach(t => tasks(nice.Task()(t)));
-tasks.listenBy(save);
-
-
 nice.Div().font("20px Arial").padding("1em")
-  .Div().display('flex').add(search.focus().width('50%'), statusFilter).up
+  .Div().display('flex').add(search.focus().width('50%'), ...filterBlock).up
   .add(list, addLink).show();
 search.focus();
 </script>
