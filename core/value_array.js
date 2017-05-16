@@ -63,9 +63,11 @@ nice.ArrayPrototype = {
   map: function (f) { return this().map(f); },
 
   filter: function (f) {
-    var source = this;
-    var res = nice.Array().by(z => z(...z.use(source)().filter(f)));
-    return res;
+    return nice.Array().by(z => z(...z.use(this)().filter(f)));
+  },
+
+  sortBy: function (f) {
+    return nice.Array().by(z => z(nice.sortBy(f, z.use(use)())));
   },
 
   size: function () { return this().length; },
