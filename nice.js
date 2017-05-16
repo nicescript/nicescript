@@ -524,7 +524,7 @@ var isProto = {
       return !Object.keys(item).length;
 
     return !item;
-  }
+  },
 };
 
 
@@ -1239,7 +1239,9 @@ nice.Type(nice.BooleanPrototype);
   multiply: function (n) { this(this() * n); return this.obj; },
   negate: function () { this(-this()); return this.obj; },
   setMax: function (n) { n > this() && this(n); return this.obj; },
-  setMin: function (n) { n < this() && this(n); return this.obj; }
+  setMin: function (n) { n < this() && this(n); return this.obj; },
+
+  between: function (a, b) { return this() > a && this() < b; }
 };
 
 "acos,asin,atan,ceil,clz32,floor,fround,imul,max,min,round,sqrt,trunc,abs,exp,log,atan2,pow,sign,asinh,acosh,atanh,hypot,cbrt,cos,sin,tan,sinh,cosh,tanh,log10,log2,log1p,expm1"
@@ -1789,7 +1791,7 @@ nice.block('Div', (z, tag) => z.tag(tag || 'div'))
   .Array('children')
   .ReadOnly(text)
   .ReadOnly(html)
-  .ReadOnly(dom)
+  .Method(dom)
   .Method(function error(error){
     error && this.children.replace([nice.errorPane(error)]);
   })
@@ -1891,7 +1893,7 @@ function html(){
   return nice.String().by(z => {
     z.tryOnce(div);
     var children = div.actualChildren || div.children;
-    var tag = div.tag() || 'div';
+    var tag = div.tag();
     var a = ['<', tag];
 
     div.style.size() && div.attributes('style', nice.compileStyle(div));
@@ -1953,6 +1955,10 @@ nice.block('Div').Method(function bindPane(pane){
     .onEach((v, k) => pane[k] = v)
     .onRemove((v, k) => delete pane[k]);
 
+  this.style
+    .onEach((v, k) => pane.style[k] = v)
+    .onRemove((v, k) => delete pane.style[k]);
+
   (this.actualChildren || this.children)
     .onEach((c, i) => {
       var child = childToDom(c);
@@ -1968,16 +1974,14 @@ nice.block('Div').Method(function bindPane(pane){
 function dom(){
   var z = this;
 
-  z();
+  if(z.pane)
+    return z.pane;
 
-  return nice.item().by(item => {
-    if(z.pane)
-      return z.pane;
+  z.listenBy(() => {});
 
-    var r = z.pane = document.createElement(z.tag() || 'div');
-    z.bindPane(r);
-    item(r);
-  });
+  var pane = z.pane = document.createElement(z.tag());
+  z.bindPane(pane);
+  return pane;
 };
 
 nice.defineAll(nice, {
