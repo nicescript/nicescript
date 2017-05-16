@@ -20,7 +20,6 @@ nice.define(nice, 'expectPrototype', {
   },
 
   toMatch: function(f){
-    console.log(this.value);
     if(!f(this.value))
       throw this.message || ('Value does not match function ' + f);
   }

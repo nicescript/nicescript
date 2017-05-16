@@ -22,7 +22,6 @@ var order = [
   'core/expect',
   'div/div',
   'div/tags',
-  'div/switch_buttons',
   'div/paged_list',
   'div/inputs'
 ];

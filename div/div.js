@@ -175,8 +175,7 @@ function childToDom(c){
     return res;
   }
 
-  nice.error('Bad child');
-  console.log(c);
+  nice.error('Bad child', c);
   return document.createTextNode('' + c);
 }
 

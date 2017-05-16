@@ -1740,7 +1740,6 @@ nice.Type(nice.ClassPrototype);
   },
 
   toMatch: function(f){
-    console.log(this.value);
     if(!f(this.value))
       throw this.message || ('Value does not match function ' + f);
   }
@@ -1939,8 +1938,7 @@ function childToDom(c){
     return res;
   }
 
-  nice.error('Bad child');
-  console.log(c);
+  nice.error('Bad child', c);
   return document.createTextNode('' + c);
 }
 
@@ -2020,26 +2018,6 @@ nice.block('A', (z, url) => {
 
 
 nice.block('Img', (z, src) => z.tag('img').src(src));
-})();
-(function(){"use strict";nice.block('SwitchButtons')
-  .Item('current')
-  .Item('button')
-  .Item('selectedButton')
-  .initBy((z, ...options) => {
-    z.selectedButton(b => b.fontWeight('bold'))
-    .button(b => b.fontWeight('normal'));
-    
-    options.forEach(option => {
-      var button = z.Span(option).on('click', (e, b) => z.current(option));
-      z.current.listenBy(c => c() === option 
-        ? z.selectedButton()(button)
-        : z.button()(button));
-      return button;
-    });
-    
-    z.button.listenBy(s => z.children.each(c => s()(c)));
-  });
-
 })();
 (function(){"use strict";nice.block('PagedList')
   .Number('step', z => z(10))
