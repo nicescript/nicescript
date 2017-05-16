@@ -524,7 +524,7 @@ var isProto = {
       return !Object.keys(item).length;
 
     return !item;
-  },
+  }
 };
 
 
@@ -1330,9 +1330,12 @@ nice.Type(nice.NumberPrototype);
   map: function (f) { return this().map(f); },
 
   filter: function (f) {
-    var source = this;
-    var res = nice.Array().by(z => z(...z.use(source)().filter(f)));
-    return res;
+    return nice.Array().by(z => z(...z.use(this)().filter(f)));
+  },
+
+  sortBy: function (f) {
+    f = f || (v => v);
+    return nice.Array().by(z => z(nice.sortBy(f, z.use(this)())));
   },
 
   size: function () { return this().length; },
@@ -1981,6 +1984,7 @@ function dom(){
 
   var pane = z.pane = document.createElement(z.tag());
   z.bindPane(pane);
+  z.isFocused && z.pane.focus();
   return pane;
 };
 
@@ -2104,7 +2108,7 @@ nice.block('Img', (z, src) => z.tag('img').src(src));
   })
   .Method(function focus(){
     this.pane && this.pane.focus();
-//    this.isFocused = 1;
+    this.isFocused = 1;
     return this;
   });
 
@@ -2136,7 +2140,7 @@ nice.block('Textarea')
   })
   .Method(function focus(){
     this.pane && this.pane.focus();
-//    this.isFocused = 1;
+    this.isFocused = 1;
     return this;
   });
 

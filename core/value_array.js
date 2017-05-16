@@ -67,7 +67,8 @@ nice.ArrayPrototype = {
   },
 
   sortBy: function (f) {
-    return nice.Array().by(z => z(nice.sortBy(f, z.use(use)())));
+    f = f || (v => v);
+    return nice.Array().by(z => z(nice.sortBy(f, z.use(this)())));
   },
 
   size: function () { return this().length; },

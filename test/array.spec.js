@@ -71,6 +71,13 @@ describe("Nice Array", function() {
   });
 
 
+  it("sortBy", () => {
+    var a = nice.Array(4, 3, 5);
+    expect(a.sortBy()()).to.deep.equal([3,4,5]);
+    expect(a.sortBy(v => -v)()).to.deep.equal([5,4,3]);
+  });
+
+
   it("find", () => {
     var a = nice.Array(1, 2, 3, 4, 5);
     expect(a.find(n => n % 2 === 0)).to.equal(2);
