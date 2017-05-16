@@ -16,7 +16,7 @@
     "build": "node build.js"
   },
   "license": "MIT",
-  "description": "",
+  "description": "Reactive JavaScript library designed to reduce amount of boilerplate code on client and server.",
   "engines" : {
     "node" : ">=6.0" 
   },
