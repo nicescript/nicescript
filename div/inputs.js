@@ -47,7 +47,7 @@ nice.block('Textarea')
 
     z.value.listenBy(v => {
       z.pane && (z.pane.value = v());
-      z.children.clear()(v());
+      z.children.resetValue()(v());
       return true;
     });
 

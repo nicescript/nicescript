@@ -50,13 +50,13 @@ describe("Map", function() {
   });
 
 
-  it("clear", () => {
+  it("resetValue", () => {
     var m = nice.Map({"qwe": 2, "asd": 1});
     var spy = chai.spy();
     m.listenBy(spy);
 
     expect(m.size()).to.equal(2);
-    m.clear();
+    m.resetValue();
     expect(m.size()).to.equal(0);
     expect(m()).to.deep.equal({});
     expect(spy).to.have.been.called.twice.with(m);
@@ -191,5 +191,28 @@ describe("Map", function() {
     expect(max()).to.equal(1);
   });
 
+
+  it("reduce", function(){
+    var a = nice.Map({a: 1, b: 2, c: 4});
+    expect(a.reduce((sum, n) => sum + n, 0)()).to.equal(7);
+  });
+
+
+  it("reduceTo", function(){
+    var a = nice.Map({a: 1, b: 2, c: 4});
+    var sum = a.reduceTo((sum, n) => sum.inc(n), nice.Number());
+    expect(sum()).to.equal(7);
+    a('d', 6);
+    expect(sum()).to.equal(13);
+  });
+
+
+  it("reduceTo.Type", function(){
+    var a = nice.Map({a: 1, b: 2, c: 4});
+    var sum = a.reduceTo.Number((sum, n) => sum.inc(n));
+    expect(sum()).to.equal(7);
+    a('d', 5);
+    expect(sum()).to.equal(12);
+  });
 
 });

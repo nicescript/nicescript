@@ -3,8 +3,8 @@
 });
 
 nice.block('A', (z, url) => {
-    z.tag('a');
-    nice.is.Function(url) ? z.on('click', url).href('#') : z.href(url || '#');
+  z.tag('a');
+  nice.is.Function(url) ? z.on('click', url).href('#') : z.href(url || '#');
 });
 
 

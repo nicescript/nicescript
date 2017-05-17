@@ -52,7 +52,7 @@ nice.defineAll(nice, {
   },
   ObjectPrototype: {_typeTitle: 'Object'},
   ClassPrototype: {_typeTitle: 'Class'},
-  ReducePrototype: {},
+  collectionReducers: {},
   itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
 
   _initItem: function (item, proto){
@@ -119,16 +119,19 @@ nice.defineAll(nice, {
   kill: item => {
     nice.each(s => s.cancel(), item._subscriptions);
     nice.each(c => nice.kill(c), item._children);
-  },
+  }
 });
 
 
-function defineReducer(proto) {
-  if(!proto._typeTitle)
+function defineReducer({_typeTitle: title}) {
+  if(!title)
     return;
-  nice.reduceTo[proto._typeTitle] = nice.curry(function(f, collection){
-    return nice.reduceTo(f, nice[proto._typeTitle](), collection);
+  nice.reduceTo[title] = nice.curry(function(f, collection){
+    return nice.reduceTo(f, nice[title](), collection);
   });
+  nice.collectionReducers[title] = function(f){
+    return this.collection.reduceTo(f, nice[title]());
+  };
 }
 
 

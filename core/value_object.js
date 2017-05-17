@@ -49,11 +49,11 @@ nice.defineAll(nice.ObjectPrototype, {
     return this;
   },
 
-  clear: function (){
+  resetValue: function (){
     this.transactionStart();
     var data = this._getData();
     for (let i in data)
-      this[i].clear();
+      this[i].resetValue();
     this.transactionEnd();
   },
 

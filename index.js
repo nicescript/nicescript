@@ -53,7 +53,7 @@ nice.defineAll(nice, {
   },
   ObjectPrototype: {_typeTitle: 'Object'},
   ClassPrototype: {_typeTitle: 'Class'},
-  ReducePrototype: {},
+  collectionReducers: {},
   itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
 
   _initItem: function (item, proto){
@@ -120,16 +120,19 @@ nice.defineAll(nice, {
   kill: item => {
     nice.each(s => s.cancel(), item._subscriptions);
     nice.each(c => nice.kill(c), item._children);
-  },
+  }
 });
 
 
-function defineReducer(proto) {
-  if(!proto._typeTitle)
+function defineReducer({_typeTitle: title}) {
+  if(!title)
     return;
-  nice.reduceTo[proto._typeTitle] = nice.curry(function(f, collection){
-    return nice.reduceTo(f, nice[proto._typeTitle](), collection);
+  nice.reduceTo[title] = nice.curry(function(f, collection){
+    return nice.reduceTo(f, nice[title](), collection);
   });
+  nice.collectionReducers[title] = function(f){
+    return this.collection.reduceTo(f, nice[title]());
+  };
 }
 
 
@@ -165,6 +168,40 @@ function _prop(target, proto, name, byF){
   });
   byF && target[name];
 }
+})();
+(function(){"use strict";var proto = {
+  reduce: function(f, init){
+    return nice.Item().by(z => {
+      var val = nice.clone(init);
+      var a = z.use(this);
+      a.each((v, k) => val = f(val, v, k));
+      return z(val);
+    });
+  }
+};
+
+
+Object.defineProperty(proto, 'reduceTo', { get: function() {
+  var f = (f, item) => item.by(z => {
+    item.resetValue();
+    z.use(this).each((v, k) => f(item, v, k));
+  });
+
+  f.collection = this;
+
+  return nice.new(nice.collectionReducers, f);
+}});
+
+
+['max','min','hypot'].forEach(name => {
+  nice.define(proto, name, function (f) {
+    return nice.Number().by(z =>
+      z(Math[name](...nice.mapArray(f || (v => v), z.use(this)())))
+    );
+  });
+});
+
+nice.define(nice, 'CollectionPrototype', proto);
 })();
 (function(){"use strict";var formatRe = /(%([jds%]))/g;
 var formatMap = { s: String, d: Number, j: JSON.stringify };
@@ -550,9 +587,7 @@ nice.each(lastIs => {
   } } );
 }, nice.is);
 })();
-(function(){"use strict";var notificationCounter = 0;
-
-nice.define(nice, 'item', (initValue, proto) => {
+(function(){"use strict";nice.define(nice, 'item', (initValue, proto) => {
   var f = nice.ItemPrototype._creator();
   nice._initItem(f, proto || nice.ItemPrototype);
   initValue && f(initValue);
@@ -576,7 +611,7 @@ nice.ItemPrototype = {
 
   _default: () => undefined,
 
-  clear: function (){
+  resetValue: function (){
     this.set(this._default());
   },
 
@@ -895,7 +930,6 @@ nice.ItemPrototype = {
 };
 
 nice.FunctionsSet(nice.ItemPrototype, 'onAdd', z => nice.activateItem(z));
-
 nice.FunctionsSet(nice.ItemPrototype, 'onRemove', z => nice.activateItem(z));
 
 nice.define(nice.ItemPrototype, 'onEach', function (f){
@@ -904,8 +938,8 @@ nice.define(nice.ItemPrototype, 'onEach', function (f){
   return this;
 });
 
-Object.setPrototypeOf(nice.ItemPrototype, Function.prototype);
-nice.Type(nice.ItemPrototype);
+nice.new(nice.ItemPrototype, nice.CollectionPrototype);
+nice.Type(nice.new(Function.prototype, nice.ItemPrototype));
 })();
 (function(){"use strict";const RESOLVING = 'RESOLVING';
 const RESOLVED = 'RESOLVED';
@@ -1263,16 +1297,6 @@ nice.Type(nice.BooleanPrototype);
 nice.Type(nice.NumberPrototype);
 
 })();
-(function(){"use strict";nice.define(nice, function collectionMethods(o) {
-  ['max','min','hypot'].forEach(name => {
-    nice.define(o, name, function (f) {
-      return nice.Number().by(z =>
-        z(Math[name](...nice.mapArray(f || (v => v), z.use(this)())))
-      );
-    });
-  });
-});
-})();
 (function(){"use strict";nice.ArrayPrototype = {
   _typeTitle: 'Array',
 
@@ -1315,7 +1339,7 @@ nice.Type(nice.NumberPrototype);
     return this;
   },
 
-  clear: function () {
+  resetValue: function () {
     if(this._getData().length) {
       this.transactionStart();
       this._setData([]);
@@ -1424,15 +1448,9 @@ nice.Type(nice.NumberPrototype);
       z(i);
     });
   },
-
-  reduce: function(f, item){
-    this.each((v, k) => f(item, v, k, this));
-    return item;
-  }
 };
 
-nice.collectionMethods(nice.ArrayPrototype);
-nice.Type(nice.ArrayPrototype);
+nice.Type(nice.new(nice.CollectionPrototype, nice.ArrayPrototype));
 
 })();
 (function(){"use strict";nice.MapPrototype = {
@@ -1463,7 +1481,7 @@ nice.Type(nice.ArrayPrototype);
 
   _default: () => { return {}; },
 
-  clear: function () {
+  resetValue: function () {
     return this.transactionEach((v, k) => this.delete(k));
   },
 
@@ -1562,7 +1580,7 @@ nice.Type(nice.ArrayPrototype);
 Object.defineProperty(nice.MapPrototype, 'values', {get: function(){
   var res = nice.Array();
   this.listenBy(() => {
-    res.clear();
+    res.resetValue();
     this.each(v => res(v));
   });
   return res;
@@ -1572,22 +1590,19 @@ Object.defineProperty(nice.MapPrototype, 'values', {get: function(){
 Object.defineProperty(nice.MapPrototype, 'keys', {get: function(){
   var res = nice.Array();
   this.listenBy(() => {
-    res.clear();
+    res.resetValue();
     this.each((v,k) => res(k));
   });
   return res;
 }});
 
-nice.MapPrototype['mapObject'] = nice.MapPrototype['map'];
-
-nice.collectionMethods(nice.MapPrototype);
+nice.MapPrototype.mapObject = nice.MapPrototype.map;
 
 ['findKey'].forEach(k => {
   nice.MapPrototype[k] = function(f) { return nice[k](f, this()); }
 });
 
-
-nice.Type(nice.MapPrototype);
+nice.Type(nice.new(nice.CollectionPrototype, nice.MapPrototype));
 })();
 (function(){"use strict";nice.ObjectPrototype._creator = () => {
   var f = nice.stripFunction(function (...a){
@@ -1640,11 +1655,11 @@ nice.defineAll(nice.ObjectPrototype, {
     return this;
   },
 
-  clear: function (){
+  resetValue: function (){
     this.transactionStart();
     var data = this._getData();
     for (let i in data)
-      this[i].clear();
+      this[i].resetValue();
     this.transactionEnd();
   },
 
@@ -2020,8 +2035,8 @@ nice.Div.wrapParts = function(text, pattern){
 });
 
 nice.block('A', (z, url) => {
-    z.tag('a');
-    nice.is.Function(url) ? z.on('click', url).href('#') : z.href(url || '#');
+  z.tag('a');
+  nice.is.Function(url) ? z.on('click', url).href('#') : z.href(url || '#');
 });
 
 
@@ -2118,7 +2133,7 @@ nice.block('Textarea')
 
     z.value.listenBy(v => {
       z.pane && (z.pane.value = v());
-      z.children.clear()(v());
+      z.children.resetValue()(v());
       return true;
     });
 

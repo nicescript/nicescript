@@ -176,7 +176,7 @@ describe("Object", function() {
   });
 
 
-  it("clear", function(done){
+  it("resetValue", function(done){
     var city = nice.Object()
       .String('name')
       .Number('size');
@@ -186,7 +186,7 @@ describe("Object", function() {
       expect(z.size()).to.equal(0);
       done();
     });
-    city.clear();
+    city.resetValue();
   });
 
 

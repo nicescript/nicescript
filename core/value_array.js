@@ -40,7 +40,7 @@ nice.ArrayPrototype = {
     return this;
   },
 
-  clear: function () {
+  resetValue: function () {
     if(this._getData().length) {
       this.transactionStart();
       this._setData([]);
@@ -149,12 +149,6 @@ nice.ArrayPrototype = {
       z(i);
     });
   },
-
-  reduce: function(f, item){
-    this.each((v, k) => f(item, v, k, this));
-    return item;
-  }
 };
 
-nice.collectionMethods(nice.ArrayPrototype);
-nice.Type(nice.ArrayPrototype);
+nice.Type(nice.new(nice.CollectionPrototype, nice.ArrayPrototype));

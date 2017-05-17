@@ -1,5 +1,3 @@
-var notificationCounter = 0;
-
 nice.define(nice, 'item', (initValue, proto) => {
   var f = nice.ItemPrototype._creator();
   nice._initItem(f, proto || nice.ItemPrototype);
@@ -24,7 +22,7 @@ nice.ItemPrototype = {
 
   _default: () => undefined,
 
-  clear: function (){
+  resetValue: function (){
     this.set(this._default());
   },
 
@@ -343,7 +341,6 @@ nice.ItemPrototype = {
 };
 
 nice.FunctionsSet(nice.ItemPrototype, 'onAdd', z => nice.activateItem(z));
-
 nice.FunctionsSet(nice.ItemPrototype, 'onRemove', z => nice.activateItem(z));
 
 nice.define(nice.ItemPrototype, 'onEach', function (f){
@@ -352,5 +349,5 @@ nice.define(nice.ItemPrototype, 'onEach', function (f){
   return this;
 });
 
-Object.setPrototypeOf(nice.ItemPrototype, Function.prototype);
-nice.Type(nice.ItemPrototype);
+nice.new(nice.ItemPrototype, nice.CollectionPrototype);
+nice.Type(nice.new(Function.prototype, nice.ItemPrototype));

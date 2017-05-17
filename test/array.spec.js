@@ -289,10 +289,33 @@ describe("Nice Array", function() {
   });
 
 
-  it("clear", function(){
+  it("resetValue", function(){
     var a = nice.Array(1, 2);
-    a.clear();
+    a.resetValue();
     expect(a()).to.deep.equal([]);
   });
 
+
+  it("reduce", function(){
+    var a = nice.Array(1, 2, 4);
+    expect(a.reduce((sum, n) => sum + n, 0)()).to.equal(7);
+  });
+
+
+  it("reduceTo", function(){
+    var a = nice.Array(1, 2, 4);
+    var sum = a.reduceTo((sum, n) => sum.inc(n), nice.Number());
+    expect(sum()).to.equal(7);
+    a(6);
+    expect(sum()).to.equal(13);
+  });
+
+
+  it("reduceTo.Type", function(){
+    var a = nice.Array(1, 2, 4);
+    var sum = a.reduceTo.Number((sum, n) => sum.inc(n));
+    expect(sum()).to.equal(7);
+    a(5);
+    expect(sum()).to.equal(12);
+  });
 });

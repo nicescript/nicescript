@@ -1,3 +1,5 @@
+//TODO: resetValue should call initBy
+
 //TODO: nice.expect(x).toBe.Function.or.Item();
 
 //TODO: promise integration

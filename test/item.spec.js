@@ -360,10 +360,10 @@ describe("Item", function() {
   });
 
 
-  it("clear", function(){
+  it("resetValue", function(){
     var n = nice.Item(5);
     expect(n()).to.equal(5);
-    n.clear();
+    n.resetValue();
     expect(n()).to.equal(undefined);
   });
 

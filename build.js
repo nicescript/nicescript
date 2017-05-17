@@ -4,6 +4,7 @@ var wrap = s => '\n(function(){"use strict";' + s + '\n})();';
 
 var order = [
   'core/core',
+  'core/collection',
   'core/utils',
   'core/is',
   'core/item',
@@ -13,7 +14,6 @@ var order = [
   'core/value_string',
   'core/value_boolean',
   'core/value_number',
-  'core/collection',
   'core/value_array',
   'core/value_map',
   'core/value_object',
