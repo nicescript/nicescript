@@ -40,11 +40,22 @@ describe("Nice utils", function() {
   });
 
 
-  it("reduceToObject", function() {
-    var a = ['a', 'b'];
-    var o = nice.reduceToObject(a, (res, v, k) => res[v] = k);
-    expect(o.a).to.equal(0);
-    expect(o.b).to.equal(1);
+  it("reduce", () => {
+    var a = [1, 3, 6];
+    expect(nice.reduce((sum, n) => sum + n, 0, a)).to.equal(10);
+  });
+
+
+  it("reduceTo", () => {
+    var a = [1, 3, 6];
+    expect(nice.reduceTo((sum, n) => sum.inc(n), nice.Number(), a)())
+        .to.equal(10);
+  });
+
+
+  it("reduceTo.Type", () => {
+    var a = [1, 3, 6];
+    expect(nice.reduceTo.Number((sum, n) => sum.inc(n), a)()).to.equal(10);
   });
 
 

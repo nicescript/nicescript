@@ -52,6 +52,7 @@ nice.defineAll(nice, {
   },
   ObjectPrototype: {_typeTitle: 'Object'},
   ClassPrototype: {_typeTitle: 'Class'},
+  ReducePrototype: {},
   itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
 
   _initItem: function (item, proto){
@@ -111,6 +112,7 @@ nice.defineAll(nice, {
     nice.valueTypes[name] = proto;
     nice.define(nice, name, f);
     defineObjectsProperty(proto);
+    defineReducer(proto);
     return proto;
   },
 
@@ -120,6 +122,14 @@ nice.defineAll(nice, {
   },
 });
 
+
+function defineReducer(proto) {
+  if(!proto._typeTitle)
+    return;
+  nice.reduceTo[proto._typeTitle] = nice.curry(function(f, collection){
+    return nice.reduceTo(f, nice[proto._typeTitle](), collection);
+  });
+}
 
 
 function defineObjectsProperty(proto){

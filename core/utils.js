@@ -6,9 +6,9 @@ nice.orderedStringify = function (o) {
     ? JSON.stringify(o)
     : Array.isArray(o)
       ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
-      : '{' + nice.reduceToArray((a, key) => {
+      : '{' + nice.reduceTo((a, key) => {
           a.push("\"" + key + '\":' + nice.orderedStringify(o[key]));
-        }, Object.keys(o).sort()).join(',') + '}';
+        }, [], Object.keys(o).sort()).join(',') + '}';
 };
 
 
@@ -48,26 +48,24 @@ nice.objDiggMax = (o, ...args) => {
 
 
 nice.objMax = (...oo) => {
-  return nice.reduceToObject(oo, (res, o) => {
+  return nice.reduceTo((res, o) => {
     nice.each((v, k) => {
       var old = res[k] || 0;
       old < v && (res[k] = v);
     }, o);
-  });
+  }, {}, oo);
 };
 
 
-nice.reduceToObject = (collection, f) => {
-  var res = {};
-  nice.each( (v, k) => f(res, v, k, collection), collection);
-  return res;
+nice.reduce = (f, init, o) => {
+  nice.each(((v, k) => init = f(init, v, k, o)), o);
+  return init;
 };
 
 
-nice.reduceToArray = (f, o) => {
-  var res = [];
-  nice.each(((v, k) => f(res, v, k, o)), o);
-  return res;
+nice.reduceTo = (f, item, o) => {
+  nice.each(((v, k) => f(item, v, k, o)), o);
+  return item;
 };
 
 
