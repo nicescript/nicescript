@@ -9,7 +9,6 @@
     "reactive"
   ],
   "author": "Sergey Kashulin",
-  "licence": "MIT",
   "main": "index.js",
   "scripts": {
     "test": "mocha --reporter spec",
