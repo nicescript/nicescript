@@ -56,7 +56,7 @@ var list = nice.PagedList().step(3)
       var text = z.use(search.value)();
       var type = z.use(currentFilter);
       return z.use(tasks)
-        .filter(task => task.text().includes(text) 
+        .filter(task => task.text().toLowerCase().includes(text) 
           && type.is('All') || (task.status() ? type.is('Done') : type.is('New')))
         .sortBy(task => task.status())
         .map(task => task.show());
