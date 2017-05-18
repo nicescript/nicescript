@@ -130,7 +130,7 @@ nice.compileStyle = function(div){
 function html(){
   var div = this;
   return nice.String().by(z => {
-    z.tryOnce(div);
+    z.try(div);
     var children = div.actualChildren || div.children;
     var tag = div.tag();
     var a = ['<', tag];
