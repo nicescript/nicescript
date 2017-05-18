@@ -1,9 +1,11 @@
 nice.defineAll(nice.ItemPrototype, {
   transactionStart: function(){
-    this._transactionDepth = this._transactionDepth || 0;
+    if(!this._transactionDepth){
+      this._transactionDepth = 0;
+      this._transactionResult = nice.clone(this._getData());
+      this._transactionStart = 1;
+    }
     this._transactionDepth++;
-    this._transactionResult = nice.clone(this._getData());
-    this._transactionStart = 1;
     return this;
   },
 
@@ -36,12 +38,9 @@ nice.defineAll(nice.ItemPrototype, {
     this._compareItems(
       old,
       this._getData(),
-      (v, k) => {
-        this.hasOwnProperty('onAdd') && this.onAdd.callEach(v, k);
-      },
-      (v, k) => {
-        this.hasOwnProperty('onRemove') && this.onRemove.callEach(v, k);
-      });
+      this.hasOwnProperty('onAdd') ? this.onAdd.callEach : () => {},
+      this.hasOwnProperty('onRemove') ? this.onRemove.callEach : () => {}
+    );
   },
 
   transactionRollback: function(){
