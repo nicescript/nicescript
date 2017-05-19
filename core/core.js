@@ -50,8 +50,8 @@ nice.defineAll(nice, {
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length);
   },
-  ObjectPrototype: {_typeTitle: 'Object'},
-  ClassPrototype: {_typeTitle: 'Class'},
+  ObjectPrototype: { _typeTitle: 'Object'},
+  classPrototype: { _typeTitle: 'Class'},
   collectionReducers: {},
   itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
 
@@ -63,27 +63,6 @@ nice.defineAll(nice, {
         item[i]._by && item._childrenBy();
       }
     }
-  },
-
-  Type: proto => {
-    nice.is.Object.or.Function(proto)
-      || nice.error("Need object for type's prototype");
-
-    nice.ItemPrototype.isPrototypeOf(proto)
-      || nice.ItemPrototype === proto
-      || Object.setPrototypeOf(proto, nice.ItemPrototype);
-
-    var f = (...a) => {
-      var res = proto._creator();
-      nice._initItem(res, proto);
-      res._constructor(res, ...a);
-      return res;
-    };
-
-    proto.hasOwnProperty('_typeTitle') && proto._typeTitle
-      && nice.defineType(f, proto);
-
-    return f;
   },
 
   _createItem: (proto, container, name) => {
@@ -103,67 +82,8 @@ nice.defineAll(nice, {
     return res;
   },
 
-  defineType: function(f, proto){
-    var name = proto._typeTitle;
-
-    name[0] !== name[0].toUpperCase() &&
-      nice.error('Please start type name with a upper case letter');
-
-    nice.valueTypes[name] = proto;
-    nice.define(nice, name, f);
-    defineObjectsProperty(proto);
-    defineReducer(proto);
-    return proto;
-  },
-
   kill: item => {
     nice.each(s => s.cancel(), item._subscriptions);
     nice.each(c => nice.kill(c), item._children);
   }
 });
-
-
-function defineReducer({_typeTitle: title}) {
-  if(!title)
-    return;
-  nice.reduceTo[title] = nice.curry(function(f, collection){
-    return nice.reduceTo(f, nice[title](), collection);
-  });
-  nice.collectionReducers[title] = function(f){
-    return this.collection.reduceTo(f, nice[title]());
-  };
-}
-
-
-function defineObjectsProperty(proto){
-  nice.define(nice.ObjectPrototype, proto._typeTitle, function (name, initBy) {
-    _prop(this, proto, name, initBy);
-    this.resolve();
-    return this;
-  });
-  nice.define(nice.ClassPrototype, proto._typeTitle, function (name, initBy) {
-    _prop(this.itemProto, proto, name, initBy);
-    return this;
-  });
-}
-
-
-function _prop(target, proto, name, byF){
-  if(nice.is.Function(name) && name.name){
-    byF = name;
-    name = byF.name;
-  }
-  Object.defineProperty(target, name, { get:
-    function(){
-      this._children = this._children || {};
-      var res = this._children[name];
-      if(!res){
-        var res = nice._createItem(proto, this, name);
-        byF && res.by(byF.bind(this));
-        this._children[name] = res;
-      }
-      return res;
-    }
-  });
-  byF && target[name];
-}

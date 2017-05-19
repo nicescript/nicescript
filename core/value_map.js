@@ -27,7 +27,10 @@ nice.MapPrototype = {
   _default: () => { return {}; },
 
   resetValue: function () {
-    return this.transactionEach((v, k) => this.delete(k));
+    this.transactionStart();
+    this.each((v, k) => this.delete(k));
+    this._constructor(this);
+    this.transactionEnd();
   },
 
   has: function (k) {
@@ -141,7 +144,7 @@ Object.defineProperty(nice.MapPrototype, 'keys', {get: function(){
 nice.MapPrototype.mapObject = nice.MapPrototype.map;
 
 ['findKey'].forEach(k => {
-  nice.MapPrototype[k] = function(f) { return nice[k](f, this()); }
+  nice.MapPrototype[k] = function(f) { return nice[k](f, this()); };
 });
 
 nice.Type(nice.new(nice.CollectionPrototype, nice.MapPrototype));

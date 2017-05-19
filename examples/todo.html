@@ -13,10 +13,10 @@ nice.Class('Task')
   .Boolean('status')
   .Number('date')
   .Method(function show(){
-    return nice.Div().padding("1em 0")//.borderBottom("1px #eee solid")
+    return nice.Div().padding("1em 0")
       .Checkbox(this.status()).onSwitch(isOn => this.status(isOn)).up
-      .Span(this.text()).marginLeft("1em")
-        .by(z => z.textDecoration(z.use(this.status)() ? 'line-through' : 'none'))
+      .Span().by(z => z.add(this.text()).marginLeft(".5em")
+          .textDecoration(z.use(this.status)() ? 'line-through' : 'none'))
         .up
       .Div().add(new Date(this.date()).toLocaleString().slice(0, 24))
         .color('gray').fontSize('.7em').marginTop('.3em').up;

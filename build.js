@@ -4,8 +4,9 @@ var wrap = s => '\n(function(){"use strict";' + s + '\n})();';
 
 var order = [
   'core/core',
-  'core/collection',
   'core/utils',
+  'core/type',
+  'core/collection',
   'core/is',
   'core/item',
   'core/subscription',

@@ -23,7 +23,11 @@ nice.ItemPrototype = {
   _default: () => undefined,
 
   resetValue: function (){
-    this.set(this._default());
+    if(this._locked)
+      throw nice.LOCKED_ERROR;
+
+    this._setData(this._default());
+    this._constructor(this);
   },
 
   _constructor: (z, ...v) => z(...v),
@@ -132,7 +136,7 @@ nice.ItemPrototype = {
       return source;
 
     var subscription = nice.subscription(source, this).skip(1).onlyOnce();
-    subscription.resolve()
+    subscription.resolve();
     subscription.skip(0);
     throw nice.NOT_RESOLVED;
   },
@@ -170,6 +174,7 @@ nice.ItemPrototype = {
     this._oldSubscriptions = this._subscriptions;
     this._subscriptions = [];
     try {
+      this.resetValue();
       this._by(this);
     } catch (e) {
       if(e === nice.NOT_RESOLVED)
@@ -206,7 +211,7 @@ nice.ItemPrototype = {
   },
 
   extends: function(type){
-    nice.is.String(type) && (type = nice.valueTypes[type]);
+    type = nice.type(type);
 
     if(!nice.ItemPrototype.isPrototypeOf(type))
       return nice.error('Bad prototype to extend');

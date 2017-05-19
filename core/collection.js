@@ -11,8 +11,8 @@ var proto = {
 
 
 Object.defineProperty(proto, 'reduceTo', { get: function() {
-  var f = (f, item) => item.by(z => {
-    item.resetValue();
+  var f = (f, item, init) => item.by(z => {
+    init && init(z);
     z.use(this).each((v, k) => f(item, v, k));
   });
 
@@ -20,6 +20,18 @@ Object.defineProperty(proto, 'reduceTo', { get: function() {
 
   return nice.new(nice.collectionReducers, f);
 }});
+
+
+nice.onType(function defineReducer({title}) {
+  if(!title)
+    return;
+  nice.reduceTo[title] = nice.curry(function(f, collection){
+    return nice.reduceTo(f, nice[title](), collection);
+  });
+  nice.collectionReducers[title] = function(f, init){
+    return this.collection.reduceTo(f, nice[title](), init);
+  };
+});
 
 
 ['max','min','hypot'].forEach(name => {

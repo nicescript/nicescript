@@ -51,8 +51,8 @@ nice.defineAll(nice, {
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length);
   },
-  ObjectPrototype: {_typeTitle: 'Object'},
-  ClassPrototype: {_typeTitle: 'Class'},
+  ObjectPrototype: { _typeTitle: 'Object'},
+  classPrototype: { _typeTitle: 'Class'},
   collectionReducers: {},
   itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
 
@@ -64,27 +64,6 @@ nice.defineAll(nice, {
         item[i]._by && item._childrenBy();
       }
     }
-  },
-
-  Type: proto => {
-    nice.is.Object.or.Function(proto)
-      || nice.error("Need object for type's prototype");
-
-    nice.ItemPrototype.isPrototypeOf(proto)
-      || nice.ItemPrototype === proto
-      || Object.setPrototypeOf(proto, nice.ItemPrototype);
-
-    var f = (...a) => {
-      var res = proto._creator();
-      nice._initItem(res, proto);
-      res._constructor(res, ...a);
-      return res;
-    };
-
-    proto.hasOwnProperty('_typeTitle') && proto._typeTitle
-      && nice.defineType(f, proto);
-
-    return f;
   },
 
   _createItem: (proto, container, name) => {
@@ -104,104 +83,12 @@ nice.defineAll(nice, {
     return res;
   },
 
-  defineType: function(f, proto){
-    var name = proto._typeTitle;
-
-    name[0] !== name[0].toUpperCase() &&
-      nice.error('Please start type name with a upper case letter');
-
-    nice.valueTypes[name] = proto;
-    nice.define(nice, name, f);
-    defineObjectsProperty(proto);
-    defineReducer(proto);
-    return proto;
-  },
-
   kill: item => {
     nice.each(s => s.cancel(), item._subscriptions);
     nice.each(c => nice.kill(c), item._children);
   }
 });
 
-
-function defineReducer({_typeTitle: title}) {
-  if(!title)
-    return;
-  nice.reduceTo[title] = nice.curry(function(f, collection){
-    return nice.reduceTo(f, nice[title](), collection);
-  });
-  nice.collectionReducers[title] = function(f){
-    return this.collection.reduceTo(f, nice[title]());
-  };
-}
-
-
-function defineObjectsProperty(proto){
-  nice.define(nice.ObjectPrototype, proto._typeTitle, function (name, initBy) {
-    _prop(this, proto, name, initBy);
-    this.resolve();
-    return this;
-  });
-  nice.define(nice.ClassPrototype, proto._typeTitle, function (name, initBy) {
-    _prop(this.itemProto, proto, name, initBy);
-    return this;
-  });
-}
-
-
-function _prop(target, proto, name, byF){
-  if(nice.is.Function(name) && name.name){
-    byF = name;
-    name = byF.name;
-  }
-  Object.defineProperty(target, name, { get:
-    function(){
-      this._children = this._children || {};
-      var res = this._children[name];
-      if(!res){
-        var res = nice._createItem(proto, this, name);
-        byF && res.by(byF.bind(this));
-        this._children[name] = res;
-      }
-      return res;
-    }
-  });
-  byF && target[name];
-}
-})();
-(function(){"use strict";var proto = {
-  reduce: function(f, init){
-    return nice.Item().by(z => {
-      var val = nice.clone(init);
-      var a = z.use(this);
-      a.each((v, k) => val = f(val, v, k));
-      return z(val);
-    });
-  }
-};
-
-
-Object.defineProperty(proto, 'reduceTo', { get: function() {
-  var f = (f, item) => item.by(z => {
-    item.resetValue();
-    z.use(this).each((v, k) => f(item, v, k));
-  });
-
-  f.collection = this;
-
-  return nice.new(nice.collectionReducers, f);
-}});
-
-
-['max','min','hypot'].forEach(name => {
-  nice.define(proto, name, function (f) {
-    return nice.Number().by(z =>
-      z(Math[name](...nice.mapArray(f || (v => v), z.use(this)())))
-    );
-  });
-});
-
-nice.define(nice, 'CollectionPrototype', proto);
 })();
 (function(){"use strict";var formatRe = /(%([jds%]))/g;
 var formatMap = { s: String, d: Number, j: JSON.stringify };
@@ -522,7 +409,7 @@ nice.defineAll({
     .Number('lastCall')
     .Number('timeout')
     .Boolean('callOnEnd', z => z(true))
-    .Item('lastResult'),
+    .Item('lastResult')
 });
 
 nice.defineAll(nice, {
@@ -576,7 +463,7 @@ function compareObjects(a, b){
     if(a[i] !== b[i]){
       var change = calculateChanges(a[i], b[i]);
       if(change){
-        res = res || {}
+        res = res || {};
         res[i] = change;
       }
     }
@@ -597,6 +484,126 @@ function calculateChanges(a, b){
       return b;
   }
 }
+})();
+(function(){"use strict";nice.defineAll(nice, {
+  types: {},
+
+  typePrototype: {
+    initBy: function(f){
+      this.itemProto._constructor = (z, ...a) => {
+        nice.ObjectPrototype._constructor(z);
+        f(z, ...a);
+      };
+      return this;
+    },
+
+    extends: function(type){
+      nice.is.String(type) && (type = nice.class(type));
+      nice.new(type, this);
+      nice.new(type.itemProto, this.itemProto);
+      return this;
+    },
+  },
+
+  type: t => {
+    nice.is.String(t) && (t = nice[t]);
+    nice.expect(nice.typePrototype.isPrototypeOf(t)).toBe();
+    return t;
+  },
+
+  Type: proto => {
+    nice.is.Object.or.Function(proto)
+      || nice.error("Need object for type's prototype");
+
+    nice.ItemPrototype.isPrototypeOf(proto)
+      || nice.ItemPrototype === proto
+      || Object.setPrototypeOf(proto, nice.ItemPrototype);
+
+    var f = (...a) => {
+      var res = proto._creator();
+      nice._initItem(res, proto);
+      res._constructor(res, ...a);
+      return res;
+    };
+    f.itemPrototype = proto;
+    nice.new(nice.typePrototype, f);
+
+    proto.hasOwnProperty('_typeTitle') && proto._typeTitle
+      && nice.registerType(f, proto);
+
+    return f;
+  },
+
+  registerType: function(type, proto){
+    var title = proto._typeTitle;
+
+    title[0] !== title[0].toUpperCase() &&
+      nice.error('Please start type name with a upper case letter');
+
+    type.title = title;
+    nice.types[title] = type;
+    nice._onType.forEach(f => f(type));
+
+    nice.valueTypes[title] = proto;
+    nice.define(nice, title, type);
+    return proto;
+  },
+
+  _onType: [],
+
+  onType: f => {
+    nice.each(f, nice.types);
+    nice._onType.push(f);
+  }
+
+});
+
+})();
+(function(){"use strict";var proto = {
+  reduce: function(f, init){
+    return nice.Item().by(z => {
+      var val = nice.clone(init);
+      var a = z.use(this);
+      a.each((v, k) => val = f(val, v, k));
+      return z(val);
+    });
+  }
+};
+
+
+Object.defineProperty(proto, 'reduceTo', { get: function() {
+  var f = (f, item, init) => item.by(z => {
+    init && init(z);
+    z.use(this).each((v, k) => f(item, v, k));
+  });
+
+  f.collection = this;
+
+  return nice.new(nice.collectionReducers, f);
+}});
+
+
+nice.onType(function defineReducer({title}) {
+  if(!title)
+    return;
+  nice.reduceTo[title] = nice.curry(function(f, collection){
+    return nice.reduceTo(f, nice[title](), collection);
+  });
+  nice.collectionReducers[title] = function(f, init){
+    return this.collection.reduceTo(f, nice[title](), init);
+  };
+});
+
+
+['max','min','hypot'].forEach(name => {
+  nice.define(proto, name, function (f) {
+    return nice.Number().by(z =>
+      z(Math[name](...nice.mapArray(f || (v => v), z.use(this)())))
+    );
+  });
+});
+
+nice.define(nice, 'CollectionPrototype', proto);
 })();
 (function(){"use strict";nice.define(nice, 'is', nice.curry((a, b) => a === b));
 
@@ -671,7 +678,11 @@ nice.ItemPrototype = {
   _default: () => undefined,
 
   resetValue: function (){
-    this.set(this._default());
+    if(this._locked)
+      throw nice.LOCKED_ERROR;
+
+    this._setData(this._default());
+    this._constructor(this);
   },
 
   _constructor: (z, ...v) => z(...v),
@@ -780,7 +791,7 @@ nice.ItemPrototype = {
       return source;
 
     var subscription = nice.subscription(source, this).skip(1).onlyOnce();
-    subscription.resolve()
+    subscription.resolve();
     subscription.skip(0);
     throw nice.NOT_RESOLVED;
   },
@@ -818,6 +829,7 @@ nice.ItemPrototype = {
     this._oldSubscriptions = this._subscriptions;
     this._subscriptions = [];
     try {
+      this.resetValue();
       this._by(this);
     } catch (e) {
       if(e === nice.NOT_RESOLVED)
@@ -854,7 +866,7 @@ nice.ItemPrototype = {
   },
 
   extends: function(type){
-    nice.is.String(type) && (type = nice.valueTypes[type]);
+    type = nice.type(type);
 
     if(!nice.ItemPrototype.isPrototypeOf(type))
       return nice.error('Bad prototype to extend');
@@ -874,9 +886,6 @@ nice.ItemPrototype = {
 
     if(value === null)
       return this.error('Result is null');
-
-//    if(value === this._getData() && !this._selfStatus)
-//      return value;
 
     this._setData(value);
     this.resolve();
@@ -1439,6 +1448,7 @@ nice.Type(nice.NumberPrototype);
       this.resolve();
       this.transactionEnd();
     }
+    this._constructor(this);
     return this;
   },
 
@@ -1454,14 +1464,12 @@ nice.Type(nice.NumberPrototype);
 
   map: function (f) {
     return nice.Array().by(z => {
-      z.resetValue();
       z(...z.use(this)().map(f));
     });
   },
 
   filter: function (f) {
     return nice.Array().by(z => {
-      z.resetValue();
       z(...z.use(this)().filter(f));
     });
   },
@@ -1580,7 +1588,10 @@ nice.Type(nice.new(nice.CollectionPrototype, nice.ArrayPrototype));
   _default: () => { return {}; },
 
   resetValue: function () {
-    return this.transactionEach((v, k) => this.delete(k));
+    this.transactionStart();
+    this.each((v, k) => this.delete(k));
+    this._constructor(this);
+    this.transactionEnd();
   },
 
   has: function (k) {
@@ -1694,7 +1705,7 @@ Object.defineProperty(nice.MapPrototype, 'keys', {get: function(){
 nice.MapPrototype.mapObject = nice.MapPrototype.map;
 
 ['findKey'].forEach(k => {
-  nice.MapPrototype[k] = function(f) { return nice[k](f, this()); }
+  nice.MapPrototype[k] = function(f) { return nice[k](f, this()); };
 });
 
 nice.Type(nice.new(nice.CollectionPrototype, nice.MapPrototype));
@@ -1755,10 +1766,45 @@ nice.defineAll(nice.ObjectPrototype, {
     var data = this._getData();
     for (let i in data)
       this[i].resetValue();
+    this._constructor(this);
     this.transactionEnd();
   },
 
   _compareItems: nice.objectComparer
+});
+
+
+function createProperty(target, proto, name, byF){
+  if(nice.is.Function(name) && name.name){
+    byF = name;
+    name = byF.name;
+  }
+  Object.defineProperty(target, name, { get:
+    function(){
+      this._children = this._children || {};
+      var res = this._children[name];
+      if(!res){
+        var res = nice._createItem(proto, this, name);
+        byF && res.by(byF.bind(this));
+        this._children[name] = res;
+      }
+      return res;
+    }
+  });
+  byF && target[name];
+}
+
+
+nice.onType(function defineObjectsProperty(type){
+  nice.define(nice.ObjectPrototype, type.title, function (name, initBy) {
+    createProperty(this, type.itemPrototype, name, initBy);
+    this.resolve();
+    return this;
+  });
+  nice.define(nice.classPrototype, type.title, function (name, initBy) {
+    createProperty(this.itemProto, type.itemPrototype, name, initBy);
+    return this;
+  });
 });
 
 
@@ -1783,7 +1829,7 @@ nice.Type(nice.ObjectPrototype);
 nice.Type(Object.setPrototypeOf(proto, nice.ObjectPrototype));
 
 })();
-(function(){"use strict";nice.defineAll(nice.ClassPrototype, {
+(function(){"use strict";nice.defineAll(nice.classPrototype, {
   _creator: () => {
     var f = nice.stripFunction((...a) => f.instance(...a));
     f.itemProto = nice.Object();
@@ -1826,14 +1872,14 @@ nice.define(nice, 'class', nice.memoize(name => {
 
 
 ['Method', 'ReadOnly', 'Constant'].forEach(name => {
-  nice.define(nice.ClassPrototype, name, function (...a){
+  nice.define(nice.classPrototype, name, function (...a){
     this.itemProto[name](...a);
     return this;
   });
 });
 
 
-nice.Type(nice.ClassPrototype);
+nice.Type(nice.new(nice.typePrototype, nice.classPrototype));
 
 })();
 (function(){"use strict";nice.define(nice, 'expectPrototype', {
@@ -1919,8 +1965,8 @@ nice.block('Div', (z, tag) => z.tag(tag || 'div'))
     this.children.by(z => z.replace(f(z)));
     return this;
   })
-  .Method(function show(){
-    document.body.appendChild(this.dom());
+  .Method(function show(target = document.body){
+    target.appendChild(this.dom());
     return this;
   })
   .Method(function scrollTo(offset = 10){
@@ -2128,7 +2174,7 @@ nice.Div.wrapParts = function(text, pattern){
 };
 })();
 (function(){"use strict";'I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t => {
-  nice.block(t, (z, text) => z.tag(t.toLowerCase()).add(text));
+  nice.block(t, (z, ...a) => z.tag(t.toLowerCase()).add(...a));
 });
 
 nice.block('A', (z, url) => {

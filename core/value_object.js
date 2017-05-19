@@ -54,10 +54,45 @@ nice.defineAll(nice.ObjectPrototype, {
     var data = this._getData();
     for (let i in data)
       this[i].resetValue();
+    this._constructor(this);
     this.transactionEnd();
   },
 
   _compareItems: nice.objectComparer
+});
+
+
+function createProperty(target, proto, name, byF){
+  if(nice.is.Function(name) && name.name){
+    byF = name;
+    name = byF.name;
+  }
+  Object.defineProperty(target, name, { get:
+    function(){
+      this._children = this._children || {};
+      var res = this._children[name];
+      if(!res){
+        var res = nice._createItem(proto, this, name);
+        byF && res.by(byF.bind(this));
+        this._children[name] = res;
+      }
+      return res;
+    }
+  });
+  byF && target[name];
+}
+
+
+nice.onType(function defineObjectsProperty(type){
+  nice.define(nice.ObjectPrototype, type.title, function (name, initBy) {
+    createProperty(this, type.itemPrototype, name, initBy);
+    this.resolve();
+    return this;
+  });
+  nice.define(nice.classPrototype, type.title, function (name, initBy) {
+    createProperty(this.itemProto, type.itemPrototype, name, initBy);
+    return this;
+  });
 });
 
 

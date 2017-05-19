@@ -46,6 +46,7 @@ nice.ArrayPrototype = {
       this.resolve();
       this.transactionEnd();
     }
+    this._constructor(this);
     return this;
   },
 
@@ -61,14 +62,12 @@ nice.ArrayPrototype = {
 
   map: function (f) {
     return nice.Array().by(z => {
-      z.resetValue();
       z(...z.use(this)().map(f));
     });
   },
 
   filter: function (f) {
     return nice.Array().by(z => {
-      z.resetValue();
       z(...z.use(this)().filter(f));
     });
   },

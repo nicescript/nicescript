@@ -317,7 +317,7 @@ nice.defineAll({
     .Number('lastCall')
     .Number('timeout')
     .Boolean('callOnEnd', z => z(true))
-    .Item('lastResult'),
+    .Item('lastResult')
 });
 
 nice.defineAll(nice, {
@@ -371,7 +371,7 @@ function compareObjects(a, b){
     if(a[i] !== b[i]){
       var change = calculateChanges(a[i], b[i]);
       if(change){
-        res = res || {}
+        res = res || {};
         res[i] = change;
       }
     }

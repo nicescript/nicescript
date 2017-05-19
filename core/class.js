@@ -1,4 +1,4 @@
-nice.defineAll(nice.ClassPrototype, {
+nice.defineAll(nice.classPrototype, {
   _creator: () => {
     var f = nice.stripFunction((...a) => f.instance(...a));
     f.itemProto = nice.Object();
@@ -41,11 +41,11 @@ nice.define(nice, 'class', nice.memoize(name => {
 
 
 ['Method', 'ReadOnly', 'Constant'].forEach(name => {
-  nice.define(nice.ClassPrototype, name, function (...a){
+  nice.define(nice.classPrototype, name, function (...a){
     this.itemProto[name](...a);
     return this;
   });
 });
 
 
-nice.Type(nice.ClassPrototype);
+nice.Type(nice.new(nice.typePrototype, nice.classPrototype));
