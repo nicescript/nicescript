@@ -59,7 +59,7 @@ var list = nice.PagedList().step(3)
         .filter(task => task.text().toLowerCase().includes(text) 
           && type.is('All') || (task.status() ? type.is('Done') : type.is('New')))
         .sortBy(task => task.status())
-        .map(task => task.show());
+        .map(task => task.show())();
     });
 
 var addLink = nice.A().display('block').marginTop('1em').on('click', create)

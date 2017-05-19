@@ -37,8 +37,7 @@ nice.MapPrototype = {
   assign: function (o) {
     this.transactionStart();
     nice.each((v, k) => this.set(k, v), o);
-    this._selfStatus && this._transactionStart++;
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
   },
 
   replace: function(o){
@@ -49,9 +48,7 @@ nice.MapPrototype = {
 
     this.transactionStart();
     this._setData(o);
-    this._selfStatus && this._transactionStart++;
-    this.resolve();
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
     return this;
   },
 

@@ -1,30 +1,34 @@
 nice.defineAll(nice.ItemPrototype, {
   transactionStart: function(){
     if(!this._transactionDepth){
+      this._initStatus = this._selfStatus;
       this._transactionDepth = 0;
       this._transactionResult = nice.clone(this._getData());
-      this._transactionStart = 1;
     }
     this._transactionDepth++;
     return this;
   },
 
-  transactionEnd: function(){
+  transactionEnd: function(forceCommit){
     if(--this._transactionDepth > 0)
       return;
 
     this._notifyItems();
-    delete this._transactionResult;
-    var haveSome = this._transactionStart > 1;
-    delete this._transactionStart;
-    if(haveSome){
+    var diff = this._getDiff();
+    var go = this._selfStatus !== this._initStatus || diff || forceCommit;
+    this._transactionDepth = 0;
+    if(go){
       this.resolve();
       var off = this._subscriptions && this._subscriptions.some(s => !s.active);
       this._status = this._selfStatus = off ? nice.NEED_COMPUTING : nice.RESOLVED;
     } else if(this._selfStatus === nice.PENDING){
       this._selfStatus = nice.NEED_COMPUTING;
     }
-    return haveSome;
+    delete this._transactionResult;
+    delete this._modified;
+    delete this._initStatus;
+    delete this._diff;
+    return go;
   },
 
   _notifyItems: function (){
@@ -44,10 +48,11 @@ nice.defineAll(nice.ItemPrototype, {
   },
 
   transactionRollback: function(){
-    this._transactionStart && this._setData(this._transactionResult);
+    this._transactionDepth && this._setData(this._transactionResult);
     delete this._transactionResult;
     this._transactionDepth = 0;
-    delete this._transactionStart;
+    delete this._modified;
+    delete this._diff;
   },
 
   transactionEach: function (item, f){

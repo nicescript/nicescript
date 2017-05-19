@@ -66,9 +66,36 @@ nice.ItemPrototype = {
   },
 
   _setData: function(data){
-    this.hasOwnProperty('_container')
-      ? this._container._assertData()[this._containerKey] = data
-      : this._result = data;
+    if(this.hasOwnProperty('_container')){
+      this._container._changeItem(this._containerKey, data);
+    } else {
+      this._result = data;
+    }
+  },
+
+  _changeItem: function(k, v){
+    var data = this._assertData();
+    if(!this._modified){
+      data = nice.clone(data);
+      if(this.hasOwnProperty('_container')){
+        this._container._changeItem(this._containerKey, data);
+      } else {
+        this._result = data;
+      }
+      this._modified = true;
+    }
+    if(v === null){
+      delete data[k];
+    } else {
+      data[k] = v;
+    }
+  },
+
+  _getDiff: function (){
+    if(this._diff)
+      return this._diff;
+
+    return this._diff = nice.diff(this._transactionResult, this._getData());
   },
 
   setBy: function(f){
@@ -138,7 +165,7 @@ nice.ItemPrototype = {
     if(!this._by)
       return true;
 
-    this._selfStatus = nice.PENDING;
+    this._selfStatus === nice.NEED_COMPUTING && (this._selfStatus = nice.PENDING);
     this.transactionStart();
     this._oldSubscriptions = this._subscriptions;
     this._subscriptions = [];
@@ -193,16 +220,20 @@ nice.ItemPrototype = {
     if(this._locked)
       throw nice.LOCKED_ERROR;
 
+    this.transactionStart();
+
     var value = this._set ? this._set(...a) : a[0];
 
     if(value === null)
       return this.error('Result is null');
 
-    if(value === this._getData() && !this._selfStatus)
-      return value;
+//    if(value === this._getData() && !this._selfStatus)
+//      return value;
 
     this._setData(value);
     this.resolve();
+
+    this.transactionEnd();
 
     return value;
   },
@@ -233,8 +264,8 @@ nice.ItemPrototype = {
     if(source && source.error())
       this._childError(source);
 
-    if(this._transactionStart)
-      return this._transactionStart++;
+    if(this._transactionDepth)
+      return;
 
     if(this._isResolved()){
       this._subscribers && this._subscribers.forEach(s => s.notify());

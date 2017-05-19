@@ -172,7 +172,7 @@ describe("Map", function() {
   });
 
 
-  it("setting same value shuld resolve item", function(){
+  it("setting same value should resolve item", function(){
     var a = nice.Map();
     var spy = chai.spy();
     a.pending().listenBy(spy);

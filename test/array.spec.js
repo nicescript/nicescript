@@ -14,10 +14,8 @@ describe("Nice Array", function() {
 
 
   it("constructor", function() {
-//    var a = nice.Array();
     var a = nice.Array(1, 5, 8);
     a(9)
-//    expect(a()).to.deep.equal([9]);
     expect(a()).to.deep.equal([1, 5, 8, 9]);
   });
 
@@ -60,12 +58,12 @@ describe("Nice Array", function() {
 
 
   it("filter", () => {
-    var a = nice.Array();
+    var a = nice.Array(1, 2, 3, 4, 5);
     var even = a.filter(n => n % 2 === 0);
     var spy = chai.spy();
 
-    a(1, 2, 3, 4, 5);
     even.listenBy(spy);
+    a(7);
     expect(spy).to.have.been.called.once().with(even);
     expect(even()).to.deep.equal([2,4]);
   });
@@ -170,11 +168,9 @@ describe("Nice Array", function() {
     var spy = chai.spy();
 
     a.onEach((v, k) => {
-//      console.log('-', v, k);
       spy(v, parseInt(k));
     });
     n(4);
-//    console.log(a());
     expect(spy).to.have.been.called.with(1, 0);
     expect(spy).to.have.been.called.with(4, 1);
   });
@@ -247,7 +243,7 @@ describe("Nice Array", function() {
 
   it("use", function(){
     var a = nice.Array();
-    var b = nice.Array().by(z => z.set(...z.use(a).map(n => n+1)));
+    var b = nice.Array().by(z => z.set(...z.use(a).map(n => n+1)()));
     expect(b()).to.deep.equal([]);
     a(5, 2);
     expect(b()).to.deep.equal([6,3]);
@@ -278,7 +274,7 @@ describe("Nice Array", function() {
   });
 
 
-  it("setting same value shuld resolve item", function(){
+  it("setting same value should resolve item", function(){
     var a = nice.Array();
     var spy = chai.spy();
     a.pending().listenBy(spy);

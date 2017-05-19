@@ -27,8 +27,7 @@ nice.ArrayPrototype = {
     var toAdd = Array.isArray(a[0]) ? a[0] : a;
     this.transactionStart();
     toAdd.forEach(v => this._getData().includes(v) || this.addAt(v));
-    this._selfStatus && this._transactionStart++;
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
     return this;
   },
 
@@ -60,10 +59,18 @@ nice.ArrayPrototype = {
     this().forEach(f);
   },
 
-  map: function (f) { return this().map(f); },
+  map: function (f) {
+    return nice.Array().by(z => {
+      z.resetValue();
+      z(...z.use(this)().map(f));
+    });
+  },
 
   filter: function (f) {
-    return nice.Array().by(z => z(...z.use(this)().filter(f)));
+    return nice.Array().by(z => {
+      z.resetValue();
+      z(...z.use(this)().filter(f));
+    });
   },
 
   sortBy: function (f) {
@@ -88,9 +95,7 @@ nice.ArrayPrototype = {
 
     this.transactionStart();
     this._setData(a);
-    this._selfStatus && this._transactionStart++;
-    this.resolve();
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
     return this;
   },
 
@@ -100,7 +105,6 @@ nice.ArrayPrototype = {
     var data = this._assertData();
     index === undefined && (index = data.length);
     data.splice(index, 0, value);
-    this._selfStatus && this._transactionStart++;
     this.resolve();
   },
 

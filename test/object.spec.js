@@ -221,4 +221,18 @@ describe("Object", function() {
       done();
     });
   });
+
+
+  it("diff", () => {
+    var o = nice.Object().Number('qwe');
+    var diff;
+    o.listenBy(z => {
+      diff = z._getDiff();
+    });
+    o('qwe', 5);
+    expect(diff).to.deep.equal({add:{"qwe": 5}});
+    o('qwe', 6);
+    expect(diff).to.deep.equal({add:{"qwe": 6},del:{"qwe": 5}});
+    expect(o._transactionResult).to.equal(undefined);
+  });
 });

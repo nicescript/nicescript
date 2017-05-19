@@ -116,14 +116,16 @@ nice.block('Div', (z, tag) => z.tag(tag || 'div'))
 function text(){
   var div = this;
   return nice.item().by(z => z((div.actualChildren || div.children)
-      .map(v => v.text ? v.text() : nice.htmlEscape(v))
+      .map(v => v.text ? v.text() : nice.htmlEscape(v))()
       .join(''))
   );
 };
 
 
 nice.compileStyle = function(div){
-  return div.style.map((v, k) => k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v).values().join(';');
+  return div.style
+    .mapArray((v, k) => k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v)()
+    .join(';');
 };
 
 

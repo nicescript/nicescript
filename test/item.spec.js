@@ -46,7 +46,7 @@ describe("Item", function() {
   });
 
 
-  it("setting same value shuld resolve item", function(){
+  it("setting same value should resolve item", function(){
     var a = nice.item();
     var spy = chai.spy();
     a(9).pending().listenBy(spy);
@@ -411,5 +411,16 @@ describe("Item", function() {
     }).not.to.throw();
   });
 
+  it("diff", () => {
+    var i = nice();
+    var diff;
+    i.listenBy(z => {
+      diff = z._getDiff();
+    });
+    i(5);
+    expect(diff).to.deep.equal({add:5});
+    i(7);
+    expect(diff).to.deep.equal({del: 5, add:7});
+  });
 
 });

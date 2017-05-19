@@ -120,4 +120,33 @@ describe("Nice utils", function() {
     f();
     expect(spy).to.have.been.called.once();
   });
+
+
+  it("diff", () => {
+    var a = {q: 5};
+    var b = {a: 5};
+    expect(nice.diff(a, b)).to.deep.equal({add:{a:5},del:{q:5}});
+  });
+
+
+  it("diff 2", () => {
+    var a = {a: {asd: 4}, q: 1};
+    var b = {a: {zxc: 1}, q: 1};
+    expect(nice.diff(a, b)).to.deep.equal({add:{a:{zxc:1}},del:{a:{asd:4}}});
+  });
+
+
+  it("diff 3", () => {
+    var a = {a: {asd: 4}, q: 1};
+    var b = {a: {asd: 4}, q: 2};
+    expect(nice.diff(a, b)).to.deep.equal({add:{q:2},del:{q:1}});
+  });
+
+//TODO:
+//  it("diff array", () => {
+//    var a = [1, 2, 3];
+//    var b = [1, 3];
+//    console.log(nice.diff(a, b));
+//    expect(nice.diff(a, b)).to.deep.equal({del:{1:2}});
+//  });
 });

@@ -233,12 +233,26 @@ nice.defineAll({
     if(Array.isArray(o))
       res = [];
     else if(nice.is.Object(o))
-      res = {}
+      res = {};
     else
       return o;
     for(var i in o)
-      res[i] = o[i]
+      res[i] = o[i];
     return res;
+  },
+
+  diff: (a, b) => {
+    if(a === b)
+      return false;
+
+    var d = {};
+    var ab = calculateChanges(a, b);
+    nice.is.Empty(ab) || (d.add = ab);
+
+    var ba = calculateChanges(b, a);
+    nice.is.Empty(ba) || (d.del = ba);
+
+    return (d.add || d.del) ? d : false;
   },
 
   memoize: f => {
@@ -333,3 +347,48 @@ nice.defineAll(nice, {
     nice.each((v, k) => target[k] = v, source);
   })
 });
+
+
+function compareArrays(a, b){
+  var res = {};
+  var ia = 0, ib = 0;
+  var length = b.length;
+
+  for(; ib<length; ib++){
+    if(a[ia] === b[ib]){
+      ia++;
+    } else {
+      res[ib] = calculateChanges(a[ib], b[ib]);
+    }
+  }
+  return res;
+}
+
+
+function compareObjects(a, b){
+  var res;
+  for(var i in b)
+    if(a[i] !== b[i]){
+      var change = calculateChanges(a[i], b[i]);
+      if(change){
+        res = res || {}
+        res[i] = change;
+      }
+    }
+
+  return res;
+}
+
+function calculateChanges(a, b){
+  if(!a)
+    return b;
+  if(Array.isArray(b)){
+    //TODO: compare arrays
+    return Array.isArray(a) ? compareObjects(a, b) : b;
+  } else if(nice.is.Object(b)) {
+    return nice.is.Object(a) ? compareObjects(a, b) : b;
+  } else {
+    if(a !== b)
+      return b;
+  }
+}

@@ -438,12 +438,26 @@ nice.defineAll({
     if(Array.isArray(o))
       res = [];
     else if(nice.is.Object(o))
-      res = {}
+      res = {};
     else
       return o;
     for(var i in o)
-      res[i] = o[i]
+      res[i] = o[i];
     return res;
+  },
+
+  diff: (a, b) => {
+    if(a === b)
+      return false;
+
+    var d = {};
+    var ab = calculateChanges(a, b);
+    nice.is.Empty(ab) || (d.add = ab);
+
+    var ba = calculateChanges(b, a);
+    nice.is.Empty(ba) || (d.del = ba);
+
+    return (d.add || d.del) ? d : false;
   },
 
   memoize: f => {
@@ -538,6 +552,51 @@ nice.defineAll(nice, {
     nice.each((v, k) => target[k] = v, source);
   })
 });
+
+
+function compareArrays(a, b){
+  var res = {};
+  var ia = 0, ib = 0;
+  var length = b.length;
+
+  for(; ib<length; ib++){
+    if(a[ia] === b[ib]){
+      ia++;
+    } else {
+      res[ib] = calculateChanges(a[ib], b[ib]);
+    }
+  }
+  return res;
+}
+
+
+function compareObjects(a, b){
+  var res;
+  for(var i in b)
+    if(a[i] !== b[i]){
+      var change = calculateChanges(a[i], b[i]);
+      if(change){
+        res = res || {}
+        res[i] = change;
+      }
+    }
+
+  return res;
+}
+
+function calculateChanges(a, b){
+  if(!a)
+    return b;
+  if(Array.isArray(b)){
+    //TODO: compare arrays
+    return Array.isArray(a) ? compareObjects(a, b) : b;
+  } else if(nice.is.Object(b)) {
+    return nice.is.Object(a) ? compareObjects(a, b) : b;
+  } else {
+    if(a !== b)
+      return b;
+  }
+}
 })();
 (function(){"use strict";nice.define(nice, 'is', nice.curry((a, b) => a === b));
 
@@ -655,9 +714,36 @@ nice.ItemPrototype = {
   },
 
   _setData: function(data){
-    this.hasOwnProperty('_container')
-      ? this._container._assertData()[this._containerKey] = data
-      : this._result = data;
+    if(this.hasOwnProperty('_container')){
+      this._container._changeItem(this._containerKey, data);
+    } else {
+      this._result = data;
+    }
+  },
+
+  _changeItem: function(k, v){
+    var data = this._assertData();
+    if(!this._modified){
+      data = nice.clone(data);
+      if(this.hasOwnProperty('_container')){
+        this._container._changeItem(this._containerKey, data);
+      } else {
+        this._result = data;
+      }
+      this._modified = true;
+    }
+    if(v === null){
+      delete data[k];
+    } else {
+      data[k] = v;
+    }
+  },
+
+  _getDiff: function (){
+    if(this._diff)
+      return this._diff;
+
+    return this._diff = nice.diff(this._transactionResult, this._getData());
   },
 
   setBy: function(f){
@@ -727,7 +813,7 @@ nice.ItemPrototype = {
     if(!this._by)
       return true;
 
-    this._selfStatus = nice.PENDING;
+    this._selfStatus === nice.NEED_COMPUTING && (this._selfStatus = nice.PENDING);
     this.transactionStart();
     this._oldSubscriptions = this._subscriptions;
     this._subscriptions = [];
@@ -782,16 +868,20 @@ nice.ItemPrototype = {
     if(this._locked)
       throw nice.LOCKED_ERROR;
 
+    this.transactionStart();
+
     var value = this._set ? this._set(...a) : a[0];
 
     if(value === null)
       return this.error('Result is null');
 
-    if(value === this._getData() && !this._selfStatus)
-      return value;
+//    if(value === this._getData() && !this._selfStatus)
+//      return value;
 
     this._setData(value);
     this.resolve();
+
+    this.transactionEnd();
 
     return value;
   },
@@ -822,8 +912,8 @@ nice.ItemPrototype = {
     if(source && source.error())
       this._childError(source);
 
-    if(this._transactionStart)
-      return this._transactionStart++;
+    if(this._transactionDepth)
+      return;
 
     if(this._isResolved()){
       this._subscribers && this._subscribers.forEach(s => s.notify());
@@ -1081,29 +1171,35 @@ nice.defineAll({
 })();
 (function(){"use strict";nice.defineAll(nice.ItemPrototype, {
   transactionStart: function(){
-    this._transactionDepth = this._transactionDepth || 0;
+    if(!this._transactionDepth){
+      this._initStatus = this._selfStatus;
+      this._transactionDepth = 0;
+      this._transactionResult = nice.clone(this._getData());
+    }
     this._transactionDepth++;
-    this._transactionResult = nice.clone(this._getData());
-    this._transactionStart = 1;
     return this;
   },
 
-  transactionEnd: function(){
+  transactionEnd: function(forceCommit){
     if(--this._transactionDepth > 0)
       return;
 
     this._notifyItems();
-    delete this._transactionResult;
-    var haveSome = this._transactionStart > 1;
-    delete this._transactionStart;
-    if(haveSome){
+    var diff = this._getDiff();
+    var go = this._selfStatus !== this._initStatus || diff || forceCommit;
+    this._transactionDepth = 0;
+    if(go){
       this.resolve();
       var off = this._subscriptions && this._subscriptions.some(s => !s.active);
       this._status = this._selfStatus = off ? nice.NEED_COMPUTING : nice.RESOLVED;
     } else if(this._selfStatus === nice.PENDING){
       this._selfStatus = nice.NEED_COMPUTING;
     }
-    return haveSome;
+    delete this._transactionResult;
+    delete this._modified;
+    delete this._initStatus;
+    delete this._diff;
+    return go;
   },
 
   _notifyItems: function (){
@@ -1117,19 +1213,17 @@ nice.defineAll({
     this._compareItems(
       old,
       this._getData(),
-      (v, k) => {
-        this.hasOwnProperty('onAdd') && this.onAdd.callEach(v, k);
-      },
-      (v, k) => {
-        this.hasOwnProperty('onRemove') && this.onRemove.callEach(v, k);
-      });
+      this.hasOwnProperty('onAdd') ? this.onAdd.callEach : () => {},
+      this.hasOwnProperty('onRemove') ? this.onRemove.callEach : () => {}
+    );
   },
 
   transactionRollback: function(){
-    this._transactionStart && this._setData(this._transactionResult);
+    this._transactionDepth && this._setData(this._transactionResult);
     delete this._transactionResult;
     this._transactionDepth = 0;
-    delete this._transactionStart;
+    delete this._modified;
+    delete this._diff;
   },
 
   transactionEach: function (item, f){
@@ -1326,8 +1420,7 @@ nice.Type(nice.NumberPrototype);
     var toAdd = Array.isArray(a[0]) ? a[0] : a;
     this.transactionStart();
     toAdd.forEach(v => this._getData().includes(v) || this.addAt(v));
-    this._selfStatus && this._transactionStart++;
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
     return this;
   },
 
@@ -1359,10 +1452,18 @@ nice.Type(nice.NumberPrototype);
     this().forEach(f);
   },
 
-  map: function (f) { return this().map(f); },
+  map: function (f) {
+    return nice.Array().by(z => {
+      z.resetValue();
+      z(...z.use(this)().map(f));
+    });
+  },
 
   filter: function (f) {
-    return nice.Array().by(z => z(...z.use(this)().filter(f)));
+    return nice.Array().by(z => {
+      z.resetValue();
+      z(...z.use(this)().filter(f));
+    });
   },
 
   sortBy: function (f) {
@@ -1387,9 +1488,7 @@ nice.Type(nice.NumberPrototype);
 
     this.transactionStart();
     this._setData(a);
-    this._selfStatus && this._transactionStart++;
-    this.resolve();
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
     return this;
   },
 
@@ -1399,7 +1498,6 @@ nice.Type(nice.NumberPrototype);
     var data = this._assertData();
     index === undefined && (index = data.length);
     data.splice(index, 0, value);
-    this._selfStatus && this._transactionStart++;
     this.resolve();
   },
 
@@ -1492,8 +1590,7 @@ nice.Type(nice.new(nice.CollectionPrototype, nice.ArrayPrototype));
   assign: function (o) {
     this.transactionStart();
     nice.each((v, k) => this.set(k, v), o);
-    this._selfStatus && this._transactionStart++;
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
   },
 
   replace: function(o){
@@ -1504,9 +1601,7 @@ nice.Type(nice.new(nice.CollectionPrototype, nice.ArrayPrototype));
 
     this.transactionStart();
     this._setData(o);
-    this._selfStatus && this._transactionStart++;
-    this.resolve();
-    this.transactionEnd();
+    this.transactionEnd(this._selfStatus);
     return this;
   },
 
@@ -1902,21 +1997,23 @@ nice.block('Div', (z, tag) => z.tag(tag || 'div'))
 function text(){
   var div = this;
   return nice.item().by(z => z((div.actualChildren || div.children)
-      .map(v => v.text ? v.text() : nice.htmlEscape(v))
+      .map(v => v.text ? v.text() : nice.htmlEscape(v))()
       .join(''))
   );
 };
 
 
 nice.compileStyle = function(div){
-  return div.style.map((v, k) => k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v).values().join(';');
+  return div.style
+    .mapArray((v, k) => k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v)()
+    .join(';');
 };
 
 
 function html(){
   var div = this;
   return nice.String().by(z => {
-    z.tryOnce(div);
+    z.try(div);
     var children = div.actualChildren || div.children;
     var tag = div.tag();
     var a = ['<', tag];
