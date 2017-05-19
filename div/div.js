@@ -38,8 +38,8 @@ nice.block('Div', (z, tag) => z.tag(tag || 'div'))
     this.children.by(z => z.replace(f(z)));
     return this;
   })
-  .Method(function show(){
-    document.body.appendChild(this.dom());
+  .Method(function show(target = document.body){
+    target.appendChild(this.dom());
     return this;
   })
   .Method(function scrollTo(offset = 10){
