@@ -1,5 +1,5 @@
 'I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t => {
-  nice.block(t, (z, text) => z.tag(t.toLowerCase()).add(text));
+  nice.block(t, (z, ...a) => z.tag(t.toLowerCase()).add(...a));
 });
 
 nice.block('A', (z, url) => {
