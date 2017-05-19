@@ -3,7 +3,7 @@
  var expect = require('chai').expect;
 
  describe("Tags", function() {
-   
+
   it("Div Span", function() {
     var div = nice.Span('qwe');
     expect(div.html()).to.equal('<span>qwe</span>');
@@ -26,16 +26,14 @@
 
   it("Div Img", function() {
     var div = nice.Img('qwe.jpg');
-//    console.log('---', div.children._result);
     expect(div.html()).to.equal('<img src="qwe.jpg"></img>');
   });
 
   it("Div Img", function() {
     var div = nice.Img('qwe.jpg');
-//    console.log('---', div.children._result);
     expect(div.html()).to.equal('<img src="qwe.jpg"></img>');
   });
-  
+
   it("Checkbox", function() {
     var c = nice.Checkbox(true);
     expect(c.html()).to.equal('<input type="checkbox" checked="true"></input>');
@@ -48,7 +46,7 @@
     t.value('asd');
     expect(t.html()).to.equal('<textarea>asd</textarea>');
   });
-  
+
   it("PagedList", function() {
     var list = nice.PagedList().add('qwe', 'asd', 'zxc').step(2);
     expect(list.html()).to

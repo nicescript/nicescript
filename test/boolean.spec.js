@@ -40,6 +40,3 @@ describe("Nice Boolean", function() {
     expect(nice.Boolean(1).xor(1)()).to.equal(false);
   });
 });
-
-//  on: function () { return this(true); },
-//  off: function () { return this(false); },

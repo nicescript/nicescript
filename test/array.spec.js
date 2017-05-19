@@ -181,7 +181,6 @@ describe("Nice Array", function() {
       setTimeout(() => z('qwe', 'asd'), 1);
     });
     a.listenBy(z => {
-//      console.log(z());
       expect(z()).to.deep.equal(['qwe', 'asd']);
       done();
     });

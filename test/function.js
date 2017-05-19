@@ -12,7 +12,6 @@ describe("Function", function() {
     a.x(3);
     a(2);
     expect(spy).to.have.been.called.with(6);
-//    console.log(a);
     expect(typeof a.bind).to.equal('function');
   });
 
