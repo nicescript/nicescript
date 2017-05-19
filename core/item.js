@@ -227,9 +227,6 @@ nice.ItemPrototype = {
     if(value === null)
       return this.error('Result is null');
 
-//    if(value === this._getData() && !this._selfStatus)
-//      return value;
-
     this._setData(value);
     this.resolve();
 
