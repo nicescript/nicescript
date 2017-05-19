@@ -3,7 +3,7 @@ var chai = require('chai');
 var expect = chai.expect;
 
 
-describe("Nice utils", function() {
+describe("utils", function() {
   it("format", function() {
     expect(nice.format('Hi %s', 'qwe')).to.equal('Hi qwe');
     expect(nice.format('Hi %d', 'qwe')).to.equal('Hi NaN');

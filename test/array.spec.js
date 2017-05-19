@@ -3,7 +3,7 @@ var chai = require('chai');
 chai.use(require('chai-spies'));
 var expect = chai.expect;
 
-describe("Nice Array", function() {
+describe("Array", function() {
 
   it("setter", function() {
     var a = nice.Array();
@@ -189,7 +189,7 @@ describe("Nice Array", function() {
 
   it("by() with chain and delay", (done) => {
     var n = nice(f => setTimeout(() => f(13), 1));
-    var a = nice.Array().by(z => z(...[z.use(n)()]));
+    var a = nice.Array().by(z => z(z.use(n)()));
 
     a.listenBy(z => {
       expect(z()).to.deep.equal([13]);

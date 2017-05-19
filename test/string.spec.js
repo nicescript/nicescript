@@ -3,7 +3,7 @@ var chai = require('chai');
 chai.use(require('chai-spies'));
 var expect = chai.expect;
 
-describe("Nice String", function() {
+describe("String", function() {
 
   it("constructor", function(){
     var s = nice.String(2);

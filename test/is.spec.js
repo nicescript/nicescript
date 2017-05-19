@@ -3,7 +3,7 @@ var chai = require('chai');
 chai.use(require('chai-spies'));
 var expect = chai.expect;
 
-describe("Nice Number", function() {
+describe("Number", function() {
 
   it("is", function(){
     expect(nice.is.Number(2)).to.equal(true);

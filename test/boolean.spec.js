@@ -3,7 +3,7 @@ var chai = require('chai');
 chai.use(require('chai-spies'));
 var expect = chai.expect;
 
-describe("Nice Boolean", function() {
+describe("Boolean", function() {
 
   it("set", function(){
     var b = nice.Boolean();
