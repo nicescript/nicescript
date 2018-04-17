@@ -1,6 +1,6 @@
 {
   "name": "nicescript",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "keywords": [
     "util",
     "framework",
@@ -16,8 +16,8 @@
   },
   "license": "MIT",
   "description": "Reactive JavaScript library designed to reduce amount of boilerplate code on client and server.",
-  "engines" : {
-    "node" : ">=6.0" 
+  "engines": {
+    "node": ">=6.0"
   },
   "devDependencies": {
     "chai": "3.x",
