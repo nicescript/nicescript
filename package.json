@@ -1,0 +1,27 @@
+{
+  "name": "nicescript",
+  "version": "0.1.1",
+  "keywords": [
+    "util",
+    "framework",
+    "server",
+    "client",
+    "reactive"
+  ],
+  "author": "Sergey Kashulin",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter spec -g ''",
+    "build": "node build.js"
+  },
+  "license": "MIT",
+  "description": "Reactive JavaScript library designed to reduce amount of boilerplate code on client and server.",
+  "engines" : {
+    "node" : ">=6.0" 
+  },
+  "devDependencies": {
+    "chai": "3.x",
+    "chai-spies": "^0.7.1",
+    "mocha": "3.x"
+  }
+}

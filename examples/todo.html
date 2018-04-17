@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <title>TODO list example</title>
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0">
+<script>
+const { Div, Box } = nice;
+const KEY = 'ToDoData';
+const tasks = Box(JSON.parse(localStorage.getItem(KEY)) || [
+    {text:"Buy milk", status: true},
+    {text:"Walk the dog"},
+    {text:"Feed the fish"},
+    {text:"Wash windows"}
+  ])
+  .listen(v => localStorage.setItem(KEY, JSON.stringify(v)));
+
+function create(e){
+  tasks.push({ text: search.value() });
+  search.value("");
+  e.preventDefault();
+}
+  
+const search = nice.Input("search").placeholder('Type no search or add tasks')
+  .on('domNode', n => n.focus())
+  .boxSizing('border-box').width("100%").fontSize("20px")
+  .on('keyup', e => e.keyCode === 13 && create(e));
+
+function TaskView(task, k){
+  return Div().padding("1em 0")
+    .Checkbox(task.status)
+      .on('change', e => tasks.set([k, 'status'], e.target.checked))
+      .up
+    .Span(task.text || '---').marginLeft(".5em")
+      .textDecoration(task.status ? 'line-through' : 'none')
+      .up;
+}
+
+const list = Box.use(search.value).use(tasks).by((text, _tasks) => {
+  const data = _tasks.filter(task => task.text.toLowerCase().includes(text));
+  return Div(...data.map(TaskView)).padding("1rem 0");
+});
+
+
+const addLink = Box.use(search.value).by(text => text 
+  ? Div()
+    .A(create, 'Add: ', text).textDecoration('none').up
+    .Span(' [Enter]').color('#999').fontSize('small').up
+  : nice.NOTHING
+);
+
+
+Div(search, list, addLink).font("20px Arial").padding("1rem").show();
+
+
+nice.A(() => localStorage.removeItem(KEY)).add('Erase all tasks').show();
+
+</script>
+  </body>
+</html>
