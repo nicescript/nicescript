@@ -39,6 +39,12 @@ nice.Block('Tag', (z, tag) => z.tag(tag || 'div'))
   .Action('focus', z => z.on('domNode', node => node.focus()))
   .Action(function add(z, ...children) {
     children.forEach(c => {
+      if(is.Array(c))
+        return c.each(_c => z.add(_c));
+
+      if(is.array(c))
+        return _each(c, _c => z.add(_c));
+
       if(c === undefined || c === null)
         return;
 
@@ -150,7 +156,7 @@ if(nice.isEnvBrowser){
       delete node.styleSubscriptions[k];
       node.style[k] = '';
     })
-    .default.use((v, k, node) => node.style[k] = '');
+    .default.use((v, k, node) => node.style && (node.style[k] = ''));
 
 
   const addAttribute = Switch

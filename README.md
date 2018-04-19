@@ -1,9 +1,30 @@
 NiceScript
 =========
-A naive attempt to simplify life of a fellow JavaScript programmer.
 
 [![Build Status](https://travis-ci.org/nicescript/nicescript.svg?branch=master)](https://travis-ci.org/nicescript/nicescript)
 
+A naive attempt to simplify life of a fellow JavaScript programmer.
+
+
+```javascript
+const { Box, Div, B, Switch } = nice;
+
+const tasks = Box(['Feed the fish', 'Buy milk']);
+
+const decorate = Switch
+  .equal('Watch tv')('Read book')
+  .match(/buy/i).use(s => [s, B(' $').color('#3A3')]);
+
+const taskView = t => Div(t)
+  .margin('1em 0')
+  .padding('.5em')
+  .borderRadius('.5em')
+  .backgroundColor('#def');
+
+Box.use(tasks).by(ts => Div(ts.map(decorate).map(taskView))).show();
+
+tasks.push('Walk the dog', 'Watch tv');
+```
 
 ## Install
 `npm install nicescript`
@@ -15,11 +36,15 @@ Then in node.js script:
 
 Browser:
 
+`<script src="https://unpkg.com/nicescript/nice.js"></script>`
+
+or
+
 `<script src="https://cdn.jsdelivr.net/npm/nicescript/nice.js"></script>`
 
 ## Examples
 
-* [Ball game](./examples/ball.html)
+* [Ball game](./examples/ball.html) ( [JS Bin](https://jsbin.com/wimayanovu/1/edit?html,output) )
 * [Todo list](./examples/todo.html)
 
 ## Tests

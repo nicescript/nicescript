@@ -48,7 +48,24 @@ Div(c, Box().use(c.checked).by(c => Span(c ? 'Yes' : 'No'))).show();
 H3('Textarea').show();
 const text = nice.Textarea('qewqweqwqw').show();
 Box().use(text.value).by(s => Div().I('Length: ', s.length)).show();
-      
+
+const Switch = nice.Switch;
+const tasks = Box(['Feed the fish', 'Buy milk']);
+
+const decorate = Switch
+  .equal('Watch tv')('Read book')
+  .match(/buy/i).use(s => [s, B(' $').color('#3A3')]);
+
+const taskView = t => Div(t)
+  .margin('1em 0')
+  .padding('.5em')
+  .borderRadius('.5em')
+  .backgroundColor('#def');
+
+Box.use(tasks).by(ts => Div(ts.map(decorate).map(taskView))).show();
+
+tasks.push('Walk the dog', 'Watch tv');
+
 </script>
 
   </body>

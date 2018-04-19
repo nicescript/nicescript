@@ -9,6 +9,8 @@ nice._on('Check', f => is[f.name] = f);
 
 const basicChecks = {
   equal: (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b),
+  true: v => v === true,
+  false: v => v === false,
   any: (v, ...vs) => vs.includes(v),
   array: a => Array.isArray(a),
   "NaN": n => Number.isNaN(n),
@@ -49,7 +51,7 @@ for(let i in nice.jsTypes)
   nice.is[i] || Check(i, basicJS.includes(i)
     ? v => typeof v === i
     : v => v && v.constructor && v.constructor.name === nice.jsTypes[i].jsName);
-    
+
 
 nice._on('Type', function defineReducer(type) {
   type.title && Check(type.title, v => {

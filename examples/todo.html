@@ -5,8 +5,10 @@
   </head>
   <body style="margin:0">
 <script>
-const { Div, Box } = nice;
+const { Div, Box, Input, NOTHING, A, Switch } = nice;
+
 const KEY = 'ToDoData';
+
 const tasks = Box(JSON.parse(localStorage.getItem(KEY)) || [
     {text:"Buy milk", status: true},
     {text:"Walk the dog"},
@@ -15,46 +17,52 @@ const tasks = Box(JSON.parse(localStorage.getItem(KEY)) || [
   ])
   .listen(v => localStorage.setItem(KEY, JSON.stringify(v)));
 
-function create(e){
+const create = e => {
   tasks.push({ text: search.value() });
   search.value("");
   e.preventDefault();
-}
-  
-const search = nice.Input("search").placeholder('Type no search or add tasks')
-  .on('domNode', n => n.focus())
-  .boxSizing('border-box').width("100%").fontSize("20px")
-  .on('keyup', e => e.keyCode === 13 && create(e));
+};
 
-function TaskView(task, k){
+const search = Input("search").placeholder('Type no search or add tasks')
+  .boxSizing('border-box').width("100%").fontSize("20px")
+  .on('keyup', e => e.keyCode === 13 && create(e))
+  .focus();
+
+
+const deleteButton = (state, k) => Box.use(state).by(Switch
+  .true(A(() => tasks.removeAt(k), 'x')
+      .textDecoration('none').color('#E33').marginLeft('.5em'))
+  .default(NOTHING));
+
+const TaskView = (task, k) => {
+  const hover = Box(false);
+  
   return Div().padding("1em 0")
+    .on('mouseover', () => hover(true))
+    .on('mouseleave', () => hover(false))
     .Checkbox(task.status)
       .on('change', e => tasks.set([k, 'status'], e.target.checked))
       .up
     .Span(task.text || '---').marginLeft(".5em")
       .textDecoration(task.status ? 'line-through' : 'none')
-      .up;
-}
+      .up
+    .add(deleteButton(hover, k));
+};    
 
-const list = Box.use(search.value).use(tasks).by((text, _tasks) => {
-  const data = _tasks.filter(task => task.text.toLowerCase().includes(text));
-  return Div(...data.map(TaskView)).padding("1rem 0");
-});
+
+const list = Box.use(search.value).use(tasks).by((s, ts) => 
+  Div(ts.filter(t => RegExp(s, 'i').test(t.text)).map(TaskView)));
 
 
 const addLink = Box.use(search.value).by(text => text 
-  ? Div()
+  ? Div().padding("1em 0")
     .A(create, 'Add: ', text).textDecoration('none').up
     .Span(' [Enter]').color('#999').fontSize('small').up
-  : nice.NOTHING
+  : NOTHING
 );
 
 
 Div(search, list, addLink).font("20px Arial").padding("1rem").show();
-
-
-nice.A(() => localStorage.removeItem(KEY)).add('Erase all tasks').show();
-
 </script>
   </body>
 </html>

@@ -669,6 +669,8 @@ is = def(nice, 'is', value => create(isProto, { value }));
 nice._on('Check', f => is[f.name] = f);
 const basicChecks = {
   equal: (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b),
+  true: v => v === true,
+  false: v => v === false,
   any: (v, ...vs) => vs.includes(v),
   array: a => Array.isArray(a),
   "NaN": n => Number.isNaN(n),
@@ -703,7 +705,6 @@ for(let i in nice.jsTypes)
   nice.is[i] || Check(i, basicJS.includes(i)
     ? v => typeof v === i
     : v => v && v.constructor && v.constructor.name === nice.jsTypes[i].jsName);
-    
 nice._on('Type', function defineReducer(type) {
   type.title && Check(type.title, v => {
     if(v && v._type)
@@ -2046,6 +2047,10 @@ nice.Block('Tag', (z, tag) => z.tag(tag || 'div'))
   .Action('focus', z => z.on('domNode', node => node.focus()))
   .Action(function add(z, ...children) {
     children.forEach(c => {
+      if(is.Array(c))
+        return c.each(_c => z.add(_c));
+      if(is.array(c))
+        return _each(c, _c => z.add(_c));
       if(c === undefined || c === null)
         return;
       if(is.string(c))
@@ -2128,7 +2133,7 @@ if(nice.isEnvBrowser){
       delete node.styleSubscriptions[k];
       node.style[k] = '';
     })
-    .default.use((v, k, node) => node.style[k] = '');
+    .default.use((v, k, node) => node.style && (node.style[k] = ''));
   const addAttribute = Switch
     .Box.use((s, k, node) => {
       const f = v => addAttribute(v, k, node);
@@ -2218,7 +2223,7 @@ if(nice.isEnvBrowser){
 };
 })();
 (function(){"use strict";'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t =>
-  nice.Block(t, (z, c, ...cs) => z.tag(t.toLowerCase()).add(c, ...cs)));
+  nice.Block(t, (z, ...cs) => z.tag(t.toLowerCase()).add(...cs)));
 nice.Block('A', (z, url, ...children) => {
   z.tag('a');
   z.add(...children);

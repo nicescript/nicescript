@@ -26,6 +26,15 @@ describe("Tag", function() {
   });
 
 
+  it("children array", function() {
+    let div = nice.Div(['qwe', 'asd']);
+    expect(div.html).to.equal('<div>qweasd</div>');
+
+    let div2 = nice.Div(nice('qwe', 'asd'));
+    expect(div2.html).to.equal('<div>qweasd</div>');
+  });
+
+
   it("item child", function() {
     let n = nice.Number(5);
     let n2 = nice.Number(7);
