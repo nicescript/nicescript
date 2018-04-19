@@ -19,7 +19,7 @@ const taskView = t => Div(t)
   .margin('1em 0')
   .padding('.5em')
   .borderRadius('.5em')
-  .backgroundColor('#def');
+  .backgroundColor('#DEF');
 
 Box.use(tasks).by(ts => Div(ts.map(decorate).map(taskView))).show();
 
