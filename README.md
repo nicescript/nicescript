@@ -45,7 +45,7 @@ or
 ## Examples
 
 * [Ball game](./examples/ball.html) ( [JS Bin](https://jsbin.com/wimayanovu/1/edit?html,output) )
-* [Todo list](./examples/todo.html)
+* [Todo list](./examples/todo.html) ( [JS Bin](https://jsbin.com/yetufekopi/1/edit?html,output) )
 
 ## Tests
 
