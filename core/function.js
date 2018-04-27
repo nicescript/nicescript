@@ -145,6 +145,8 @@ function createFunctionBody(type){
       throw signatureError(z.name, a);
 
     if(type === 'Action'){
+      if(is.primitive(a[0]))
+        return s(...a);
       s(...a);
       return a[0];
     }

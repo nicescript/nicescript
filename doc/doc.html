@@ -1,0 +1,78 @@
+<html>
+  <head>
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0;">
+<script>
+const { Div, Span, H1, H2, Box, clamp, B, A, Input } = nice;
+
+//const typeView = nice.memoize(title => Div(title).margin('.3em 1em'));
+//const typesPane = Div();
+//
+//nice._each(nice.types, (v, k) => {
+//  const parentTitle = v.__proto__ && v.__proto__.title;
+//  ( parentTitle ? typeView(parentTitle) : typesPane ).add(typeView(k));
+//});
+//
+//typesPane.show();
+
+const highlightText = (s, q, f = B) => {
+  if(!q)
+    return s;
+  
+  const regex = RegExp(q, 'gi');
+  const res = Span();
+  let lastIndex = 0;
+  let a = [];
+
+  while ((a = regex.exec(s)) !== null) {
+    console.log(regex.lastIndex);
+    console.log(a);
+    console.log(`Found ${a[0]}. Next starts at ${regex.lastIndex}.`);
+    
+//TODO: bug in rendering when '' in the res
+    const slice = s.slice(lastIndex, a.index);
+    lastIndex = a.index + a[0].length;
+    
+    slice && res.add(slice);
+    res.add(f(a[0]));
+  }
+  return res.add(s.substr(lastIndex));
+};
+
+
+H1('NiceScript Documentation').margin('1rem').show();
+
+const search = Input("search").placeholder('Search')
+  .margin('1rem').padding('.2rem .5rem')
+  .focus().show();
+
+
+const functionsPane = Div(H2('Functions').padding('1rem'));
+const functions = [];
+const functionType = Box('All');
+
+Box().use(functionType).by(t => Span(
+  ['All', 'Check', 'Mapping', 'Action'].map(v => 
+      (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
+).margin('.5rem')).show();
+
+nice._on('function', f => functions.push(f));
+
+const functionView = f => Div().padding('1rem')
+  .H3(highlightText(f.name.toString(), search.value(), s => Span(s).color('red')))
+    .I(f.functionType).color('#666').marginLeft('1rem').up
+    .up
+  .Div(f.action && f.action.toString()).whiteSpace('pre').up
+  .Div(f.signatures && f.signatures.keys()).up;
+
+
+Box().use(functionType).use(search.value).by((type, q) => Div(functions
+    .filter(f => (type === 'All' || type === f.functionType) 
+        && (!q || f.name.toString().includes(q)))
+    .map(functionView))).show();
+
+
+</script>
+  </body>
+</html>

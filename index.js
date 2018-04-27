@@ -592,6 +592,8 @@ function createFunctionBody(type){
     if(!s)
       throw signatureError(z.name, a);
     if(type === 'Action'){
+      if(is.primitive(a[0]))
+        return s(...a);
       s(...a);
       return a[0];
     }
@@ -1321,8 +1323,9 @@ nice._on('Type', type => {
   },
   constructor: (z, ...a) => a.length && z(...a),
   proto: {
-    by: function (f){
-      this._by = f;
+    by: function (...a){
+      this._by = a.pop();
+      a.length && this.use(...a);
       this.state = nice.NEED_COMPUTING;
       return this;
     },
@@ -1331,12 +1334,15 @@ nice._on('Type', type => {
       this.state = nice.NEED_COMPUTING;
       return this;
     },
-    use: function (s){
-      if(s.__proto__ === Promise.prototype)
-        s = Box().follow(s);
-      expect(s !== this, `Box can't use itself`).toBe();
-      this._subscriptions.push(s);
-      this.state = nice.NEED_COMPUTING;
+    use: function (...ss){
+      ss.forEach(s => {
+        if(s.__proto__ === Promise.prototype)
+          s = Box().follow(s);
+        expect(s !== this, `Box can't use itself`).toBe();
+        expect(s, `Can use only box or promise.`).Box();
+        this._subscriptions.push(s);
+        this.state = nice.NEED_COMPUTING;
+      });
       this.isHot() && this.compute();
       return this;
     },
@@ -1471,7 +1477,8 @@ nice._on('Type', type => {
       if(this._locked)
         throw nice.LOCKED_ERROR;
       if(!this._transactionDepth){
-        this.initState = nice.cloneDeep(this.state);
+        this.initState = this.state;
+        this.state = nice.cloneDeep(this.initState);
         this._diff = null;
         this._transactionDepth = 0;
       }
@@ -1485,6 +1492,7 @@ nice._on('Type', type => {
       const go = this.getDiff();
       go && this._notify();
       this.initState = null;
+      Object.freeze(this.state);
       delete this._diff;
       return go;
     },
@@ -1513,7 +1521,8 @@ nice._on('Type', type => {
 });
 Box = nice.Box;
 const F = Func.Box;
-['use', 'follow', 'once', 'by', 'async'].forEach(k => def(Box, k, v => Box()[k](v)));
+['use', 'follow', 'once', 'by', 'async']
+    .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 function diffConverter(v){
   if(is.nice(v) && is.Value(v))
     return nice.fromItem(v);
@@ -1729,6 +1738,9 @@ F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
   return z;
 });
+'splice'.split(',').forEach(name => {
+ A(name, (a, ...bs) => a.getResult()[name](...bs));
+});
 function each(z, f){
   const a = z.getResult();
   const l = a.length;
@@ -1755,7 +1767,6 @@ A(function fill(z, v, start = 0, end){
   for(let i = start; i < end; i++){
     z.set(i, v);
   }
-  return z;
 });
 M.function(function map(a, f){
   return a.reduceTo.Array((z, v, k) => z.push(f(v, k)));
@@ -2066,6 +2077,13 @@ nice.Block('Tag', (z, tag) => z.tag(tag || 'div'))
       z.children.push(c);
     });
   });
+const Tag = nice.Tag;
+Tag.proto.Box = function(...a) {
+  const res = Box(...a);
+  res.up = this;
+  this.add(res);
+  return res;
+};
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     nice.define(nice.Tag.proto, property, function(...a) {
@@ -2157,16 +2175,14 @@ if(nice.isEnvBrowser){
         parent.subscriptions[i] = null;
       })
       .object.use(o => {
-        const v = o._nv_;
-        _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
-        _each(v.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-        nice._eachEach(v.eventHandlers, (f, _n, k) => oldNode.removeEventListener(k, f, true));
-        nice.reverseEach(v.children || [], (v, k) => {
-          Switch(v)
-            .object.use(o => o._nv_ && o._nv_.tag && !add)
-            .default.use(() => !add)
-              && oldNode.removeChild(oldNode.childNodes[k]);
-        });
+        if(!add){
+          oldNode && parent.removeChild(oldNode);
+        } else {
+          const v = o._nv_;
+          _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
+          _each(v.attributes, (_v, k) => delAttribute(_v, k, oldNode));
+          nice._eachEach(v.eventHandlers, (f, _n, k) => oldNode.removeEventListener(k, f, true));
+        }
       })
       .default.use(t => add || t && oldNode && parent.removeChild(oldNode));
     if(is.Box(add)) {
@@ -2181,8 +2197,8 @@ if(nice.isEnvBrowser){
         const v = add._nv_;
         const newTag = v.tag;
         if(newTag){
-          if(del && is.string(del)){
-            throw `Can't change existing tag name`;
+          if(del && !is.string(del) && !is.Nothing(del)){
+            node = changeTag(oldNode, newTag);
           }
           node = node || document.createElement(newTag);
           parent.insertBefore(node, oldNode);
@@ -2204,9 +2220,11 @@ if(nice.isEnvBrowser){
   function handleChildren(add, del, target){
     const a = add && add._nv_ && add._nv_.children;
     const d = del && del._nv_ && del._nv_.children;
-    const f = (v, k) => handleNode(a && a[k], d && d[k], target, k);
-    _each(a, f);
-    _each(d, f);
+    const f = k => handleNode(a && a[k], d && d[k], target, k);
+    const keys = [];
+    _each(a, (v, k) => f( + k));
+    _each(d, (v, k) => a[k] || keys.push( + k));
+    keys.forEach(f);
   };
   Func.Box(function show(source, parent = document.body){
     const i = parent.childNodes.length;
@@ -2220,6 +2238,15 @@ if(nice.isEnvBrowser){
     handleNode({_nv_: source.getResult()}, undefined, parent);
     return source;
   });
+  function changeTag(old, tag){
+    const node = document.createElement(tag);
+    while (old.firstChild) node.appendChild(old.firstChild);
+    for (let i = old.attributes.length - 1; i >= 0; --i) {
+      node.attributes.setNamedItem(old.attributes[i].cloneNode());
+    }
+    
+    return node;
+  }
 };
 })();
 (function(){"use strict";'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t =>

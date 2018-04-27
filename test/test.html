@@ -21,8 +21,8 @@ Box().use(counter2).by(c => Div('2: ', c)).show();
 
 
 
-H3('Add/remove nodes').show();
-Box().use(counter).by(c => Div(...(c % 2 ? [1, 2, 3] : [1]))).show();
+H3('Add/remove text nodes').show();
+Box().by(counter, c => Div(c % 2 ? [1, 2, 3] : [1])).show();
 
 
 H3('Blink green red blue').show();
@@ -48,6 +48,11 @@ Div(c, Box().use(c.checked).by(c => Span(c ? 'Yes' : 'No'))).show();
 H3('Textarea').show();
 const text = nice.Textarea('qewqweqwqw').show();
 Box().use(text.value).by(s => Div().I('Length: ', s.length)).show();
+
+var z = Box([1]);
+var f = i => nice.LI(nice.Button('Restore move #' + i));
+var z2 = Box().by(z, z => Div(z.map(f))).show();
+
 </script>
 
   </body>

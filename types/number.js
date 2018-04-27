@@ -66,7 +66,7 @@ log10
 log2
 log1pexpm1`.split('\n').forEach(k => M(k, (n, ...a) => Math[k](n, ...a)));
 
-
+//Action.number('inc', (z, n = 1) => z + n);
 const A = Action.Number;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));

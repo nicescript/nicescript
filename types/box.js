@@ -21,8 +21,9 @@ nice.Type({
   constructor: (z, ...a) => a.length && z(...a),
 
   proto: {
-    by: function (f){
-      this._by = f;
+    by: function (...a){
+      this._by = a.pop();
+      a.length && this.use(...a);
       this.state = nice.NEED_COMPUTING;
       return this;
     },
@@ -33,13 +34,16 @@ nice.Type({
       return this;
     },
 
-    use: function (s){
-      if(s.__proto__ === Promise.prototype)
-        s = Box().follow(s);
+    use: function (...ss){
+      ss.forEach(s => {
+        if(s.__proto__ === Promise.prototype)
+          s = Box().follow(s);
 
-      expect(s !== this, `Box can't use itself`).toBe();
-      this._subscriptions.push(s);
-      this.state = nice.NEED_COMPUTING;
+        expect(s !== this, `Box can't use itself`).toBe();
+        expect(s, `Can use only box or promise.`).Box();
+        this._subscriptions.push(s);
+        this.state = nice.NEED_COMPUTING;
+      });
       this.isHot() && this.compute();
       return this;
     },
@@ -199,7 +203,8 @@ nice.Type({
       if(this._locked)
         throw nice.LOCKED_ERROR;
       if(!this._transactionDepth){
-        this.initState = nice.cloneDeep(this.state);
+        this.initState = this.state;
+        this.state = nice.cloneDeep(this.initState);
         this._diff = null;
         this._transactionDepth = 0;
       }
@@ -216,6 +221,7 @@ nice.Type({
       const go = this.getDiff();
       go && this._notify();
       this.initState = null;
+      Object.freeze(this.state);
       delete this._diff;
       return go;
     },
@@ -250,7 +256,8 @@ Box = nice.Box;
 const F = Func.Box;
 
 
-['use', 'follow', 'once', 'by', 'async'].forEach(k => def(Box, k, v => Box()[k](v)));
+['use', 'follow', 'once', 'by', 'async']
+    .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 
 
 function diffConverter(v){

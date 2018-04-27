@@ -134,9 +134,13 @@ F('callEach', (z, ...a) => {
 
 //findIndex
 
-//'includes,copyWithin,entries,every,indexOf,join,keys,lastIndexOf,reverse,slice,some,sort,splice,'.split(',').forEach(name => {
+//'includes,copyWithin,entries,every,indexOf,join,keys,lastIndexOf,reverse,slice,some,sort,'.split(',').forEach(name => {
 // F.array(name, (a, ...bs) => a[name](...bs));
 //});
+'splice'.split(',').forEach(name => {
+ A(name, (a, ...bs) => a.getResult()[name](...bs));
+});
+
 
 function each(z, f){
   const a = z.getResult();
@@ -170,7 +174,6 @@ A(function fill(z, v, start = 0, end){
   for(let i = start; i < end; i++){
     z.set(i, v);
   }
-  return z;
 });
 
 
