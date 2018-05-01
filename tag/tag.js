@@ -161,7 +161,6 @@ if(nice.isEnvBrowser){
 
   const delStyle = Switch
     .Box.use((s, k, node) => {
-      //TODO: check and maybe replace
       node.styleSubscriptions[k]();
       delete node.styleSubscriptions[k];
       node.style[k] = '';

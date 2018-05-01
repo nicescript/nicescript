@@ -1848,6 +1848,17 @@ tanh
 log10
 log2
 log1pexpm1`.split('\n').forEach(k => M(k, (n, ...a) => Math[k](n, ...a)));
+M('clamp', (n, min, max) => {
+  if(max === undefined){
+    max = min;
+    min = 0;
+  }
+  return n < min
+    ? min
+    : n > max
+      ? max
+      : n;
+});
 const A = Action.Number;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
@@ -1856,18 +1867,6 @@ A('multiply', (z, n) => z(z() * n));
 A('negate', z => z(-z()));
 A('setMax', (z, n) => { n > z() && z(n); return z._parent || z; });
 A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
-A('clamp', (z, min, max) => {
-  if(max === undefined){
-    max = min;
-    min = 0;
-  }
-  const n = z();
-  z(n < min
-    ? min
-    : n > max
-      ? max
-      : n);
-});
 })();
 (function(){"use strict";const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
 nice.Single.extend({
@@ -2147,7 +2146,6 @@ if(nice.isEnvBrowser){
     .default.use((v, k, node) => node.style[k] = v);
   const delStyle = Switch
     .Box.use((s, k, node) => {
-      
       node.styleSubscriptions[k]();
       delete node.styleSubscriptions[k];
       node.style[k] = '';

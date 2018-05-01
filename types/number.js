@@ -66,7 +66,20 @@ log10
 log2
 log1pexpm1`.split('\n').forEach(k => M(k, (n, ...a) => Math[k](n, ...a)));
 
-//Action.number('inc', (z, n = 1) => z + n);
+
+M('clamp', (n, min, max) => {
+  if(max === undefined){
+    max = min;
+    min = 0;
+  }
+  return n < min
+    ? min
+    : n > max
+      ? max
+      : n;
+});
+
+
 const A = Action.Number;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
@@ -75,15 +88,3 @@ A('multiply', (z, n) => z(z() * n));
 A('negate', z => z(-z()));
 A('setMax', (z, n) => { n > z() && z(n); return z._parent || z; });
 A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
-A('clamp', (z, min, max) => {
-  if(max === undefined){
-    max = min;
-    min = 0;
-  }
-  const n = z();
-  z(n < min
-    ? min
-    : n > max
-      ? max
-      : n);
-});
