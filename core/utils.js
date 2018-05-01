@@ -213,7 +213,7 @@ defAll(nice, {
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
 
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
-  
+
   _deCapitalize: s => s[0].toLowerCase() + s.substr(1),
 });
 
@@ -238,7 +238,7 @@ function compareObjects(a, b){
   for(let i in b)
     if(a[i] !== b[i]){
       let change = calculateChanges(a[i], b[i]);
-      if(change){
+      if(change || change === 0 || change === ''){
         res = res || {};
         res[i] = change;
       }

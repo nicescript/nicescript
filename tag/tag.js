@@ -205,7 +205,7 @@ if(nice.isEnvBrowser){
   function handleNode(add, del, oldNode, parent){
     let node;
 
-    if(del && is.Something(del) && !oldNode)
+    if(del && !is.Nothing(del) && !oldNode)
       throw '!oldNode';
 
     del && Switch(del)
@@ -224,7 +224,7 @@ if(nice.isEnvBrowser){
                 oldNode.removeEventListener(k, f, true));
         }
       })
-      .default.use(t => add || t && killNode(oldNode));
+      .default.use(t => add !== undefined || t !== undefined && killNode(oldNode));
 
 
     if(is.Box(add)) {
@@ -236,7 +236,7 @@ if(nice.isEnvBrowser){
       node = node || oldNode || document.createTextNode(' ');
       node.__niceSubscription = f;
       oldNode || parent.appendChild(node);
-    } else if(add) {
+    } else if(add || add === '') {
       if (add._nv_) {//node
         const v = add._nv_;
         const newTag = v.tag;

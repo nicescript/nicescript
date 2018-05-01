@@ -310,7 +310,6 @@ defAll(nice, {
   },
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
-  
   _deCapitalize: s => s[0].toLowerCase() + s.substr(1),
 });
 function compareArrays(a, b){
@@ -331,7 +330,7 @@ function compareObjects(a, b){
   for(let i in b)
     if(a[i] !== b[i]){
       let change = calculateChanges(a[i], b[i]);
-      if(change){
+      if(change || change === 0 || change === ''){
         res = res || {};
         res[i] = change;
       }
@@ -2178,7 +2177,7 @@ if(nice.isEnvBrowser){
   }
   function handleNode(add, del, oldNode, parent){
     let node;
-    if(del && is.Something(del) && !oldNode)
+    if(del && !is.Nothing(del) && !oldNode)
       throw '!oldNode';
     del && Switch(del)
       .Box.use(b => {
@@ -2196,7 +2195,7 @@ if(nice.isEnvBrowser){
                 oldNode.removeEventListener(k, f, true));
         }
       })
-      .default.use(t => add || t && killNode(oldNode));
+      .default.use(t => (add || add === '') || (t || t === '') && killNode(oldNode));
     if(is.Box(add)) {
       const f = () => {
         const diff = add.getDiff();
@@ -2206,7 +2205,7 @@ if(nice.isEnvBrowser){
       node = node || oldNode || document.createTextNode(' ');
       node.__niceSubscription = f;
       oldNode || parent.appendChild(node);
-    } else if(add) {
+    } else if(add || add === '') {
       if (add._nv_) {
         const v = add._nv_;
         const newTag = v.tag;
