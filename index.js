@@ -2147,6 +2147,7 @@ if(nice.isEnvBrowser){
     .default.use((v, k, node) => node.style[k] = v);
   const delStyle = Switch
     .Box.use((s, k, node) => {
+      
       node.styleSubscriptions[k]();
       delete node.styleSubscriptions[k];
       node.style[k] = '';
@@ -2166,32 +2167,47 @@ if(nice.isEnvBrowser){
       node[k] = '';
     })
     .default.use((v, k, node) => node[k] = '');
-  function handleNode(add, del, parent, i = parent.childNodes.length){
-    const oldNode = parent.childNodes[i];
+  function killNode(n){
+    n && n.parentNode && n.parentNode.removeChild(n);
+  }
+  function insertBefore(node, newNode){
+    node.parentNode.insertBefore(newNode, node);
+    return newNode;
+  }
+  function insertAfter(node, newNode){
+    node.parentNode.insertBefore(newNode, node.nextSibling);
+    return newNode;
+  }
+  function handleNode(add, del, oldNode, parent){
     let node;
-    Switch(del)
+    if(del && is.Something(del) && !oldNode)
+      throw '!oldNode';
+    del && Switch(del)
       .Box.use(b => {
-        b.unsubscribe(parent.subscriptions[i]);
-        parent.subscriptions[i] = null;
+        b.unsubscribe(oldNode.__niceSubscription);
+        oldNode.__niceSubscription = null;
       })
       .object.use(o => {
-        if(!add){
-          oldNode && parent.removeChild(oldNode);
+        const v = o._nv_;
+        if(v.tag && !add){
+          killNode(oldNode);
         } else {
-          const v = o._nv_;
           _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
           _each(v.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-          nice._eachEach(v.eventHandlers, (f, _n, k) => oldNode.removeEventListener(k, f, true));
+          nice._eachEach(v.eventHandlers, (f, _n, k) =>
+                oldNode.removeEventListener(k, f, true));
         }
       })
-      .default.use(t => add || t && oldNode && parent.removeChild(oldNode));
+      .default.use(t => add || t && killNode(oldNode));
     if(is.Box(add)) {
       const f = () => {
         const diff = add.getDiff();
-        handleNode(diff.add, diff.del, parent, i);
+        node = handleNode(diff.add, diff.del, node, parent);
       };
       add.listen(f);
-      set(parent, ['subscriptions', i], f);
+      node = node || oldNode || document.createTextNode(' ');
+      node.__niceSubscription = f;
+      oldNode || parent.appendChild(node);
     } else if(add) {
       if (add._nv_) {
         const v = add._nv_;
@@ -2201,7 +2217,7 @@ if(nice.isEnvBrowser){
             node = changeTag(oldNode, newTag);
           }
           node = node || document.createElement(newTag);
-          parent.insertBefore(node, oldNode);
+          oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
         } else {
           node = oldNode;
         }
@@ -2209,33 +2225,37 @@ if(nice.isEnvBrowser){
         _each(v.attributes, (_v, k) => addAttribute(_v, k, node));
         nice._eachEach(v.eventHandlers, (f, _n, k) => k === 'domNode'
           ? f(node) : node.addEventListener(k, f, true));
-        handleChildren(add, del, node);
       } else {
         const text = is.Nothing(add) ? '' : '' + add;
-        node = parent.insertBefore(document.createTextNode(text), oldNode);
+        node = document.createTextNode(text);
+        oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
       }
-      oldNode && (oldNode !== node) && parent.removeChild(oldNode);
+      oldNode && (oldNode !== node) && killNode(oldNode);
     }
+    is.Box(add) || (node && node.nodeType === 3)
+            || handleChildren(add, del, node || oldNode);
+    return node || oldNode;
   }
   function handleChildren(add, del, target){
     const a = add && add._nv_ && add._nv_.children;
     const d = del && del._nv_ && del._nv_.children;
-    const f = k => handleNode(a && a[k], d && d[k], target, k);
+    const f = k => handleNode(a && a[k], d && d[k], target.childNodes[k], target);
     const keys = [];
     _each(a, (v, k) => f( + k));
-    _each(d, (v, k) => a[k] || keys.push( + k));
-    keys.forEach(f);
+    _each(d, (v, k) => (a && a[k]) || keys.push( + k));
+    keys.sort((a,b) => b - a).forEach(f);
   };
   Func.Box(function show(source, parent = document.body){
     const i = parent.childNodes.length;
-    source.listenDiff(diff => handleNode(diff.add, diff.del, parent, i));
+    let node = null;
+    source.listenDiff(diff => node = handleNode(diff.add, diff.del, node, parent));
     return source;
   });
   function newNode(tag, parent = document.body){
     return parent.appendChild(document.createElement(tag));
   };
   Func.Tag(function show(source, parent = document.body){
-    handleNode({_nv_: source.getResult()}, undefined, parent);
+    handleNode({_nv_: source.getResult()}, undefined, null, parent);
     return source;
   });
   function changeTag(old, tag){

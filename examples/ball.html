@@ -45,6 +45,7 @@ Box.use(platform).by(p => Div().position('absolute')
 ).show();
 
 
+///TODO: bug: platform does not move
 window.addEventListener('mousemove', e => {
   let width = platform().width;
   platform.assign({

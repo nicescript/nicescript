@@ -7,9 +7,13 @@
 <script>
 const { Div, H1, OL, LI, Box, Button } = nice;  
 
+H1('Tic Tac Toe').show();
+
 const step = Box(0);
 
-const current = Box.by(step, n => n % 2 ? 'o' : 'x');
+const whoseTurn = n => n % 2 ? 'o' : 'x';
+
+const current = Box.by(step, whoseTurn);
 
 //TODO: bug: Box([]).length
 const state = Box([]).fill(null, 0, 9);
@@ -28,32 +32,33 @@ const lines = [
 ];
 
 const gameOver = Box.by(state, s => 
-    lines.some(l => l.map(i => s[i]).every(v => v === current())));
+    lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a)));
+    
+const handleClick = i => {
+  state.set(i, current());
+  history().length > step + 1 && history.splice(step + 1);
+  history.push(state());
+  step.inc();
+};
 
 const sellView = (v, i) => Div(v, ' ')
   .textAlign('center').font('3.2rem Arial')
   .width('4rem').height('4rem')
   .border('1px #000 solid')
   .margin('-1px')
-  .on('click', () => {
-    if(gameOver() || state()[i])
-      return;
-    state.set(i, current());
-    history().length > step + 1 && history.splice(step + 1);
-    history.push(state());
-    gameOver() || step.inc();
-  });
-
+  .on('click', () => gameOver() || state()[i] || handleClick(i));
   
 const historyButton = (s, i) => 
   LI(Button('Go to move #' + i, () => { state(s); step(i); }));
  
 Div(
   Box.by(state, s => Div(s.map(sellView))
-      .width('12rem').display('flex').flexWrap('wrap')),
-  Box.by(gameOver, o => o ? 'Winner: ' : 'Next player: '), current,  
+      .width('12rem').display('flex').flexWrap('wrap').margin('1rem 0')),
+  Box.by(gameOver, current, (o, c) => o 
+    ? 'Winner: ' + whoseTurn(step() - 1)
+    : 'Next player: ' + c),  
   Box.by(history, h => OL(h.map(historyButton))),
-).margin('1rem').show();
+).show();
 </script>
   </body>
 </html>

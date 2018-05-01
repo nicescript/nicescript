@@ -20,28 +20,28 @@ Box().use(counter).by(c => Div('1: ', c)).show();
 Box().use(counter2).by(c => Div('2: ', c)).show();
 
 
-
 H3('Add/remove text nodes').show();
 Box().by(counter, c => Div(c % 2 ? [1, 2, 3] : [1])).show();
+Box().by(counter, c => Div(c % 2 
+  ? [Span('span1 '), 'text ', Span('span2')] 
+  : [Span('span1 '), Span('span2'), ' text'])).show();
 
 
-H3('Blink green red blue').show();
+H3('Blink green blue red').show();
 const color = Box().use(counter2).by(c => c % 2 ? 'red' : 'blue');
 Box().use(counter).use(color).by(c => Div('BLINK').color(c % 2 ? color : 'green')).show();
 
 
 
-H3('Focuset input & result').show();
-
+H3('Focused input & result').show();
 const input = nice.Input().value('555').focus();
-const result = Box().use(input.value).by(s => Div().I('Result is: ').up.B(s));
-
+const result = Box.by(input.value, s => Div(I('Result is: ')).B(s));
 Div(input, result).show();
 
 
 H3('Checked checkbox ').show();
 const c = nice.Checkbox(true);
-Div(c, Box().use(c.checked).by(c => Span(c ? 'Yes' : 'No'))).show();
+Div(c, Box().by(c.checked, c => Span(c ? 'Yes' : 'No'))).show();
 
 
 
@@ -49,9 +49,9 @@ H3('Textarea').show();
 const text = nice.Textarea('qewqweqwqw').show();
 Box().use(text.value).by(s => Div().I('Length: ', s.length)).show();
 
-var z = Box([1]);
-var f = i => nice.LI(nice.Button('Restore move #' + i));
-var z2 = Box().by(z, z => Div(z.map(f))).show();
+//var z = Box([1]);
+//var f = i => nice.LI(nice.Button('Restore move #' + i));
+//var z2 = Box().by(z, z => Div(z.map(f))).show();
 
 </script>
 
