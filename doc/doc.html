@@ -1,5 +1,6 @@
 <html>
   <head>
+    <title>NiceScript documentation</title>
     <script src="../nice.js"></script>
   </head>
   <body style="margin:0;">
@@ -26,11 +27,6 @@ const highlightText = (s, q, f = B) => {
   let a = [];
 
   while ((a = regex.exec(s)) !== null) {
-    console.log(regex.lastIndex);
-    console.log(a);
-    console.log(`Found ${a[0]}. Next starts at ${regex.lastIndex}.`);
-    
-//TODO: bug in rendering when '' in the res
     const slice = s.slice(lastIndex, a.index);
     lastIndex = a.index + a[0].length;
     
