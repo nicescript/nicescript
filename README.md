@@ -258,6 +258,7 @@ b();                  // read value
 
 // create Box that follows changes in b
 let b2 = Box.use(b).by(n => n * 2);
+// short version Box.by(b, n => n * 2);
 b(3);                 // b2() === 6
 
 // Named inputs
@@ -282,9 +283,9 @@ a('asd');
 Calling [action](#action) on box will change its content.
 ```javascript
 const a = nice.Box([1, 2]).listen(console.log);
-[1, 2];
+// [1, 2];
 a.push(3);
-[1, 2, 3];
+// [1, 2, 3];
 ```
 
 ### Tag
@@ -310,8 +311,7 @@ const { Box, Div, Switch, Nothing } = nice;
 
 const data = Box(Nothing);
 
-const div = Box().use(data)
-  .by(Switch
+const div = Box.by(data, Switch
       .string.use(s => Div('Data: ', s))
       .default(Div('Loading...')));
 
