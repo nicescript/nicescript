@@ -22,7 +22,7 @@ const taskView = t => Div(t)
   .borderRadius('.5em')
   .backgroundColor('#DEF');
 
-Box.use(tasks).by(ts => Div(ts.map(decorate).map(taskView))).show();
+Box.by(tasks, ts => Div(ts.map(decorate).map(taskView))).show();
 
 tasks.push('Walk the dog', 'Watch tv');
 ```
@@ -31,6 +31,7 @@ More examples:
 
 * [Ball game](./examples/ball.html) ( [JS Bin](https://jsbin.com/wimayanovu/1/edit?html,output) )
 * [Todo list](./examples/todo.html) ( [JS Bin](https://jsbin.com/yetufekopi/1/edit?html,output) )
+* [Tic Tac Toe](./examples/tictactoe.html) ( [JS Bin](https://jsbin.com/yozupufaci/edit?html,output) )
 
 ## Install
 `npm install nicescript`
