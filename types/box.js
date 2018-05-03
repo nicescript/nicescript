@@ -152,7 +152,7 @@ nice.Type({
       if(v === this)
         throw `Can't set state of the box to box itself.`;
 
-      while(v._up_)
+      while(v && v._up_)
         v = v._up_;
 
       if(nice.is.Box(v))

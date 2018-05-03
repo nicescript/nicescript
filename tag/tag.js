@@ -204,7 +204,7 @@ if(nice.isEnvBrowser){
       })
       .object.use(o => {
         const v = o._nv_;
-        if(v.tag && !add){
+        if(v.tag && add === undefined){
           killNode(oldNode);
         } else {
           _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
@@ -220,13 +220,14 @@ if(nice.isEnvBrowser){
       const f = () => {
         const diff = add.getDiff();
         node = handleNode(diff.add, diff.del, node, parent);
+        console.log(diff);
       };
       add.listen(f);
       node = node || oldNode || document.createTextNode(' ');
       node.__niceSubscription = f;
       oldNode || parent.appendChild(node);
-    } else if(add || add === '') {
-      if (add._nv_) { //full node
+    } else if(add !== undefined) {
+      if (add && add._nv_) { //full node
         const v = add._nv_;
         const newTag = v.tag;
         if(newTag){

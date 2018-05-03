@@ -44,7 +44,7 @@ Box.by(platform, p => Div().position('absolute')
 
 
 window.addEventListener('mousemove', e => {
-  let width = platform().width;
+  const width = platform().width;
   platform.assign({
     x: clamp(e.clientX - width / 2, document.body.offsetWidth - width)
   });
