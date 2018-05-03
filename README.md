@@ -177,7 +177,7 @@ Function name should start with lowercase letter.
 #### Function types
 
 ##### Mapping
-Clean function that never changes it's arguments. 
+Clean function that do not changes it's arguments. 
 NiceScript will always [wrap](#wrapping-values) result of Mapping. 
 
 ```javascript
