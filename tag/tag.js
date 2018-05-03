@@ -220,7 +220,6 @@ if(nice.isEnvBrowser){
       const f = () => {
         const diff = add.getDiff();
         node = handleNode(diff.add, diff.del, node, parent);
-        console.log(diff);
       };
       add.listen(f);
       node = node || oldNode || document.createTextNode(' ');
