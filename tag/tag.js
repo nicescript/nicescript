@@ -139,23 +139,12 @@ defAll(nice, {
 });
 
 
-const set = (o, path, v) => {
-  let i = 0;
-  let last = path.length - 1;
-  for(let i = 0; i < last; i++){
-    o = (o[path[i]] = o[path[i]] || {});
-  }
-  o[path[last]] = v;
-};
-
-
-
 if(nice.isEnvBrowser){
   const addStyle = Switch
     .Box.use((s, k, node) => {
       const f = v => addStyle(v, k, node);
       s.listen(f);
-      set(node, ['styleSubscriptions', k], () => s.unsubscribe(f));
+      nice._set(node, ['styleSubscriptions', k], () => s.unsubscribe(f));
     })
     .default.use((v, k, node) => node.style[k] = v);
 
@@ -172,7 +161,7 @@ if(nice.isEnvBrowser){
     .Box.use((s, k, node) => {
       const f = v => addAttribute(v, k, node);
       s.listen(f);
-      set(node, ['attrSubscriptions', k], () => s.unsubscribe(f));
+      nice._set(node, ['attrSubscriptions', k], () => s.unsubscribe(f));
     })
     .default.use((v, k, node) => node[k] = v);
 
@@ -237,7 +226,7 @@ if(nice.isEnvBrowser){
       node.__niceSubscription = f;
       oldNode || parent.appendChild(node);
     } else if(add || add === '') {
-      if (add._nv_) {//node
+      if (add._nv_) { //full node
         const v = add._nv_;
         const newTag = v.tag;
         if(newTag){
@@ -251,8 +240,7 @@ if(nice.isEnvBrowser){
         }
         _each(v.style, (_v, k) => addStyle(_v, k, node));
         _each(v.attributes, (_v, k) => addAttribute(_v, k, node));
-        nice._eachEach(v.eventHandlers, (f, _n, k) => k === 'domNode'
-          ? f(node) : node.addEventListener(k, f, true));
+        addHandlers(v.eventHandlers, node);
       } else {
         const text = is.Nothing(add) ? '' : '' + add;
         node = document.createTextNode(text);
@@ -303,7 +291,21 @@ if(nice.isEnvBrowser){
     for (let i = old.attributes.length - 1; i >= 0; --i) {
       node.attributes.setNamedItem(old.attributes[i].cloneNode());
     }
-    //TODO: event hendlers
+    addHandlers(old.__niceListeners, node);
+    delete(old.__niceListeners);
     return node;
   }
+
+
+  function addHandlers(eventHandlers, node){
+    nice._eachEach(eventHandlers, (f, _n, k) => {
+      if(k === 'domNode')
+        return f(node);
+      node.addEventListener(k, f, true);
+      node.__niceListeners = node.__niceListeners || {};
+      node.__niceListeners[k] = node.__niceListeners[k] || [];
+      node.__niceListeners[k].push(f);
+    });
+  }
+
 };
