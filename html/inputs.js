@@ -5,20 +5,20 @@ function defaultSetValue(t, v){
 };
 
 
+const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
+
 function attachValue(target, setValue = defaultSetValue){
   let node, mute;
   target.value = Box("");
   target.value._parent = target;
 
   if(nice.isEnvBrowser){
-    const onChange = e => {
+    changeEvents.forEach(k => target.on(k, e => {
       mute = true;
       target.value((e.target || e.srcElement).value);
       mute = false;
       return true;
-    };
-    ['change', 'keyup', 'paste', 'search', 'input']
-        .forEach(k => target.on(k, onChange));
+    }));
 
     target.id() || target.id('_nn_' + autoId++);
     target.on('domNode', n => node = n);

@@ -7,8 +7,6 @@
 <script>
 const { Div, H1, OL, LI, Box, Button } = nice;  
 
-H1('Tic Tac Toe').show();
-
 const step = Box(0);
 
 const whoseTurn = n => n % 2 ? 'o' : 'x';
@@ -40,7 +38,7 @@ const handleClick = i => {
   step.inc();
 };
 
-const sellView = (v, i) => Div(v, ' ')
+const sellView = (v, i) => Div(v)
   .textAlign('center').font('3.2rem Arial')
   .width('4rem').height('4rem')
   .border('1px #000 solid')
@@ -51,6 +49,7 @@ const historyButton = (s, i) =>
   LI(Button('Go to move #' + i, () => { state(s); step(i); }));
  
 Div(
+  H1('Tic Tac Toe'),
   Box.by(state, s => Div(s.map(sellView))
       .width('12rem').display('flex').flexWrap('wrap').margin('1rem 0')),
   Box.by(gameOver, current, (o, c) => o 

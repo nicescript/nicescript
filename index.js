@@ -2192,7 +2192,6 @@ if(nice.isEnvBrowser){
       const f = () => {
         const diff = add.getDiff();
         node = handleNode(diff.add, diff.del, node, parent);
-        console.log(diff);
       };
       add.listen(f);
       node = node || oldNode || document.createTextNode(' ');
@@ -2284,19 +2283,18 @@ nice.Block('Img', (z, src) => z.tag('img').src(src));
 function defaultSetValue(t, v){
   t.attributes('value', v);
 };
+const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 function attachValue(target, setValue = defaultSetValue){
   let node, mute;
   target.value = Box("");
   target.value._parent = target;
   if(nice.isEnvBrowser){
-    const onChange = e => {
+    changeEvents.forEach(k => target.on(k, e => {
       mute = true;
       target.value((e.target || e.srcElement).value);
       mute = false;
       return true;
-    };
-    ['change', 'keyup', 'paste', 'search', 'input']
-        .forEach(k => target.on(k, onChange));
+    }));
     target.id() || target.id('_nn_' + autoId++);
     target.on('domNode', n => node = n);
   }
