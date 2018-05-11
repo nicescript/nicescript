@@ -31,7 +31,9 @@ More examples:
 
 * [Ball game](./examples/ball.html) ( [JS Bin](https://jsbin.com/wimayanovu/1/edit?html,output) )
 * [Todo list](./examples/todo.html) ( [JS Bin](https://jsbin.com/yetufekopi/1/edit?html,output) )
-* [Tic Tac Toe](./examples/tictactoe.html) ( [JS Bin](https://jsbin.com/yozupufaci/edit?html,output) )
+* [Tic Tac Toe](./examples/tictactoe.html) 
+  ( [JS Bin](https://jsbin.com/yozupufaci/edit?html,output) )
+  ( [Tutorial](https://medium.com/@sergey.kashulin/creating-web-applications-with-nicescript-338184d18331) )
 
 ## Install
 `npm install nicescript`
