@@ -1,6 +1,10 @@
 def(nice, 'Block', (name, by) => {
   const cfg = nice.Type(name);
-  by && cfg.by(by);
+  cfg.by((z, ...a) => {
+    z.tag('div');
+    by && by(z, ...a);
+  });
+
   name === 'Tag' || cfg.extends('Tag');
   nice.Tag.proto[name] = function (...a){
     const res = nice[name](...a);
@@ -10,7 +14,7 @@ def(nice, 'Block', (name, by) => {
   return cfg;
 });
 
-nice.Block('Tag', (z, tag) => z.tag(tag || 'div'))
+nice.Block('Tag', (z, tag) => tag && z.tag(tag))
   .String('tag')
   .Object('eventHandlers')
   .Action(function on(z, name, f){
