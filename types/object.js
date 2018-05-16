@@ -325,6 +325,10 @@ nice._on('Type', type => {
       }
     }
 
+    if(cfg.key[0] !== cfg.key[0].toLowerCase())
+      throw "Property name should start with lowercase letter. "
+            + `"${nice._deCapitalize(cfg.key)}" not "${cfg.key}"`;
+
     targetType.types = this.types || {};
     targetType.types[cfg.key] = type;
 

@@ -106,6 +106,12 @@ function configurator(...a){
 //optimization: create function that don't check fist argument for type.proto
 function createFunction({ existing, name, action, signature, type }){
   const target = type === 'Check' ? nice.checkFunctions : nice;
+
+  if(type !== 'Check' && name && typeof name === 'string'
+          && name[0] !== name[0].toLowerCase())
+    throw "Function name should start with lowercase letter. "
+          + `"${nice._deCapitalize(name)}" not "${name}"`;
+
   existing = existing || (name && target[name]);
   const f = existing || createFunctionBody(type);
 

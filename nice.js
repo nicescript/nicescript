@@ -559,6 +559,10 @@ function configurator(...a){
 };
 function createFunction({ existing, name, action, signature, type }){
   const target = type === 'Check' ? nice.checkFunctions : nice;
+  if(type !== 'Check' && name && typeof name === 'string'
+          && name[0] !== name[0].toLowerCase())
+    throw "Function name should start with lowercase letter. "
+          + `"${nice._deCapitalize(name)}" not "${name}"`;
   existing = existing || (name && target[name]);
   const f = existing || createFunctionBody(type);
   if(existing && existing.functionType !== type)
@@ -1288,6 +1292,9 @@ nice._on('Type', type => {
         cfg.by = by;
       }
     }
+    if(cfg.key[0] !== cfg.key[0].toLowerCase())
+      throw "Property name should start with lowercase letter. "
+            + `"${nice._deCapitalize(cfg.key)}" not "${cfg.key}"`;
     targetType.types = this.types || {};
     targetType.types[cfg.key] = type;
     defGet(targetType.proto, cfg.key, function(){
