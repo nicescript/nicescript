@@ -683,14 +683,14 @@ const basicChecks = {
     const type = typeof i;
     return i === null || (type !== "object" && type !== "function");
   },
-  empty: item => {
-    if(!item)
+  empty: v => {
+    if(!v)
       return true;
-    if(Array.isArray(item))
-      return !item.length;
-    if(typeof item === 'object')
-      return !Object.keys(item).length;
-    return !item;
+    if(Array.isArray(v))
+      return !v.length;
+    if(typeof v === 'object')
+      return !Object.keys(v).length;
+    return !v;
   },
   subType: (a, b) => {
     is.string(a) && (a = nice.Type(a));
@@ -2125,7 +2125,7 @@ defAll(nice, {
   htmlEscape: s => (''+s).replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;'),
+      .replace(/>/g, '&gt;')
 });
 if(nice.isEnvBrowser){
   const addStyle = Switch
