@@ -110,27 +110,35 @@ function text(){
 };
 
 
-function compileStyle (div){
-  return div.style
-    .mapToArray((v, k) => k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v)
-    .getResult().join(';');
+function compileStyle (s){
+  const a = [];
+  _each(s, (v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
+  return a.join(';');
+};
+
+
+const resultToHtml = r => {
+  const a = ['<', r.tag];
+
+  const style = compileStyle(r.style);
+  style && a.push(" ", 'style="', style, '"');
+  r.class && a.push(" ", 'class="', r.class.join(' '), '"');
+
+  _each(r.attributes, (v, k) => a.push(" ", k , '="', v, '"'));
+
+  a.push('>');
+
+  _each(r.children, c => a.push(c && c._nv_ && c._nv_.tag
+    ? resultToHtml(c._nv_)
+    : nice.htmlEscape(c)));
+
+  a.push('</', r.tag, '>');
+  return a.join('');
 };
 
 
 function html(){
-  const z = this, tag = z.tag(), a = ['<', tag];
-
-  z.style.size && a.push(" ", 'style="', compileStyle(z), '"');
-  z.class.size && a.push(" ", 'class="', z.class().join(' '), '"');
-
-  z.attributes.each((v, k) => is.Value(v) && a.push(" ", k , '="', v(), '"'));
-
-  a.push('>');
-
-  z.children.each(c => a.push(is.Tag(c) ? c.html : nice.htmlEscape(c)));
-
-  a.push('</', tag, '>');
-  return a.join('');
+  return resultToHtml(this._result);
 };
 
 

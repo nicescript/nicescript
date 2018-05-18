@@ -60,13 +60,18 @@ const functionView = f => Div().padding('1rem')
     .I(f.functionType).color('#666').marginLeft('1rem').up
     .up
   .Div(f.action && f.action.toString()).whiteSpace('pre').up
-  .Div(f.signatures && f.signatures.keys()).up;
+  .Div(f.signatures && [...f.signatures.keys()]).up;
 
-
+const start = Date.now();
+            
 Box().use(functionType).use(search.value).by((type, q) => Div(functions
     .filter(f => (type === 'All' || type === f.functionType) 
         && (!q || f.name.toString().includes(q)))
-    .map(functionView))).show();
+    .map(functionView))).listen(v => {
+      console.log('TOOK: ', (Date.now() - start));
+      v.html;
+      console.log('TOOK2: ', (Date.now() - start));
+    });
 
 
 </script>
