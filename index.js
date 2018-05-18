@@ -1582,21 +1582,50 @@ nice._on('Type', type => {
   });
 });
 def(nice, 'resolveChildren', (v, f) => {
+  if(!v)
+    return f(v);
   if(is.Box(v))
-    return v.listenOnce(f);
-  if(is.Object(v)){
-    const res = v._type();
-    let n = v.size;
-    if(!n)
-      return f(res);
-    v.each((c, k) => nice.resolveChildren(c, _v => {
-      nice.resolveChildren(_v, __v => {
-        res.set(k, __v);
-        --n || f(res);
+    return v.listenOnce(_v => nice.resolveChildren(_v, f));
+  if(v._result){
+    if(is.object(v._result)){
+      let count = 0;
+      const next = () => {
+        count--;
+        count === 0 && f(v);
+      };
+      _each(v._result, () => count++);
+      !count ? f(v) : _each(v._result, (vv, kk) => {
+        nice.resolveChildren(vv, _v => {
+          if(_v && _v._type){
+            _v = _v._type.saveValue(_v._result);
+          }
+          v._result[kk] = _v;
+          next();
+        });
       });
-    }));
+    } else {
+      f(v);
+    }
   } else {
-    f(v);
+    if(is.object(v)){
+      let count = 0;
+      const next = () => {
+        count--;
+        count === 0 && f(v);
+      };
+      _each(v, () => count++);
+      !count ? f(v) : _each(v, (vv, kk) => {
+        nice.resolveChildren(vv, _v => {
+          if(_v && _v._type){
+            _v = _v._type.saveValue(_v._result);
+          }
+          v[kk] = _v;
+          next();
+        });
+      });
+    }
+    else
+      f(v);
   }
 });
 nice._on('Action', f => {

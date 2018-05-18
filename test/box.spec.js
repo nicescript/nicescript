@@ -248,6 +248,14 @@ describe("Box", function() {
   });
 
 
+  it("resolve children 3", function(done){
+    nice.resolveChildren({}, function (v) {
+      expect(v).to.deep.equal({});
+      done();
+    });
+  });
+
+
   it("values's transformation", function(){
     let a = Box(2);
     let b = a.pow(2);
