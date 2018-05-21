@@ -214,4 +214,20 @@ describe("Switch", function() {
   });
 
 
+  it("switch action & mapping", function() {
+    expect(Switch(5).number.sum(5).array.map(x => x * 2)()()).equal(10);
+    expect(Switch([1]).number.sum(5).array.map(x => x * 2)()()).deep.equal([2]);
+    expect(Switch('qwe').number.sum(5).array.map(x => x * 2)()).equal('qwe');
+  });
+
+
+  it("delayed switch action & mapping", function() {
+    var f = nice.Switch.number.sum(5).array.map(x => x * 2);
+    expect(f(5)()).equal(10);
+    expect(f([1])()).deep.equal([2]);
+    expect(f('qwe')).equal('qwe');
+  });
+
+
+
 });

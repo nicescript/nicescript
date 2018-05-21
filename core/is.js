@@ -88,17 +88,27 @@ defGet(switchProto, 'default', function () {
   return res;
 });
 
+const actionProto = {};
+//const delayedActionProto = {};
+
+nice._on('function', f => {
+  if(f.functionType !== 'Check'){
+//    delayedActionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
+    actionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
+  }
+});
+
 
 const delayedProto = create(nice.checkers, {
   check: function (f) {
     this._check = f;
-    const res = delayedResult.bind(this);
+    const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
   },
   equal: function (f) {
     this._check = (...a) => a[0] === f;
-    const res = delayedResult.bind(this);
+    const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
   },
@@ -160,7 +170,7 @@ const S = Switch = nice.Switch = (...args) => {
   f.addCheck = check => {
     const preCheck = f._check;
     f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
-    const res = switchResult.bind(f);
+    const res = create(actionProto, switchResult.bind(f));
     res.use = switchUse.bind(f);
     return res;
   };
@@ -242,7 +252,7 @@ function DealyedSwitch(...a) {
     const preCheck = f._check;
     f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
 
-    const res = delayedResult.bind(f);
+    const res = create(actionProto, delayedResult.bind(f));
     res.use = delayedUse.bind(f);
     return res;
   };
