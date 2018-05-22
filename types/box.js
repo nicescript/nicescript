@@ -261,9 +261,7 @@ const F = Func.Box;
 
 
 function diffConverter(v){
-  if(is.nice(v) && is.Value(v))
-    return nice.fromItem(v);
-  return v;
+  return is.Value(v)? nice.fromItem(v) : v;
 }
 
 

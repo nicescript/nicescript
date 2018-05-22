@@ -68,19 +68,19 @@ describe("is", function() {
   });
 
   it("primitive Nothing", function() {
-    expect(nice.is.Null(null)).to.equal(true);
-    expect(nice.is.Nothing(null)).to.equal(true);
-    expect(nice.is.Nothing(0)).to.equal(false);
+    expect(is.null(null)).to.equal(true);
+    expect(is.Null(null)).to.equal(false);
+    expect(is.Nothing(null)).to.equal(false);
+    expect(is.Nothing(0)).to.equal(false);
   });
 
   it("nice", function() {
-    expect(nice.is.nice(1)).to.equal(false);
-    expect(nice.is.nice(nice.Number())).to.equal(true);
+    expect(is.nice(1)).to.equal(false);
+    expect(is.nice(nice.Number())).to.equal(true);
   });
 
-
   it("js types", function() {
-    expect(nice.is.regExp(/.*/)).to.equal(true);
-    expect(nice.is.arrayBuffer(/.*/)).to.equal(false);
+    expect(is.regExp(/.*/)).to.equal(true);
+    expect(is.arrayBuffer(/.*/)).to.equal(false);
   });
 });

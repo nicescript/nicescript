@@ -43,11 +43,11 @@ nice.Block('Tag', (z, tag) => tag && z.tag(tag))
   .Action('focus', z => z.on('domNode', node => node.focus()))
   .Action(function add(z, ...children) {
     children.forEach(c => {
-      if(is.Array(c))
-        return c.each(_c => z.add(_c));
-
       if(is.array(c))
         return _each(c, _c => z.add(_c));
+
+      if(is.Array(c))
+        return c.each(_c => z.add(_c));
 
       if(c === undefined || c === null)
         return;

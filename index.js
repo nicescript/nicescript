@@ -125,7 +125,8 @@ defAll(nice, {
     }
     return o;
   },
-  isEnvBrowser: typeof window !== 'undefined'
+  isEnvBrowser: typeof window !== 'undefined',
+  unwrap: v => is.nice(v) ? v() : v
 });
 defGet = nice.defineGetter;
 _each = nice._each;
@@ -711,13 +712,8 @@ for(let i in nice.jsTypes)
     ? v => typeof v === i
     : v => v && v.constructor && v.constructor.name === nice.jsTypes[i].jsName);
 nice._on('Type', function defineReducer(type) {
-  type.title && Check(type.title, v => {
-    if(v && v._type)
-      return type.proto.isPrototypeOf(v);
-    if(!v)
-      return type.proto.isPrototypeOf(nice(v));
-    return false;
-  });
+  type.title && Check(type.title, v =>
+    v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 const switchProto = create(nice.checkers, {
   valueOf: function () { return this.res; },
@@ -1092,10 +1088,13 @@ nice.Type({
       const f = (...a) => {
         if(a.length === 0)
           return f.getResult();
-        if(a.length === 1 && a[0] === undefined)
+        let k = a[0];
+        if(a.length === 1 && k === undefined)
           return f._parent || f;
-        if(a.length === 1 && a[0] !== undefined && !is.object(a[0]))
-          return f.get(a[0]);
+        if(is.String(k))
+          k = k();
+        if(a.length === 1 && k !== undefined && !is.object(k))
+          return f.get(k);
         f.setValue(...a);
         return f._parent || f;
       };
@@ -1160,6 +1159,8 @@ M(function get(z, i) {
     }
   }
   const vs = z.getResult();
+  if(is.String(i))
+    i = i();
   if(!vs.hasOwnProperty(i))
     return nice.NOT_FOUND;
   const res = nice.toItem(vs[i]);
@@ -1174,7 +1175,7 @@ A('set', (z, path, v) => {
   let k = path;
   if(path.pop){
     while(path.length > 1){
-      k = path.shift();
+      k = nice.unwrap(path.shift());
       if(!data.hasOwnProperty(k)){
         data[k] = {};
         data = data[k];
@@ -1191,6 +1192,7 @@ A('set', (z, path, v) => {
     }
     k = path[0];
   }
+  k = nice.unwrap(k);
   const type = z._itemsType;
   data[k] = type
     ? nice.fromItem(v._type && v._type === type ? v : type(v))
@@ -1536,9 +1538,7 @@ const F = Func.Box;
 ['use', 'follow', 'once', 'by', 'async']
     .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 function diffConverter(v){
-  if(is.nice(v) && is.Value(v))
-    return nice.fromItem(v);
-  return v;
+  return is.Value(v)? nice.fromItem(v) : v;
 }
 F.function(function listen(source, f) {
   const ss = source._subscribers;
@@ -2101,10 +2101,10 @@ nice.Block('Tag', (z, tag) => tag && z.tag(tag))
   .Action('focus', z => z.on('domNode', node => node.focus()))
   .Action(function add(z, ...children) {
     children.forEach(c => {
-      if(is.Array(c))
-        return c.each(_c => z.add(_c));
       if(is.array(c))
         return _each(c, _c => z.add(_c));
+      if(is.Array(c))
+        return c.each(_c => z.add(_c));
       if(c === undefined || c === null)
         return;
       if(is.string(c))

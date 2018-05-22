@@ -7,11 +7,16 @@ nice.Type({
         if(a.length === 0)
           return f.getResult();
 
-        if(a.length === 1 && a[0] === undefined)
+        let k = a[0];
+
+        if(a.length === 1 && k === undefined)
           return f._parent || f;
 
-        if(a.length === 1 && a[0] !== undefined && !is.object(a[0]))
-          return f.get(a[0]);
+        if(is.String(k))
+          k = k();
+
+        if(a.length === 1 && k !== undefined && !is.object(k))
+          return f.get(k);
 
         f.setValue(...a);
         return f._parent || f;
@@ -90,6 +95,9 @@ M(function get(z, i) {
   }
   const vs = z.getResult();
 
+  if(is.String(i))
+    i = i();
+
   if(!vs.hasOwnProperty(i))
     return nice.NOT_FOUND;
 
@@ -107,7 +115,7 @@ A('set', (z, path, v) => {
   let k = path;
   if(path.pop){
     while(path.length > 1){
-      k = path.shift();
+      k = nice.unwrap(path.shift());
       if(!data.hasOwnProperty(k)){
         data[k] = {};
         data = data[k];
@@ -124,6 +132,7 @@ A('set', (z, path, v) => {
     }
     k = path[0];
   }
+  k = nice.unwrap(k);
   const type = z._itemsType;
 
   data[k] = type

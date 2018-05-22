@@ -19,6 +19,14 @@ describe("Object", function() {
   });
 
 
+  it("set / get with nice.String as key", function() {
+    var a = nice();
+    a.set('qwe', 1);
+    expect(a(nice('qwe'))()).to.equal(1);
+    expect(a.get(nice('qwe'))()).to.equal(1);
+  });
+
+
   it("set deep", function() {
     var a = nice();
     a.set(['qwe', 'asd'], 1);

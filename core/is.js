@@ -54,13 +54,8 @@ for(let i in nice.jsTypes)
 
 
 nice._on('Type', function defineReducer(type) {
-  type.title && Check(type.title, v => {
-    if(v && v._type)
-      return type.proto.isPrototypeOf(v);
-    if(!v)
-      return type.proto.isPrototypeOf(nice(v));
-    return false;
-  });
+  type.title && Check(type.title, v =>
+    v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 
 
@@ -89,11 +84,9 @@ defGet(switchProto, 'default', function () {
 });
 
 const actionProto = {};
-//const delayedActionProto = {};
 
 nice._on('function', f => {
   if(f.functionType !== 'Check'){
-//    delayedActionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
     actionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
   }
 });

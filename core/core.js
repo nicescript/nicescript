@@ -175,7 +175,9 @@ defAll(nice, {
     return o;
   },
 
-  isEnvBrowser: typeof window !== 'undefined'
+  isEnvBrowser: typeof window !== 'undefined',
+
+  unwrap: v => is.nice(v) ? v() : v
 });
 defGet = nice.defineGetter;
 _each = nice._each;
