@@ -6,9 +6,10 @@ nice._on('Check', f =>
 is = def(nice, 'is', value => create(isProto, { value }));
 nice._on('Check', f => is[f.name] = f);
 
+Check.about('Checks if two values are equal.')
+  ('equal', (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b))
 
 const basicChecks = {
-  equal: (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b),
   true: v => v === true,
   false: v => v === false,
   any: (v, ...vs) => vs.includes(v),

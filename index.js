@@ -485,8 +485,10 @@ for(let i in jsHierarchy)
     c.existing = o.existing || this.existing;
     c.functionType = o.functionType || this.functionType;
     c.returnValue = o.returnValue || this.returnValue;
+    c.description = o.description || this.description;
     return c;
-  }
+  },
+  about: function(s) { return this.next({ description: s}); }
 };
 const skippedProto = {};
 const functionProto = {
@@ -503,6 +505,9 @@ const functionProto = {
   },
   ary: function (n){
     return (...a) => this(...a.splice(0, n));
+  },
+  about: function(s) {
+    return configurator({ description: s });
   }
 };
 const parseParams = (...a) => {
@@ -542,6 +547,7 @@ function Configurator(name){
   const z = create(configProto, (...a) => {
     const { name, action, signature } = parseParams(...a);
     const res = createFunction(transform({
+      description: z.description,
       type: z.functionType,
       existing: z.existing,
       name: z.name || name,
@@ -558,7 +564,7 @@ function configurator(...a){
   const cfg = parseParams(...a);
   return Configurator(cfg.name).next(cfg);
 };
-function createFunction({ existing, name, action, signature, type }){
+function createFunction({ existing, name, action, signature, type, description }){
   const target = type === 'Check' ? nice.checkFunctions : nice;
   if(type !== 'Check' && name && typeof name === 'string'
           && name[0] !== name[0].toLowerCase())
@@ -584,7 +590,8 @@ function createFunction({ existing, name, action, signature, type }){
       nice.emitAndSave('function', f);
       type && nice.emitAndSave(type, f);
     }
-    action && nice.emitAndSave('signature', {name, action, signature, type});
+    action && nice.emitAndSave('signature',
+      {name, action, signature, type, description });
   }
   return f;
 };
@@ -673,8 +680,9 @@ nice._on('Check', f =>
   isProto[f.name] = function(...a) { return f(this.value, ...a); });
 is = def(nice, 'is', value => create(isProto, { value }));
 nice._on('Check', f => is[f.name] = f);
+Check.about('Checks if two values are equal.')
+  ('equal', (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b))
 const basicChecks = {
-  equal: (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b),
   true: v => v === true,
   false: v => v === false,
   any: (v, ...vs) => vs.includes(v),
@@ -1888,7 +1896,8 @@ cosh
 tanh
 log10
 log2
-log1pexpm1`.split('\n').forEach(k => M(k, (n, ...a) => Math[k](n, ...a)));
+log1pexpm1`.split('\n').forEach(k =>
+  M.about('Delegates to Math.' + k)(k, (n, ...a) => Math[k](n, ...a)));
 M('clamp', (n, min, max) => {
   if(max === undefined){
     max = min;

@@ -6,9 +6,12 @@ const configProto = {
     c.existing = o.existing || this.existing;
     c.functionType = o.functionType || this.functionType;
     c.returnValue = o.returnValue || this.returnValue;
+    c.description = o.description || this.description;
 
     return c;
-  }
+  },
+
+  about: function(s) { return this.next({ description: s}); }
 };
 
 const skippedProto = {};
@@ -28,6 +31,10 @@ const functionProto = {
 
   ary: function (n){
     return (...a) => this(...a.splice(0, n));
+  },
+
+  about: function(s) {
+    return configurator({ description: s });
   }
 };
 
@@ -81,6 +88,7 @@ function Configurator(name){
   const z = create(configProto, (...a) => {
     const { name, action, signature } = parseParams(...a);
     const res = createFunction(transform({
+      description: z.description,
       type: z.functionType,
       existing: z.existing,
       name: z.name || name,
@@ -104,7 +112,7 @@ function configurator(...a){
 
 
 //optimization: create function that don't check fist argument for type.proto
-function createFunction({ existing, name, action, signature, type }){
+function createFunction({ existing, name, action, signature, type, description }){
   const target = type === 'Check' ? nice.checkFunctions : nice;
 
   if(type !== 'Check' && name && typeof name === 'string'
@@ -134,7 +142,8 @@ function createFunction({ existing, name, action, signature, type }){
       nice.emitAndSave('function', f);
       type && nice.emitAndSave(type, f);
     }
-    action && nice.emitAndSave('signature', {name, action, signature, type});
+    action && nice.emitAndSave('signature',
+      {name, action, signature, type, description });
   }
 
   return f;

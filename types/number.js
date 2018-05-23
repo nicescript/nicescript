@@ -64,7 +64,8 @@ cosh
 tanh
 log10
 log2
-log1pexpm1`.split('\n').forEach(k => M(k, (n, ...a) => Math[k](n, ...a)));
+log1pexpm1`.split('\n').forEach(k =>
+  M.about('Delegates to Math.' + k)(k, (n, ...a) => Math[k](n, ...a)));
 
 
 M('clamp', (n, min, max) => {
