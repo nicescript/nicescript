@@ -17,7 +17,7 @@ def(nice, 'Block', (name, by) => {
 nice.Block('Tag', (z, tag) => tag && z.tag(tag))
   .String('tag')
   .Object('eventHandlers')
-  .Action(function on(z, name, f){
+  .Action.about('Adds event handler to an element.')(function on(z, name, f){
     if(name === 'domNode' && nice.isEnvBrowser){
       if(!z.id())
         throw `Give elemen an id to use domNode event.`;

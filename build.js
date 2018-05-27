@@ -49,3 +49,6 @@ fs.writeFileSync(
   'index.js',
   'module.exports = function(){' + src + '; return nice;}'
 );
+
+const nice = require('./index.js')();
+fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.doc()));

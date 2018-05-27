@@ -215,6 +215,26 @@ defAll(nice, {
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
 
   _deCapitalize: s => s[0].toLowerCase() + s.substr(1),
+
+  doc: () => {
+    const res = { types: {}, functions: [] };
+
+    nice._on('signature', s => {
+      const o = {};
+      _each(s, (v, k) => k === 'action'
+        ? (o.source = v.toString())
+        : o[k] = k === 'signature' ? v.map(t => t.type.title) : v);
+      res.functions.push(o);
+    });
+
+    nice._on('Type', t => {
+      const o = { title: t.title };
+      t.extends && (o.extends = t.extends.title);
+      res.types[t.title] = o;
+    });
+
+    return res;
+  }
 });
 
 function compareArrays(a, b){
