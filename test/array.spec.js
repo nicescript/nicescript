@@ -156,4 +156,8 @@ describe("Array", function() {
     expect(nice(1, 2).sum(v => v * 2)()).to.equal(6);
   });
 
+  it("intersperse", () => {
+    expect(nice(1, 2).intersperse('-')()).to.deep.equal([1, '-', 2]);
+  });
+
 });

@@ -200,6 +200,15 @@ M(function sortBy(a, f){
 });
 
 
+M.about('Creates new array with separator between elments.')
+(function intersperse(a, separator) {
+  const res = nice.Array();
+  const last = a.size - 1;
+  a.each((v, k) => res.push(v) && (k < last && res.push(separator)));
+  return res;
+});
+
+
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
   const l = z.getResult().length;
