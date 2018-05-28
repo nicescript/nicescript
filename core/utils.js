@@ -221,15 +221,17 @@ defAll(nice, {
 
     nice._on('signature', s => {
       const o = {};
-      _each(s, (v, k) => k === 'action'
-        ? (o.source = v.toString())
-        : o[k] = k === 'signature' ? v.map(t => t.type.title) : v);
+      _each(s, (v, k) => nice.Switch(k)
+        .equal('action')()
+        .equal('source').use(() => o.source = v.toString())
+        .equal('signature').use(() => o[k] = v.map(t => t.type.title))
+        .default.use(() => o[k] = v));
       res.functions.push(o);
     });
 
     nice._on('Type', t => {
       const o = { title: t.title };
-      t.extends && (o.extends = t.extends.title);
+      t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
     });
 

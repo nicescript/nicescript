@@ -316,14 +316,16 @@ defAll(nice, {
     const res = { types: {}, functions: [] };
     nice._on('signature', s => {
       const o = {};
-      _each(s, (v, k) => k === 'action'
-        ? (o.source = v.toString())
-        : o[k] = k === 'signature' ? v.map(t => t.type.title) : v);
+      _each(s, (v, k) => nice.Switch(k)
+        .equal('action')()
+        .equal('source').use(() => o.source = v.toString())
+        .equal('signature').use(() => o[k] = v.map(t => t.type.title))
+        .default.use(() => o[k] = v));
       res.functions.push(o);
     });
     nice._on('Type', t => {
       const o = { title: t.title };
-      t.extends && (o.extends = t.extends.title);
+      t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
     });
     return res;
@@ -538,9 +540,9 @@ function toItemType({type}){
     : type };
 }
 function transform(s){
+  s.source = s.action;
   if(s.signature.length === 0)
     return s;
-  const action = s.action;
   const types = s.signature;
   s.signature = types.map(toItemType);
   s.action = (...a) => {
@@ -554,9 +556,9 @@ function transform(s){
         a[i] = nice.toItem(a[i]);
       }
     }
-    return action(...a);
+    return s.source(...a);
   };
-  def(s.action, 'length', action.length);
+  def(s.action, 'length', s.source.length);
   return s;
 }
 function Configurator(name){
@@ -580,7 +582,7 @@ function configurator(...a){
   const cfg = parseParams(...a);
   return Configurator(cfg.name).next(cfg);
 };
-function createFunction({ existing, name, action, signature, type, description }){
+function createFunction({ existing, name, action, source, signature, type, description }){
   const target = type === 'Check' ? nice.checkFunctions : nice;
   if(type !== 'Check' && name && typeof name === 'string'
           && name[0] !== name[0].toLowerCase())
@@ -607,7 +609,7 @@ function createFunction({ existing, name, action, signature, type, description }
       type && nice.emitAndSave(type, f);
     }
     action && nice.emitAndSave('signature',
-      {name, action, signature, type, description });
+      {name, action, signature, type, description, source });
   }
   return f;
 };
