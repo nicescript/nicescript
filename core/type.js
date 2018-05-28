@@ -30,6 +30,10 @@ nice.registerType({
       extend(type, parent);
       return this;
     },
+    about: function (...a) {
+      this.target.description = nice.format(...a);
+      return this;
+    }
   }
 });
 

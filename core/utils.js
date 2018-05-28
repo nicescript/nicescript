@@ -230,7 +230,7 @@ defAll(nice, {
     });
 
     nice._on('Type', t => {
-      const o = { title: t.title };
+      const o = { title: t.title, description: t.description };
       t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
     });

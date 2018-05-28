@@ -324,7 +324,7 @@ defAll(nice, {
       res.functions.push(o);
     });
     nice._on('Type', t => {
-      const o = { title: t.title };
+      const o = { title: t.title, description: t.description };
       t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
     });
@@ -952,6 +952,10 @@ nice.registerType({
       extend(type, parent);
       return this;
     },
+    about: function (...a) {
+      this.target.description = nice.format(...a);
+      return this;
+    }
   }
 });
 Object.defineProperties(nice.Anything.proto, {
@@ -2354,15 +2358,17 @@ if(nice.isEnvBrowser){
 };
 })();
 (function(){"use strict";'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t =>
-  nice.Block(t, (z, ...cs) => z.tag(t.toLowerCase()).add(...cs)));
+  nice.Block(t, (z, ...cs) => z.tag(t.toLowerCase()).add(...cs))
+    .about('Represents HTML <%s> element.', t.toLowerCase()));
 nice.Block('A', (z, url, ...children) => {
   z.tag('a');
   z.add(...children);
   is.function(url)
     ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
     : z.href(url || '#');
-});
-nice.Block('Img', (z, src) => z.tag('img').src(src));
+}).about('Represents HTML <a> element.');
+nice.Block('Img', (z, src) => z.tag('img').src(src))
+  .about('Represents HTML <img> element.');
 })();
 (function(){"use strict";let autoId = 0;
 function defaultSetValue(t, v){
