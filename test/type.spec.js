@@ -37,28 +37,27 @@ describe("Type", function() {
   });
 
 
-//  it("super", function() {
-//    const A = nice.Type({
-//      proto: {
-//        'qwe': function(){ return this.getResult() + 3 }
-//      }
-//    }).extends('Number');
-//
-//    const B = nice.Type({
-//      proto: {
-//        'qwe': function(){ return this.getResult() + 5 }
-//      }
-//    }).extends(A);
-//
-//    const a = A(1);
-//    const b = B(1);
-//
-//    expect(B.super).to.equal(A);
+  it("super", function() {
+    const A = nice.Type({
+      proto: {
+        'qwe': function(){ return this.getResult() + 3 }
+      }
+    }).extends('Number')();
+
+    const B = nice.Type({
+      proto: {
+        'qwe': function(){ return this.getResult() + 5 }
+      }
+    }).extends(A)();
+
+    const a = A(1);
+    const b = B(1);
+
+    expect(B.super).to.equal(A);
 //
 //    expect(b.super.qwe()).to.equal(4);
 //    expect(b.qwe()).to.equal(6);
-//
-//  });
+  });
 
 
   it("isSubType", function() {

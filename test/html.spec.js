@@ -69,14 +69,6 @@ describe("Html", function() {
   });
 
 
-//  it("Style by", function() {
-//    const n = nice.Number();
-//    const div = Html().topBy(z => z(z.use(n)() + 'px')).add('qwe');
-//    n(6);
-//    expect(div.html).to.equal('<div style="top:6px">qwe</div>');
-//  });
-
-
   it("text", function() {
     const div = Html().add('asd')
      .B(' zxc2').up;
@@ -90,14 +82,4 @@ describe("Html", function() {
 
     expect(nice.B().User('Jon').up.html).to.equal('<b><div>User: Jon</div></b>');
   });
-
-
-//  it("error", function(done) {
-//    Html().childrenBy(z => [qwe.asd])
-//     .html.listen(function (z) {
-//       expect(z()).to.contain('ReferenceError: qwe is not defined');
-//       done();
-//     });
-//  });
-
 });

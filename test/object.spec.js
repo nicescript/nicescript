@@ -55,10 +55,10 @@ describe("Object", function() {
   it("object values", () => {
     let o = nice();
     o('qwe', {'':  1});
-//    expect(o.get('qwe')()).to.deep.equal({'':1});
-//    expect(o.get(['qwe', ''])()).to.deep.equal(1);
-//    o('asd', {'zxc':  {'': 2}});
-//    expect(o.get(['asd', 'zxc'])()).to.deep.equal({'':2});
+    expect(o.get('qwe')()).to.deep.equal({'':1});
+    expect(o.get(['qwe', ''])()).to.deep.equal(1);
+    o('asd', {'zxc':  {'': 2}});
+    expect(o.get(['asd', 'zxc'])()).to.deep.equal({'':2});
   });
 
 
@@ -323,11 +323,10 @@ describe("Object", function() {
   });
 
 
-
 //  it("includes", function() {
 //    const a = nice.Object({qwe: 1, ads: 3});
-//    expect(a.includes(7)).to.equal(false);
-//    expect(a.includes(1)).to.equal(true);
+//    expect(a.is.includes(7)).to.equal(false);
+//    expect(a.is.includes(1)).to.equal(true);
 //  });
 
 });

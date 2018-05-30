@@ -330,7 +330,7 @@ M.function(function count(o, f) {
 
 M(function getProperties(z){
   const res = [];
-  for(var i in z) z[i]._isProperty && res.push(z[i]);
+  for(let i in z) z[i]._isProperty && res.push(z[i]);
   return res;
 });
 

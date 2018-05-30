@@ -1,30 +1,30 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = chai.expect;
+const expect = chai.expect;
 
 describe("String", function() {
 
   it("type", function(){
     expect(nice.String.isSubType(nice.Single)).to.equal(true);
-    var s = nice.String();
+    const s = nice.String();
     expect(s._type.title).to.equal('String');
   });
 
   it("empty constructor", function(){
-    var s = nice.String();
+    const s = nice.String();
     expect(s()).to.equal('');
   });
 
 
   it("constructor", function(){
-    var s = nice.String(2);
+    const s = nice.String(2);
     expect(s()).to.equal('2');
   });
 
 
   it("set", function(){
-    var s = nice.String();
+    const s = nice.String();
 
     s(2);
     expect(s()).to.equal('2');
@@ -35,7 +35,7 @@ describe("String", function() {
 
 
   it("format", function(){
-    var s = nice.String('Hello %s', 'world');
+    const s = nice.String('Hello %s', 'world');
     expect(s()).to.equal('Hello world');
   });
 

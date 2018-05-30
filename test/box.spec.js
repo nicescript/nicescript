@@ -122,13 +122,6 @@ describe("Box", function() {
   });
 
 
-//  it("error", function(){
-//    let a = Box().error('Qwe');
-//    expect(is.Error(a())).to.equal(true);
-//    expect(a().message).to.equal('Qwe');
-//  });
-
-
   it("transaction", function(){
     let a = Box();
     let spy = chai.spy();

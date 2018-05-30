@@ -1,7 +1,7 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = chai.expect;
+const expect = chai.expect;
 
 describe("is", function() {
   const is = nice.is;
@@ -47,13 +47,6 @@ describe("is", function() {
     expect(is.gte(5, 2)).to.equal(true);
     expect(is.gte(2, 2)).to.equal(true);
   });
-
-
-//  it("or", function(){
-//    expect(is.Number.or.String('5')).to.equal(true);
-//    expect(is.Number.or.String(5)).to.equal(true);
-//    expect(is.Number.or.String({})).to.equal(false);
-//  });
 
 
   it("isEmpty", function() {

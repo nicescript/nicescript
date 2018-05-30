@@ -1,24 +1,24 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = require('chai').expect;
+const expect = require('chai').expect;
 
 describe("Events", function() {
-  var newEmmiter = () => nice.eventEmitter({});
+  const newEmmiter = () => nice.eventEmitter({});
 
   it("add listener", function() {
-    var f = () => {};
-    var spy = chai.spy();
-    var item = newEmmiter()._on('newListener', spy)._on('fiesta', f);
+    const f = () => {};
+    const spy = chai.spy();
+    const item = newEmmiter()._on('newListener', spy)._on('fiesta', f);
     expect(item.listeners('fiesta')).to.deep.equal([f]);
     expect(spy).to.have.been.called.with('fiesta', f);
   });
 
 
   it("remove listener", function() {
-    var f = () => {};
-    var spy = chai.spy();
-    var item = newEmmiter()._on('removeListener', spy)._on('fiesta', f);
+    const f = () => {};
+    const spy = chai.spy();
+    const item = newEmmiter()._on('removeListener', spy)._on('fiesta', f);
 
     expect(item.listeners('fiesta')).to.deep.equal([f]);
     expect(item.listenerCount('fiesta')).to.equal(1);
@@ -31,9 +31,9 @@ describe("Events", function() {
 
 
   it("removeAll listener", function() {
-    var f = () => {};
-    var spy = chai.spy();
-    var item = newEmmiter()._on('removeListener', spy)._on('fiesta', f);
+    const f = () => {};
+    const spy = chai.spy();
+    const item = newEmmiter()._on('removeListener', spy)._on('fiesta', f);
 
     expect(item.listeners('fiesta')).to.deep.equal([f]);
 
@@ -44,15 +44,15 @@ describe("Events", function() {
 
 
   it("double add listener", function() {
-    var f = () => {};
-    var item = newEmmiter()._on('fiesta', f)._on('fiesta', f);
+    const f = () => {};
+    const item = newEmmiter()._on('fiesta', f)._on('fiesta', f);
     expect(item.listeners('fiesta')).to.deep.equal([f]);
   });
 
 
   it("emit", function() {
-    var spy = chai.spy();
-    var item = newEmmiter()._on('fiesta', spy);
+    const spy = chai.spy();
+    const item = newEmmiter()._on('fiesta', spy);
     item.emit('fiesta', 'today');
 
     expect(spy).to.have.been.called.with('today');
@@ -60,8 +60,8 @@ describe("Events", function() {
 
 
   it("emitAndSave", function() {
-    var spy = chai.spy();
-    var item = newEmmiter();
+    const spy = chai.spy();
+    const item = newEmmiter();
     item.emitAndSave('fiesta', 'today');
     item._on('fiesta', spy);
 
@@ -70,10 +70,10 @@ describe("Events", function() {
 
 
   it("inheritance", function() {
-    var spy1 = chai.spy();
-    var spy2 = chai.spy();
-    var a = nice.eventEmitter({});
-    var b = Object.setPrototypeOf({}, a);
+    const spy1 = chai.spy();
+    const spy2 = chai.spy();
+    const a = nice.eventEmitter({});
+    const b = Object.setPrototypeOf({}, a);
 
     a._on('fiesta', function(e) { spy1(this, e); } );
     b._on('fiesta', spy2);

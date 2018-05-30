@@ -1,22 +1,22 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = chai.expect;
+const expect = chai.expect;
 
 describe("Function", function() {
-  var a = nice.Type('AAA')();
-  var b = nice.Type('BBB').extends('AAA')();
+  const a = nice.Type('AAA')();
+  const b = nice.Type('BBB').extends('AAA')();
 
   it("type", () => {
-    var f = nice.Function(() => 2);
+    const f = nice.Function(() => 2);
     expect(nice.is(f).Something()).to.equal(true);
     expect(nice.is(f).Value()).to.equal(false);
   });
 
   it("simple", () => {
-    var f = nice.Function(() => 2);
+    const f = nice.Function(() => 2);
 
-    var res = f();
+    const res = f();
     expect(res).to.equal(2);
   });
 
@@ -33,14 +33,14 @@ describe("Function", function() {
 
 
   it("deafault", () => {
-    var f = nice.Function(function qwedsd(){return 1;});
+    const f = nice.Function(function qwedsd(){return 1;});
     expect(f()).to.equal(1);
     expect(nice.qwedsd()).to.equal(1);
   });
 
 
   it("overload", () => {
-    var f = nice.Function()
+    const f = nice.Function()
       .string(s => s + s)
       .number(n => n * 2);
     expect(f('q')).to.equal('qq');
@@ -49,23 +49,23 @@ describe("Function", function() {
 
 
   it("first parameter's type method", () => {
-    var qwe = nice.Type('Qwe456');
+    const qwe = nice.Type('Qwe456');
     nice.Function.Qwe456(function zzzz(){return 1;});
-    var s = nice.Qwe456();
+    const s = nice.Qwe456();
     expect(s.zzzz()).to.equal(1);
   });
 
 
   it("first parameter's type parent method", () => {
     nice.Function.AAA(function hhhh(){return 1;});
-    var s = nice.BBB();
+    const s = nice.BBB();
     expect(s.hhhh()).to.equal(1);
   });
 
 
   it("second parameter", () => {
-    var f = nice.Function.string.object('qqqqqqq', () => 1);
-    var f2 = nice.Function.string.array('qqqqqqq', () => 2);
+    const f = nice.Function.string.object('qqqqqqq', () => 1);
+    const f2 = nice.Function.string.array('qqqqqqq', () => 2);
 
     expect(f).to.equal(f2);
     expect(f('', {})).to.equal(1);
@@ -80,10 +80,10 @@ describe("Function", function() {
 
 
   it("second parameter 2", () => {
-    var f = nice.Function
+    const f = nice.Function
       .String.object('qqqqzzz', () => 11)
       .String.array('qqqqzzz', () => 22);
-    var s = nice.String();
+    const s = nice.String();
 
     expect(f(s, {})).to.equal(11);
     expect(f('', {})).to.equal(11);
@@ -116,7 +116,7 @@ describe("Function", function() {
 
 
   it("skip", () => {
-    var f = nice.Function((a, b) => a / b);
+    const f = nice.Function((a, b) => a / b);
     expect(f(6, 2)).to.equal(3);
     expect(f(6, nice)(3)).to.equal(2);
     expect(f(nice, 6)(3)).to.equal(0.5);
@@ -125,9 +125,9 @@ describe("Function", function() {
 
 
   it("skip queue", () => {
-    var f = nice.Function((a, b) => nice.Number(a / b));
+    const f = nice.Function((a, b) => nice.Number(a / b));
     nice.Function.Number('qwe', (v, n) => nice.Number(v() + n));
-    var f2 = f(10, nice);
+    const f2 = f(10, nice);
 
     expect(f2.qwe(2)(5)()).to.equal(4);
     expect(f2.qwe(2).qwe(3)(5)()).to.equal(7);
@@ -137,7 +137,7 @@ describe("Function", function() {
 
 
   it("ary", () => {
-    var f = nice.Function((a = 1, b = 2, c = 3) => '' + a + b + c);
+    const f = nice.Function((a = 1, b = 2, c = 3) => '' + a + b + c);
 
     expect(f.ary(0)(4, 4, 4)).to.equal('123');
     expect(f.ary(1)(4, 4, 4)).to.equal('423');
@@ -147,7 +147,7 @@ describe("Function", function() {
 
 
   it("curry", () => {
-    var f = nice.curry((a, b, c) => {
+    const f = nice.curry((a, b, c) => {
       return a + b + c;
     });
     expect(f(1, 2, 3)).to.equal(6);

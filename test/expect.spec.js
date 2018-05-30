@@ -1,7 +1,7 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = chai.expect;
+const expect = chai.expect;
 
 describe("expect", function() {
 
@@ -27,8 +27,8 @@ describe("expect", function() {
     nice.Type('Cat').String('name');
     nice.Type('Dog').String('name');
 
-    var cat = nice.Cat().name('Ball');
-    var dog = nice.Dog();
+    const cat = nice.Cat().name('Ball');
+    const dog = nice.Dog();
     expect(() => nice.expect(cat).Car()).to.throw();
     expect(() => nice.expect(cat).Cat()).not.to.throw();
     expect(() => nice.expect(cat).Dog()).to.throw();

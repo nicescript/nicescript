@@ -8,38 +8,28 @@ describe("Boolean", function() {
 
   it("type", function(){
     expect(is.subType(nice.Boolean, nice.Single)).to.equal(true);
-    var n = nice.Boolean();
+    const n = nice.Boolean();
     expect(n._type.title).to.equal('Boolean');
   });
 
 
   it("empty constructor", function(){
-    var s = nice.Boolean();
+    const s = nice.Boolean();
     expect(s()).to.equal(false);
   });
 
 
   it("constructor", function(){
-    var b = nice.Boolean(1);
+    const b = nice.Boolean(1);
     expect(b()).to.equal(true);
   });
 
 
   it("set", function(){
-    var b = nice.Boolean();
+    const b = nice.Boolean();
     b(2);
     expect(b()).to.equal(true);
   });
-
-
-//  it("switch", function(){
-//    var b = nice.Boolean();
-//    expect(b()).to.equal(false);
-//    b.switch();
-//    expect(b()).to.equal(true);
-//    expect(b.turnOff()()).to.equal(false);
-//    expect(b.turnOn()()).to.equal(true);
-//  });
 
 
   it("and", function(){
@@ -81,41 +71,3 @@ describe("Boolean", function() {
     expect(off.xor(false)()).to.equal(false);
   });
 });
-
-
-//  it("bind", function(){
-//    let a = Box(5);
-//    let b = Box();
-//
-//    a.bind(b);
-//
-//    expect(b()).to.equal(5);
-//
-//    a(6);
-//    expect(a()).to.equal(6);
-//    expect(b()).to.equal(6);
-//
-//    b(44);
-//    expect(a()).to.equal(44);
-//    expect(b()).to.equal(44);
-//  });
-//
-//
-//  it("unbind", function(){
-//    let a = Box(5);
-//    let b = Box;
-//
-//    a.bind(b);
-//
-//    expect(b()).to.equal(5);
-//
-//    a.unbind(b);
-//
-//    a(6);
-//    expect(a()).to.equal(6);
-//    expect(b()).to.equal(5);
-//
-//    b(44);
-//    expect(a()).to.equal(6);
-//    expect(b()).to.equal(44);
-//  });

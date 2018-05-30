@@ -1,7 +1,7 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = chai.expect;
+const expect = chai.expect;
 
 describe("Simple types", function() {
 
@@ -80,7 +80,7 @@ describe("Simple types", function() {
 
 
   it("is", function(){
-    var a = nice.Single(0);
+    const a = nice.Single(0);
 //    expect(a.is()).to.equal(false);
     a(1);
     expect(a.is(1)).to.equal(true);

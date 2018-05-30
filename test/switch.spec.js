@@ -7,11 +7,11 @@ const { Switch } = nice;
 describe("Switch", function() {
 
   it("switch", function() {
-    var spy1 = chai.spy();
-    var spy2 = chai.spy();
-    var spy3 = chai.spy();
+    const spy1 = chai.spy();
+    const spy2 = chai.spy();
+    const spy3 = chai.spy();
 
-    var s = Switch('qwe')
+    const s = Switch('qwe')
       .number.use(spy1)
       .string.use((...a) => {
         spy2(...a);
@@ -28,10 +28,10 @@ describe("Switch", function() {
 
 
   it("switch equal", function() {
-    var spy1 = chai.spy();
-    var spy3 = chai.spy();
+    const spy1 = chai.spy();
+    const spy3 = chai.spy();
 
-    var s = Switch('qwe')
+    const s = Switch('qwe')
       .number.use(spy1)
       .equal('qwe')(4)
       .default.use(spy3);
@@ -43,7 +43,7 @@ describe("Switch", function() {
 
 
   it("delayed equal", function() {
-    var s = Switch
+    const s = Switch
       .equal('qwe')(4)
 
     expect(s('qwe')).to.equal(4);
@@ -57,16 +57,16 @@ describe("Switch", function() {
       .default(nice.NOTHING);
 
     expect(s(true)).to.equal(2);
-//    expect(s('asd')).to.equal(nice.NOTHING);
+    expect(s('asd')).to.equal(nice.NOTHING);
   });
 
 
 
   it("switch check", function() {
-    var spy1 = chai.spy();
-    var spy3 = chai.spy();
+    const spy1 = chai.spy();
+    const spy3 = chai.spy();
 
-    var s = Switch('qwe')
+    const s = Switch('qwe')
       .number.use(spy1)
       .check(s => s === 'qwe')(15)
       .default.use(spy3);
@@ -78,7 +78,7 @@ describe("Switch", function() {
 
 
   it("delayed check", function() {
-    var s = Switch
+    const s = Switch
       .check(s => s === 'qwe')(4);
 
     expect(s('qwe')).to.equal(4);
@@ -87,7 +87,7 @@ describe("Switch", function() {
 
 
   it("not", function() {
-    var s = Switch(5)
+    const s = Switch(5)
       .string(1)
       .not.string(2)
       .default(3);
@@ -97,7 +97,7 @@ describe("Switch", function() {
 
 
   it("not delayed", function() {
-    var s = Switch
+    const s = Switch
       .not.string(1)
       .default(2);
 
@@ -107,7 +107,7 @@ describe("Switch", function() {
 
 
   it("not delayed 2", function() {
-    var s = Switch
+    const s = Switch
       .string(1)
       .not.string(2)
       .default(3);
@@ -118,7 +118,7 @@ describe("Switch", function() {
 
 
   it("delayed default", function() {
-    var s = Switch.string(1);
+    const s = Switch.string(1);
 
     expect(s('qwe')).to.equal(1);
     expect(s(12)).to.equal(12);
@@ -126,14 +126,14 @@ describe("Switch", function() {
 
 
   it("default", function() {
-    var s = Switch(5).string(1)();
+    const s = Switch(5).string(1)();
 
     expect(s).to.equal(5);
   });
 
 
   it("between", function() {
-    var s = Switch(4)
+    const s = Switch(4)
       .string(1)
       .between(3, 6)('ok')
       .default('nok');
@@ -143,7 +143,7 @@ describe("Switch", function() {
 
 
   it("between delayed", function() {
-    var s = Switch
+    const s = Switch
       .string(1)
       .between(3, 6)('ok')
       .default('nok');
@@ -154,7 +154,7 @@ describe("Switch", function() {
 
 
   it("between delayed 2", function() {
-    var s = Switch
+    const s = Switch
       .between(3, 6)('ok')
       .default('nok');
 
@@ -164,11 +164,11 @@ describe("Switch", function() {
 
 
   it("switch default", function() {
-    var spy1 = chai.spy();
-    var spy2 = chai.spy();
-    var spy3 = chai.spy();
+    const spy1 = chai.spy();
+    const spy2 = chai.spy();
+    const spy3 = chai.spy();
 
-    var s = Switch([])
+    const s = Switch([])
       .number.use(spy1)
       .string.use(spy2)
       .default.use(spy3);
@@ -180,7 +180,7 @@ describe("Switch", function() {
 
 
   it("switch value", function() {
-    var s = Switch(5)
+    const s = Switch(5)
       .number.use(n => n + 1)
       .string.use(s => s + '!');
 
@@ -189,7 +189,7 @@ describe("Switch", function() {
 
 
   it("lt", function() {
-    var s = Switch(5)
+    const s = Switch(5)
       .lt(10)('OK')
       .default('');
 
@@ -198,7 +198,7 @@ describe("Switch", function() {
 
 
   it("switch delayed", function() {
-    var s = Switch
+    const s = Switch
       .equal(7).use(() => 77)
       .number.use(n => n + 1)
       .equal('boo')('foo')
@@ -222,7 +222,7 @@ describe("Switch", function() {
 
 
   it("delayed switch action & mapping", function() {
-    var f = nice.Switch.number.sum(5).array.map(x => x * 2);
+    const f = nice.Switch.number.sum(5).array.map(x => x * 2);
     expect(f(5)()).equal(10);
     expect(f([1])()).deep.equal([2]);
     expect(f('qwe')).equal('qwe');

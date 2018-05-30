@@ -1,6 +1,6 @@
-var nice = require('../index.js')();
-var chai = require('chai');
-var expect = chai.expect;
+const nice = require('../index.js')();
+const chai = require('chai');
+const expect = chai.expect;
 
 
 describe("utils", function() {
@@ -34,7 +34,7 @@ describe("utils", function() {
 
 
 //  it("objDiggMin", function() {
-//    var o = {a: 1, b:{ bb:2 } };
+//    const o = {a: 1, b:{ bb:2 } };
 //    nice.objDiggMin(o, 'b', 'bb', 1);
 //    nice.objDiggMin(o, 'c', 'cc', 3);
 //    expect(o.b.bb).to.equal(1);
@@ -43,7 +43,7 @@ describe("utils", function() {
 //
 //
 //  it("objDiggMax", function() {
-//    var o = {a: 1, b:{ bb:2 } };
+//    const o = {a: 1, b:{ bb:2 } };
 //    nice.objDiggMax(o, 'b', 'bb', 1);
 //    nice.objDiggMax(o, 'c', 'cc', 3);
 //    expect(o.b.bb).to.equal(2);
@@ -52,9 +52,9 @@ describe("utils", function() {
 
 
 //  it("objMax", function() {
-//    var a = {a: 1, b:3 };
-//    var b = {a: 2, b:1, c:4};
-//    var o = nice.objMax(a, b);
+//    const a = {a: 1, b:3 };
+//    const b = {a: 2, b:1, c:4};
+//    const o = nice.objMax(a, b);
 //    expect(o.a).to.equal(2);
 //    expect(o.b).to.equal(3);
 //    expect(o.c).to.equal(4);
@@ -62,17 +62,17 @@ describe("utils", function() {
 
 
 //  it("findKey", function() {
-//    var a = ['a', 'b'];
-//    var o = {qwe: 'a', asd: 'b'};
-//    var f = l => l === 'b';
+//    const a = ['a', 'b'];
+//    const o = {qwe: 'a', asd: 'b'};
+//    const f = l => l === 'b';
 //    expect(nice.findKey(f, a)).to.equal(1);
 //    expect(nice.findKey(f, o)).to.equal('asd');
 //  });
 
 
   it("_eachEach", function() {
-    var o = {qwe: [0], asd: {zxc:1}};
-    var spy = chai.spy();
+    const o = {qwe: [0], asd: {zxc:1}};
+    const spy = chai.spy();
     nice._eachEach(o, spy);
 
     expect(spy).to.have.been.called.twice();
@@ -88,26 +88,14 @@ describe("utils", function() {
 
 
   it("super", () => {
-    var a = {qwe: 1, asd:1};
-    var b = {qwe: 2};
-    var c = {qwe: 3, asd: 3};
+    const a = {qwe: 1, asd:1};
+    const b = {qwe: 2};
+    const c = {qwe: 3, asd: 3};
     Object.setPrototypeOf(b, a);
     Object.setPrototypeOf(c, b);
     expect(nice.super(b, 'qwe')).to.equal(1);
     expect(nice.super(c, 'qwe')).to.equal(2);
   });
-
-
-//  it('calmp', () => {
-//    expect(nice.clamp(-5, -2, 5)).to.equal(-2);
-//    expect(nice.clamp(4, -2, 5)).to.equal(4);
-//    expect(nice.clamp(6, -2, 5)).to.equal(5);
-//
-//    expect(nice.clamp(-5, 5)).to.equal(0);
-//    expect(nice.clamp(4, 5)).to.equal(4);
-//    expect(nice.clamp(6, 5)).to.equal(5);
-//  });
-//
 
 
   it("_set", () => {
