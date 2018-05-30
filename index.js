@@ -2105,19 +2105,7 @@ Func.Number.Range(function within(v, r){
   return v >= r.start && v <= r.end;
 });
 })();
-(function(){"use strict";def(nice, 'Block', (name, by) => {
-  const cfg = nice.Html.extend(name);
-  by && cfg.by(by);
-  return cfg;
-});
-nice._on('Extension', o => o.parent === nice.Html &&
-  def(nice.Html.proto, o.child.title, function (...a){
-    const res = nice[o.child.title](...a);
-    this.add(res);
-    return res;
-  })
-);
-nice.Type('Html')
+(function(){"use strict";nice.Type('Html')
   .by((z, tag) => tag && z.tag(tag))
   .String('tag', 'div')
   .Object('eventHandlers')
@@ -2167,6 +2155,13 @@ nice.Type('Html')
     });
   });
 const Html = nice.Html;
+nice._on('Extension', o => o.parent === nice.Html &&
+  def(Html.proto, o.child.title, function (...a){
+    const res = nice[o.child.title](...a);
+    this.add(res);
+    return res;
+  })
+);
 Html.proto.Box = function(...a) {
   const res = Box(...a);
   res.up = this;
@@ -2175,7 +2170,7 @@ Html.proto.Box = function(...a) {
 };
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
-    nice.define(nice.Html.proto, property, function(...a) {
+    nice.define(Html.proto, property, function(...a) {
       is.object(a[0])
         ? _each(a[0], (v, k) => this.style(property + nice.capitalize(k), v))
         : this.style(property, is.string(a[0]) ? nice.format(...a) : a[0]);
@@ -2184,7 +2179,7 @@ Html.proto.Box = function(...a) {
   });
 'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
-    nice.Html.proto[property] = function(...a){
+    Html.proto[property] = function(...a){
       return a.length
         ? this.attributes(property, ...a)
         : nice.Switch(this.attributes(property)).Value.use(v => v()).default('');
@@ -2365,20 +2360,22 @@ if(nice.isEnvBrowser){
   }
 };
 })();
-(function(){"use strict";'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t =>
-  nice.Block(t, (z, ...cs) => z.tag(t.toLowerCase()).add(...cs))
+(function(){"use strict";const Html = nice.Html;
+'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,LI,UL,OL'.split(',').forEach(t =>
+  Html.extend(t).by((z, ...cs) => z.tag(t.toLowerCase()).add(...cs))
     .about('Represents HTML <%s> element.', t.toLowerCase()));
-nice.Block('A', (z, url, ...children) => {
+Html.extend('A').by((z, url, ...children) => {
   z.tag('a');
   z.add(...children);
   is.function(url)
     ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
     : z.href(url || '#');
 }).about('Represents HTML <a> element.');
-nice.Block('Img', (z, src) => z.tag('img').src(src))
+Html.extend('Img').by((z, src) => z.tag('img').src(src))
   .about('Represents HTML <img> element.');
 })();
 (function(){"use strict";let autoId = 0;
+const Html = nice.Html;
 function defaultSetValue(t, v){
   t.attributes('value', v);
 };
@@ -2400,21 +2397,21 @@ function attachValue(target, setValue = defaultSetValue){
   target.value.listen(v => node ? node.value = v : setValue(target, v));
   return target;
 }
-nice.Block('Input')
+Html.extend('Input')
   .by((z, type) => attachValue(z.tag('input').attributes('type', type || 'text')));
-nice.Block('Button')
+Html.extend('Button')
   .by((z, text, action) => {
     z.tag('input').attributes({type: 'button', value: text}).on('click', action);
   });
-nice.Block('Textarea')
+Html.extend('Textarea')
   .by((z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
     z.value(value ? '' + value : "");
   });
-nice.Block('Submit', (z, text) =>
+Html.extend('Submit').by((z, text) =>
     z.tag('input').attributes({type: 'submit', value: text}));
-nice.Block('Checkbox')
+Html.extend('Checkbox')
   .by((z, status) => {
     let node;
     z.tag('input').attributes({type: 'checkbox'});

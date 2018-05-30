@@ -85,6 +85,13 @@ describe("Html", function() {
   });
 
 
+  it("extend", function() {
+    Html.extend('User').by((z, name) => z.add('User: ', name));
+
+    expect(nice.B().User('Jon').up.html).to.equal('<b><div>User: Jon</div></b>');
+  });
+
+
 //  it("error", function(done) {
 //    Html().childrenBy(z => [qwe.asd])
 //     .html.listen(function (z) {

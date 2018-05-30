@@ -1,4 +1,5 @@
 let autoId = 0;
+const Html = nice.Html;
 
 function defaultSetValue(t, v){
   t.attributes('value', v);
@@ -27,18 +28,17 @@ function attachValue(target, setValue = defaultSetValue){
   return target;
 }
 
-
-nice.Block('Input')
+Html.extend('Input')
   .by((z, type) => attachValue(z.tag('input').attributes('type', type || 'text')));
 
 
-nice.Block('Button')
+Html.extend('Button')
   .by((z, text, action) => {
     z.tag('input').attributes({type: 'button', value: text}).on('click', action);
   });
 
 
-nice.Block('Textarea')
+Html.extend('Textarea')
   .by((z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
@@ -46,11 +46,11 @@ nice.Block('Textarea')
   });
 
 
-nice.Block('Submit', (z, text) =>
+Html.extend('Submit').by((z, text) =>
     z.tag('input').attributes({type: 'submit', value: text}));
 
 
-nice.Block('Checkbox')
+Html.extend('Checkbox')
   .by((z, status) => {
     let node;
     z.tag('input').attributes({type: 'checkbox'});
