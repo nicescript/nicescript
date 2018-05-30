@@ -1,8 +1,11 @@
-function extend(a, b){
-  create(b, a);
-  create(b.proto, a.proto);
-  create(b.configProto, a.configProto);
-  a.super = b;
+function extend(child, parent){
+  create(parent, child);
+  create(parent.proto, child.proto);
+  create(parent.configProto, child.configProto);
+  create(parent.types, child.types);
+  parent.defaultResult && create(parent.defaultResult, child.defaultResult);
+  nice.emitAndSave('Extension', { child, parent });
+  child.super = parent;
 }
 
 
@@ -34,7 +37,9 @@ nice.registerType({
       this.target.description = nice.format(...a);
       return this;
     }
-  }
+  },
+
+  types: {}
 });
 
 Object.defineProperties(nice.Anything.proto, {
@@ -76,8 +81,10 @@ defAll(nice, {
     !config.title || is.string(config.title)
       || nice.error("Title must be String");
 
+    config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
+    config.defaultResult = config.defaultResult || {};
 
     const type = (...a) => nice.createItem({ type }, ...a);
 
@@ -86,9 +93,9 @@ defAll(nice, {
     Object.assign(type, config);
     extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Object);
 
+    const cfg = create(config.configProto, nice.Configurator(type, ''));
     config.title && nice.registerType(type);
-
-    return create(config.configProto, nice.Configurator(type, ''));
+    return cfg;
   },
 });
 

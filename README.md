@@ -62,7 +62,7 @@ or
 * [Functions](#functions) - adds couple features to regular JS functions.
 * [Switch](#switch) - finally convenient.
 * [Boxes](#boxes) - to handle state changes.
-* [Tag](#tag) - use all above to to create html UI.
+* [Html](#html) - use all above to to create html UI.
 
 ### Nice values
 
@@ -100,7 +100,7 @@ Each value in NiceScript has a type. Here is a root of types hierarchy:
     + Value
       + Object
         + Array
-        + [Tag](#tag)
+        + [Html](#html)
       + Single
         + String
         + Number
@@ -290,7 +290,7 @@ a.push(3);
 // [1, 2, 3];
 ```
 
-### Tag
+### Html
 ```javascript
 const div = nice.Div('Normal ', 'text ')
   .I('italic ').up

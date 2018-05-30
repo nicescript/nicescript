@@ -50,7 +50,7 @@ defAll(nice, {
     if(data){
       item.setResult(data);
     } else {
-      type.defaultValue && item.setResult(type.defaultValue());
+      type.defaultValue && item.setResult(type.defaultValue(item));
       type.constructor && type.constructor(item, ...a);
     }
     return item;
@@ -91,7 +91,7 @@ defAll(nice, {
       return value;
     }});
   },
-  defineGetter: (o, n, get) => Object.defineProperty(o, n, { get }),
+  defineGetter: (o, n, get) => Object.defineProperty(o, n, { get, enumerable: true }),
   with: (o, f) => o === nice
     ? o => (f(o), o)
     : f === nice
@@ -103,8 +103,8 @@ defAll(nice, {
     title[0] !== title[0].toUpperCase() &&
       nice.error('Please start type name with a upper case letter');
     nice.types[title] = type;
-    nice.emitAndSave('Type', type);
     def(nice, title, type);
+    nice.emitAndSave('Type', type);
   },
   _each: (o, f) => {
     if(o)
@@ -926,11 +926,14 @@ def(nice, function expect(value, message){
 });
 expect = nice.expect;
 })();
-(function(){"use strict";function extend(a, b){
-  create(b, a);
-  create(b.proto, a.proto);
-  create(b.configProto, a.configProto);
-  a.super = b;
+(function(){"use strict";function extend(child, parent){
+  create(parent, child);
+  create(parent.proto, child.proto);
+  create(parent.configProto, child.configProto);
+  create(parent.types, child.types);
+  parent.defaultResult && create(parent.defaultResult, child.defaultResult);
+  nice.emitAndSave('Extension', { child, parent });
+  child.super = parent;
 }
 nice.registerType({
   title: 'Anything',
@@ -956,7 +959,8 @@ nice.registerType({
       this.target.description = nice.format(...a);
       return this;
     }
-  }
+  },
+  types: {}
 });
 Object.defineProperties(nice.Anything.proto, {
   switch: { get: function() { return Switch(this); } },
@@ -987,15 +991,18 @@ defAll(nice, {
       || nice.error("Need object for type's prototype");
     !config.title || is.string(config.title)
       || nice.error("Title must be String");
+    config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
+    config.defaultResult = config.defaultResult || {};
     const type = (...a) => nice.createItem({ type }, ...a);
     config.proto._type = type;
     delete config.by;
     Object.assign(type, config);
     extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Object);
+    const cfg = create(config.configProto, nice.Configurator(type, ''));
     config.title && nice.registerType(type);
-    return create(config.configProto, nice.Configurator(type, ''));
+    return cfg;
   },
 });
 nice.Check('Type', v => nice.Anything.isPrototypeOf(v));
@@ -1114,6 +1121,7 @@ nice.jsTypes.isSubType = isSubType;
 nice.Type({
     title: 'Object',
     extends: nice.Value,
+    defaultValue: function() { return nice.create(this.defaultResult); },
     creator: () => {
       const f = (...a) => {
         if(a.length === 0)
@@ -1191,8 +1199,18 @@ M(function get(z, i) {
   const vs = z.getResult();
   if(is.String(i))
     i = i();
-  if(!vs.hasOwnProperty(i))
-    return nice.NOT_FOUND;
+  if(!vs.hasOwnProperty(i)){
+    const types = z._type.types;
+    if(i in vs === false){
+      if(types && types[i])
+        vs[i] = types[i].defaultValue();
+      else
+        return nice.NOT_FOUND;
+    } else {
+      if(typeof vs[i] === 'object')
+          vs[i] = (types && types[i] && types[i].defaultValue()) || {};
+    }
+  }
   const res = nice.toItem(vs[i]);
   res._parent = z;
   res._parentKey = i;
@@ -1316,30 +1334,21 @@ M.function(function count(o, f) {
   o.each((v, k) => f(v, k) && n++);
   return nice.Number(n);
 });
+M(function getProperties(z){
+  const res = [];
+  for(var i in z) z[i]._isProperty && res.push(z[i]);
+  return res;
+});
 nice._on('Type', type => {
-  def(nice.Object.configProto, type.title, function (name, by) {
-    const cfg = { type }, targetType = this.target;
-    if(is.function(name) && name.name){
-      cfg.by = name;
-      cfg.key = name.name;
-    } else {
-      cfg.key = name;
-      if(by && (is.Anything(by) || !is.function(by))){
-        cfg.value = by;
-      } else {
-        cfg.by = by;
-      }
-    }
-    if(cfg.key[0] !== cfg.key[0].toLowerCase())
+  def(nice.Object.configProto, type.title, function (name, value = type.defaultValue()) {
+    const targetType = this.target;
+    if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
-            + `"${nice._deCapitalize(cfg.key)}" not "${cfg.key}"`;
-    targetType.types = this.types || {};
-    targetType.types[cfg.key] = type;
-    defGet(targetType.proto, cfg.key, function(){
-      if(this.getResult()[cfg.key] === undefined){
-        this.setByType(cfg.key, type, cfg.value);
-      }
-      const res = this.get(cfg.key);
+            + `"${nice._deCapitalize(name)}" not "${name}"`;
+    targetType.types[name] = type;
+    value && (targetType.defaultResult[name] = value);
+    defGet(targetType.proto, name, function(){
+      const res = this.get(name);
       if(!is.subType(res._type, type))
         throw `Can't create ${type.title} property. Value is ${res._type.title}`;
       return res;
@@ -2097,26 +2106,25 @@ Func.Number.Range(function within(v, r){
 });
 })();
 (function(){"use strict";def(nice, 'Block', (name, by) => {
-  const cfg = nice.Type(name);
-  cfg.by((z, ...a) => {
-    z.tag('div');
-    by && by(z, ...a);
-  });
-  name === 'Tag' || cfg.extends('Tag');
-  nice.Tag.proto[name] = function (...a){
-    const res = nice[name](...a);
-    this.add(res);
-    return res;
-  };
+  const cfg = nice.Html.extend(name);
+  by && cfg.by(by);
   return cfg;
 });
-nice.Block('Tag', (z, tag) => tag && z.tag(tag))
-  .String('tag')
+nice._on('Extension', o => o.parent === nice.Html &&
+  def(nice.Html.proto, o.child.title, function (...a){
+    const res = nice[o.child.title](...a);
+    this.add(res);
+    return res;
+  })
+);
+nice.Type('Html')
+  .by((z, tag) => tag && z.tag(tag))
+  .String('tag', 'div')
   .Object('eventHandlers')
   .Action.about('Adds event handler to an element.')(function on(z, name, f){
     if(name === 'domNode' && nice.isEnvBrowser){
       if(!z.id())
-        throw `Give elemen an id to use domNode event.`;
+        throw `Give element an id to use domNode event.`;
       const el = document.getElementById(z.id());
       el && f(el);
     }
@@ -2126,8 +2134,8 @@ nice.Block('Tag', (z, tag) => tag && z.tag(tag))
   })
   .Object('style')
   .Object('attributes')
-  .Array('class')
   .Array('children')
+  .Array('class')
   .ReadOnly(text)
   .ReadOnly(html)
   .Method(function scrollTo(z, offset = 10){
@@ -2158,8 +2166,8 @@ nice.Block('Tag', (z, tag) => tag && z.tag(tag))
       z.children.push(c);
     });
   });
-const Tag = nice.Tag;
-Tag.proto.Box = function(...a) {
+const Html = nice.Html;
+Html.proto.Box = function(...a) {
   const res = Box(...a);
   res.up = this;
   this.add(res);
@@ -2167,7 +2175,7 @@ Tag.proto.Box = function(...a) {
 };
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
-    nice.define(nice.Tag.proto, property, function(...a) {
+    nice.define(nice.Html.proto, property, function(...a) {
       is.object(a[0])
         ? _each(a[0], (v, k) => this.style(property + nice.capitalize(k), v))
         : this.style(property, is.string(a[0]) ? nice.format(...a) : a[0]);
@@ -2176,7 +2184,7 @@ Tag.proto.Box = function(...a) {
   });
 'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
-    nice.Tag.proto[property] = function(...a){
+    nice.Html.proto[property] = function(...a){
       return a.length
         ? this.attributes(property, ...a)
         : nice.Switch(this.attributes(property)).Value.use(v => v()).default('');
@@ -2198,7 +2206,7 @@ const resultToHtml = r => {
   const a = ['<', r.tag];
   const style = compileStyle(r.style);
   style && a.push(" ", 'style="', style, '"');
-  r.class && a.push(" ", 'class="', r.class.join(' '), '"');
+  r.class && r.class.length && a.push(" ", 'class="', r.class.join(' '), '"');
   _each(r.attributes, (v, k) => a.push(" ", k , '="', v, '"'));
   a.push('>');
   _each(r.children, c => a.push(c && c._nv_ && c._nv_.tag
@@ -2289,12 +2297,12 @@ if(nice.isEnvBrowser){
     } else if(add !== undefined) {
       if (add && add._nv_) { 
         const v = add._nv_;
-        const newTag = v.tag;
-        if(newTag){
+        const newHtml = v.tag;
+        if(newHtml){
           if(del && !is.string(del) && !is.Nothing(del)){
-            node = changeTag(oldNode, newTag);
+            node = changeHtml(oldNode, newHtml);
           }
-          node = node || document.createElement(newTag);
+          node = node || document.createElement(newHtml);
           oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
         } else {
           node = oldNode;
@@ -2331,11 +2339,11 @@ if(nice.isEnvBrowser){
   function newNode(tag, parent = document.body){
     return parent.appendChild(document.createElement(tag));
   };
-  Func.Tag(function show(source, parent = document.body){
+  Func.Html(function show(source, parent = document.body){
     handleNode({_nv_: source.getResult()}, undefined, null, parent);
     return source;
   });
-  function changeTag(old, tag){
+  function changeHtml(old, tag){
     const node = document.createElement(tag);
     while (old.firstChild) node.appendChild(old.firstChild);
     for (let i = old.attributes.length - 1; i >= 0; --i) {

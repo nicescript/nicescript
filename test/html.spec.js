@@ -1,12 +1,12 @@
 let nice = require('../index.js')();
-let Tag = nice.Tag;
+let Html = nice.Html;
 let chai = require('chai');
 let expect = chai.expect;
 
-describe("Tag", function() {
+describe("Html", function() {
 
   it("html", function() {
-    expect(Tag().add('qwe').html).to.equal('<div>qwe</div>');
+    expect(Html().add('qwe').html).to.equal('<div>qwe</div>');
   });
 
 
@@ -20,65 +20,65 @@ describe("Tag", function() {
   });
 
 
-  it("sync Tag", function() {
-    let div = Tag('li').add('qwe');
+  it("sync Html", function() {
+    const div = Html('li').add('qwe');
     expect(div.html).to.equal('<li>qwe</li>');
   });
 
 
   it("children array", function() {
-    let div = nice.Div(['qwe', 'asd']);
+    const div = nice.Div(['qwe', 'asd']);
     expect(div.html).to.equal('<div>qweasd</div>');
 
-    let div2 = nice.Div(nice('qwe', 'asd'));
+    const div2 = nice.Div(nice('qwe', 'asd'));
     expect(div2.html).to.equal('<div>qweasd</div>');
   });
 
 
   it("item child", function() {
-    let n = nice.Number(5);
-    let n2 = nice.Number(7);
-    let div = Tag('ol').add(n, n2);
+    const n = nice.Number(5);
+    const n2 = nice.Number(7);
+    const div = Html('ol').add(n, n2);
     expect(div.html).to.equal('<ol>57</ol>');
   });
 
 
-  it("insert Tag", function() {
-    let div = Tag('li');
-    let div2 = nice.B('qwe');
+  it("insert Html", function() {
+    const div = Html('li');
+    const div2 = nice.B('qwe');
     div.add(div2);
     expect(div.html).to.equal('<li><b>qwe</b></li>');
   });
 
 
   it("insert in one line", function() {
-    let div = Tag('li').add('asd').B('qwe').up;
+    const div = Html('li').add('asd').B('qwe').up;
     expect(div.html).to.equal('<li>asd<b>qwe</b></li>');
   });
 
 
   it("style", function() {
-    let div = Tag().margin('6px').borderColor('#DEF');
+    const div = Html().margin('6px').borderColor('#DEF');
     expect(div.html).to.equal('<div style="margin:6px;border-color:#DEF"></div>');
    });
 
 
   it("style object", function() {
-    let div = nice.Tag().border({Width: '1px', color:'red'});
+    const div = nice.Html().border({Width: '1px', color:'red'});
     expect(div.html).to.equal('<div style="border-width:1px;border-color:red"></div>');
   });
 
 
 //  it("Style by", function() {
-//    let n = nice.Number();
-//    let div = Tag().topBy(z => z(z.use(n)() + 'px')).add('qwe');
+//    const n = nice.Number();
+//    const div = Html().topBy(z => z(z.use(n)() + 'px')).add('qwe');
 //    n(6);
 //    expect(div.html).to.equal('<div style="top:6px">qwe</div>');
 //  });
 
 
   it("text", function() {
-    let div = Tag().add('asd')
+    const div = Html().add('asd')
      .B(' zxc2').up;
 
     expect(div.text).to.equal('asd zxc2');
@@ -86,7 +86,7 @@ describe("Tag", function() {
 
 
 //  it("error", function(done) {
-//    Tag().childrenBy(z => [qwe.asd])
+//    Html().childrenBy(z => [qwe.asd])
 //     .html.listen(function (z) {
 //       expect(z()).to.contain('ReferenceError: qwe is not defined');
 //       done();

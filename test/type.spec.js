@@ -1,23 +1,23 @@
-var nice = require('../index.js')();
-var chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-var expect = chai.expect;
+const expect = chai.expect;
 const is = nice.is;
 
 
 describe("Type", function() {
 
   it("create", function() {
-    var type = nice.Type({})();
+    const type = nice.Type({})();
     expect(nice.type(type)).to.equal(type);
-    var item = type();
+    const item = type();
     expect(is.function(item)).to.equal(true);
     expect(item._type).to.equal(type);
   });
 
 
   it("extends", function() {
-    var a = nice.Type({
+    const a = nice.Type({
       title: 'T1',
 
       creator: () => { return {}; },
@@ -28,7 +28,7 @@ describe("Type", function() {
       }
     }).extends('Single');
 
-    var b = nice.Type('T2').extends('T1');
+    const b = nice.Type('T2').extends('T1');
 
     expect(nice.T1.creator).not.to.equal(undefined);
     expect(nice.T1.creator).to.equal(nice.T2.creator);
@@ -38,20 +38,20 @@ describe("Type", function() {
 
 
 //  it("super", function() {
-//    var A = nice.Type({
+//    const A = nice.Type({
 //      proto: {
 //        'qwe': function(){ return this.getResult() + 3 }
 //      }
 //    }).extends('Number');
 //
-//    var B = nice.Type({
+//    const B = nice.Type({
 //      proto: {
 //        'qwe': function(){ return this.getResult() + 5 }
 //      }
 //    }).extends(A);
 //
-//    var a = A(1);
-//    var b = B(1);
+//    const a = A(1);
+//    const b = B(1);
 //
 //    expect(B.super).to.equal(A);
 //
@@ -62,18 +62,30 @@ describe("Type", function() {
 
 
   it("isSubType", function() {
-    var a = nice.Type()();
-    var b = nice.Type().extends(a)();
+    const a = nice.Type()();
+    const b = nice.Type().extends(a)();
 
     expect(b.isSubType(b)).to.equal(true);
     expect(b.isSubType(a)).to.equal(true);
   });
 
 
+  it("default", function() {
+    const A = nice.Type().String('qwe', 'asd')();
+    const B = nice.Type().extends(A).String('zxc', '123').String('asd')();
+
+    expect(A().qwe()).to.equal('asd');
+    expect(B().get('qwe')()).to.equal('asd');
+    expect(B().qwe()).to.equal('asd');
+    expect(B().get('zxc')()).to.equal('123');
+    expect(B().get('asd')()).to.equal('');
+  });
+
+
   it("Method", function() {
-    var spy = chai.spy();
-    var City = nice.Type().Method('go', function(z, a){spy(a, z);})();
-    var city = City();
+    const spy = chai.spy();
+    const City = nice.Type().Method('go', function(z, a){spy(a, z);})();
+    const city = City();
     city.go(3);
     expect(spy).to.have.been.called.once().with(3, city);
   });

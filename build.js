@@ -28,7 +28,7 @@ const order = [
   'types/boolean',
   'core/interface',
   'types/range',
-  'html/tag',
+  'html/html',
   'html/tags',
   'html/inputs'
 ];

@@ -2,6 +2,7 @@
 nice.Type({
     title: 'Object',
     extends: nice.Value,
+    defaultValue: function() { return nice.create(this.defaultResult); },
     creator: () => {
       const f = (...a) => {
         if(a.length === 0)
@@ -98,8 +99,18 @@ M(function get(z, i) {
   if(is.String(i))
     i = i();
 
-  if(!vs.hasOwnProperty(i))
-    return nice.NOT_FOUND;
+  if(!vs.hasOwnProperty(i)){
+    const types = z._type.types;
+    if(i in vs === false){
+      if(types && types[i])
+        vs[i] = types[i].defaultValue();
+      else
+        return nice.NOT_FOUND;
+    } else {
+      if(typeof vs[i] === 'object')
+          vs[i] = (types && types[i] && types[i].defaultValue()) || {};
+    }
+  }
 
   const res = nice.toItem(vs[i]);
   res._parent = z;
@@ -317,35 +328,27 @@ M.function(function count(o, f) {
 //  }
 //}));
 
+M(function getProperties(z){
+  const res = [];
+  for(var i in z) z[i]._isProperty && res.push(z[i]);
+  return res;
+});
+
 
 nice._on('Type', type => {
-  def(nice.Object.configProto, type.title, function (name, by) {
-    const cfg = { type }, targetType = this.target;
+  def(nice.Object.configProto, type.title, function (name, value = type.defaultValue()) {
+    const targetType = this.target;
 
-    if(is.function(name) && name.name){
-      cfg.by = name;
-      cfg.key = name.name;
-    } else {
-      cfg.key = name;
-      if(by && (is.Anything(by) || !is.function(by))){
-        cfg.value = by;
-      } else {
-        cfg.by = by;
-      }
-    }
-
-    if(cfg.key[0] !== cfg.key[0].toLowerCase())
+    if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
-            + `"${nice._deCapitalize(cfg.key)}" not "${cfg.key}"`;
+            + `"${nice._deCapitalize(name)}" not "${name}"`;
 
-    targetType.types = this.types || {};
-    targetType.types[cfg.key] = type;
+    targetType.types[name] = type;
 
-    defGet(targetType.proto, cfg.key, function(){
-      if(this.getResult()[cfg.key] === undefined){
-        this.setByType(cfg.key, type, cfg.value);
-      }
-      const res = this.get(cfg.key);
+    value && (targetType.defaultResult[name] = value);
+
+    defGet(targetType.proto, name, function(){
+      const res = this.get(name);
 
       if(!is.subType(res._type, type))
         throw `Can't create ${type.title} property. Value is ${res._type.title}`;

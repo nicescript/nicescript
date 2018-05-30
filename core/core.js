@@ -69,7 +69,7 @@ defAll(nice, {
     if(data){
       item.setResult(data);
     } else {
-      type.defaultValue && item.setResult(type.defaultValue());
+      type.defaultValue && item.setResult(type.defaultValue(item));
       type.constructor && type.constructor(item, ...a);
     }
 
@@ -131,7 +131,7 @@ defAll(nice, {
     }});
   },
 
-  defineGetter: (o, n, get) => Object.defineProperty(o, n, { get }),
+  defineGetter: (o, n, get) => Object.defineProperty(o, n, { get, enumerable: true }),
 
   with: (o, f) => o === nice
     ? o => (f(o), o)
@@ -148,9 +148,8 @@ defAll(nice, {
       nice.error('Please start type name with a upper case letter');
 
     nice.types[title] = type;
-    nice.emitAndSave('Type', type);
-
     def(nice, title, type);
+    nice.emitAndSave('Type', type);
   },
 
   _each: (o, f) => {
