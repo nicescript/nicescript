@@ -5,7 +5,7 @@
   </head>
   <body>
 <script>
-const { Div, H1, OL, LI, Box, Button } = nice;  
+const { Div, H1, OL, Li, Box, Button } = nice;  
 
 const step = Box(0);
 
@@ -46,7 +46,7 @@ const sellView = (v, i) => Div(v)
   .on('click', () => gameOver() || state()[i] || handleClick(i));
   
 const historyButton = (s, i) => 
-  LI(Button('Go to move #' + i, () => { state(s); step(i); }));
+  Li(Button('Go to move #' + i, () => { state(s); step(i); }));
  
 Div(
   H1('Tic Tac Toe'),
