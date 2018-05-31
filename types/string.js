@@ -11,6 +11,7 @@ nice.Single.extend({
 
   set: (...a) => a[0] ? nice.format(...a) : ''
 })
+  .about('Wrapper for JS string.')
   .ReadOnly(function length(){
     return this.getResult().length;
   });

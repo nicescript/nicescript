@@ -4,7 +4,7 @@ nice.Single.extend({
   defaultValue: () => false,
   saveValue: v => v,
   loadValue: v => v
-});
+}).about('Wrapper for JS boolean.');
 
 const B = nice.Boolean, M = Mapping.Boolean;
 M('and', (z, v) => B(z() && v));

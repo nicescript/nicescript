@@ -29,16 +29,19 @@ function attachValue(target, setValue = defaultSetValue){
 }
 
 Html.extend('Input')
+  .about('Represents HTML <input> element.')
   .by((z, type) => attachValue(z.tag('input').attributes('type', type || 'text')));
 
 
 Html.extend('Button')
+  .about('Represents HTML <input type="button"> element.')
   .by((z, text, action) => {
     z.tag('input').attributes({type: 'button', value: text}).on('click', action);
   });
 
 
 Html.extend('Textarea')
+  .about('Represents HTML <textarea> element.')
   .by((z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
@@ -46,11 +49,13 @@ Html.extend('Textarea')
   });
 
 
-Html.extend('Submit').by((z, text) =>
-    z.tag('input').attributes({type: 'submit', value: text}));
+Html.extend('Submit')
+  .about('Represents HTML <input type="submit"> element.')
+  .by((z, text) => z.tag('input').attributes({type: 'submit', value: text}));
 
 
 Html.extend('Checkbox')
+  .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
     z.tag('input').attributes({type: 'checkbox'});

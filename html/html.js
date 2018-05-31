@@ -1,4 +1,5 @@
 nice.Type('Html')
+  .about('Represents HTML element.')
   .by((z, tag) => tag && z.tag(tag))
   .String('tag', 'div')
   .Object('eventHandlers')

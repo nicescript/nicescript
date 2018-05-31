@@ -324,7 +324,8 @@ defAll(nice, {
       res.functions.push(o);
     });
     nice._on('Type', t => {
-      const o = { title: t.title, description: t.description };
+      const o = { title: t.title };
+      t.hasOwnProperty('description') && (o.description = t.description);
       t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
     });
@@ -937,6 +938,7 @@ expect = nice.expect;
 }
 nice.registerType({
   title: 'Anything',
+  description: 'Parent type for all types.',
   extend: function (...a){
     return nice.Type(...a).extends(this);
   },
@@ -1025,27 +1027,28 @@ nice.typeOf = v => {
   return nice.Object;
 };
 })();
-(function(){"use strict";function s(title, itemTitle, parent){
+(function(){"use strict";function s(title, itemTitle, parent, description){
   nice.Type({
     title: title,
     extends: parent,
     creator: () => nice[itemTitle],
+    description,
     proto: {
       _isSingleton: true,
     }
   });
   nice[itemTitle] = Object.seal(create(nice[title].proto, new String(itemTitle)));
 }
-s('Nothing', 'NOTHING', 'Anything');
-s('Undefined', 'UNDEFINED', 'Nothing');
-s('Null', 'NULL', 'Nothing');
-s('NotFound', 'NOT_FOUND', 'Nothing');
-s('Fail', 'FAIL', 'Nothing');
-s('NeedComputing', 'NEED_COMPUTING', 'Nothing');
-s('Pending', 'PENDING', 'Nothing');
-s('Stop', 'STOP', 'Nothing');
-s('Something', 'SOMETHING', 'Anything');
-s('Ok', 'OK', 'Something');
+s('Nothing', 'NOTHING', 'Anything', 'Parent type for all falsy values.');
+s('Undefined', 'UNDEFINED', 'Nothing', 'Wrapper for JS undefined.');
+s('Null', 'NULL', 'Nothing', 'Wrapper for JS null.');
+s('NotFound', 'NOT_FOUND', 'Nothing', 'Value returned by lookup functions in case nothing is found.');
+s('Fail', 'FAIL', 'Nothing', 'Empty negative signal.');
+s('NeedComputing', 'NEED_COMPUTING', 'Nothing', 'State of the Box in case it need some computing.');
+s('Pending', 'PENDING', 'Nothing', 'State of the Box when it awaits input.');
+s('Stop', 'STOP', 'Nothing', 'Value used to stop iterationin .each() and similar functions.');
+s('Something', 'SOMETHING', 'Anything', 'Parent type for all non falsy values.');
+s('Ok', 'OK', 'Something', 'Empty positive signal.');
 })();
 (function(){"use strict";nice.Type({
   title: 'Value',
@@ -1100,7 +1103,7 @@ s('Ok', 'OK', 'Something');
       return this;
     }
   },
-});
+}).about('Parent type for all values.');
 defGet(nice.Value.configProto, 'Method', function () {
   const type = this.target;
   return Func.next({ returnValue: this, signature: [{type}] });
@@ -1139,6 +1142,7 @@ nice.Type({
       return f;
     },
   })
+  .about('Parent type for all composite types.')
   .ReadOnly(function values(){
     let a = nice.Array();
     this.each(v => a.push(v));
@@ -1571,7 +1575,7 @@ nice._on('Type', type => {
       });
     }
   }
-});
+}).about('Observable component for declarative style programming.');
 Box = nice.Box;
 const F = Func.Box;
 ['use', 'follow', 'once', 'by', 'async']
@@ -1691,7 +1695,6 @@ nice._on('Mapping', ({name}) => {
 })();
 (function(){"use strict";nice.Type({
   title: 'Error',
-  
   extends: 'Nothing',
   constructor: (z, message) => {
     z.message = message;
@@ -1704,7 +1707,7 @@ nice._on('Mapping', ({name}) => {
     valueOf: function() { return new Error(this.message); },
     toString: function() { return `Error: ${this.message}`; }
   }
-});
+}).about('Represents error.');
 })();
 (function(){"use strict";nice.Type({
   title: 'Single',
@@ -1730,7 +1733,7 @@ nice._on('Mapping', ({name}) => {
     remove: null,
     removeAll: null,
   }
-});
+}).about('Parent type for all non composite types.');
 nice._on('Type', type => {
   def(nice.Single.configProto, type.title, () => {
     throw "Can't add properties to SingleValue types";
@@ -1778,7 +1781,7 @@ nice._on('Type', type => {
       return nice.toItem(this.getResult().shift());
     },
   }
-})
+}).about('Ordered list of elements.')
   .ReadOnly(function size() {
     return this.getResult().length;
   })
@@ -1883,7 +1886,7 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
   set: n => +n,
   saveValue: v => v,
   loadValue: v => v
-});
+}).about('Wrapper for JS number.');
 _each({
   between: (n, a, b) => n > a && n < b,
   integer: n => Number.isInteger(n),
@@ -1964,6 +1967,7 @@ nice.Single.extend({
   loadValue: v => v,
   set: (...a) => a[0] ? nice.format(...a) : ''
 })
+  .about('Wrapper for JS string.')
   .ReadOnly(function length(){
     return this.getResult().length;
   });
@@ -2027,7 +2031,7 @@ typeof Symbol === 'function' && Func.string(Symbol.iterator, z => {
   defaultValue: () => false,
   saveValue: v => v,
   loadValue: v => v
-});
+}).about('Wrapper for JS boolean.');
 const B = nice.Boolean, M = Mapping.Boolean;
 M('and', (z, v) => B(z() && v));
 M('or', (z, v) => B(z() || v));
@@ -2037,44 +2041,8 @@ const A = Action.Boolean;
 A('turnOn', z => z(true));
 A('turnOff', z => z(false));
 })();
-(function(){"use strict";const index = {};
-nice.Type({
-  title: 'Interface',
-  constructor: (z, title, ...a) => {
-    if(nice[title])
-      throw `Can't create interface ${title} name busy.`;
-    if(a.length === 0)
-      throw `Can't create empty interface.`;
-    z.title = title;
-    z.methods = a;
-    z.matchingTypes = [];
-    a.forEach(k => (index[k] = index[k] || []).push(z));
-    nice._on('Type', type => match(type, z) && z.matchingTypes.push(type));
-    Check(title, type => z.matchingTypes.includes(type._type || type));
-    Object.freeze(z);
-    def(nice, title, z);
-    nice.emitAndSave('interface', z);
-  }
-});
-nice.onNew('signature', s => {
-  if(s.type === 'Check')
-    return;
-  const type = s.signature[0] && s.signature[0].type;
-  const intrested = index[s.name];
-  type && intrested && intrested.forEach(i => {
-    match(type, i) && i.matchingTypes.push(type);
-  });
-});
-function match(type, { methods }){
-  let ok = true;
-  let l = methods.length;
-  while(ok && l--){
-    ok &= type.proto.hasOwnProperty(methods[l]);
-  }
-  return ok;
-}
-})();
 (function(){"use strict";nice.Type('Range')
+  .about('Represent range of numbers.')
   .Number('start', 0)
   .Number('end', Infinity)
   .by((z, a, b) => b === undefined ? z.end(a) : z.start(a).end(b))
@@ -2106,6 +2074,7 @@ Func.Number.Range(function within(v, r){
 });
 })();
 (function(){"use strict";nice.Type('Html')
+  .about('Represents HTML element.')
   .by((z, tag) => tag && z.tag(tag))
   .String('tag', 'div')
   .Object('eventHandlers')
@@ -2398,20 +2367,25 @@ function attachValue(target, setValue = defaultSetValue){
   return target;
 }
 Html.extend('Input')
+  .about('Represents HTML <input> element.')
   .by((z, type) => attachValue(z.tag('input').attributes('type', type || 'text')));
 Html.extend('Button')
+  .about('Represents HTML <input type="button"> element.')
   .by((z, text, action) => {
     z.tag('input').attributes({type: 'button', value: text}).on('click', action);
   });
 Html.extend('Textarea')
+  .about('Represents HTML <textarea> element.')
   .by((z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
     z.value(value ? '' + value : "");
   });
-Html.extend('Submit').by((z, text) =>
-    z.tag('input').attributes({type: 'submit', value: text}));
+Html.extend('Submit')
+  .about('Represents HTML <input type="submit"> element.')
+  .by((z, text) => z.tag('input').attributes({type: 'submit', value: text}));
 Html.extend('Checkbox')
+  .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
     z.tag('input').attributes({type: 'checkbox'});

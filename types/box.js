@@ -251,7 +251,7 @@ nice.Type({
       });
     }
   }
-});
+}).about('Observable component for declarative style programming.');
 Box = nice.Box;
 const F = Func.Box;
 

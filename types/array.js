@@ -41,7 +41,7 @@ nice.Object.extend({
       return nice.toItem(this.getResult().shift());
     },
   }
-})
+}).about('Ordered list of elements.')
   .ReadOnly(function size() {
     return this.getResult().length;
   })

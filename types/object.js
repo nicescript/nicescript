@@ -25,6 +25,7 @@ nice.Type({
       return f;
     },
   })
+  .about('Parent type for all composite types.')
   .ReadOnly(function values(){
     let a = nice.Array();
     this.each(v => a.push(v));

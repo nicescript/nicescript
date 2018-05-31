@@ -72,7 +72,7 @@ nice.Type({
       return this;
     }
   },
-});
+}).about('Parent type for all values.');
 
 
 defGet(nice.Value.configProto, 'Method', function () {

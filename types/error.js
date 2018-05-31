@@ -1,6 +1,6 @@
 nice.Type({
   title: 'Error',
-  
+
   extends: 'Nothing',
 
   constructor: (z, message) => {
@@ -16,4 +16,4 @@ nice.Type({
     valueOf: function() { return new Error(this.message); },
     toString: function() { return `Error: ${this.message}`; }
   }
-});
+}).about('Represents error.');

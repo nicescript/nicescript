@@ -27,7 +27,7 @@ nice.Type({
     remove: null,
     removeAll: null,
   }
-});
+}).about('Parent type for all non composite types.');
 
 
 nice._on('Type', type => {

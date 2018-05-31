@@ -1,4 +1,5 @@
 nice.Type('Range')
+  .about('Represent range of numbers.')
   .Number('start', 0)
   .Number('end', Infinity)
   .by((z, a, b) => b === undefined ? z.end(a) : z.start(a).end(b))

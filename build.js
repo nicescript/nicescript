@@ -26,7 +26,7 @@ const order = [
   'types/number',
   'types/string',
   'types/boolean',
-  'core/interface',
+//  'core/interface',
   'types/range',
   'html/html',
   'html/tags',

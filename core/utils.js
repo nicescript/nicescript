@@ -230,7 +230,8 @@ defAll(nice, {
     });
 
     nice._on('Type', t => {
-      const o = { title: t.title, description: t.description };
+      const o = { title: t.title };
+      t.hasOwnProperty('description') && (o.description = t.description);
       t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
     });

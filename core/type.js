@@ -12,6 +12,8 @@ function extend(child, parent){
 nice.registerType({
   title: 'Anything',
 
+  description: 'Parent type for all types.',
+
   extend: function (...a){
     return nice.Type(...a).extends(this);
   },

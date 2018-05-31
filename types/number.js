@@ -8,7 +8,7 @@ nice.Single.extend({
   saveValue: v => v,
 
   loadValue: v => v
-});
+}).about('Wrapper for JS number.');
 
 _each({
   between: (n, a, b) => n > a && n < b,
