@@ -23,5 +23,9 @@
     "chai": "3.x",
     "chai-spies": "^0.7.1",
     "mocha": "latest"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicescript/nicescript"
+  },
 }
