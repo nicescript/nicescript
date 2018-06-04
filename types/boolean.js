@@ -7,10 +7,6 @@ nice.Single.extend({
 }).about('Wrapper for JS boolean.');
 
 const B = nice.Boolean, M = Mapping.Boolean;
-M('and', (z, v) => B(z() && v));
-M('or', (z, v) => B(z() || v));
-M('nor', (z, v) => B(!(z() || v)));
-M('xor', (z, v) => B(z() ^  !!v));
 
 const A = Action.Boolean;
 A('turnOn', z => z(true));

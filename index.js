@@ -1050,6 +1050,43 @@ s('Stop', 'STOP', 'Nothing', 'Value used to stop iterationin .each() and similar
 s('Something', 'SOMETHING', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'OK', 'Something', 'Empty positive signal.');
 })();
+(function(){"use strict";Mapping.Anything('or', (...as) => {
+  let v;
+  for(let i in as){
+    v = nice(as[i]);
+    if(is.Something(v) && (!v.getResult || v.getResult() !== false))
+      return v;
+  }
+  return v || nice.NOTHING;
+});
+Func.Anything('and', (...as) => {
+  let v;
+  for(let i in as){
+    v = nice(as[i]);
+    if(!is.Something(v) || (!v.getResult || v.getResult() === false))
+      return v;
+  }
+  return v;
+});
+Func.Anything('nor', (...as) => {
+  let v;
+  for(let i in as){
+    v = nice(as[i]);
+    if(is.Something(v) && (!v.getResult || v.getResult() !== false))
+      return nice(false);
+  }
+  return nice(true);
+});
+Func.Anything('xor', (...as) => {
+  let count = 0;
+  for(let i in as){
+    const v = nice(as[i]);
+    if(is.Something(v) && (!v.getResult || v.getResult() !== false))
+      count++;
+  }
+  return nice(count && count < as.length ? true : false);
+});
+})();
 (function(){"use strict";nice.Type({
   title: 'Value',
   extends: 'Something',
@@ -2033,10 +2070,6 @@ typeof Symbol === 'function' && Func.string(Symbol.iterator, z => {
   loadValue: v => v
 }).about('Wrapper for JS boolean.');
 const B = nice.Boolean, M = Mapping.Boolean;
-M('and', (z, v) => B(z() && v));
-M('or', (z, v) => B(z() || v));
-M('nor', (z, v) => B(!(z() || v)));
-M('xor', (z, v) => B(z() ^  !!v));
 const A = Action.Boolean;
 A('turnOn', z => z(true));
 A('turnOff', z => z(false));
@@ -2092,7 +2125,15 @@ Func.Number.Range(function within(v, r){
   .Object('style')
   .Object('attributes')
   .Array('children')
-  .Array('class')
+  .Method('class', (z, ...vs) => {
+    const current = z.attributes('className').or('')();
+    if(!vs.length)
+      return current;
+    const a = current ? current.split(' ') : [];
+    vs.forEach(v => !v || a.includes(v) || a.push(v));
+    z.attributes('className', a.join(' '));
+    return z;
+  })
   .ReadOnly(text)
   .ReadOnly(html)
   .Method(function scrollTo(z, offset = 10){
@@ -2170,8 +2211,10 @@ const resultToHtml = r => {
   const a = ['<', r.tag];
   const style = compileStyle(r.style);
   style && a.push(" ", 'style="', style, '"');
-  r.class && r.class.length && a.push(" ", 'class="', r.class.join(' '), '"');
-  _each(r.attributes, (v, k) => a.push(" ", k , '="', v, '"'));
+  _each(r.attributes, (v, k) => {
+    k === 'className' && (k = 'class');
+    a.push(" ", k , '="', v, '"');
+  });
   a.push('>');
   _each(r.children, c => a.push(c && c._nv_ && c._nv_.tag
     ? resultToHtml(c._nv_)
