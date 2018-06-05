@@ -17,7 +17,16 @@ nice.Type('Html')
   .Object('style')
   .Object('attributes')
   .Array('children')
-  .Array('class')
+  .Method('class', (z, ...vs) => {
+    const current = z.attributes('className').or('')();
+    if(!vs.length)
+      return current;
+
+    const a = current ? current.split(' ') : [];
+    vs.forEach(v => !v || a.includes(v) || a.push(v));
+    z.attributes('className', a.join(' '));
+    return z;
+  })
   .ReadOnly(text)
   .ReadOnly(html)
   .Method(function scrollTo(z, offset = 10){
@@ -118,9 +127,11 @@ const resultToHtml = r => {
 
   const style = compileStyle(r.style);
   style && a.push(" ", 'style="', style, '"');
-  r.class && r.class.length && a.push(" ", 'class="', r.class.join(' '), '"');
 
-  _each(r.attributes, (v, k) => a.push(" ", k , '="', v, '"'));
+  _each(r.attributes, (v, k) => {
+    k === 'className' && (k = 'class');
+    a.push(" ", k , '="', v, '"');
+  });
 
   a.push('>');
 

@@ -26,6 +26,12 @@ describe("Html", function() {
   });
 
 
+  it("class", function() {
+    const div = Html('li').class('qwe');
+    expect(div.html).to.equal('<li class="qwe"></li>');
+  });
+
+
   it("children array", function() {
     const div = nice.Div(['qwe', 'asd']);
     expect(div.html).to.equal('<div>qweasd</div>');
