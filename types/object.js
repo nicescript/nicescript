@@ -109,7 +109,9 @@ M(function get(z, i) {
         return nice.NOT_FOUND;
     } else {
       if(typeof vs[i] === 'object')
-          vs[i] = (types && types[i] && types[i].defaultValue()) || {};
+//        vs[i] = (types && types[i] && types[i].defaultValue()) || {};
+              vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
+
     }
   }
 

@@ -323,6 +323,15 @@ describe("Object", function() {
   });
 
 
+  it("default object values for property", () => {
+    const t = nice.Type('Site')
+      .Object('urls', {qwe:1})
+      .Array('pages', ['qwe'])
+      ();
+    expect(t().urls('qwe')()).to.equal(1);
+    expect(t().pages.get(0)()).to.equal('qwe');
+  });
+
 //  it("includes", function() {
 //    const a = nice.Object({qwe: 1, ads: 3});
 //    expect(a.is.includes(7)).to.equal(false);
