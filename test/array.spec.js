@@ -160,4 +160,22 @@ describe("Array", function() {
     expect(nice(1, 2).intersperse('-')()).to.deep.equal([1, '-', 2]);
   });
 
+
+  it("sortedIndex", () => {
+    expect(nice(1, 2, 3).sortedIndex(0)()).to.equal(0);
+    expect(nice(1, 2, 3).sortedIndex(1)()).to.equal(0);
+    expect(nice(1, 2, 3).sortedIndex(1.5)()).to.equal(1);
+    expect(nice(1, 2, 3).sortedIndex(15)()).to.equal(3);
+  });
+
+
+  it("sortedIndex by", () => {
+    const f = (a, b) => a.length - b.length;
+    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('', f)()).to.equal(0);
+    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('asd', f)()).to.equal(1);
+    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('asdqweweq', f)()).to.equal(3);
+  });
+
+
+
 });

@@ -200,6 +200,18 @@ M(function sortBy(a, f){
 });
 
 
+M('sortedIndex', (a, v, f = (a, b) => a - b) => {
+  let i = a.size;
+  a.each((vv, k) => {
+    if(f(v, vv) <= 0){
+      i = k;
+      return nice.STOP;
+    }
+  });
+  return i;
+});
+
+
 M.about('Creates new array with separator between elments.')
 (function intersperse(a, separator) {
   const res = nice.Array();

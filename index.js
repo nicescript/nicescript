@@ -1904,6 +1904,17 @@ M(function sortBy(a, f){
     .forEach(v => res.push(source[v[0]]));
   return res;
 });
+M('sortedIndex', (a, v, f = (a, b) => a - b) => {
+  let i = a.size;
+  a.each((vv, k) => {
+    console.log(f(v, vv));
+    if(f(v, vv) <= 0){
+      i = k;
+      return nice.STOP;
+    }
+  });
+  return i;
+});
 M.about('Creates new array with separator between elments.')
 (function intersperse(a, separator) {
   const res = nice.Array();
