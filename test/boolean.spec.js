@@ -4,29 +4,29 @@ chai.use(require('chai-spies'));
 const expect = chai.expect;
 const { is } = nice;
 
-describe("Boolean", function() {
+describe("Bool", function() {
 
   it("type", function(){
-    expect(is.subType(nice.Boolean, nice.Single)).to.equal(true);
-    const n = nice.Boolean();
-    expect(n._type.title).to.equal('Boolean');
+    expect(is.subType(nice.Bool, nice.Single)).to.equal(true);
+    const n = nice.Bool();
+    expect(n._type.title).to.equal('Bool');
   });
 
 
   it("empty constructor", function(){
-    const s = nice.Boolean();
+    const s = nice.Bool();
     expect(s()).to.equal(false);
   });
 
 
   it("constructor", function(){
-    const b = nice.Boolean(1);
+    const b = nice.Bool(1);
     expect(b()).to.equal(true);
   });
 
 
   it("set", function(){
-    const b = nice.Boolean();
+    const b = nice.Bool();
     b(2);
     expect(b()).to.equal(true);
   });

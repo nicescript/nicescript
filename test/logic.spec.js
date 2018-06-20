@@ -12,8 +12,8 @@ describe("utils", function() {
 
 
   it("boolean or", function(){
-    let on = nice.Boolean(true);
-    let off = nice.Boolean(false);
+    let on = nice.Bool(true);
+    let off = nice.Bool(false);
     expect(on.or(true)()).to.equal(true);
     expect(on.or(false)()).to.equal(true);
     expect(off.or(true)()).to.equal(true);
@@ -30,8 +30,8 @@ describe("utils", function() {
 
 
   it("boolean and", function(){
-    let on = nice.Boolean(true);
-    let off = nice.Boolean(false);
+    let on = nice.Bool(true);
+    let off = nice.Bool(false);
     expect(on.and(true)()).to.equal(true);
     expect(on.and(false)()).to.equal(false);
     expect(off.and(true)()).to.equal(false);
@@ -40,8 +40,8 @@ describe("utils", function() {
 
 
   it("boolean nor", function(){
-    let on = nice.Boolean(true);
-    let off = nice.Boolean(false);
+    let on = nice.Bool(true);
+    let off = nice.Bool(false);
     expect(on.nor(true)()).to.equal(false);
     expect(on.nor(false)()).to.equal(false);
     expect(off.nor(true)()).to.equal(false);
@@ -50,8 +50,8 @@ describe("utils", function() {
 
 
   it("boolean xor", function(){
-    let on = nice.Boolean(true);
-    let off = nice.Boolean(false);
+    let on = nice.Bool(true);
+    let off = nice.Bool(false);
     expect(on.xor(true)()).to.equal(false);
     expect(on.xor(false)()).to.equal(true);
     expect(off.xor(true)()).to.equal(true);

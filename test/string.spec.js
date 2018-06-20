@@ -2,29 +2,30 @@ const nice = require('../index.js')();
 const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
+const { Str } = nice;
 
-describe("String", function() {
+describe("Str", function() {
 
   it("type", function(){
-    expect(nice.String.isSubType(nice.Single)).to.equal(true);
-    const s = nice.String();
-    expect(s._type.title).to.equal('String');
+    expect(Str.isSubType(nice.Single)).to.equal(true);
+    const s = Str();
+    expect(s._type.title).to.equal('Str');
   });
 
   it("empty constructor", function(){
-    const s = nice.String();
+    const s = nice.Str();
     expect(s()).to.equal('');
   });
 
 
   it("constructor", function(){
-    const s = nice.String(2);
+    const s = nice.Str(2);
     expect(s()).to.equal('2');
   });
 
 
   it("set", function(){
-    const s = nice.String();
+    const s = Str();
 
     s(2);
     expect(s()).to.equal('2');
@@ -35,13 +36,13 @@ describe("String", function() {
 
 
   it("format", function(){
-    const s = nice.String('Hello %s', 'world');
+    const s = Str('Hello %s', 'world');
     expect(s()).to.equal('Hello world');
   });
 
 
   it("trim", function(){
-    expect(nice.String(' qwe').trim()()).to.equal('qwe');
+    expect(Str(' qwe').trim()()).to.equal('qwe');
   });
 
 

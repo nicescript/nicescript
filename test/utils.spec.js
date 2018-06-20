@@ -5,12 +5,12 @@ const expect = chai.expect;
 
 describe("utils", function() {
   it('nice', function () {
-    expect(nice(true, 1, '')._type).to.equal(nice.Array);
+    expect(nice(true, 1, '')._type).to.equal(nice.Arr);
     expect(nice([1])()).to.deep.equal([1]);
-    expect(nice(true)._type).to.equal(nice.Boolean);
-    expect(nice(1)._type).to.equal(nice.Number);
-    expect(nice('Hi')._type).to.equal(nice.String);
-    expect(nice({})._type).to.equal(nice.Object);
+    expect(nice(true)._type).to.equal(nice.Bool);
+    expect(nice(1)._type).to.equal(nice.Num);
+    expect(nice('Hi')._type).to.equal(nice.Str);
+    expect(nice({})._type).to.equal(nice.Obj);
   });
 
 

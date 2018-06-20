@@ -1,7 +1,7 @@
 const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
 
 nice.Single.extend({
-  title: 'String',
+  title: 'Str',
 
   defaultValue: () => '',
 

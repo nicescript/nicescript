@@ -164,8 +164,8 @@ describe("Box", function() {
 
   it("inputs", function(){
     let square = Box()
-      .Number('x', 5)
-      .Number('y')
+      .Num('x', 5)
+      .Num('y')
       .by((x, y) => x * y);
 
     let res;
@@ -183,8 +183,8 @@ describe("Box", function() {
 
   it("follow Box input", function(){
     let square = Box()
-      .Number('x', 5)
-      .Number('y', 5)
+      .Num('x', 5)
+      .Num('y', 5)
       .by((x, y) => x * y);
 
     let a = Box(2);
@@ -210,7 +210,7 @@ describe("Box", function() {
     let b2 = Box.use(b).by(n => n * 2);
 
     let square = Box()
-      .Number('x', 5)
+      .Num('x', 5)
       .by(x => x * x);
 
     square.x(b2);
@@ -222,7 +222,7 @@ describe("Box", function() {
 
 
   it("resolve children 1", function(done){
-    nice.resolveChildren(nice.Array(1, 2), function (v) {
+    nice.resolveChildren(nice.Arr(1, 2), function (v) {
       expect(v()).to.deep.equal([1, 2]);
       done();
     });
@@ -231,10 +231,10 @@ describe("Box", function() {
 
   it("resolve children 2", function(done){
     let a = Box(2);
-    let b = Box.async(z => setTimeout(() => z(nice.Array(3, c)), 1));
+    let b = Box.async(z => setTimeout(() => z(nice.Arr(3, c)), 1));
     let c = Box.async(z => setTimeout(() => z(4), 1));
 
-    nice.resolveChildren(nice.Array(1, a, b), function (v) {
+    nice.resolveChildren(nice.Arr(1, a, b), function (v) {
       expect(v()).to.deep.equal([1, 2, [3, 4]]);
       done();
     });

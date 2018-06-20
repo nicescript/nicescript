@@ -82,7 +82,7 @@ n();      // 6
 
 #### Object values
 ```javascript
-const o = nice.Object({ a: 1 });
+const o = nice.Obj({ a: 1 });
 
 //get value
 o('a');         // 1
@@ -100,13 +100,13 @@ Each value in NiceScript has a type. Here is a root of types hierarchy:
 + Anything
   + Something
     + Value
-      + Object
-        + Array
+      + Obj
+        + Arr
         + [Html](#html)
       + Single
-        + String
-        + Number
-        + Boolean
+        + Str
+        + Num
+        + Bool
     + [Function](#functions)
     + [Box](#boxes)
     + Ok
@@ -123,12 +123,12 @@ Each value in NiceScript has a type. Here is a root of types hierarchy:
 Call nice with js value to wrap it with most appropriate type.
 ```javascript
 const nice = require('nicescript')();
-nice(4);        // nice.Number;
-nice("");       // nice.String;
-nice(true);     // nice.Boolean;
-nice({});       // nice.Object;
-nice([]);       // nice.Array;
-nice(1, 2, 3);  // nice.Array;
+nice(4);        // nice.Num;
+nice("");       // nice.Str;
+nice(true);     // nice.Bool;
+nice({});       // nice.Obj;
+nice([]);       // nice.Arr;
+nice(1, 2, 3);  // nice.Arr;
 nice(null);     // nice.Null;
 ```
 
@@ -136,16 +136,16 @@ nice(null);     // nice.Null;
 #### User types
 ```javascript
 nice.Type('Dog')
-  .String('title')
-  .Number('weight')
+  .Str('title')
+  .Num('weight')
   .by((z, title) => z.title(title));
 
 let d = nice.Dog('Jim').weight(5);
 d.name();       // Jim 
 d.weight();     // 5
 
-// by default created type extends nice.Object
-d.is.Object()   // true
+// by default created type extends nice.Obj
+d.is.Obj()   // true
 
 ```
 Type name should start with capital letter.
@@ -155,21 +155,21 @@ Type name should start with capital letter.
 
 ```javascript
 // Creating anonymous function
-const f = nice.Function(n => n + 1);
+const f = nice.Func(n => n + 1);
 f(1);               // 2
 
 // Named functions will be added to nice
-const plusTwo = nice.Function('plusTwo', n => n + 2);
-//or nice.Function(function plusTwo(n) { return n + 2; });
+const plusTwo = nice.Func('plusTwo', n => n + 2);
+//or nice.Func(function plusTwo(n) { return n + 2; });
 plusTwo(1);         // 3
 nice.plusTwo(1);    // 3
 
 // Check argument type
-const x2 = nice.Function.number('x2', n => n * 2);
+const x2 = nice.Func.number('x2', n => n * 2);
 x2(21);             // 42
 nice.x2(21);        // 42
-nice.Number(1).x2();// 42
-x2('q');            // throws "Function  can't handle (String)"
+nice.Num(1).x2();// 42
+x2('q');            // throws "Function  can't handle (Str)"
 
 // now let's overload x2 for strings
 x2.string(s => s + '!');
@@ -186,9 +186,9 @@ Clean function that do not changes it's arguments.
 NiceScript will always [wrap](#wrapping-values) result of Mapping. 
 
 ```javascript
-nice.Mapping.Number.Number('times', (a, b) => a * b);
+nice.Mapping.Num.Num('times', (a, b) => a * b);
 const n = nice(5);
-const n2 = n.times(3).times(2); // nice.Number(30)
+const n2 = n.times(3).times(2); // nice.Num(30)
 n()                             // 5
 n2()                            // 30;
 ```
@@ -202,7 +202,7 @@ Changes first argument. Action always returns it's first argument so you can
 call multiple actions in a row.
 
 ```javascript
-nice.Action.Number.Number('times', (a, b) => a * b);
+nice.Action.Num.Num('times', (a, b) => a * b);
 const n = nice(5);
 n.times(3).times(2);            // n
 n();                            // 30;
@@ -244,7 +244,7 @@ feedTiger(tiger, 'beef');    // tiger.hungry === false
 #### Switch vs Function overload
 Overloaded Function will search for best match while Switch will use first match.
 ```javascript
-nice.Function.Nothing(() => 1).Null(() => 2)(null);         // 2
+nice.Func.Nothing(() => 1).Null(() => 2)(null);         // 2
 nice.Switch.Nothing.use(() => 1).Null.use(() => 2)(null);   // 1
 ```
 Besides current implementation of Switch use only first argument.
@@ -267,8 +267,8 @@ b(3);                 // b2() === 6
 
 // Named inputs
 let square = Box()
-  .Number('x', 5)
-  .Number('y', 5)
+  .Num('x', 5)
+  .Num('y', 5)
   .by((x, y) => x * y);
 
 square();                  // 25

@@ -64,18 +64,18 @@ describe("Simple types", function() {
 
 
   it("fromItem", () => {
-    expect(nice.fromItem(nice.Number(6))).to.equal(6);
-    expect(nice.fromItem(nice.String('qwe'))).to.equal('qwe');
-    expect(nice.fromItem(nice.Boolean('qwe'))).to.equal(true);
+    expect(nice.fromItem(nice.Num(6))).to.equal(6);
+    expect(nice.fromItem(nice.Str('qwe'))).to.equal('qwe');
+    expect(nice.fromItem(nice.Bool('qwe'))).to.equal(true);
   });
 
 
   it("fromItem", () => {
-    expect(nice.toItem(6)._type).to.equal(nice.Number);
-    expect(nice.toItem('qwe')._type).to.equal(nice.String);
-    expect(nice.toItem(true)._type).to.equal(nice.Boolean);
-    expect(nice.toItem({type:'Object',value:{}})._type).to.equal(nice.Object);
-    expect(nice.toItem({type:nice.Object,value:{}})._type).to.equal(nice.Object);
+    expect(nice.toItem(6)._type).to.equal(nice.Num);
+    expect(nice.toItem('qwe')._type).to.equal(nice.Str);
+    expect(nice.toItem(true)._type).to.equal(nice.Bool);
+    expect(nice.toItem({type:'Obj',value:{}})._type).to.equal(nice.Obj);
+    expect(nice.toItem({type:nice.Obj,value:{}})._type).to.equal(nice.Obj);
   });
 
 
@@ -91,7 +91,7 @@ describe("Simple types", function() {
 
 
   it("clone", function() {
-    let a = nice.Array(1,2);
+    let a = nice.Arr(1,2);
     let b = nice.clone(a);
 
     expect(b()).to.deep.equal([1,2]);
@@ -102,7 +102,7 @@ describe("Simple types", function() {
 
 
   it("cloneDeep", function() {
-    let a = nice.Array(1,2);
+    let a = nice.Arr(1,2);
     let b = nice.cloneDeep(a);
 
     expect(b()).to.deep.equal([1,2]);

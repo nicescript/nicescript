@@ -12,12 +12,12 @@ describe("Single", function() {
 
 
   it("not an object", function(){
-    expect(nice.is.Object(nice.Single(2))).to.equal(false);
+    expect(nice.is.Obj(nice.Single(2))).to.equal(false);
   });
 
 
   it("might not have properties", function(){
-    expect(() => nice.Single.extend().String('qwe')).to.throw();
+    expect(() => nice.Single.extend().Str('qwe')).to.throw();
   });
 
 

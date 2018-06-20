@@ -1,7 +1,7 @@
 nice.Type('Range')
   .about('Represent range of numbers.')
-  .Number('start', 0)
-  .Number('end', Infinity)
+  .Num('start', 0)
+  .Num('end', Infinity)
   .by((z, a, b) => b === undefined ? z.end(a) : z.start(a).end(b))
   .Method(function each(z, f){
     let i = z.start();
@@ -12,7 +12,7 @@ nice.Type('Range')
   .Mapping(function map(f){
     let i = this.start();
     let n = 0;
-    const a = nice.Array();
+    const a = nice.Arr();
     while(i <= this.end()) a(f(i++, n++));
     return a;
   })
@@ -28,6 +28,6 @@ nice.Type('Range')
   });
 
 
-Func.Number.Range(function within(v, r){
+Func.Num.Range(function within(v, r){
   return v >= r.start && v <= r.end;
 });

@@ -3,7 +3,7 @@ const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
 
-describe("Object", function() {
+describe("Obj", function() {
 
   it("constructor", function() {
     const a = nice({asd: 3});
@@ -19,7 +19,7 @@ describe("Object", function() {
   });
 
 
-  it("set / get with nice.String as key", function() {
+  it("set / get with nice.Str as key", function() {
     const a = nice();
     a.set('qwe', 1);
     expect(a(nice('qwe'))()).to.equal(1);
@@ -88,7 +88,7 @@ describe("Object", function() {
 
 
   it("Standalone class", function() {
-    const Cat = nice.Type().String('name')();
+    const Cat = nice.Type().Str('name')();
 
     const ball = Cat().name('Ball');
     expect(ball.name()).to.equal('Ball');
@@ -98,14 +98,14 @@ describe("Object", function() {
 
 
   it("Setting all data", function() {
-    const type = nice.Type().String('name')();
+    const type = nice.Type().Str('name')();
     const cat = type({name: 'Ball'});
     expect(cat.name()).to.equal('Ball');
   });
 
 
   it("named type", function() {
-    nice.Type('Cat').String('name');
+    nice.Type('Cat').Str('name');
 
     const cat = nice.Cat().name('Ball');
     expect(cat._type.title).to.equal('Cat');
@@ -125,7 +125,7 @@ describe("Object", function() {
 
   it("by", function() {
     const Cat = nice.Type()
-      .String('name')
+      .Str('name')
       .by((z, name) => z.name(name))();
 
     const cat = Cat('Ball');
@@ -135,7 +135,7 @@ describe("Object", function() {
 
   it("named type by", function() {
     nice.Type('Plane')
-      .String('name')
+      .Str('name')
       .by((z, name) => z.name(name));
 
     expect(nice.Plane('Ball').name()).to.equal('Ball');
@@ -143,10 +143,10 @@ describe("Object", function() {
 
 
   it("Inheritance", function() {
-    const A = nice.Type().Number('x')();
+    const A = nice.Type().Num('x')();
 
     const B = nice.Type()
-      .Number('y')
+      .Num('y')
       .extends(A)();
 
     const b = B().x(5).y(10);
@@ -159,13 +159,13 @@ describe("Object", function() {
 
   it("Named inheritance", function() {
     nice.Type('Pet')
-      .String('name')
-      .Number('weight')
-      .Number('legs')
+      .Str('name')
+      .Num('weight')
+      .Num('legs')
       .by((z, name) => z.name(name));
 
     nice.Type('Dog')
-      .Number('size')
+      .Num('size')
       .extends('Pet')
       .by((z, name) => z.name(name).size(5).legs(4));
 
@@ -181,7 +181,7 @@ describe("Object", function() {
 
   it("instances should not interfire", function() {
     nice.Type('Gate')
-      .Number('items')
+      .Num('items')
       .by(z => z.items(1));
 
     const g1 = nice.Gate().items(2);
@@ -195,16 +195,16 @@ describe("Object", function() {
 
   it("itemBy", function() {
     const City = nice.Type()
-      .Number('height')
+      .Num('height')
       .by(z => z.height(20))();
     const city = City();
     expect(city()).to.deep.equal({ height: 20 });
   });
 
 
-  it("Object property", function() {
+  it("Obj property", function() {
     const City = nice.Type()
-      .Object('streets')();
+      .Obj('streets')();
     const city = City();
     city.streets('Main', 1);
     expect(city.streets('Main')()).to.equal(1);
@@ -215,20 +215,20 @@ describe("Object", function() {
     const a = nice();
     a.set('qwe', 3);
     a.set('ad', 2);
-    expect(a.values._type).to.equal(nice.Array);
+    expect(a.values._type).to.equal(nice.Arr);
     expect(a.values()).to.deep.equal([3, 2]);
   });
 
 
   it("reduce", function(){
-    const c = nice.Object({qwe: 1, ads: 3});
+    const c = nice.Obj({qwe: 1, ads: 3});
     expect(c.reduce((sum, n) => sum + n, 3)()).to.equal(7);
   });
 
 
   it("reduceTo", function() {
-    const c = nice.Object({qwe: 1, ads: 3});
-    const a = nice.Number();
+    const c = nice.Obj({qwe: 1, ads: 3});
+    const a = nice.Num();
 
     expect(c.reduceTo(a, (z, v) => z.inc(v))).to.equal(a);
     expect(a()).to.equal(4);
@@ -236,48 +236,48 @@ describe("Object", function() {
 
 
   it("reduceTo.Type", function() {
-    const c = nice.Object({qwe: 1, ads: 3});
-    const a = c.reduceTo.Number((z, v) => z.inc(v));
-    expect(a.is.Number()).to.equal(true);
+    const c = nice.Obj({qwe: 1, ads: 3});
+    const a = c.reduceTo.Num((z, v) => z.inc(v));
+    expect(a.is.Num()).to.equal(true);
     expect(a()).to.equal(4);
   });
 
 
   it("sum", function() {
-    const a = nice.Object({qwe: 1, ads: 3});
+    const a = nice.Obj({qwe: 1, ads: 3});
     expect(a.sum()()).to.equal(4);
   });
 
 
   it("some", function() {
-    const o = nice.Object({qwe: 1, ads: 3});
+    const o = nice.Obj({qwe: 1, ads: 3});
     expect(o.is.some(n => n > 5)).to.equal(false);
     expect(o.is.some(n => n > 2)).to.equal(true);
   });
 
 
   it("find", () => {
-    const c = nice.Object({qwe: 1, ads: 4});
+    const c = nice.Obj({qwe: 1, ads: 4});
     expect(c.find(n => n % 2 === 0)()).to.equal(4);
   });
 
 
   it("findKey", () => {
-    const c = nice.Object({qwe: 1, ads: 4});
+    const c = nice.Obj({qwe: 1, ads: 4});
     expect(c.findKey(n => n % 2 === 0)()).to.equal('ads');
   });
 
 
   it("every", function() {
-    const a = nice.Object({qwe: 1, ads: 3});
+    const a = nice.Obj({qwe: 1, ads: 3});
     expect(a.is.every(n => n > 2)).to.equal(false);
     expect(a.is.every(n => n > 0)).to.equal(true);
   });
 
 
   it("size", function() {
-    expect(nice.Object({qwe: 1, ads: 3}).size).to.equal(2);
-    expect(nice.Object().size).to.equal(0);
+    expect(nice.Obj({qwe: 1, ads: 3}).size).to.equal(2);
+    expect(nice.Obj().size).to.equal(0);
   });
 
 
@@ -286,30 +286,30 @@ describe("Object", function() {
     a.set('qwe', 3);
     a.set('ad', 2);
     let b = a.map(v => v * 2);
-    expect(b._type).to.equal(nice.Object);
+    expect(b._type).to.equal(nice.Obj);
     expect(b()).to.deep.equal({qwe:6, ad:4});
   });
 
 
   it("itemsType", function() {
-    const a = nice().itemsType(nice.Number);
+    const a = nice().itemsType(nice.Num);
     a.set('qwe', 3);
     a.set('ad', '2');
-    expect(a._type).to.equal(nice.Object);
-    expect(a._itemsType).to.equal(nice.Number);
+    expect(a._type).to.equal(nice.Obj);
+    expect(a._itemsType).to.equal(nice.Num);
     expect(a()).to.deep.equal({qwe:3, ad:2});
   });
 
 
   it("count", () => {
-    const a = nice.Array(1, 2, 3, 4, 5);
+    const a = nice.Arr(1, 2, 3, 4, 5);
     expect(a.count(n => n() % 2)()).to.equal(3);
   });
 
 
   it("each stop", () => {
     let sum = 0;
-    nice.Object({qwe: 1, asd: 2}).each(n => {
+    nice.Obj({qwe: 1, asd: 2}).each(n => {
       sum += n;
       return nice.STOP;
     });
@@ -318,22 +318,22 @@ describe("Object", function() {
 
 
   it("filter", () => {
-    const a = nice.Object({qwe: 1, asd: 2});
+    const a = nice.Obj({qwe: 1, asd: 2});
     expect(a.filter(n => n() % 2)()).to.deep.equal({qwe:1});
   });
 
 
   it("default object values for property", () => {
     const t = nice.Type('Site')
-      .Object('urls', {qwe:1})
-      .Array('pages', ['qwe'])
+      .Obj('urls', {qwe:1})
+      .Arr('pages', ['qwe'])
       ();
     expect(t().urls('qwe')()).to.equal(1);
     expect(t().pages.get(0)()).to.equal('qwe');
   });
 
 //  it("includes", function() {
-//    const a = nice.Object({qwe: 1, ads: 3});
+//    const a = nice.Obj({qwe: 1, ads: 3});
 //    expect(a.is.includes(7)).to.equal(false);
 //    expect(a.is.includes(1)).to.equal(true);
 //  });

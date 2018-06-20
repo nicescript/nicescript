@@ -1,6 +1,6 @@
 
 nice.Type({
-    title: 'Object',
+    title: 'Obj',
     extends: nice.Value,
     defaultValue: function() { return nice.create(this.defaultResult); },
     creator: () => {
@@ -13,7 +13,7 @@ nice.Type({
         if(a.length === 1 && k === undefined)
           return f._parent || f;
 
-        if(is.String(k))
+        if(is.Str(k))
           k = k();
 
         if(a.length === 1 && k !== undefined && !is.object(k))
@@ -27,7 +27,7 @@ nice.Type({
   })
   .about('Parent type for all composite types.')
   .ReadOnly(function values(){
-    let a = nice.Array();
+    let a = nice.Arr();
     this.each(v => a.push(v));
     return a;
   })
@@ -52,7 +52,7 @@ nice.Type({
   });
 
 
-Object.assign(nice.Object.proto, {
+Object.assign(nice.Obj.proto, {
   setValue: function (...a){
     let vs = a[0];
 
@@ -71,7 +71,7 @@ Object.assign(nice.Object.proto, {
   }
 });
 
-const F = Func.Object, M = Mapping.Object, A = Action.Object, C = Check.Object;
+const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
 M(function has(z, i) {
   if(i.pop){
@@ -97,7 +97,7 @@ M(function get(z, i) {
   }
   const vs = z.getResult();
 
-  if(is.String(i))
+  if(is.Str(i))
     i = i();
 
   if(!vs.hasOwnProperty(i)){
@@ -207,8 +207,8 @@ nice._on('Type', function defineReducer(type) {
 
 
 //['max','min','hypot'].forEach(name => {
-//  nice.Object.define(name, function (f) {
-//    return nice.Number().by(z =>
+//  nice.Obj.define(name, function (f) {
+//    return nice.Num().by(z =>
 //      z(Math[name](...nice.mapArray(f || (v => v()), z.use(this)())))
 //    );
 //  });
@@ -242,7 +242,7 @@ M(function filter(c, f){
 
 
 M(function sum(c, f){
-  return c.reduceTo.Number((sum, v) => sum.inc(f ? f(v) : v));
+  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
 });
 
 
@@ -263,7 +263,7 @@ C(function every(c, f){
   return true;
 });
 
-//Func.Object(function includes(c, v){
+//Func.Obj(function includes(c, v){
 //  const items = c.getResult();
 //
 //  if(items.includes)
@@ -297,7 +297,7 @@ M(function findKey(c, f){
 M.function(function count(o, f) {
   let n = 0;
   o.each((v, k) => f(v, k) && n++);
-  return nice.Number(n);
+  return nice.Num(n);
 });
 
 //A('removeValue', (o, item) => {
@@ -339,7 +339,7 @@ M(function getProperties(z){
 
 
 nice._on('Type', type => {
-  def(nice.Object.configProto, type.title, function (name, value = type.defaultValue()) {
+  def(nice.Obj.configProto, type.title, function (name, value = type.defaultValue()) {
     const targetType = this.target;
 
     if(name[0] !== name[0].toLowerCase())

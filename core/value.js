@@ -21,7 +21,7 @@ nice.Type({
 
   saveValue: function (_nv_) {
     const _nt_ = this.title;
-    return _nt_ === 'Object' ? _nv_ : { _nt_, _nv_ };
+    return _nt_ === 'Obj' ? _nv_ : { _nt_, _nv_ };
   },
 
   loadValue: v => v._nv_ || v,

@@ -42,7 +42,7 @@ describe("Type", function() {
       proto: {
         'qwe': function(){ return this.getResult() + 3 }
       }
-    }).extends('Number')();
+    }).extends('Num')();
 
     const B = nice.Type({
       proto: {
@@ -70,8 +70,8 @@ describe("Type", function() {
 
 
   it("default", function() {
-    const A = nice.Type().String('qwe', 'asd')();
-    const B = nice.Type().extends(A).String('zxc', '123').String('asd')();
+    const A = nice.Type().Str('qwe', 'asd')();
+    const B = nice.Type().extends(A).Str('zxc', '123').Str('asd')();
 
     expect(A().qwe()).to.equal('asd');
     expect(B().get('qwe')()).to.equal('asd');
@@ -91,11 +91,11 @@ describe("Type", function() {
 
 
   it('typeOf', function () {
-    expect(nice.typeOf(nice.Number()).title).to.equal('Number');
-    expect(nice.typeOf([]).title).to.equal('Array');
-    expect(nice.typeOf(1).title).to.equal('Number');
-    expect(nice.typeOf('1').title).to.equal('String');
-    expect(nice.typeOf({}).title).to.equal('Object');
+    expect(nice.typeOf(nice.Num()).title).to.equal('Num');
+    expect(nice.typeOf([]).title).to.equal('Arr');
+    expect(nice.typeOf(1).title).to.equal('Num');
+    expect(nice.typeOf('1').title).to.equal('Str');
+    expect(nice.typeOf({}).title).to.equal('Obj');
     expect(nice.typeOf(undefined).title).to.equal('Undefined');
     expect(nice.typeOf(null).title).to.equal('Null');
 //    expect(nice.typeOf(() => {}).title).to.equal('function');

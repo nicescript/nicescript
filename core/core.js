@@ -1,12 +1,12 @@
 nice = (...a) => {
   if(a.length === 0)
-    return nice.Object();
+    return nice.Obj();
 
   if(a.length > 1)
-    return nice.Array(...a);
+    return nice.Arr(...a);
 
   if(Array.isArray(a[0]))
-    return nice.Array(...a[0]);
+    return nice.Arr(...a[0]);
 
   if(a[0] === null)
     return nice.NULL;
@@ -98,25 +98,25 @@ defAll(nice, {
 
   valueType: v => {
     if(typeof v === 'number')
-      return nice.Number;
+      return nice.Num;
 
     if(typeof v === 'function')
       return nice.function;
 
     if(typeof v === 'string')
-      return nice.String;
+      return nice.Str;
 
     if(typeof v === 'boolean')
-      return nice.Boolean;
+      return nice.Bool;
 
     if(Array.isArray(v))
-      return nice.Array;
+      return nice.Arr;
 
     if(v._nt_ && v.hasOwnProperty('_nv_'))
       return nice[v._nt_];
 
     if(typeof v === 'object')
-      return nice.Object;
+      return nice.Obj;
 
     throw 'Unknown type';
   },

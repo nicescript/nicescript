@@ -69,7 +69,7 @@ describe("is", function() {
 
   it("nice", function() {
     expect(is.nice(1)).to.equal(false);
-    expect(is.nice(nice.Number())).to.equal(true);
+    expect(is.nice(nice.Num())).to.equal(true);
   });
 
   it("js types", function() {

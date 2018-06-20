@@ -1,5 +1,5 @@
-nice.Object.extend({
-  title: 'Array',
+nice.Obj.extend({
+  title: 'Arr',
   creator: nice.Single.creator,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),
@@ -50,7 +50,8 @@ nice.Object.extend({
   });
 
 
-const F = Func.Array, M = Mapping.Array, A = Action.Array;
+const Arr = nice.Arr;
+const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 const f = Func.array, m = Mapping.array, a = Action.array;
 
 M.function('reduce', (a, f, res) => {
@@ -178,19 +179,19 @@ A(function fill(z, v, start = 0, end){
 
 
 M.function(function map(a, f){
-  return a.reduceTo.Array((z, v, k) => z.push(f(v, k)));
+  return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
 });
 
 
 M.function(function filter(a, f){
-  return a.reduceTo(nice.Array(), (res, v, k) => f(v, k, a) && res.push(v));
+  return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
 });
 
 
 M(function sortBy(a, f){
   f = nice.mapper(f);
 
-  const res = nice.Array();
+  const res = Arr();
   const source = a.getResult();
   source
     .map((v, k) => [k, f(v)])
@@ -214,7 +215,7 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
 
 M.about('Creates new array with separator between elments.')
 (function intersperse(a, separator) {
-  const res = nice.Array();
+  const res = Arr();
   const last = a.size - 1;
   a.each((v, k) => res.push(v) && (k < last && res.push(separator)));
   return res;

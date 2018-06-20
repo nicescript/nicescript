@@ -93,7 +93,7 @@ defAll(nice, {
     config.proto._type = type;
     delete config.by;
     Object.assign(type, config);
-    extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Object);
+    extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
 
     const cfg = create(config.configProto, nice.Configurator(type, ''));
     config.title && nice.registerType(type);
@@ -116,15 +116,15 @@ nice.typeOf = v => {
 
   let primitive = typeof v;
   if(primitive !== 'object'){
-    const res = nice[primitive[0].toUpperCase() + primitive.substr(1)];
+    const res = nice[nice.jsTypes[primitive].niceType];
     if(!res)
       throw `JS type ${primitive} not supported`;
     return res;
   }
 
   if(Array.isArray(v))
-    return nice.Array;
+    return nice.Arr;
 
-  return nice.Object;
+  return nice.Obj;
 };
 

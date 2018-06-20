@@ -1,11 +1,11 @@
 ;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Box,Action,Mapping,Check;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
-    return nice.Object();
+    return nice.Obj();
   if(a.length > 1)
-    return nice.Array(...a);
+    return nice.Arr(...a);
   if(Array.isArray(a[0]))
-    return nice.Array(...a[0]);
+    return nice.Arr(...a[0]);
   if(a[0] === null)
     return nice.NULL;
   if(a[0] === undefined)
@@ -68,19 +68,19 @@ defAll(nice, {
   },
   valueType: v => {
     if(typeof v === 'number')
-      return nice.Number;
+      return nice.Num;
     if(typeof v === 'function')
       return nice.function;
     if(typeof v === 'string')
-      return nice.String;
+      return nice.Str;
     if(typeof v === 'boolean')
-      return nice.Boolean;
+      return nice.Bool;
     if(Array.isArray(v))
-      return nice.Array;
+      return nice.Arr;
     if(v._nt_ && v.hasOwnProperty('_nv_'))
       return nice[v._nt_];
     if(typeof v === 'object')
-      return nice.Object;
+      return nice.Obj;
     throw 'Unknown type';
   },
   defineCached: (target, ...a) => {
@@ -497,12 +497,25 @@ const jsHierarchy = {
   object: 'function,date,regExp,array,error,arrayBuffer,dataView,map,weakMap,set,weakSet,promise',
   error: 'evalError,rangeError,referenceError,syntaxError,typeError,uriError'
 };
+const jsTypesMap = {
+  Object: 'Obj',
+  Array: 'Arr',
+  Number: 'Num',
+  Boolean: 'Bool',
+  String: 'Str',
+  Function: 'Func'
+};
 for(let i in jsHierarchy)
   jsHierarchy[i].split(',').forEach(title => {
     const parent = nice.jsTypes[i];
     const proto = create(parent.proto);
+    const jsName = nice._capitalize(title);
     nice.jsTypes[title] = create(parent,
-        { title, proto, jsType: true, jsName: nice._capitalize(title) });
+        { title,
+          proto,
+          jsType: true,
+          jsName,
+          niceType: jsTypesMap[jsName] });
   });
 })();
 (function(){"use strict";const configProto = {
@@ -544,9 +557,7 @@ const parseParams = (...a) => {
   return typeof action === 'function' ? { name, action } : a[0];
 };
 function toItemType({type}){
-  return { type: type.jsType
-    ? nice[type.title[0].toUpperCase() + type.title.substr(1)]
-    : type };
+  return { type: type.jsType ? nice[type.niceType] : type };
 }
 function transform(s){
   s.source = s.action;
@@ -682,7 +693,7 @@ function skip(a, f){
 }
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 nice._on('Type', handleType);
-Func = def(nice, 'Function', configurator());
+Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
 Check = def(nice, 'Check', configurator({functionType: 'Check'}));
@@ -1009,7 +1020,7 @@ defAll(nice, {
     config.proto._type = type;
     delete config.by;
     Object.assign(type, config);
-    extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Object);
+    extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
     const cfg = create(config.configProto, nice.Configurator(type, ''));
     config.title && nice.registerType(type);
     return cfg;
@@ -1025,14 +1036,14 @@ nice.typeOf = v => {
     return v._type;
   let primitive = typeof v;
   if(primitive !== 'object'){
-    const res = nice[primitive[0].toUpperCase() + primitive.substr(1)];
+    const res = nice[nice.jsTypes[primitive].niceType];
     if(!res)
       throw `JS type ${primitive} not supported`;
     return res;
   }
   if(Array.isArray(v))
-    return nice.Array;
-  return nice.Object;
+    return nice.Arr;
+  return nice.Obj;
 };
 })();
 (function(){"use strict";function s(title, itemTitle, parent, description){
@@ -1109,7 +1120,7 @@ Func.Anything('xor', (...as) => {
   },
   saveValue: function (_nv_) {
     const _nt_ = this.title;
-    return _nt_ === 'Object' ? _nv_ : { _nt_, _nv_ };
+    return _nt_ === 'Obj' ? _nv_ : { _nt_, _nv_ };
   },
   loadValue: v => v._nv_ || v,
   proto: create(nice.Anything.proto, {
@@ -1167,7 +1178,7 @@ nice.jsTypes.isSubType = isSubType;
 })();
 (function(){"use strict";
 nice.Type({
-    title: 'Object',
+    title: 'Obj',
     extends: nice.Value,
     defaultValue: function() { return nice.create(this.defaultResult); },
     creator: () => {
@@ -1177,7 +1188,7 @@ nice.Type({
         let k = a[0];
         if(a.length === 1 && k === undefined)
           return f._parent || f;
-        if(is.String(k))
+        if(is.Str(k))
           k = k();
         if(a.length === 1 && k !== undefined && !is.object(k))
           return f.get(k);
@@ -1189,7 +1200,7 @@ nice.Type({
   })
   .about('Parent type for all composite types.')
   .ReadOnly(function values(){
-    let a = nice.Array();
+    let a = nice.Arr();
     this.each(v => a.push(v));
     return a;
   })
@@ -1209,7 +1220,7 @@ nice.Type({
   .Action(function itemsType(z, t){
     z._itemsType = t;
   });
-Object.assign(nice.Object.proto, {
+Object.assign(nice.Obj.proto, {
   setValue: function (...a){
     let vs = a[0];
     if(!is.object(vs)){
@@ -1225,7 +1236,7 @@ Object.assign(nice.Object.proto, {
       : type.defaultValue());
   }
 });
-const F = Func.Object, M = Mapping.Object, A = Action.Object, C = Check.Object;
+const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 M(function has(z, i) {
   if(i.pop){
     if(i.length === 1){
@@ -1246,7 +1257,7 @@ M(function get(z, i) {
     }
   }
   const vs = z.getResult();
-  if(is.String(i))
+  if(is.Str(i))
     i = i();
   if(!vs.hasOwnProperty(i)){
     const types = z._type.types;
@@ -1348,7 +1359,7 @@ M(function filter(c, f){
   return c._type().apply(z => c.each((v, k) => f(v,k) && z.set(k, v)));
 });
 M(function sum(c, f){
-  return c.reduceTo.Number((sum, v) => sum.inc(f ? f(v) : v));
+  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
 });
 C(function some(c, f){
   const items = c.getResult();
@@ -1381,7 +1392,7 @@ M(function findKey(c, f){
 M.function(function count(o, f) {
   let n = 0;
   o.each((v, k) => f(v, k) && n++);
-  return nice.Number(n);
+  return nice.Num(n);
 });
 M(function getProperties(z){
   const res = [];
@@ -1389,7 +1400,7 @@ M(function getProperties(z){
   return res;
 });
 nice._on('Type', type => {
-  def(nice.Object.configProto, type.title, function (name, value = type.defaultValue()) {
+  def(nice.Obj.configProto, type.title, function (name, value = type.defaultValue()) {
     const targetType = this.target;
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
@@ -1786,8 +1797,8 @@ nice._on('Type', type => {
   });
 });
 })();
-(function(){"use strict";nice.Object.extend({
-  title: 'Array',
+(function(){"use strict";nice.Obj.extend({
+  title: 'Arr',
   creator: nice.Single.creator,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),
@@ -1834,7 +1845,8 @@ nice._on('Type', type => {
   .Action(function push(z, ...a) {
     a.forEach(v => z.set(z.getResult().length, v));
   });
-const F = Func.Array, M = Mapping.Array, A = Action.Array;
+const Arr = nice.Arr;
+const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 const f = Func.array, m = Mapping.array, a = Action.array;
 M.function('reduce', (a, f, res) => {
   each(a, (v, k) => res = f(res, v, k));
@@ -1898,14 +1910,14 @@ A(function fill(z, v, start = 0, end){
   }
 });
 M.function(function map(a, f){
-  return a.reduceTo.Array((z, v, k) => z.push(f(v, k)));
+  return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
 });
 M.function(function filter(a, f){
-  return a.reduceTo(nice.Array(), (res, v, k) => f(v, k, a) && res.push(v));
+  return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
 });
 M(function sortBy(a, f){
   f = nice.mapper(f);
-  const res = nice.Array();
+  const res = Arr();
   const source = a.getResult();
   source
     .map((v, k) => [k, f(v)])
@@ -1925,7 +1937,7 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
 });
 M.about('Creates new array with separator between elments.')
 (function intersperse(a, separator) {
-  const res = nice.Array();
+  const res = Arr();
   const last = a.size - 1;
   a.each((v, k) => res.push(v) && (k < last && res.push(separator)));
   return res;
@@ -1937,7 +1949,7 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
 });
 })();
 (function(){"use strict";nice.Single.extend({
-  title: 'Number',
+  title: 'Num',
   defaultValue: () => 0,
   set: n => +n,
   saveValue: v => v,
@@ -2006,7 +2018,7 @@ M('clamp', (n, min, max) => {
       ? max
       : n;
 });
-const A = Action.Number;
+const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
 A('divide', (z, n) => z(z() / n));
@@ -2017,7 +2029,7 @@ A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
 })();
 (function(){"use strict";const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
 nice.Single.extend({
-  title: 'String',
+  title: 'Str',
   defaultValue: () => '',
   saveValue: v => v,
   loadValue: v => v,
@@ -2082,21 +2094,21 @@ typeof Symbol === 'function' && Func.string(Symbol.iterator, z => {
 });
 })();
 (function(){"use strict";nice.Single.extend({
-  title: 'Boolean',
+  title: 'Bool',
   set: n => !!n,
   defaultValue: () => false,
   saveValue: v => v,
   loadValue: v => v
 }).about('Wrapper for JS boolean.');
-const B = nice.Boolean, M = Mapping.Boolean;
-const A = Action.Boolean;
+const B = nice.Bool, M = Mapping.Bool;
+const A = Action.Bool;
 A('turnOn', z => z(true));
 A('turnOff', z => z(false));
 })();
 (function(){"use strict";nice.Type('Range')
   .about('Represent range of numbers.')
-  .Number('start', 0)
-  .Number('end', Infinity)
+  .Num('start', 0)
+  .Num('end', Infinity)
   .by((z, a, b) => b === undefined ? z.end(a) : z.start(a).end(b))
   .Method(function each(z, f){
     let i = z.start();
@@ -2107,7 +2119,7 @@ A('turnOff', z => z(false));
   .Mapping(function map(f){
     let i = this.start();
     let n = 0;
-    const a = nice.Array();
+    const a = nice.Arr();
     while(i <= this.end()) a(f(i++, n++));
     return a;
   })
@@ -2121,7 +2133,7 @@ A('turnOff', z => z(false));
   .Check(function includes(z, n){
     return n >= z.start && n <= z.end;
   });
-Func.Number.Range(function within(v, r){
+Func.Num.Range(function within(v, r){
   return v >= r.start && v <= r.end;
 });
 })();
@@ -2130,9 +2142,9 @@ const AUTO_PREFIX = '_nn_'
 nice.Type('Html')
   .about('Represents HTML element.')
   .by((z, tag) => tag && z.tag(tag))
-  .String('tag', 'div')
-  .Object('eventHandlers')
-  .Object('cssSelectors')
+  .Str('tag', 'div')
+  .Obj('eventHandlers')
+  .Obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(z, name, f){
     if(name === 'domNode' && nice.isEnvBrowser){
       if(!z.id())
@@ -2144,9 +2156,9 @@ nice.Type('Html')
       .Nothing.use(() => z.eventHandlers(name, [f]))
       .default.use(a => a.push(f));
   })
-  .Object('style')
-  .Object('attributes')
-  .Array('children')
+  .Obj('style')
+  .Obj('attributes')
+  .Arr('children')
   .Method('_autoId', z => {
     z.id() || z.id(AUTO_PREFIX + autoId++);
     return z.id();
@@ -2182,7 +2194,7 @@ nice.Type('Html')
     children.forEach(c => {
       if(is.array(c))
         return _each(c, _c => z.add(_c));
-      if(is.Array(c))
+      if(is.Arr(c))
         return c.each(_c => z.add(_c));
       if(c === undefined || c === null)
         return;

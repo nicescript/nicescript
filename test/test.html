@@ -62,8 +62,8 @@ Div(c, Box().by(c.checked, c => Span(c ? 'Yes' : 'No'))).show();
 H3('Textarea').show();
 const text = nice.Textarea('qewqweqwqw').show();
 Box().use(text.value).by(s => Div().I('Length: ', s.length)).show();
-nice.is.String('');
-nice.is.String('qwe');
+nice.is.Str('');
+nice.is.Str('qwe');
 
 </script>
   

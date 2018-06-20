@@ -25,7 +25,7 @@ describe("Interface", () => {
 //    expect(is(nice.Dog).Walkable()).to.equal(false);
 //    expect(is(dog).Walkable()).to.equal(false);
 //
-//    nice.Function.Dog('walk', () => 1);
+//    nice.Func.Dog('walk', () => 1);
 //
 //    expect(is(nice.Dog).Walkable()).to.equal(true);
 //    expect(is(dog).Walkable()).to.equal(true);

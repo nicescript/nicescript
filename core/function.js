@@ -49,9 +49,7 @@ const parseParams = (...a) => {
 
 
 function toItemType({type}){
-  return { type: type.jsType
-    ? nice[type.title[0].toUpperCase() + type.title.substr(1)]
-    : type };
+  return { type: type.jsType ? nice[type.niceType] : type };
 }
 
 
@@ -230,7 +228,7 @@ function skip(a, f){
 
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 nice._on('Type', handleType);
-Func = def(nice, 'Function', configurator());
+Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
 Check = def(nice, 'Check', configurator({functionType: 'Check'}));

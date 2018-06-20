@@ -3,7 +3,7 @@ const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
 
-describe("Array", function() {
+describe("Range", function() {
   it("includes", function() {
     const r = nice.Range(1, 6);
 
@@ -14,8 +14,8 @@ describe("Array", function() {
 
   it("within", function() {
     const r = nice.Range(1, 5);
-    expect(nice.Number(5).within(r)).to.equal(true);
-    expect(nice.Number(15).within(r)).to.equal(false);
+    expect(nice.Num(5).within(r)).to.equal(true);
+    expect(nice.Num(15).within(r)).to.equal(false);
   });
 
 });

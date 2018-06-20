@@ -1,5 +1,5 @@
 nice.Single.extend({
-  title: 'Number',
+  title: 'Num',
 
   defaultValue: () => 0,
 
@@ -81,7 +81,7 @@ M('clamp', (n, min, max) => {
 });
 
 
-const A = Action.Number;
+const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
 A('divide', (z, n) => z(z() / n));

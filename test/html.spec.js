@@ -42,8 +42,8 @@ describe("Html", function() {
 
 
   it("item child", function() {
-    const n = nice.Number(5);
-    const n2 = nice.Number(7);
+    const n = nice.Num(5);
+    const n2 = nice.Num(7);
     const div = Html('ol').add(n, n2);
     expect(div.html).to.equal('<ol>57</ol>');
   });
