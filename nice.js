@@ -315,6 +315,8 @@ defAll(nice, {
   doc: () => {
     const res = { types: {}, functions: [] };
     nice._on('signature', s => {
+      if(!s.name || s.name[0] === '_')
+        return;
       const o = {};
       _each(s, (v, k) => nice.Switch(k)
         .equal('action')()
@@ -323,11 +325,17 @@ defAll(nice, {
         .default.use(() => o[k] = v));
       res.functions.push(o);
     });
+    
     nice._on('Type', t => {
-      const o = { title: t.title };
+      if(!t.title || t.title[0] === '_')
+        return;
+      const o = { title: t.title, properties: [] };
       t.hasOwnProperty('description') && (o.description = t.description);
       t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
+    });
+    nice._on('Property', ({ type, name, targetType }) => {
+      res.types[targetType.title].properties.push({ name, type: type.title });
     });
     return res;
   }
@@ -1361,14 +1369,14 @@ M(function find(c, f){
   for(let i in items)
     if(f(items[i], i))
       return items[i];
-  return nice.NotFound;
+  return nice.NOT_FOUND;
 });
 M(function findKey(c, f){
   const items = c.getResult();
   for(let i in items)
     if(f(items[i], i))
       return i;
-  return nice.NotFound;
+  return nice.NOT_FOUND;
 });
 M.function(function count(o, f) {
   let n = 0;
@@ -1394,6 +1402,7 @@ nice._on('Type', type => {
         throw `Can't create ${type.title} property. Value is ${res._type.title}`;
       return res;
     });
+    nice.emitAndSave('Property', { type, name, targetType });
     return this;
   });
 });
@@ -1907,7 +1916,6 @@ M(function sortBy(a, f){
 M('sortedIndex', (a, v, f = (a, b) => a - b) => {
   let i = a.size;
   a.each((vv, k) => {
-    console.log(f(v, vv));
     if(f(v, vv) <= 0){
       i = k;
       return nice.STOP;
@@ -2117,11 +2125,14 @@ Func.Number.Range(function within(v, r){
   return v >= r.start && v <= r.end;
 });
 })();
-(function(){"use strict";nice.Type('Html')
+(function(){"use strict";let autoId = 0;
+const AUTO_PREFIX = '_nn_'
+nice.Type('Html')
   .about('Represents HTML element.')
   .by((z, tag) => tag && z.tag(tag))
   .String('tag', 'div')
   .Object('eventHandlers')
+  .Object('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(z, name, f){
     if(name === 'domNode' && nice.isEnvBrowser){
       if(!z.id())
@@ -2136,7 +2147,19 @@ Func.Number.Range(function within(v, r){
   .Object('style')
   .Object('attributes')
   .Array('children')
-  .Method('class', (z, ...vs) => {
+  .Method('_autoId', z => {
+    z.id() || z.id(AUTO_PREFIX + autoId++);
+    return z.id();
+  })
+  .Method('_autoClass', z => {
+    const s = z.attributes('className').or('')();
+    if(s.indexOf(AUTO_PREFIX) < 0){
+      const c = AUTO_PREFIX + autoId++;
+      z.attributes('className', s + ' ' + c);
+    }
+    return z;
+  })
+  .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
     const current = z.attributes('className').or('')();
     if(!vs.length)
       return current;
@@ -2147,14 +2170,15 @@ Func.Number.Range(function within(v, r){
   })
   .ReadOnly(text)
   .ReadOnly(html)
-  .Method(function scrollTo(z, offset = 10){
+  .Method.about('Scroll browser screen to an element.')(function scrollTo(z, offset = 10){
     z.on('domNode', node => {
       node && window.scrollTo(node.offsetLeft - offset, node.offsetTop - offset);
     });
     return z;
   })
-  .Action('focus', z => z.on('domNode', node => node.focus()))
-  .Action(function add(z, ...children) {
+  .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
+      z.on('domNode', node => node.focus(preventScroll)))
+  .Action.about('Adds children to an element.')(function add(z, ...children) {
     children.forEach(c => {
       if(is.array(c))
         return _each(c, _c => z.add(_c));
@@ -2176,13 +2200,38 @@ Func.Number.Range(function within(v, r){
     });
   });
 const Html = nice.Html;
-nice._on('Extension', o => o.parent === nice.Html &&
-  def(Html.proto, o.child.title, function (...a){
-    const res = nice[o.child.title](...a);
-    this.add(res);
-    return res;
-  })
-);
+nice.Type('Style')
+  .about('Represents CSS style.');
+const Style = nice.Style;
+defGet(Html.proto, 'hover', function(){
+  const style = Style();
+  this._autoClass();
+  this.cssSelectors(':hover', style);
+  return style;
+});
+def(Html.proto, 'Css', function(s = ''){
+  s = s.toLowerCase();
+  if(this.cssSelectors.has(s)())
+    return this.cssSelectors.get(s);
+  this._autoClass();
+  const style = Style();
+  style.up = this;
+  this.cssSelectors(s, style);
+  return style;
+});
+nice._on('Extension', ({child, parent}) => {
+  if(parent === Html || Html.isPrototypeOf(parent)){
+    def(Html.proto, child.title, function (...a){
+      const res = child(...a);
+      this.add(res);
+      return res;
+    });
+    const _t = nice._deCapitalize(child.title);
+    Html.proto[_t] || def(Html.proto, _t, function (...a){
+      return this.add(child(...a));
+    });
+  }
+});
 Html.proto.Box = function(...a) {
   const res = Box(...a);
   res.up = this;
@@ -2191,14 +2240,20 @@ Html.proto.Box = function(...a) {
 };
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
-    nice.define(Html.proto, property, function(...a) {
+    def(Html.proto, property, function(...a) {
       is.object(a[0])
         ? _each(a[0], (v, k) => this.style(property + nice.capitalize(k), v))
         : this.style(property, is.string(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
+    def(Style.proto, property, function(...a) {
+      is.object(a[0])
+        ? _each(a[0], (v, k) => this(property + nice.capitalize(k), v))
+        : this(property, is.string(a[0]) ? nice.format(...a) : a[0]);
+      return this;
+    });
   });
-'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
+'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
     Html.proto[property] = function(...a){
       return a.length
@@ -2218,12 +2273,18 @@ function compileStyle (s){
   _each(s, (v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
   return a.join(';');
 };
+function compileSelectors (r){
+  const a = [];
+  _each(r.cssSelectors, (v, k) => a.push('.', getAutoClass(r.attributes.className),
+    ' ', k, '{', compileStyle (v._nv_), '}'));
+  return a.length ? '<style>' + a.join('') + '</style>' : '';
+};
 const resultToHtml = r => {
-  const a = ['<', r.tag];
+  const a = [compileSelectors(r), '<', r.tag ];
   const style = compileStyle(r.style);
   style && a.push(" ", 'style="', style, '"');
   _each(r.attributes, (v, k) => {
-    k === 'className' && (k = 'class');
+    k === 'className' && (k = 'class', v = v.trim());
     a.push(" ", k , '="', v, '"');
   });
   a.push('>');
@@ -2242,7 +2303,11 @@ defAll(nice, {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
 });
+const getAutoClass = s => s.match(/(_nn_\d+)/)[0];
 if(nice.isEnvBrowser){
+  const styleEl = document.createElement('style');
+  document.head.appendChild(styleEl);
+  const styleSheet = styleEl.sheet;
   const addStyle = Switch
     .Box.use((s, k, node) => {
       const f = v => addStyle(v, k, node);
@@ -2271,6 +2336,31 @@ if(nice.isEnvBrowser){
       node[k] = '';
     })
     .default.use((v, k, node) => node[k] = '');
+  const addSelectors = (selectors, node) => {
+    _each(selectors, (_v, k) => addRules(_v._nv_, k, getAutoClass(node.className)));
+  };
+  const addRules = (vs, selector, className) => {
+    const rule = assertRule(selector, className);
+    _each(vs, (value, prop) => rule.style[prop] = value);
+  };
+  const findRule = (selector, className) => {
+    const s = `.${className} ${selector}`.toLowerCase();
+    let rule;
+    for (const r of styleSheet.cssRules)
+      r.selectorText === s && (rule = r);
+    return rule;
+  };
+  const assertRule = (selector, className) => {
+    return findRule(selector, className) || styleSheet
+        .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
+  };
+  const killSelectors = (css, node) => {
+    _each(css, (_v, k) => killRules(_v._nv_, k, getAutoClass(node.className)));
+  };
+  const killRules = (vs, selector, id) => {
+    const rule = findRule(selector, id);
+    rule && _each(vs, (value, prop) => rule.style[prop] = null);
+  };
   function killNode(n){
     n && n.parentNode && n.parentNode.removeChild(n);
   }
@@ -2282,10 +2372,22 @@ if(nice.isEnvBrowser){
     node.parentNode.insertBefore(newNode, node.nextSibling);
     return newNode;
   }
+  function preserveAutoClass(add, del, node){
+    const a = nice._get(add, ['_nv_', 'attributes', 'className']) || '';
+    const d = node && node.className || '';
+    const ai = a.indexOf(AUTO_PREFIX);
+    const di = d.indexOf(AUTO_PREFIX);
+    if(ai >= 0 && di >= 0){
+      const old = d.match(/(_nn_\d+)/)[0];
+      delete del._nv_.attributes.className;
+      add._nv_.attributes.className = a.replace(/_nn_(\d+)/, old);
+    }
+  }
   function handleNode(add, del, oldNode, parent){
     let node;
     if(del && !is.Nothing(del) && !oldNode)
       throw '!oldNode';
+    preserveAutoClass(add, del, oldNode);
     del && Switch(del)
       .Box.use(b => {
         b.unsubscribe(oldNode.__niceSubscription);
@@ -2298,6 +2400,7 @@ if(nice.isEnvBrowser){
         } else {
           _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
           _each(v.attributes, (_v, k) => delAttribute(_v, k, oldNode));
+          killSelectors(v.cssSelectors, oldNode);
           nice._eachEach(v.eventHandlers, (f, _n, k) =>
                 oldNode.removeEventListener(k, f, true));
         }
@@ -2327,6 +2430,7 @@ if(nice.isEnvBrowser){
         }
         _each(v.style, (_v, k) => addStyle(_v, k, node));
         _each(v.attributes, (_v, k) => addAttribute(_v, k, node));
+        addSelectors(v.cssSelectors, node);
         addHandlers(v.eventHandlers, node);
       } else {
         const text = is.Nothing(add) ? '' : '' + add;
@@ -2397,8 +2501,7 @@ Html.extend('A').by((z, url, ...children) => {
 Html.extend('Img').by((z, src) => z.tag('img').src(src))
   .about('Represents HTML <img> element.');
 })();
-(function(){"use strict";let autoId = 0;
-const Html = nice.Html;
+(function(){"use strict";const Html = nice.Html;
 function defaultSetValue(t, v){
   t.attributes('value', v);
 };
@@ -2414,7 +2517,7 @@ function attachValue(target, setValue = defaultSetValue){
       mute = false;
       return true;
     }));
-    target.id() || target.id('_nn_' + autoId++);
+    target._autoId();
     target.on('domNode', n => node = n);
   }
   target.value.listen(v => node ? node.value = v : setValue(target, v));
@@ -2453,7 +2556,7 @@ Html.extend('Checkbox')
       return true;
     });
     if(nice.isEnvBrowser){
-      z.id() || z.id('_nn_' + autoId++);
+      z._autoId();
       z.on('domNode', n => node = n);
     }
     z.checked.listen(v => node ? node.checked = v : z.attributes('checked', v));

@@ -1,7 +1,7 @@
-let nice = require('../index.js')();
-let Html = nice.Html;
-let chai = require('chai');
-let expect = chai.expect;
+const nice = require('../index.js')();
+const { Html, B, Div, Span, I, Box }= nice;
+const chai = require('chai');
+const expect = chai.expect;
 
 describe("Html", function() {
 
@@ -11,8 +11,8 @@ describe("Html", function() {
 
 
   it("async html", function(done) {
-    const b = nice.Box().async(z => setTimeout(z('zxc'), 1));
-    const tag = nice.Div('qwe', b);
+    const b = Box().async(z => setTimeout(z('zxc'), 1));
+    const tag = Div('qwe', b);
     nice.resolveChildren(tag, t => {
       expect(t.html).to.equal('<div>qwezxc</div>');
       done();
@@ -33,10 +33,10 @@ describe("Html", function() {
 
 
   it("children array", function() {
-    const div = nice.Div(['qwe', 'asd']);
+    const div = Div(['qwe', 'asd']);
     expect(div.html).to.equal('<div>qweasd</div>');
 
-    const div2 = nice.Div(nice('qwe', 'asd'));
+    const div2 = Div(nice('qwe', 'asd'));
     expect(div2.html).to.equal('<div>qweasd</div>');
   });
 
@@ -51,9 +51,15 @@ describe("Html", function() {
 
   it("insert Html", function() {
     const div = Html('li');
-    const div2 = nice.B('qwe');
+    const div2 = B('qwe');
     div.add(div2);
     expect(div.html).to.equal('<li><b>qwe</b></li>');
+  });
+
+
+  it("insert simple Html", function() {
+    expect(Html('li').span('asd').b('qwe').html)
+        .to.equal('<li><span>asd</span><b>qwe</b></li>');
   });
 
 
@@ -86,6 +92,14 @@ describe("Html", function() {
   it("extend", function() {
     Html.extend('User').by((z, name) => z.add('User: ', name));
 
-    expect(nice.B().User('Jon').up.html).to.equal('<b><div>User: Jon</div></b>');
+    expect(B().User('Jon').up.html).to.equal('<b><div>User: Jon</div></b>');
+  });
+
+
+  it("css", function() {
+    const b = B('qwe').Css('A').color('red').up;
+    const id = b.attributes('className')().trim();
+    expect(b.html)
+            .to.equal(`<style>.${id} a{color:red}</style><b class="${id}">qwe</b>`);
   });
 });

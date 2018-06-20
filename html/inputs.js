@@ -1,4 +1,3 @@
-let autoId = 0;
 const Html = nice.Html;
 
 function defaultSetValue(t, v){
@@ -21,7 +20,7 @@ function attachValue(target, setValue = defaultSetValue){
       return true;
     }));
 
-    target.id() || target.id('_nn_' + autoId++);
+    target._autoId();
     target.on('domNode', n => node = n);
   }
   target.value.listen(v => node ? node.value = v : setValue(target, v));
@@ -71,7 +70,7 @@ Html.extend('Checkbox')
     });
 
     if(nice.isEnvBrowser){
-      z.id() || z.id('_nn_' + autoId++);
+      z._autoId();
       z.on('domNode', n => node = n);
     }
 

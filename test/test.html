@@ -20,9 +20,20 @@ Box().use(counter).by(c => Div('1: ', c)).show();
 Box().use(counter2).by(c => Div('2: ', c)).show();
 
 
+H3('Underlined | not underlined, always orange').show();
+Box().use(counter).by(c => Div(A('qw', 'Some link'))
+  .Css('A').color('orange')
+    .textDecoration(c % 2 ? 'underline' : 'none').up).show();
+    
+    
+H3('Bold and italic').show();
+Div().b('bold').span(' and ').i('italic').show();
+
+
 H3('Add/remove text nodes 2x 1/123').show();
 Box().by(counter, c => Div(c % 2 ? [1, 2, 3] : [1])).show();
 Box().by(counter, c => Div(c % 2 ? [1, 2, 3] : ['', 1])).show();
+
 
 H3('Add/remove text nodes qwe/qaz').show();
 Box().by(counter, c => Div(c % 2 

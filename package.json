@@ -22,7 +22,7 @@
   "devDependencies": {
     "chai": "3.x",
     "chai-spies": "^0.7.1",
-    "mocha": "latest"
+    "mocha": "^5.2.0"
   },
   "repository": {
     "type": "git",
