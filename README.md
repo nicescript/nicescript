@@ -295,7 +295,7 @@ a.push(3);
 ### Html
 ```javascript
 const div = nice.Div('Normal ', 'text ')
-  .I('italic ').up
+  .i('italic ')
   .add('normal ')
   .B('red bold').color('red').up
   .margin('10px')
