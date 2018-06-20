@@ -281,7 +281,7 @@ M(function find(c, f){
   for(let i in items)
     if(f(items[i], i))
       return items[i];
-  return nice.NotFound;
+  return nice.NOT_FOUND;
 });
 
 
@@ -290,7 +290,7 @@ M(function findKey(c, f){
   for(let i in items)
     if(f(items[i], i))
       return i;
-  return nice.NotFound;
+  return nice.NOT_FOUND;
 });
 
 
@@ -358,6 +358,8 @@ nice._on('Type', type => {
 
       return res;
     });
+
+    nice.emitAndSave('Property', { type, name, targetType });
 
     return this;
   });
