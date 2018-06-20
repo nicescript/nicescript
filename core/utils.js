@@ -220,7 +220,11 @@ defAll(nice, {
     const res = { types: {}, functions: [] };
 
     nice._on('signature', s => {
+      if(!s.name || s.name[0] === '_')
+        return;
+
       const o = {};
+
       _each(s, (v, k) => nice.Switch(k)
         .equal('action')()
         .equal('source').use(() => o.source = v.toString())
@@ -229,11 +233,19 @@ defAll(nice, {
       res.functions.push(o);
     });
 
+
+    //TODO: rename title to name
     nice._on('Type', t => {
-      const o = { title: t.title };
+      if(!t.title || t.title[0] === '_')
+        return;
+      const o = { title: t.title, properties: [] };
       t.hasOwnProperty('description') && (o.description = t.description);
       t.extends && (o.extends = t.super.title);
       res.types[t.title] = o;
+    });
+
+    nice._on('Property', ({ type, name, targetType }) => {
+      res.types[targetType.title].properties.push({ name, type: type.title });
     });
 
     return res;
