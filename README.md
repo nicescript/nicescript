@@ -140,7 +140,7 @@ nice.Type('Dog')
   .Num('weight')
   .by((z, title) => z.title(title));
 
-let d = nice.Dog('Jim').weight(5);
+const d = nice.Dog('Jim').weight(5);
 d.name();       // Jim 
 d.weight();     // 5
 
@@ -255,18 +255,18 @@ Stateful observable components.
 
 ```javascript
 const { Box } = nice;
-let b = Box(1);       // create box with 1 in it
+const b = Box(1);       // create box with 1 in it
 b.listen(console.log) // listen for updates
 b(2);                 // write value
 b();                  // read value
 
 // create Box that follows changes in b
-let b2 = Box.use(b).by(n => n * 2);
+const b2 = Box.use(b).by(n => n * 2);
 // short version Box.by(b, n => n * 2);
 b(3);                 // b2() === 6
 
 // Named inputs
-let square = Box()
+const square = Box()
   .Num('x', 5)
   .Num('y', 5)
   .by((x, y) => x * y);
