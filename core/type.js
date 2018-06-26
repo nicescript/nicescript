@@ -61,10 +61,6 @@ nice.ANYTHING = Object.seal(create(nice.Anything.proto, new String('ANYTHING')))
 nice.Anything.proto._type = nice.Anything;
 
 defAll(nice, {
-  saveValue: v => v,
-
-  loadValue: v => v,
-
   type: t => {
     is.string(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
@@ -82,9 +78,7 @@ defAll(nice, {
     is.object(config)
       || nice.error("Need object for type's prototype");
 
-    !config.title || is.string(config.title)
-      || nice.error("Title must be String");
-
+    config.title = config.title || 'Type_' + (nice._counter++);
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};

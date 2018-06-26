@@ -14,6 +14,7 @@
     return a[0];
   return nice.typeOf(a[0])(...a);
 };
+nice._counter = 0;
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   if(value === undefined && typeof name === 'function'){
     value = name;
@@ -50,12 +51,11 @@ defAll(nice, {
     if(data){
       item.setResult(data);
     } else {
-      type.defaultValue && item.setResult(type.defaultValue(item));
+      type.defaultValue && item.setResult(type.defaultValue());
       type.constructor && type.constructor(item, ...a);
     }
     return item;
   },
-  fromItem: i => i._type.saveValue(i.getResult()),
   toItem: v => {
     if(v === undefined)
       return nice.UNDEFINED;
@@ -64,7 +64,7 @@ defAll(nice, {
     const type = nice.valueType(v);
     if(type === nice.Box || type === nice.function)
       return v;
-    return nice.createItem({ type, data: type.loadValue(v)});
+    return nice.createItem({ type, data: v});
   },
   valueType: v => {
     if(typeof v === 'number')
@@ -77,7 +77,7 @@ defAll(nice, {
       return nice.Bool;
     if(Array.isArray(v))
       return nice.Arr;
-    if(v._nt_ && v.hasOwnProperty('_nv_'))
+    if(v._nt_)
       return nice[v._nt_];
     if(typeof v === 'object')
       return nice.Obj;
@@ -109,8 +109,9 @@ defAll(nice, {
   _each: (o, f) => {
     if(o)
       for(let i in o)
-        if(f(o[i], i) === nice.STOP)
-          break;
+        if(i !== '_nt_')
+          if(f(o[i], i) === nice.STOP)
+            break;
     return o;
   },
   _removeArrayValue: (a, item) => {
@@ -203,13 +204,6 @@ nice._eachEach = (o, f) => {
       if(f(o[i][ii], ii, i, o) === null)
         return;
 };
-const counterValues = {};
-def(nice, function counter(name){
-  if(!name)
-    return counterValues;
-  counterValues[name] = counterValues[name] || 0;
-  counterValues[name]++;
-});
 defAll(nice, {
   format: (t, ...a) => {
     t = '' + t;
@@ -996,8 +990,6 @@ Object.defineProperties(nice.Anything.proto, {
 nice.ANYTHING = Object.seal(create(nice.Anything.proto, new String('ANYTHING')));
 nice.Anything.proto._type = nice.Anything;
 defAll(nice, {
-  saveValue: v => v,
-  loadValue: v => v,
   type: t => {
     is.string(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
@@ -1012,8 +1004,7 @@ defAll(nice, {
     }
     is.object(config)
       || nice.error("Need object for type's prototype");
-    !config.title || is.string(config.title)
-      || nice.error("Title must be String");
+    config.title = config.title || 'Type_' + (nice._counter++);
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
@@ -1120,11 +1111,6 @@ Func.Anything('xor', (...as) => {
   fromResult: function(result){
     return this().setResult(result);
   },
-  saveValue: function (_nv_) {
-    const _nt_ = this.title;
-    return _nt_ === 'Obj' ? _nv_ : { _nt_, _nv_ };
-  },
-  loadValue: v => v._nv_ || v,
   proto: create(nice.Anything.proto, {
     _isSingleton: false,
     setResult: function(v) {
@@ -1182,7 +1168,10 @@ nice.jsTypes.isSubType = isSubType;
 nice.Type({
     title: 'Obj',
     extends: nice.Value,
-    defaultValue: function() { return nice.create(this.defaultResult); },
+    defaultValue: function() {
+      return nice.create(this.defaultResult,
+          this === nice.Obj ? {} : {_nt_: this.title });
+    },
     creator: () => {
       const f = (...a) => {
         if(a.length === 0)
@@ -1233,9 +1222,7 @@ Object.assign(nice.Obj.proto, {
     _each(vs, (v, k) => this.set(k, v));
   },
   setByType: function (key, type, value){
-    this.getResult()[key] = type.saveValue(value
-      ? value
-      : type.defaultValue());
+    this.getResult()[key] = value || type.defaultValue();
   }
 });
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
@@ -1270,7 +1257,7 @@ M(function get(z, i) {
         return nice.NOT_FOUND;
     } else {
       if(typeof vs[i] === 'object')
-              vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
+        vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
     }
   }
   const res = nice.toItem(vs[i]);
@@ -1290,10 +1277,10 @@ A('set', (z, path, v) => {
         data[k] = {};
         data = data[k];
       } else if(data[k]._nt_){
-        if(typeof data[k]._nv_ !== 'object')
+        if(typeof data[k] !== 'object')
           throw `Can't set property ${k} of ${data[k]}`;
         else
-          data = data[k]._nv_;
+          data = data[k];
       } else if(typeof data[k] !== 'object') {
         throw `Can't set property ${k} of ${data[k]}`;
       } else {
@@ -1305,12 +1292,12 @@ A('set', (z, path, v) => {
   k = nice.unwrap(k);
   const type = z._itemsType;
   data[k] = type
-    ? nice.fromItem(v._type && v._type === type ? v : type(v))
+    ? (v._type && v._type === type ? v : type(v)).getResult()
     : Switch(v)
       .Box.use(v => v)
       .primitive.use(v => v)
-      .nice.use(nice.fromItem)
-      .object.use(nice.saveValue)
+      .nice.use(v => v.getResult())
+      .object.use(v => v)
       .function.use(v => v)
       ();
   return z;
@@ -1318,8 +1305,9 @@ A('set', (z, path, v) => {
 Func.Nothing.function('each', () => 0);
 F(function each(o, f){
   for(let k in o.getResult())
-    if(f(o.get(k), k) === nice.STOP)
-      break;
+    if(k !== '_nt_')
+      if(f(o.get(k), k) === nice.STOP)
+        break;
   return o;
 });
 F('reverseEach', (o, f) => {
@@ -1329,10 +1317,10 @@ A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 A('remove', (z, i) => delete z.getResult()[i]);
 A('removeAll', z => z.setResult(z._type.defaultValue()));
 function setResult(v){
-  this._parent.getResult()[this._parentKey] = this._type.saveValue(v);
+  this._parent.getResult()[this._parentKey] = v;
 };
 function getResult(){
-  return this._type.loadValue(this._parent.getResult()[this._parentKey]);
+  return this._parent.getResult()[this._parentKey];
 };
 nice._on('Type', function defineReducer(type) {
   const title = type.title;
@@ -1640,7 +1628,7 @@ const F = Func.Box;
 ['use', 'follow', 'once', 'by', 'async']
     .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 function diffConverter(v){
-  return is.Value(v)? nice.fromItem(v) : v;
+  return is.Value(v) ? v.getResult() : v;
 }
 F.function(function listen(source, f) {
   const ss = source._subscribers;
@@ -1705,7 +1693,7 @@ def(nice, 'resolveChildren', (v, f) => {
       !count ? f(v) : _each(v._result, (vv, kk) => {
         nice.resolveChildren(vv, _v => {
           if(_v && _v._type){
-            _v = _v._type.saveValue(_v._result);
+            _v = _v._result;
           }
           v._result[kk] = _v;
           next();
@@ -1725,7 +1713,7 @@ def(nice, 'resolveChildren', (v, f) => {
       !count ? f(v) : _each(v, (vv, kk) => {
         nice.resolveChildren(vv, _v => {
           if(_v && _v._type){
-            _v = _v._type.saveValue(_v._result);
+            _v = _v._result;
           }
           v[kk] = _v;
           next();
@@ -1804,8 +1792,6 @@ nice._on('Type', type => {
   creator: nice.Single.creator,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),
-  saveValue: v => v,
-  loadValue: v => v,
   proto: {
     setValue: function (...a){
       return this.push(...a);
@@ -1954,8 +1940,6 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
   title: 'Num',
   defaultValue: () => 0,
   set: n => +n,
-  saveValue: v => v,
-  loadValue: v => v
 }).about('Wrapper for JS number.');
 _each({
   between: (n, a, b) => n > a && n < b,
@@ -2033,8 +2017,6 @@ A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
 nice.Single.extend({
   title: 'Str',
   defaultValue: () => '',
-  saveValue: v => v,
-  loadValue: v => v,
   set: (...a) => a[0] ? nice.format(...a) : ''
 })
   .about('Wrapper for JS string.')
@@ -2099,8 +2081,6 @@ typeof Symbol === 'function' && Func.string(Symbol.iterator, z => {
   title: 'Bool',
   set: n => !!n,
   defaultValue: () => false,
-  saveValue: v => v,
-  loadValue: v => v
 }).about('Wrapper for JS boolean.');
 const B = nice.Bool, M = Mapping.Bool;
 const A = Action.Bool;
@@ -2291,7 +2271,7 @@ function compileStyle (s){
 function compileSelectors (r){
   const a = [];
   _each(r.cssSelectors, (v, k) => a.push('.', getAutoClass(r.attributes.className),
-    ' ', k, '{', compileStyle (v._nv_), '}'));
+    ' ', k, '{', compileStyle (v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 const resultToHtml = r => {
@@ -2303,8 +2283,8 @@ const resultToHtml = r => {
     a.push(" ", k , '="', v, '"');
   });
   a.push('>');
-  _each(r.children, c => a.push(c && c._nv_ && c._nv_.tag
-    ? resultToHtml(c._nv_)
+  _each(r.children, c => a.push(c && c.tag
+    ? resultToHtml(c)
     : nice.htmlEscape(c)));
   a.push('</', r.tag, '>');
   return a.join('');
@@ -2352,7 +2332,7 @@ if(nice.isEnvBrowser){
     })
     .default.use((v, k, node) => node[k] = '');
   const addSelectors = (selectors, node) => {
-    _each(selectors, (_v, k) => addRules(_v._nv_, k, getAutoClass(node.className)));
+    _each(selectors, (_v, k) => addRules(_v, k, getAutoClass(node.className)));
   };
   const addRules = (vs, selector, className) => {
     const rule = assertRule(selector, className);
@@ -2370,7 +2350,7 @@ if(nice.isEnvBrowser){
         .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
   };
   const killSelectors = (css, node) => {
-    _each(css, (_v, k) => killRules(_v._nv_, k, getAutoClass(node.className)));
+    _each(css, (_v, k) => killRules(_v, k, getAutoClass(node.className)));
   };
   const killRules = (vs, selector, id) => {
     const rule = findRule(selector, id);
@@ -2388,14 +2368,14 @@ if(nice.isEnvBrowser){
     return newNode;
   }
   function preserveAutoClass(add, del, node){
-    const a = nice._get(add, ['_nv_', 'attributes', 'className']) || '';
+    const a = nice._get(add, ['attributes', 'className']) || '';
     const d = node && node.className || '';
     const ai = a.indexOf(AUTO_PREFIX);
     const di = d.indexOf(AUTO_PREFIX);
     if(ai >= 0 && di >= 0){
       const old = d.match(/(_nn_\d+)/)[0];
-      delete del._nv_.attributes.className;
-      add._nv_.attributes.className = a.replace(/_nn_(\d+)/, old);
+      delete del.attributes.className;
+      add.attributes.className = a.replace(/_nn_(\d+)/, old);
     }
   }
   function handleNode(add, del, oldNode, parent){
@@ -2409,14 +2389,13 @@ if(nice.isEnvBrowser){
         oldNode.__niceSubscription = null;
       })
       .object.use(o => {
-        const v = o._nv_;
-        if(v.tag && add === undefined){
+        if(o.tag && add === undefined){
           killNode(oldNode);
         } else {
-          _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
-          _each(v.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-          killSelectors(v.cssSelectors, oldNode);
-          nice._eachEach(v.eventHandlers, (f, _n, k) =>
+          _each(o.style, (_v, k) => delStyle(_v, k, oldNode));
+          _each(o.attributes, (_v, k) => delAttribute(_v, k, oldNode));
+          killSelectors(o.cssSelectors, oldNode);
+          nice._eachEach(o.eventHandlers, (f, _n, k) =>
                 oldNode.removeEventListener(k, f, true));
         }
       })
@@ -2431,9 +2410,8 @@ if(nice.isEnvBrowser){
       node.__niceSubscription = f;
       oldNode || parent.appendChild(node);
     } else if(add !== undefined) {
-      if (add && add._nv_) { 
-        const v = add._nv_;
-        const newHtml = v.tag;
+      if (add && typeof add === 'object') { 
+        const newHtml = add.tag;
         if(newHtml){
           if(del && !is.string(del) && !is.Nothing(del)){
             node = changeHtml(oldNode, newHtml);
@@ -2443,10 +2421,10 @@ if(nice.isEnvBrowser){
         } else {
           node = oldNode;
         }
-        _each(v.style, (_v, k) => addStyle(_v, k, node));
-        _each(v.attributes, (_v, k) => addAttribute(_v, k, node));
-        addSelectors(v.cssSelectors, node);
-        addHandlers(v.eventHandlers, node);
+        _each(add.style, (_v, k) => addStyle(_v, k, node));
+        _each(add.attributes, (_v, k) => addAttribute(_v, k, node));
+        addSelectors(add.cssSelectors, node);
+        addHandlers(add.eventHandlers, node);
       } else {
         const text = is.Nothing(add) ? '' : '' + add;
         node = document.createTextNode(text);
@@ -2459,8 +2437,8 @@ if(nice.isEnvBrowser){
     return node || oldNode;
   }
   function handleChildren(add, del, target){
-    const a = add && add._nv_ && add._nv_.children;
-    const d = del && del._nv_ && del._nv_.children;
+    const a = add && add.children;
+    const d = del && del.children;
     const f = k => handleNode(a && a[k], d && d[k], target.childNodes[k], target);
     const keys = [];
     _each(a, (v, k) => f( + k));
@@ -2477,7 +2455,7 @@ if(nice.isEnvBrowser){
     return parent.appendChild(document.createElement(tag));
   };
   Func.Html(function show(source, parent = document.body){
-    handleNode({_nv_: source.getResult()}, undefined, null, parent);
+    handleNode(source.getResult(), undefined, null, parent);
     return source;
   });
   function changeHtml(old, tag){

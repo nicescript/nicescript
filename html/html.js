@@ -178,7 +178,7 @@ function compileStyle (s){
 function compileSelectors (r){
   const a = [];
   _each(r.cssSelectors, (v, k) => a.push('.', getAutoClass(r.attributes.className),
-    ' ', k, '{', compileStyle (v._nv_), '}'));
+    ' ', k, '{', compileStyle (v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 
@@ -195,8 +195,8 @@ const resultToHtml = r => {
 
   a.push('>');
 
-  _each(r.children, c => a.push(c && c._nv_ && c._nv_.tag
-    ? resultToHtml(c._nv_)
+  _each(r.children, c => a.push(c && c.tag
+    ? resultToHtml(c)
     : nice.htmlEscape(c)));
 
   a.push('</', r.tag, '>');
@@ -261,7 +261,7 @@ if(nice.isEnvBrowser){
 
 
   const addSelectors = (selectors, node) => {
-    _each(selectors, (_v, k) => addRules(_v._nv_, k, getAutoClass(node.className)));
+    _each(selectors, (_v, k) => addRules(_v, k, getAutoClass(node.className)));
   };
 
 
@@ -286,7 +286,7 @@ if(nice.isEnvBrowser){
   };
 
   const killSelectors = (css, node) => {
-    _each(css, (_v, k) => killRules(_v._nv_, k, getAutoClass(node.className)));
+    _each(css, (_v, k) => killRules(_v, k, getAutoClass(node.className)));
   };
 
 
@@ -314,15 +314,15 @@ if(nice.isEnvBrowser){
 
 
   function preserveAutoClass(add, del, node){
-    const a = nice._get(add, ['_nv_', 'attributes', 'className']) || '';
+    const a = nice._get(add, ['attributes', 'className']) || '';
     const d = node && node.className || '';
     const ai = a.indexOf(AUTO_PREFIX);
     const di = d.indexOf(AUTO_PREFIX);
 
     if(ai >= 0 && di >= 0){
       const old = d.match(/(_nn_\d+)/)[0];
-      delete del._nv_.attributes.className;
-      add._nv_.attributes.className = a.replace(/_nn_(\d+)/, old);
+      delete del.attributes.className;
+      add.attributes.className = a.replace(/_nn_(\d+)/, old);
     }
   }
 
@@ -341,14 +341,13 @@ if(nice.isEnvBrowser){
         oldNode.__niceSubscription = null;
       })
       .object.use(o => {
-        const v = o._nv_;
-        if(v.tag && add === undefined){
+        if(o.tag && add === undefined){
           killNode(oldNode);
         } else {
-          _each(v.style, (_v, k) => delStyle(_v, k, oldNode));
-          _each(v.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-          killSelectors(v.cssSelectors, oldNode);
-          nice._eachEach(v.eventHandlers, (f, _n, k) =>
+          _each(o.style, (_v, k) => delStyle(_v, k, oldNode));
+          _each(o.attributes, (_v, k) => delAttribute(_v, k, oldNode));
+          killSelectors(o.cssSelectors, oldNode);
+          nice._eachEach(o.eventHandlers, (f, _n, k) =>
                 oldNode.removeEventListener(k, f, true));
         }
       })
@@ -365,9 +364,8 @@ if(nice.isEnvBrowser){
       node.__niceSubscription = f;
       oldNode || parent.appendChild(node);
     } else if(add !== undefined) {
-      if (add && add._nv_) { //full node
-        const v = add._nv_;
-        const newHtml = v.tag;
+      if (add && typeof add === 'object') { //full node
+        const newHtml = add.tag;
         if(newHtml){
           if(del && !is.string(del) && !is.Nothing(del)){
             node = changeHtml(oldNode, newHtml);
@@ -377,10 +375,10 @@ if(nice.isEnvBrowser){
         } else {
           node = oldNode;
         }
-        _each(v.style, (_v, k) => addStyle(_v, k, node));
-        _each(v.attributes, (_v, k) => addAttribute(_v, k, node));
-        addSelectors(v.cssSelectors, node);
-        addHandlers(v.eventHandlers, node);
+        _each(add.style, (_v, k) => addStyle(_v, k, node));
+        _each(add.attributes, (_v, k) => addAttribute(_v, k, node));
+        addSelectors(add.cssSelectors, node);
+        addHandlers(add.eventHandlers, node);
       } else {
         const text = is.Nothing(add) ? '' : '' + add;
         node = document.createTextNode(text);
@@ -395,8 +393,8 @@ if(nice.isEnvBrowser){
 
 
   function handleChildren(add, del, target){
-    const a = add && add._nv_ && add._nv_.children;
-    const d = del && del._nv_ && del._nv_.children;
+    const a = add && add.children;
+    const d = del && del.children;
     const f = k => handleNode(a && a[k], d && d[k], target.childNodes[k], target);
     const keys = [];
 
@@ -420,7 +418,7 @@ if(nice.isEnvBrowser){
 
 
   Func.Html(function show(source, parent = document.body){
-    handleNode({_nv_: source.getResult()}, undefined, null, parent);
+    handleNode(source.getResult(), undefined, null, parent);
     return source;
   });
 

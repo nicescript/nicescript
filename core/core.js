@@ -20,6 +20,8 @@ nice = (...a) => {
   return nice.typeOf(a[0])(...a);
 };
 
+nice._counter = 0;
+
 
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   if(value === undefined && typeof name === 'function'){
@@ -69,15 +71,12 @@ defAll(nice, {
     if(data){
       item.setResult(data);
     } else {
-      type.defaultValue && item.setResult(type.defaultValue(item));
+      type.defaultValue && item.setResult(type.defaultValue());
       type.constructor && type.constructor(item, ...a);
     }
 
     return item;
   },
-
-
-  fromItem: i => i._type.saveValue(i.getResult()),
 
 
   toItem: v => {
@@ -92,7 +91,7 @@ defAll(nice, {
     if(type === nice.Box || type === nice.function)
       return v;
 
-    return nice.createItem({ type, data: type.loadValue(v)});
+    return nice.createItem({ type, data: v});
   },
 
 
@@ -112,7 +111,7 @@ defAll(nice, {
     if(Array.isArray(v))
       return nice.Arr;
 
-    if(v._nt_ && v.hasOwnProperty('_nv_'))
+    if(v._nt_)
       return nice[v._nt_];
 
     if(typeof v === 'object')
@@ -155,8 +154,9 @@ defAll(nice, {
   _each: (o, f) => {
     if(o)
       for(let i in o)
-        if(f(o[i], i) === nice.STOP)
-          break;
+        if(i !== '_nt_')
+          if(f(o[i], i) === nice.STOP)
+            break;
     return o;
   },
 

@@ -87,16 +87,6 @@ nice._eachEach = (o, f) => {
 };
 
 
-const counterValues = {};
-def(nice, function counter(name){
-  if(!name)
-    return counterValues;
-
-  counterValues[name] = counterValues[name] || 0;
-  counterValues[name]++;
-});
-
-
 defAll(nice, {
   format: (t, ...a) => {
     t = '' + t;

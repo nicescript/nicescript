@@ -63,22 +63,6 @@ describe("Simple types", function() {
   });
 
 
-  it("fromItem", () => {
-    expect(nice.fromItem(nice.Num(6))).to.equal(6);
-    expect(nice.fromItem(nice.Str('qwe'))).to.equal('qwe');
-    expect(nice.fromItem(nice.Bool('qwe'))).to.equal(true);
-  });
-
-
-  it("fromItem", () => {
-    expect(nice.toItem(6)._type).to.equal(nice.Num);
-    expect(nice.toItem('qwe')._type).to.equal(nice.Str);
-    expect(nice.toItem(true)._type).to.equal(nice.Bool);
-    expect(nice.toItem({type:'Obj',value:{}})._type).to.equal(nice.Obj);
-    expect(nice.toItem({type:nice.Obj,value:{}})._type).to.equal(nice.Obj);
-  });
-
-
   it("is", function(){
     const a = nice.Single(0);
 //    expect(a.is()).to.equal(false);

@@ -13,6 +13,7 @@ describe("Type", function() {
     const item = type();
     expect(is.function(item)).to.equal(true);
     expect(item._type).to.equal(type);
+    expect(item._type).to.equal(type);
   });
 
 
@@ -31,6 +32,7 @@ describe("Type", function() {
     expect(nice.T1.creator).not.to.equal(undefined);
     expect(nice.T1.creator).to.equal(nice.T2.creator);
     expect(nice.T1()._set).to.equal(nice.T2()._set);
+    expect(nice.T1()._result).to.deep.equal({_nt_:'T1'});
   });
 
 

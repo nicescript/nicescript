@@ -4,10 +4,6 @@ nice.Single.extend({
   defaultValue: () => 0,
 
   set: n => +n,
-
-  saveValue: v => v,
-
-  loadValue: v => v
 }).about('Wrapper for JS number.');
 
 _each({

@@ -261,7 +261,7 @@ const F = Func.Box;
 
 
 function diffConverter(v){
-  return is.Value(v)? nice.fromItem(v) : v;
+  return is.Value(v) ? v.getResult() : v;
 }
 
 
@@ -352,7 +352,7 @@ def(nice, 'resolveChildren', (v, f) => {
       !count ? f(v) : _each(v._result, (vv, kk) => {
         nice.resolveChildren(vv, _v => {
           if(_v && _v._type){
-            _v = _v._type.saveValue(_v._result);
+            _v = _v._result;
           }
           v._result[kk] = _v;
           next();
@@ -372,7 +372,7 @@ def(nice, 'resolveChildren', (v, f) => {
       !count ? f(v) : _each(v, (vv, kk) => {
         nice.resolveChildren(vv, _v => {
           if(_v && _v._type){
-            _v = _v._type.saveValue(_v._result);
+            _v = _v._result;
           }
           v[kk] = _v;
           next();

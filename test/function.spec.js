@@ -176,7 +176,7 @@ describe("Func", function() {
 
     expect(typeof t.brt53).to.equal('function');
     expect(t.brt53()).to.equal(t);
-    expect(t()).to.deep.equal({qwe:2});
+    expect(t().qwe).to.deep.equal(2);
     nice._on('Action', (_f) => {
       nice.brt53 === _f && done();
     });

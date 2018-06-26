@@ -5,10 +5,6 @@ nice.Single.extend({
 
   defaultValue: () => '',
 
-  saveValue: v => v,
-
-  loadValue: v => v,
-
   set: (...a) => a[0] ? nice.format(...a) : ''
 })
   .about('Wrapper for JS string.')

@@ -2,7 +2,10 @@
 nice.Type({
     title: 'Obj',
     extends: nice.Value,
-    defaultValue: function() { return nice.create(this.defaultResult); },
+    defaultValue: function() {
+      return nice.create(this.defaultResult,
+          this === nice.Obj ? {} : {_nt_: this.title });
+    },
     creator: () => {
       const f = (...a) => {
         if(a.length === 0)
@@ -65,9 +68,7 @@ Object.assign(nice.Obj.proto, {
   },
 
   setByType: function (key, type, value){
-    this.getResult()[key] = type.saveValue(value
-      ? value
-      : type.defaultValue());
+    this.getResult()[key] = value || type.defaultValue();
   }
 });
 
@@ -109,9 +110,7 @@ M(function get(z, i) {
         return nice.NOT_FOUND;
     } else {
       if(typeof vs[i] === 'object')
-//        vs[i] = (types && types[i] && types[i].defaultValue()) || {};
-              vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
-
+        vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
     }
   }
 
@@ -134,10 +133,10 @@ A('set', (z, path, v) => {
         data[k] = {};
         data = data[k];
       } else if(data[k]._nt_){
-        if(typeof data[k]._nv_ !== 'object')
+        if(typeof data[k] !== 'object')
           throw `Can't set property ${k} of ${data[k]}`;
         else
-          data = data[k]._nv_;
+          data = data[k];
       } else if(typeof data[k] !== 'object') {
         throw `Can't set property ${k} of ${data[k]}`;
       } else {
@@ -150,12 +149,12 @@ A('set', (z, path, v) => {
   const type = z._itemsType;
 
   data[k] = type
-    ? nice.fromItem(v._type && v._type === type ? v : type(v))
-    : Switch(v)
+    ? (v._type && v._type === type ? v : type(v)).getResult()
+    : Switch(v)//TODO: simlify maybe
       .Box.use(v => v)
       .primitive.use(v => v)
-      .nice.use(nice.fromItem)
-      .object.use(nice.saveValue)
+      .nice.use(v => v.getResult())
+      .object.use(v => v)
       .function.use(v => v)
       ();
 
@@ -167,8 +166,9 @@ Func.Nothing.function('each', () => 0);
 
 F(function each(o, f){
   for(let k in o.getResult())
-    if(f(o.get(k), k) === nice.STOP)
-      break;
+    if(k !== '_nt_')
+      if(f(o.get(k), k) === nice.STOP)
+        break;
   return o;
 });
 
@@ -185,12 +185,12 @@ A('removeAll', z => z.setResult(z._type.defaultValue()));
 
 
 function setResult(v){
-  this._parent.getResult()[this._parentKey] = this._type.saveValue(v);
+  this._parent.getResult()[this._parentKey] = v;
 };
 
 
 function getResult(){
-  return this._type.loadValue(this._parent.getResult()[this._parentKey]);
+  return this._parent.getResult()[this._parentKey];
 };
 
 

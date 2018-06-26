@@ -7,7 +7,7 @@ describe("Obj", function() {
 
   it("constructor", function() {
     const a = nice({asd: 3});
-    expect(nice.fromItem(a)).to.deep.equal({asd:3});
+    expect(a.getResult()).to.deep.equal({asd:3});
   });
 
 
@@ -76,7 +76,7 @@ describe("Obj", function() {
     const a = nice({qwe: 1, asd: 3});
     a.remove('qwe');
     expect(a()).to.deep.equal({asd:3});
-    expect(nice.fromItem(a)).to.deep.equal({asd:3});
+    expect(a.getResult()).to.deep.equal({asd:3});
   });
 
 
@@ -198,7 +198,7 @@ describe("Obj", function() {
       .Num('height')
       .by(z => z.height(20))();
     const city = City();
-    expect(city()).to.deep.equal({ height: 20 });
+    expect(city().height).to.deep.equal(20);
   });
 
 

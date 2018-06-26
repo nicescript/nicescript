@@ -3,8 +3,6 @@ nice.Obj.extend({
   creator: nice.Single.creator,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),
-  saveValue: v => v,
-  loadValue: v => v,
   proto: {
     setValue: function (...a){
       return this.push(...a);
