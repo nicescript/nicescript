@@ -253,3 +253,5 @@ function DealyedSwitch(...a) {
 
   return create(delayedProto, f);
 };
+
+//TODO: bug: nice.Function.number('x2', n => n * 2); doesn't work
