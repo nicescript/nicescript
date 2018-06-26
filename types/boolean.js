@@ -13,3 +13,4 @@ A('turnOn', z => z(true));
 A('turnOff', z => z(false));
 //A('switch', z => z(!z()));
 
+nice.Single.extensible = false;

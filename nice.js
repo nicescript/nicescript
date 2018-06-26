@@ -947,6 +947,8 @@ def(nice, function expect(value, message){
 expect = nice.expect;
 })();
 (function(){"use strict";function extend(child, parent){
+  if(parent.extensible === false)
+    throw `Type ${parent.title} is not extensible.`;
   create(parent, child);
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
@@ -2104,6 +2106,7 @@ const B = nice.Bool, M = Mapping.Bool;
 const A = Action.Bool;
 A('turnOn', z => z(true));
 A('turnOff', z => z(false));
+nice.Single.extensible = false;
 })();
 (function(){"use strict";nice.Type('Range')
   .about('Represent range of numbers.')

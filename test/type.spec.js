@@ -22,18 +22,15 @@ describe("Type", function() {
 
       creator: () => { return {}; },
 
-      set: v => v * 2,
-
       proto: {
       }
-    }).extends('Single');
+    });
 
     const b = nice.Type('T2').extends('T1');
 
     expect(nice.T1.creator).not.to.equal(undefined);
     expect(nice.T1.creator).to.equal(nice.T2.creator);
     expect(nice.T1()._set).to.equal(nice.T2()._set);
-    expect(nice.T2(3)._result).to.equal(6);
   });
 
 
@@ -42,7 +39,7 @@ describe("Type", function() {
       proto: {
         'qwe': function(){ return this.getResult() + 3 }
       }
-    }).extends('Num')();
+    })();
 
     const B = nice.Type({
       proto: {
@@ -109,5 +106,12 @@ describe("Type", function() {
     expect(a.qwe).to.equal(9);
     A.qwe = 5;
     expect(a.qwe).to.equal(9);
+  });
+
+
+  it("Not extensible", function() {
+    expect(() => {
+      nince.Str.extend('Str2');
+    }).to.throw();
   });
 });

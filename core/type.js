@@ -1,4 +1,6 @@
 function extend(child, parent){
+  if(parent.extensible === false)
+    throw `Type ${parent.title} is not extensible.`;
   create(parent, child);
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
