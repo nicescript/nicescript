@@ -199,18 +199,18 @@ function findAction(target, args){
 
 
 function signatureError(name, a, s){
-  return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).title).join(',')})`;
+  return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).name).join(',')})`;
 }
 
 
 function handleType(type){
-  type.title === 'Something' && create(type.proto, functionProto);
+  type.name === 'Something' && create(type.proto, functionProto);
 
-  defGet(functionProto, type.title, function() {
+  defGet(functionProto, type.name, function() {
     return configurator({ signature: [{type}], existing: this });
   });
 
-  defGet(configProto, type.title, function() {
+  defGet(configProto, type.name, function() {
     return this.next({signature: [{type}]});
   });
 };

@@ -111,12 +111,12 @@ def(Html.proto, 'Css', function(s = ''){
 
 nice._on('Extension', ({child, parent}) => {
   if(parent === Html || Html.isPrototypeOf(parent)){
-    def(Html.proto, child.title, function (...a){
+    def(Html.proto, child.name, function (...a){
       const res = child(...a);
       this.add(res);
       return res;
     });
-    const _t = nice._deCapitalize(child.title);
+    const _t = nice._deCapitalize(child.name);
     Html.proto[_t] || def(Html.proto, _t, function (...a){
       return this.add(child(...a));
     });

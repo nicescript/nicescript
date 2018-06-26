@@ -1,5 +1,5 @@
 nice.Obj.extend({
-  title: 'Arr',
+  name: 'Arr',
   creator: nice.Single.creator,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),

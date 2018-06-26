@@ -218,24 +218,23 @@ defAll(nice, {
       _each(s, (v, k) => nice.Switch(k)
         .equal('action')()
         .equal('source').use(() => o.source = v.toString())
-        .equal('signature').use(() => o[k] = v.map(t => t.type.title))
+        .equal('signature').use(() => o[k] = v.map(t => t.type.name))
         .default.use(() => o[k] = v));
       res.functions.push(o);
     });
 
 
-    //TODO: rename title to name
     nice._on('Type', t => {
-      if(!t.title || t.title[0] === '_')
+      if(!t.name || t.name[0] === '_')
         return;
-      const o = { title: t.title, properties: [] };
+      const o = { name: t.name, properties: [] };
       t.hasOwnProperty('description') && (o.description = t.description);
-      t.extends && (o.extends = t.super.title);
-      res.types[t.title] = o;
+      t.extends && (o.extends = t.super.name);
+      res.types[t.name] = o;
     });
 
     nice._on('Property', ({ type, name, targetType }) => {
-      res.types[targetType.title].properties.push({ name, type: type.title });
+      res.types[targetType.name].properties.push({ name, type: type.name });
     });
 
     return res;

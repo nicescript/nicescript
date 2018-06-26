@@ -1,5 +1,5 @@
 nice.Single.extend({
-  title: 'Bool',
+  name: 'Bool',
   set: n => !!n,
   defaultValue: () => false,
 }).about('Wrapper for JS boolean.');

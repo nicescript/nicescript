@@ -1,5 +1,5 @@
 nice.Type({
-  title: 'Err',
+  name: 'Err',
 
   extends: 'Nothing',
 

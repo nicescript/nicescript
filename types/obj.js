@@ -1,10 +1,10 @@
 
 nice.Type({
-    title: 'Obj',
+    name: 'Obj',
     extends: nice.Value,
     defaultValue: function() {
       return nice.create(this.defaultResult,
-          this === nice.Obj ? {} : {_nt_: this.title });
+          this === nice.Obj ? {} : {_nt_: this.name });
     },
     creator: () => {
       const f = (...a) => {
@@ -195,12 +195,12 @@ function getResult(){
 
 
 nice._on('Type', function defineReducer(type) {
-  const title = type.title;
-  if(!title)
+  const name = type.name;
+  if(!name)
     return;
 
-  nice.collectionReducers[title] = function(f, init){
-    return this.collection.reduceTo(nice[title](), f, init);
+  nice.collectionReducers[name] = function(f, init){
+    return this.collection.reduceTo(nice[name](), f, init);
   };
 });
 
@@ -339,7 +339,7 @@ M(function getProperties(z){
 
 
 nice._on('Type', type => {
-  def(nice.Obj.configProto, type.title, function (name, value = type.defaultValue()) {
+  def(nice.Obj.configProto, type.name, function (name, value = type.defaultValue()) {
     const targetType = this.target;
 
     if(name[0] !== name[0].toLowerCase())
@@ -354,7 +354,7 @@ nice._on('Type', type => {
       const res = this.get(name);
 
       if(!is.subType(res._type, type))
-        throw `Can't create ${type.title} property. Value is ${res._type.title}`;
+        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
 
       return res;
     });

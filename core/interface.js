@@ -1,25 +1,25 @@
 const index = {};
 
 nice.Type({
-  title: 'Interface',
-  constructor: (z, title, ...a) => {
-    if(nice[title])
-      throw `Can't create interface ${title} name busy.`;
+  name: 'Interface',
+  constructor: (z, name, ...a) => {
+    if(nice[name])
+      throw `Can't create interface ${name} name busy.`;
 
     if(a.length === 0)
       throw `Can't create empty interface.`;
 
-    z.title = title;
+    z.name = name;
     z.methods = a;
     z.matchingTypes = [];
 
     a.forEach(k => (index[k] = index[k] || []).push(z));
 
     nice._on('Type', type => match(type, z) && z.matchingTypes.push(type));
-    Check(title, type => z.matchingTypes.includes(type._type || type));
+    Check(name, type => z.matchingTypes.includes(type._type || type));
 
     Object.freeze(z);
-    def(nice, title, z);
+    def(nice, name, z);
     nice.emitAndSave('interface', z);
   }
 });

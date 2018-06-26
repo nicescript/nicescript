@@ -19,7 +19,7 @@ describe("Type", function() {
 
   it("extends", function() {
     const a = nice.Type({
-      title: 'T1',
+      name: 'T1',
 
       creator: () => { return {}; },
 
@@ -90,14 +90,14 @@ describe("Type", function() {
 
 
   it('typeOf', function () {
-    expect(nice.typeOf(nice.Num()).title).to.equal('Num');
-    expect(nice.typeOf([]).title).to.equal('Arr');
-    expect(nice.typeOf(1).title).to.equal('Num');
-    expect(nice.typeOf('1').title).to.equal('Str');
-    expect(nice.typeOf({}).title).to.equal('Obj');
-    expect(nice.typeOf(undefined).title).to.equal('Undefined');
-    expect(nice.typeOf(null).title).to.equal('Null');
-//    expect(nice.typeOf(() => {}).title).to.equal('function');
+    expect(nice.typeOf(nice.Num()).name).to.equal('Num');
+    expect(nice.typeOf([]).name).to.equal('Arr');
+    expect(nice.typeOf(1).name).to.equal('Num');
+    expect(nice.typeOf('1').name).to.equal('Str');
+    expect(nice.typeOf({}).name).to.equal('Obj');
+    expect(nice.typeOf(undefined).name).to.equal('Undefined');
+    expect(nice.typeOf(null).name).to.equal('Null');
+//    expect(nice.typeOf(() => {}).name).to.equal('function');
   });
 
 

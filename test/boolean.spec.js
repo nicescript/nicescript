@@ -9,7 +9,7 @@ describe("Bool", function() {
   it("type", function(){
     expect(is.subType(nice.Bool, nice.Single)).to.equal(true);
     const n = nice.Bool();
-    expect(n._type.title).to.equal('Bool');
+    expect(n._type.name).to.equal('Bool');
   });
 
 

@@ -1,6 +1,6 @@
-function s(title, itemTitle, parent, description){
+function s(name, itemTitle, parent, description){
   nice.Type({
-    title: title,
+    name,
     extends: parent,
     creator: () => nice[itemTitle],
     description,
@@ -8,7 +8,7 @@ function s(title, itemTitle, parent, description){
       _isSingleton: true,
     }
   });
-  nice[itemTitle] = Object.seal(create(nice[title].proto, new String(itemTitle)));
+  nice[itemTitle] = Object.seal(create(nice[name].proto, new String(itemTitle)));
 }
 
 s('Nothing', 'NOTHING', 'Anything', 'Parent type for all falsy values.');

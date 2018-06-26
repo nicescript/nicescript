@@ -108,7 +108,7 @@ describe("Obj", function() {
     nice.Type('Cat').Str('name');
 
     const cat = nice.Cat().name('Ball');
-    expect(cat._type.title).to.equal('Cat');
+    expect(cat._type.name).to.equal('Cat');
     expect(cat.name()).to.equal('Ball');
   });
 

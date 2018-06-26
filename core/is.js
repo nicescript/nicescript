@@ -57,7 +57,7 @@ for(let i in nice.jsTypes){
 
 
 nice._on('Type', function defineReducer(type) {
-  type.title && Check(type.title, v =>
+  type.name && Check(type.name, v =>
     v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 

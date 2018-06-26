@@ -1,4 +1,4 @@
-nice.jsTypes = { js: { title: 'js', proto: {}, jsType: true }};
+nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
 
 
 const jsHierarchy = {
@@ -29,12 +29,12 @@ nice.jsBasicTypesMap = {
 };
 
 for(let i in jsHierarchy)
-  jsHierarchy[i].split(',').forEach(title => {
+  jsHierarchy[i].split(',').forEach(name => {
     const parent = nice.jsTypes[i];
     const proto = create(parent.proto);
-    nice.jsTypes[title] = create(parent,
-        { title,
+    nice.jsTypes[name] = create(parent,
+        { name,
           proto,
           jsType: true,
-          niceType: jsTypesMap[title] });
+          niceType: jsTypesMap[name] });
   });

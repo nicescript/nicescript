@@ -41,7 +41,6 @@ defAll(nice, {
   checkers: {},
   checkFunctions: {},
   collectionReducers: {},
-  itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
   createItem: ({ type, data, assign }, ...a) => {
     type = nice.type(type);
     const item = create(type.proto, type.creator());
@@ -99,11 +98,11 @@ defAll(nice, {
       : (f(o), o),
   types: {},
   registerType: function(type){
-    const title = type.title;
-    title[0] !== title[0].toUpperCase() &&
+    const name = type.name;
+    name[0] !== name[0].toUpperCase() &&
       nice.error('Please start type name with a upper case letter');
-    nice.types[title] = type;
-    def(nice, title, type);
+    nice.types[name] = type;
+    def(nice, name, type);
     nice.emitAndSave('Type', type);
   },
   _each: (o, f) => {
@@ -315,21 +314,20 @@ defAll(nice, {
       _each(s, (v, k) => nice.Switch(k)
         .equal('action')()
         .equal('source').use(() => o.source = v.toString())
-        .equal('signature').use(() => o[k] = v.map(t => t.type.title))
+        .equal('signature').use(() => o[k] = v.map(t => t.type.name))
         .default.use(() => o[k] = v));
       res.functions.push(o);
     });
-    
     nice._on('Type', t => {
-      if(!t.title || t.title[0] === '_')
+      if(!t.name || t.name[0] === '_')
         return;
-      const o = { title: t.title, properties: [] };
+      const o = { name: t.name, properties: [] };
       t.hasOwnProperty('description') && (o.description = t.description);
-      t.extends && (o.extends = t.super.title);
-      res.types[t.title] = o;
+      t.extends && (o.extends = t.super.name);
+      res.types[t.name] = o;
     });
     nice._on('Property', ({ type, name, targetType }) => {
-      res.types[targetType.title].properties.push({ name, type: type.title });
+      res.types[targetType.name].properties.push({ name, type: type.name });
     });
     return res;
   }
@@ -484,7 +482,7 @@ const EventEmitter = {
 nice.eventEmitter = o => Object.assign(o, EventEmitter);
 create(EventEmitter, nice);
 })();
-(function(){"use strict";nice.jsTypes = { js: { title: 'js', proto: {}, jsType: true }};
+(function(){"use strict";nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
 const jsHierarchy = {
   js: 'primitive,Object',
   primitive: 'String,Boolean,Number,undefined,null,Symbol',
@@ -510,14 +508,14 @@ nice.jsBasicTypesMap = {
   function: 'Func'
 };
 for(let i in jsHierarchy)
-  jsHierarchy[i].split(',').forEach(title => {
+  jsHierarchy[i].split(',').forEach(name => {
     const parent = nice.jsTypes[i];
     const proto = create(parent.proto);
-    nice.jsTypes[title] = create(parent,
-        { title,
+    nice.jsTypes[name] = create(parent,
+        { name,
           proto,
           jsType: true,
-          niceType: jsTypesMap[title] });
+          niceType: jsTypesMap[name] });
   });
 })();
 (function(){"use strict";const configProto = {
@@ -674,14 +672,14 @@ function findAction(target, args){
   }
 }
 function signatureError(name, a, s){
-  return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).title).join(',')})`;
+  return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).name).join(',')})`;
 }
 function handleType(type){
-  type.title === 'Something' && create(type.proto, functionProto);
-  defGet(functionProto, type.title, function() {
+  type.name === 'Something' && create(type.proto, functionProto);
+  defGet(functionProto, type.name, function() {
     return configurator({ signature: [{type}], existing: this });
   });
-  defGet(configProto, type.title, function() {
+  defGet(configProto, type.name, function() {
     return this.next({signature: [{type}]});
   });
 };
@@ -762,7 +760,7 @@ for(let i in nice.jsTypes){
     : v => v && v.constructor ? v.constructor.name === i : false);
 };
 nice._on('Type', function defineReducer(type) {
-  type.title && Check(type.title, v =>
+  type.name && Check(type.name, v =>
     v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 const switchProto = create(nice.checkers, {
@@ -952,7 +950,7 @@ expect = nice.expect;
 })();
 (function(){"use strict";function extend(child, parent){
   if(parent.extensible === false)
-    throw `Type ${parent.title} is not extensible.`;
+    throw `Type ${parent.name} is not extensible.`;
   create(parent, child);
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
@@ -962,7 +960,7 @@ expect = nice.expect;
   child.super = parent;
 }
 nice.registerType({
-  title: 'Anything',
+  name: 'Anything',
   description: 'Parent type for all types.',
   extend: function (...a){
     return nice.Type(...a).extends(this);
@@ -1010,11 +1008,11 @@ defAll(nice, {
     if(is.String(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
-      config = {title: config};
+      config = {name: config};
     }
     is.Object(config)
       || nice.error("Need object for type's prototype");
-    config.title = config.title || 'Type_' + (nice._counter++);
+    config.name = config.name || 'Type_' + (nice._counter++);
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
@@ -1022,10 +1020,11 @@ defAll(nice, {
     const type = (...a) => nice.createItem({ type }, ...a);
     config.proto._type = type;
     delete config.by;
+    Object.defineProperty(type, 'name', {writable: true});
     Object.assign(type, config);
     extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
     const cfg = create(config.configProto, nice.Configurator(type, ''));
-    config.title && nice.registerType(type);
+    config.name && nice.registerType(type);
     return cfg;
   },
 });
@@ -1049,9 +1048,9 @@ nice.typeOf = v => {
   return nice.Obj;
 };
 })();
-(function(){"use strict";function s(title, itemTitle, parent, description){
+(function(){"use strict";function s(name, itemTitle, parent, description){
   nice.Type({
-    title: title,
+    name,
     extends: parent,
     creator: () => nice[itemTitle],
     description,
@@ -1059,7 +1058,7 @@ nice.typeOf = v => {
       _isSingleton: true,
     }
   });
-  nice[itemTitle] = Object.seal(create(nice[title].proto, new String(itemTitle)));
+  nice[itemTitle] = Object.seal(create(nice[name].proto, new String(itemTitle)));
 }
 s('Nothing', 'NOTHING', 'Anything', 'Parent type for all falsy values.');
 s('Undefined', 'UNDEFINED', 'Nothing', 'Wrapper for JS undefined.');
@@ -1110,7 +1109,7 @@ Func.Anything('xor', (...as) => {
 });
 })();
 (function(){"use strict";nice.Type({
-  title: 'Value',
+  name: 'Value',
   extends: 'Something',
   init: i => i.setResult(i._type.default()),
   default: () => undefined,
@@ -1176,11 +1175,11 @@ nice.jsTypes.isSubType = isSubType;
 })();
 (function(){"use strict";
 nice.Type({
-    title: 'Obj',
+    name: 'Obj',
     extends: nice.Value,
     defaultValue: function() {
       return nice.create(this.defaultResult,
-          this === nice.Obj ? {} : {_nt_: this.title });
+          this === nice.Obj ? {} : {_nt_: this.name });
     },
     creator: () => {
       const f = (...a) => {
@@ -1333,11 +1332,11 @@ function getResult(){
   return this._parent.getResult()[this._parentKey];
 };
 nice._on('Type', function defineReducer(type) {
-  const title = type.title;
-  if(!title)
+  const name = type.name;
+  if(!name)
     return;
-  nice.collectionReducers[title] = function(f, init){
-    return this.collection.reduceTo(nice[title](), f, init);
+  nice.collectionReducers[name] = function(f, init){
+    return this.collection.reduceTo(nice[name](), f, init);
   };
 });
 M(function reduce(o, f, res){
@@ -1400,7 +1399,7 @@ M(function getProperties(z){
   return res;
 });
 nice._on('Type', type => {
-  def(nice.Obj.configProto, type.title, function (name, value = type.defaultValue()) {
+  def(nice.Obj.configProto, type.name, function (name, value = type.defaultValue()) {
     const targetType = this.target;
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
@@ -1410,7 +1409,7 @@ nice._on('Type', type => {
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
       if(!is.subType(res._type, type))
-        throw `Can't create ${type.title} property. Value is ${res._type.title}`;
+        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
       return res;
     });
     nice.emitAndSave('Property', { type, name, targetType });
@@ -1419,7 +1418,7 @@ nice._on('Type', type => {
 });
 })();
 (function(){"use strict";nice.Type({
-  title: 'Box',
+  name: 'Box',
   extends: 'Something',
   creator: () => {
     const f = (...a) => {
@@ -1676,9 +1675,9 @@ F.Box(function unbind(y, x) {
   return y;
 });
 nice._on('Type', type => {
-  if(!type.title)
+  if(!type.name)
     return;
-  def(Box.proto, type.title, function (name, value) {
+  def(Box.proto, type.name, function (name, value) {
     expect(name).String();
     const input = Box();
     value !== undefined && input(value);
@@ -1751,7 +1750,7 @@ nice._on('Mapping', ({name}) => {
 });
 })();
 (function(){"use strict";nice.Type({
-  title: 'Err',
+  name: 'Err',
   extends: 'Nothing',
   constructor: (z, message) => {
     z.message = message;
@@ -1767,7 +1766,7 @@ nice._on('Mapping', ({name}) => {
 }).about('Represents error.');
 })();
 (function(){"use strict";nice.Type({
-  title: 'Single',
+  name: 'Single',
   defaultValue: () => undefined,
   creator: () => {
     const f = (...a) => {
@@ -1792,13 +1791,13 @@ nice._on('Mapping', ({name}) => {
   }
 }).about('Parent type for all non composite types.');
 nice._on('Type', type => {
-  def(nice.Single.configProto, type.title, () => {
+  def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
   });
 });
 })();
 (function(){"use strict";nice.Obj.extend({
-  title: 'Arr',
+  name: 'Arr',
   creator: nice.Single.creator,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),
@@ -1947,7 +1946,7 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
 });
 })();
 (function(){"use strict";nice.Single.extend({
-  title: 'Num',
+  name: 'Num',
   defaultValue: () => 0,
   set: n => +n,
 }).about('Wrapper for JS number.');
@@ -2025,7 +2024,7 @@ A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
 })();
 (function(){"use strict";const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
 nice.Single.extend({
-  title: 'Str',
+  name: 'Str',
   defaultValue: () => '',
   set: (...a) => a[0] ? nice.format(...a) : ''
 })
@@ -2088,7 +2087,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
 });
 })();
 (function(){"use strict";nice.Single.extend({
-  title: 'Bool',
+  name: 'Bool',
   set: n => !!n,
   defaultValue: () => false,
 }).about('Wrapper for JS boolean.');
@@ -2226,12 +2225,12 @@ def(Html.proto, 'Css', function(s = ''){
 });
 nice._on('Extension', ({child, parent}) => {
   if(parent === Html || Html.isPrototypeOf(parent)){
-    def(Html.proto, child.title, function (...a){
+    def(Html.proto, child.name, function (...a){
       const res = child(...a);
       this.add(res);
       return res;
     });
-    const _t = nice._deCapitalize(child.title);
+    const _t = nice._deCapitalize(child.name);
     Html.proto[_t] || def(Html.proto, _t, function (...a){
       return this.add(child(...a));
     });

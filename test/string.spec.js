@@ -9,7 +9,7 @@ describe("Str", function() {
   it("type", function(){
     expect(Str.isSubType(nice.Single)).to.equal(true);
     const s = Str();
-    expect(s._type.title).to.equal('Str');
+    expect(s._type.name).to.equal('Str');
   });
 
   it("empty constructor", function(){

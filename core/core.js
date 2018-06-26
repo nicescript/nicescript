@@ -59,8 +59,6 @@ defAll(nice, {
   checkers: {},
   checkFunctions: {},
   collectionReducers: {},
-  itemTitle: i => i._type || i.name || (i.toString && i.toString()) || ('' + i),
-
   createItem: ({ type, data, assign }, ...a) => {
     type = nice.type(type);
     const item = create(type.proto, type.creator());
@@ -141,13 +139,13 @@ defAll(nice, {
   types: {},
 
   registerType: function(type){
-    const title = type.title;
+    const name = type.name;
 
-    title[0] !== title[0].toUpperCase() &&
+    name[0] !== name[0].toUpperCase() &&
       nice.error('Please start type name with a upper case letter');
 
-    nice.types[title] = type;
-    def(nice, title, type);
+    nice.types[name] = type;
+    def(nice, name, type);
     nice.emitAndSave('Type', type);
   },
 

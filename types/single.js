@@ -1,5 +1,5 @@
 nice.Type({
-  title: 'Single',
+  name: 'Single',
 
   defaultValue: () => undefined,
 
@@ -31,7 +31,7 @@ nice.Type({
 
 
 nice._on('Type', type => {
-  def(nice.Single.configProto, type.title, () => {
+  def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
   });
 });

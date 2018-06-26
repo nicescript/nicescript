@@ -1,5 +1,5 @@
 nice.Single.extend({
-  title: 'Num',
+  name: 'Num',
 
   defaultValue: () => 0,
 

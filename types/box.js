@@ -1,5 +1,5 @@
 nice.Type({
-  title: 'Box',
+  name: 'Box',
 
   extends: 'Something',
 
@@ -319,10 +319,10 @@ F.Box(function unbind(y, x) {
 
 
 nice._on('Type', type => {
-  if(!type.title)
+  if(!type.name)
     return;
 
-  def(Box.proto, type.title, function (name, value) {
+  def(Box.proto, type.name, function (name, value) {
     expect(name).String();
 
     const input = Box();

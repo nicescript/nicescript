@@ -1,6 +1,6 @@
 function extend(child, parent){
   if(parent.extensible === false)
-    throw `Type ${parent.title} is not extensible.`;
+    throw `Type ${parent.name} is not extensible.`;
   create(parent, child);
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
@@ -12,7 +12,7 @@ function extend(child, parent){
 
 
 nice.registerType({
-  title: 'Anything',
+  name: 'Anything',
 
   description: 'Parent type for all types.',
 
@@ -72,13 +72,13 @@ defAll(nice, {
     if(is.String(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
-      config = {title: config};
+      config = {name: config};
     }
 
     is.Object(config)
       || nice.error("Need object for type's prototype");
 
-    config.title = config.title || 'Type_' + (nice._counter++);
+    config.name = config.name || 'Type_' + (nice._counter++);
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
@@ -88,11 +88,12 @@ defAll(nice, {
 
     config.proto._type = type;
     delete config.by;
+    Object.defineProperty(type, 'name', {writable: true});
     Object.assign(type, config);
     extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
 
     const cfg = create(config.configProto, nice.Configurator(type, ''));
-    config.title && nice.registerType(type);
+    config.name && nice.registerType(type);
     return cfg;
   },
 });

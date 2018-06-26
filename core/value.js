@@ -1,5 +1,5 @@
 nice.Type({
-  title: 'Value',
+  name: 'Value',
 
   extends: 'Something',
 
