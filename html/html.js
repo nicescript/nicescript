@@ -55,7 +55,7 @@ nice.Type('Html')
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     children.forEach(c => {
-      if(is.array(c))
+      if(is.Array(c))
         return _each(c, _c => z.add(_c));
 
       if(is.Arr(c))
@@ -64,10 +64,10 @@ nice.Type('Html')
       if(c === undefined || c === null)
         return;
 
-      if(is.string(c))
+      if(is.String(c))
         return z.children(c);
 
-      if(is.number(c))
+      if(is.Number(c))
         return z.children('' + c);
 
       if(c === z)
@@ -135,15 +135,15 @@ Html.proto.Box = function(...a) {
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
-      is.object(a[0])
+      is.Object(a[0])
         ? _each(a[0], (v, k) => this.style(property + nice.capitalize(k), v))
-        : this.style(property, is.string(a[0]) ? nice.format(...a) : a[0]);
+        : this.style(property, is.String(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
     def(Style.proto, property, function(...a) {
-      is.object(a[0])
+      is.Object(a[0])
         ? _each(a[0], (v, k) => this(property + nice.capitalize(k), v))
-        : this(property, is.string(a[0]) ? nice.format(...a) : a[0]);
+        : this(property, is.String(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
   });
@@ -340,7 +340,7 @@ if(nice.isEnvBrowser){
         b.unsubscribe(oldNode.__niceSubscription);
         oldNode.__niceSubscription = null;
       })
-      .object.use(o => {
+      .Object.use(o => {
         if(o.tag && add === undefined){
           killNode(oldNode);
         } else {
@@ -367,7 +367,7 @@ if(nice.isEnvBrowser){
       if (add && typeof add === 'object') { //full node
         const newHtml = add.tag;
         if(newHtml){
-          if(del && !is.string(del) && !is.Nothing(del)){
+          if(del && !is.String(del) && !is.Nothing(del)){
             node = changeHtml(oldNode, newHtml);
           }
           node = node || document.createElement(newHtml);

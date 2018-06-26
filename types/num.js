@@ -15,9 +15,9 @@ _each({
   lte: (n, a) => n <= a,
   gt: (n, a) => n > a,
   gte: (n, a) => n >= a,
-}, (f, name) => Check.number(name, f));
+}, (f, name) => Check.Number(name, f));
 
-const M = Mapping.number;
+const M = Mapping.Number;
 
 _each({
   sum: (a, b) => a + b,

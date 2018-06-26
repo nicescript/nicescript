@@ -141,7 +141,7 @@ defAll(nice, {
       res[i] = f(o[i]);
     return res;
   },
-  orderedStringify: o => !is.object(o)
+  orderedStringify: o => !is.Object(o)
     ? JSON.stringify(o)
     : Array.isArray(o)
       ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
@@ -230,7 +230,7 @@ defAll(nice, {
       return res;
     } else if(Array.isArray(o)) {
       res = [];
-    } else if(is.object(o)) {
+    } else if(is.Object(o)) {
       res = {};
     } else {
       return o;
@@ -249,7 +249,7 @@ defAll(nice, {
       return res;
     } else if(Array.isArray(o)) {
       res = [];
-    } else if(is.object(o)) {
+    } else if(is.Object(o)) {
       res = {};
     } else {
       return o;
@@ -364,8 +364,8 @@ function calculateChanges(a, b){
     return b;
   if(Array.isArray(b)){
     return Array.isArray(a) ? compareObjects(a, b) : b;
-  } else if(is.object(b)) {
-    return is.object(a) ? compareObjects(a, b) : b;
+  } else if(is.Object(b)) {
+    return is.Object(a) ? compareObjects(a, b) : b;
   } else {
     if(a !== b)
       return b;
@@ -486,10 +486,10 @@ create(EventEmitter, nice);
 })();
 (function(){"use strict";nice.jsTypes = { js: { title: 'js', proto: {}, jsType: true }};
 const jsHierarchy = {
-  js: 'primitive,object',
-  primitive: 'string,boolean,number,undefined,null,symbol',
-  object: 'function,date,regExp,array,error,arrayBuffer,dataView,map,weakMap,set,weakSet,promise',
-  error: 'evalError,rangeError,referenceError,syntaxError,typeError,uriError'
+  js: 'primitive,Object',
+  primitive: 'String,Boolean,Number,undefined,null,Symbol',
+  Object: 'function,Date,RegExp,Array,Error,ArrayBuffer,DataView,Map,WeakMap,Set,WeakSet,Promise',
+  Error: 'EvalError,RangeError,ReferenceError,SyntaxError,TSypeError,UriError'
 };
 const jsTypesMap = {
   Object: 'Obj',
@@ -497,19 +497,27 @@ const jsTypesMap = {
   Number: 'Num',
   Boolean: 'Bool',
   String: 'Str',
-  Function: 'Func'
+  function: 'Func',
+  'undefined': 'Undefined',
+  'null': 'Null'
+};
+nice.jsBasicTypesMap = {
+  object: 'Obj',
+  array: 'Arr',
+  number: 'Num',
+  boolean: 'Bool',
+  string: 'Str',
+  function: 'Func'
 };
 for(let i in jsHierarchy)
   jsHierarchy[i].split(',').forEach(title => {
     const parent = nice.jsTypes[i];
     const proto = create(parent.proto);
-    const jsName = nice._capitalize(title);
     nice.jsTypes[title] = create(parent,
         { title,
           proto,
           jsType: true,
-          jsName,
-          niceType: jsTypesMap[jsName] });
+          niceType: jsTypesMap[title] });
   });
 })();
 (function(){"use strict";const configProto = {
@@ -718,9 +726,9 @@ const basicChecks = {
   true: v => v === true,
   false: v => v === false,
   any: (v, ...vs) => vs.includes(v),
-  array: a => Array.isArray(a),
+  Array: a => Array.isArray(a),
   "NaN": n => Number.isNaN(n),
-  object: i => i !== null && typeof i === 'object' && !i._isSingleton,
+  Object: i => i !== null && typeof i === 'object' && !i._isSingleton,
   null: i => i === null,
   undefined: i => i === undefined,
   nice: v => nice.Anything.proto.isPrototypeOf(v),
@@ -738,8 +746,8 @@ const basicChecks = {
     return !v;
   },
   subType: (a, b) => {
-    is.string(a) && (a = nice.Type(a));
-    is.string(b) && (b = nice.Type(b));
+    is.String(a) && (a = nice.Type(a));
+    is.String(b) && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
   browser: () => nice.isEnvBrowser
@@ -747,10 +755,12 @@ const basicChecks = {
 for(let i in basicChecks)
   Check(i, basicChecks[i]);
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
-for(let i in nice.jsTypes)
-  nice.is[i] || Check(i, basicJS.includes(i)
-    ? v => typeof v === i
-    : v => v && v.constructor && v.constructor.name === nice.jsTypes[i].jsName);
+for(let i in nice.jsTypes){
+  const low = i.toLowerCase();
+  nice.is[i] || Check(i, basicJS.includes(low)
+    ? v => typeof v === low
+    : v => v && v.constructor ? v.constructor.name === i : false);
+};
 nice._on('Type', function defineReducer(type) {
   type.title && Check(type.title, v =>
     v && v._type ? type.proto.isPrototypeOf(v) : false);
@@ -967,7 +977,7 @@ nice.registerType({
   configProto: {
     extends: function(parent){
       const type = this.target;
-      is.string(parent) && (parent = nice[parent]);
+      is.String(parent) && (parent = nice[parent]);
       expect(parent).Type();
       extend(type, parent);
       return this;
@@ -991,18 +1001,18 @@ nice.ANYTHING = Object.seal(create(nice.Anything.proto, new String('ANYTHING')))
 nice.Anything.proto._type = nice.Anything;
 defAll(nice, {
   type: t => {
-    is.string(t) && (t = nice[t]);
+    is.String(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
       '' + t + ' is not a type').toBe();
     return t;
   },
   Type: (config = {}) => {
-    if(is.string(config)){
+    if(is.String(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
       config = {title: config};
     }
-    is.object(config)
+    is.Object(config)
       || nice.error("Need object for type's prototype");
     config.title = config.title || 'Type_' + (nice._counter++);
     config.types = {};
@@ -1029,7 +1039,7 @@ nice.typeOf = v => {
     return v._type;
   let primitive = typeof v;
   if(primitive !== 'object'){
-    const res = nice[nice.jsTypes[primitive].niceType];
+    const res = nice[nice.jsBasicTypesMap[primitive]];
     if(!res)
       throw `JS type ${primitive} not supported`;
     return res;
@@ -1159,7 +1169,7 @@ defGet(nice.Value.configProto, 'Method', function () {
   })
 );
 function isSubType(t){
-  is.string(t) && (t = nice.Type(t));
+  is.String(t) && (t = nice.Type(t));
   return t === this || t.isPrototypeOf(this);
 };
 nice.jsTypes.isSubType = isSubType;
@@ -1181,7 +1191,7 @@ nice.Type({
           return f._parent || f;
         if(is.Str(k))
           k = k();
-        if(a.length === 1 && k !== undefined && !is.object(k))
+        if(a.length === 1 && k !== undefined && !is.Object(k))
           return f.get(k);
         f.setValue(...a);
         return f._parent || f;
@@ -1214,7 +1224,7 @@ nice.Type({
 Object.assign(nice.Obj.proto, {
   setValue: function (...a){
     let vs = a[0];
-    if(!is.object(vs)){
+    if(!is.Object(vs)){
       let o = {};
       o[vs] = a[1];
       vs = o;
@@ -1297,7 +1307,7 @@ A('set', (z, path, v) => {
       .Box.use(v => v)
       .primitive.use(v => v)
       .nice.use(v => v.getResult())
-      .object.use(v => v)
+      .Object.use(v => v)
       .function.use(v => v)
       ();
   return z;
@@ -1490,8 +1500,8 @@ nice._on('Type', type => {
       const states = ss.map(s => s.state);
       if(ss.some(s => !s.isResolved())){
         state = nice.PENDING;
-      } else if(states.find(is.Error)){
-        state = nice.Error(`Dependency error`);
+      } else if(states.find(is.Err)){
+        state = nice.Err(`Dependency error`);
       }
       try {
         if(state){
@@ -1575,7 +1585,7 @@ nice._on('Type', type => {
       this.isResolved() || this(v);
     },
     error: function(e) {
-      return this.setState(is.Error(e) ? e : nice.Error(e));
+      return this.setState(is.Err(e) ? e : nice.Err(e));
     },
     transactionStart: function(){
       if(this._locked)
@@ -1618,7 +1628,7 @@ nice._on('Type', type => {
     },
     getPromise: function () {
       return new Promise((resolve, reject) => {
-        this.listenOnce(v => (is.Error(v) ? reject : resolve)(v));
+        this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
       });
     }
   }
@@ -1669,7 +1679,7 @@ nice._on('Type', type => {
   if(!type.title)
     return;
   def(Box.proto, type.title, function (name, value) {
-    expect(name).string();
+    expect(name).String();
     const input = Box();
     value !== undefined && input(value);
     input._parent = this;
@@ -1683,7 +1693,7 @@ def(nice, 'resolveChildren', (v, f) => {
   if(is.Box(v))
     return v.listenOnce(_v => nice.resolveChildren(_v, f));
   if(v._result){
-    if(is.object(v._result)){
+    if(is.Object(v._result)){
       let count = 0;
       const next = () => {
         count--;
@@ -1703,7 +1713,7 @@ def(nice, 'resolveChildren', (v, f) => {
       f(v);
     }
   } else {
-    if(is.object(v)){
+    if(is.Object(v)){
       let count = 0;
       const next = () => {
         count--;
@@ -1741,17 +1751,17 @@ nice._on('Mapping', ({name}) => {
 });
 })();
 (function(){"use strict";nice.Type({
-  title: 'Error',
+  title: 'Err',
   extends: 'Nothing',
   constructor: (z, message) => {
     z.message = message;
-    const a = new Error().stack.split('\n');
+    const a = new Err().stack.split('\n');
     a.splice(0, 4);
     z.trace = a.join('\n');
   },
   creator: () => ({}),
   proto: {
-    valueOf: function() { return new Error(this.message); },
+    valueOf: function() { return new Err(this.message); },
     toString: function() { return `Error: ${this.message}`; }
   }
 }).about('Represents error.');
@@ -1835,7 +1845,7 @@ nice._on('Type', type => {
   });
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
-const f = Func.array, m = Mapping.array, a = Action.array;
+const f = Func.Array, m = Mapping.Array, a = Action.Array;
 M.function('reduce', (a, f, res) => {
   each(a, (v, k) => res = f(res, v, k));
   return res;
@@ -1844,7 +1854,7 @@ M.function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
-M.array('concat', (a, ...bs) => a._result.concat(...bs));
+M.Array('concat', (a, ...bs) => a._result.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 A('add', (z, ...a) => {
@@ -1950,8 +1960,8 @@ _each({
   lte: (n, a) => n <= a,
   gt: (n, a) => n > a,
   gte: (n, a) => n >= a,
-}, (f, name) => Check.number(name, f));
-const M = Mapping.number;
+}, (f, name) => Check.Number(name, f));
+const M = Mapping.Number;
 _each({
   sum: (a, b) => a + b,
   difference: (a, b) => a - b,
@@ -2028,8 +2038,8 @@ _each({
   startsWith: (s, p, i) => s.startsWith(p, i),
   includes: (s, p, i) => s.includes(p, i),
   match: (s, r) => r && r.test && r.test(s),
-}, (f, name) => Check.string(name, f));
-const M = Mapping.string;
+}, (f, name) => Check.String(name, f));
+const M = Mapping.String;
 const sf = {
   trimLeft: (s, a = whiteSpaces) => {
     let i = 0;
@@ -2069,9 +2079,9 @@ match
 search
 replace
 localeCompare`.split('\n').forEach(k => M(k, (s, ...a) => s[k](...a)));
-nice.Mapping.number(String.fromCharCode);
-nice.Mapping.number(String.fromCodePoint);
-typeof Symbol === 'function' && Func.string(Symbol.iterator, z => {
+nice.Mapping.Number(String.fromCharCode);
+nice.Mapping.Number(String.fromCodePoint);
+typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   let i = 0;
   const l = z.length;
   return { next: () => ({ value: z[i], done: ++i > l }) };
@@ -2175,15 +2185,15 @@ nice.Type('Html')
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     children.forEach(c => {
-      if(is.array(c))
+      if(is.Array(c))
         return _each(c, _c => z.add(_c));
       if(is.Arr(c))
         return c.each(_c => z.add(_c));
       if(c === undefined || c === null)
         return;
-      if(is.string(c))
+      if(is.String(c))
         return z.children(c);
-      if(is.number(c))
+      if(is.Number(c))
         return z.children('' + c);
       if(c === z)
         return z.children(`Errro: Can't add element to itself.`);
@@ -2236,15 +2246,15 @@ Html.proto.Box = function(...a) {
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
-      is.object(a[0])
+      is.Object(a[0])
         ? _each(a[0], (v, k) => this.style(property + nice.capitalize(k), v))
-        : this.style(property, is.string(a[0]) ? nice.format(...a) : a[0]);
+        : this.style(property, is.String(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
     def(Style.proto, property, function(...a) {
-      is.object(a[0])
+      is.Object(a[0])
         ? _each(a[0], (v, k) => this(property + nice.capitalize(k), v))
-        : this(property, is.string(a[0]) ? nice.format(...a) : a[0]);
+        : this(property, is.String(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
   });
@@ -2388,7 +2398,7 @@ if(nice.isEnvBrowser){
         b.unsubscribe(oldNode.__niceSubscription);
         oldNode.__niceSubscription = null;
       })
-      .object.use(o => {
+      .Object.use(o => {
         if(o.tag && add === undefined){
           killNode(oldNode);
         } else {
@@ -2413,7 +2423,7 @@ if(nice.isEnvBrowser){
       if (add && typeof add === 'object') { 
         const newHtml = add.tag;
         if(newHtml){
-          if(del && !is.string(del) && !is.Nothing(del)){
+          if(del && !is.String(del) && !is.Nothing(del)){
             node = changeHtml(oldNode, newHtml);
           }
           node = node || document.createElement(newHtml);

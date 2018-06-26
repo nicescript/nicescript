@@ -32,7 +32,7 @@ nice.registerType({
   configProto: {
     extends: function(parent){
       const type = this.target;
-      is.string(parent) && (parent = nice[parent]);
+      is.String(parent) && (parent = nice[parent]);
       expect(parent).Type();
       extend(type, parent);
       return this;
@@ -62,20 +62,20 @@ nice.Anything.proto._type = nice.Anything;
 
 defAll(nice, {
   type: t => {
-    is.string(t) && (t = nice[t]);
+    is.String(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
       '' + t + ' is not a type').toBe();
     return t;
   },
 
   Type: (config = {}) => {
-    if(is.string(config)){
+    if(is.String(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
       config = {title: config};
     }
 
-    is.object(config)
+    is.Object(config)
       || nice.error("Need object for type's prototype");
 
     config.title = config.title || 'Type_' + (nice._counter++);
@@ -112,7 +112,7 @@ nice.typeOf = v => {
 
   let primitive = typeof v;
   if(primitive !== 'object'){
-    const res = nice[nice.jsTypes[primitive].niceType];
+    const res = nice[nice.jsBasicTypesMap[primitive]];
     if(!res)
       throw `JS type ${primitive} not supported`;
     return res;

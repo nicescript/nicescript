@@ -94,8 +94,8 @@ nice.Type({
 
       if(ss.some(s => !s.isResolved())){
         state = nice.PENDING;
-      } else if(states.find(is.Error)){
-        state = nice.Error(`Dependency error`);
+      } else if(states.find(is.Err)){
+        state = nice.Err(`Dependency error`);
       }
 
       try {
@@ -196,7 +196,7 @@ nice.Type({
     },
 
     error: function(e) {
-      return this.setState(is.Error(e) ? e : nice.Error(e));
+      return this.setState(is.Err(e) ? e : nice.Err(e));
     },
 
     transactionStart: function(){
@@ -247,7 +247,7 @@ nice.Type({
 
     getPromise: function () {
       return new Promise((resolve, reject) => {
-        this.listenOnce(v => (is.Error(v) ? reject : resolve)(v));
+        this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
       });
     }
   }
@@ -323,7 +323,7 @@ nice._on('Type', type => {
     return;
 
   def(Box.proto, type.title, function (name, value) {
-    expect(name).string();
+    expect(name).String();
 
     const input = Box();
     value !== undefined && input(value);
@@ -342,7 +342,7 @@ def(nice, 'resolveChildren', (v, f) => {
     return v.listenOnce(_v => nice.resolveChildren(_v, f));
 
   if(v._result){
-    if(is.object(v._result)){
+    if(is.Object(v._result)){
       let count = 0;
       const next = () => {
         count--;
@@ -362,7 +362,7 @@ def(nice, 'resolveChildren', (v, f) => {
       f(v);
     }
   } else {
-    if(is.object(v)){
+    if(is.Object(v)){
       let count = 0;
       const next = () => {
         count--;

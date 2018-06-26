@@ -9,7 +9,7 @@ defAll(nice, {
     return res;
   },
 
-  orderedStringify: o => !is.object(o)
+  orderedStringify: o => !is.Object(o)
     ? JSON.stringify(o)
     : Array.isArray(o)
       ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
@@ -116,7 +116,7 @@ defAll(nice, {
       return res;
     } else if(Array.isArray(o)) {
       res = [];
-    } else if(is.object(o)) {
+    } else if(is.Object(o)) {
       res = {};
     } else {
       return o;
@@ -136,7 +136,7 @@ defAll(nice, {
       return res;
     } else if(Array.isArray(o)) {
       res = [];
-    } else if(is.object(o)) {
+    } else if(is.Object(o)) {
       res = {};
     } else {
       return o;
@@ -277,8 +277,8 @@ function calculateChanges(a, b){
     return b;
   if(Array.isArray(b)){
     return Array.isArray(a) ? compareObjects(a, b) : b;
-  } else if(is.object(b)) {
-    return is.object(a) ? compareObjects(a, b) : b;
+  } else if(is.Object(b)) {
+    return is.Object(a) ? compareObjects(a, b) : b;
   } else {
     if(a !== b)
       return b;

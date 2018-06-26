@@ -15,9 +15,9 @@ describe("is", function() {
 
 
   it("number", function(){
-    expect(is(2).number()).to.equal(true);
-    expect(is.number(2)).to.equal(true);
-    expect(is.number('')).to.equal(false);
+    expect(is(2).Number()).to.equal(true);
+    expect(is.Number(2)).to.equal(true);
+    expect(is.Number('')).to.equal(false);
   });
 
 
@@ -73,7 +73,7 @@ describe("is", function() {
   });
 
   it("js types", function() {
-    expect(is.regExp(/.*/)).to.equal(true);
-    expect(is.arrayBuffer(/.*/)).to.equal(false);
+    expect(is.RegExp(/.*/)).to.equal(true);
+    expect(is.ArrayBuffer(/.*/)).to.equal(false);
   });
 });

@@ -1,11 +1,11 @@
 nice.Type({
-  title: 'Error',
+  title: 'Err',
 
   extends: 'Nothing',
 
   constructor: (z, message) => {
     z.message = message;
-    const a = new Error().stack.split('\n');
+    const a = new Err().stack.split('\n');
     a.splice(0, 4);
     z.trace = a.join('\n');
   },
@@ -13,7 +13,7 @@ nice.Type({
   creator: () => ({}),
 
   proto: {
-    valueOf: function() { return new Error(this.message); },
+    valueOf: function() { return new Err(this.message); },
     toString: function() { return `Error: ${this.message}`; }
   }
 }).about('Represents error.');

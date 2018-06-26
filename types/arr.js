@@ -50,7 +50,7 @@ nice.Obj.extend({
 
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
-const f = Func.array, m = Mapping.array, a = Action.array;
+const f = Func.Array, m = Mapping.Array, a = Action.Array;
 
 M.function('reduce', (a, f, res) => {
   each(a, (v, k) => res = f(res, v, k));
@@ -69,7 +69,7 @@ M.function('reduceRight', (a, f, res) => {
 //apply(M, findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 //
 //apply(M, 'every,some,includes');
-////apply(nice.Check.array, 'every,some,includes');
+////apply(nice.Check.Array, 'every,some,includes');
 //
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
@@ -100,7 +100,7 @@ M.function('reduceRight', (a, f, res) => {
 //}));
 //
 //
-M.array('concat', (a, ...bs) => a._result.concat(...bs));
+M.Array('concat', (a, ...bs) => a._result.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 
 
@@ -134,7 +134,7 @@ F('callEach', (z, ...a) => {
 //findIndex
 
 //'includes,copyWithin,entries,every,indexOf,join,keys,lastIndexOf,reverse,slice,some,sort,'.split(',').forEach(name => {
-// F.array(name, (a, ...bs) => a[name](...bs));
+// F.Array(name, (a, ...bs) => a[name](...bs));
 //});
 'splice'.split(',').forEach(name => {
  A(name, (a, ...bs) => a.getResult()[name](...bs));

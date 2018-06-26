@@ -165,14 +165,14 @@ plusTwo(1);         // 3
 nice.plusTwo(1);    // 3
 
 // Check argument type
-const x2 = nice.Func.number('x2', n => n * 2);
+const x2 = nice.Func.Number('x2', n => n * 2);
 x2(21);             // 42
 nice.x2(21);        // 42
 nice.Num(1).x2();// 42
 x2('q');            // throws "Function  can't handle (Str)"
 
 // now let's overload x2 for strings
-x2.string(s => s + '!');
+x2.String(s => s + '!');
 x2(21);             // 42
 x2('q');            // q!
 
@@ -214,8 +214,8 @@ Delayed argumet
 ```javascript
 const f = nice.Switch
   .equal(1)(11)
-  .number(22)
-  .string.use(s => s + '!')
+  .Number(22)
+  .String.use(s => s + '!')
   .Nothing(':(')
   .default(42);
 f(1);           // 11
@@ -316,7 +316,7 @@ const { Box, Div, Switch, Nothing } = nice;
 const data = Box(Nothing);
 
 const div = Box.by(data, Switch
-      .string.use(s => Div('Data: ', s))
+      .String.use(s => Div('Data: ', s))
       .default(Div('Loading...')));
 
 div.listen(d => console.log(d.html));

@@ -22,8 +22,8 @@ describe("Func", function() {
 
 
   it("jsType", () => {
-    let f = nice.Func.string(function oijoih(){return 1;});
-    nice.Func.array(function oijoih(){return 2;});
+    let f = nice.Func.String(function oijoih(){return 1;});
+    nice.Func.Array(function oijoih(){return 2;});
     expect(f('')).to.equal(1);
     expect(nice.oijoih('')).to.equal(1);
     expect(nice.oijoih([])).to.equal(2);
@@ -41,8 +41,8 @@ describe("Func", function() {
 
   it("overload", () => {
     const f = nice.Func()
-      .string(s => s + s)
-      .number(n => n * 2);
+      .String(s => s + s)
+      .Number(n => n * 2);
     expect(f('q')).to.equal('qq');
     expect(f(2)).to.equal(4);
   });
@@ -64,8 +64,8 @@ describe("Func", function() {
 
 
   it("second parameter", () => {
-    const f = nice.Func.string.object('qqqqqqq', () => 1);
-    const f2 = nice.Func.string.array('qqqqqqq', () => 2);
+    const f = nice.Func.String.Object('qqqqqqq', () => 1);
+    const f2 = nice.Func.String.Array('qqqqqqq', () => 2);
 
     expect(f).to.equal(f2);
     expect(f('', {})).to.equal(1);
@@ -81,8 +81,8 @@ describe("Func", function() {
 
   it("second parameter 2", () => {
     const f = nice.Func
-      .Str.object('qqqqzzz', () => 11)
-      .Str.array('qqqqzzz', () => 22);
+      .Str.Object('qqqqzzz', () => 11)
+      .Str.Array('qqqqzzz', () => 22);
     const s = nice.Str();
 
     expect(f(s, {})).to.equal(11);

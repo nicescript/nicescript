@@ -19,7 +19,7 @@ nice.Type({
         if(is.Str(k))
           k = k();
 
-        if(a.length === 1 && k !== undefined && !is.object(k))
+        if(a.length === 1 && k !== undefined && !is.Object(k))
           return f.get(k);
 
         f.setValue(...a);
@@ -59,7 +59,7 @@ Object.assign(nice.Obj.proto, {
   setValue: function (...a){
     let vs = a[0];
 
-    if(!is.object(vs)){
+    if(!is.Object(vs)){
       let o = {};
       o[vs] = a[1];
       vs = o;
@@ -154,7 +154,7 @@ A('set', (z, path, v) => {
       .Box.use(v => v)
       .primitive.use(v => v)
       .nice.use(v => v.getResult())
-      .object.use(v => v)
+      .Object.use(v => v)
       .function.use(v => v)
       ();
 

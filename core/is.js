@@ -13,9 +13,9 @@ const basicChecks = {
   true: v => v === true,
   false: v => v === false,
   any: (v, ...vs) => vs.includes(v),
-  array: a => Array.isArray(a),
+  Array: a => Array.isArray(a),
   "NaN": n => Number.isNaN(n),
-  object: i => i !== null && typeof i === 'object' && !i._isSingleton,
+  Object: i => i !== null && typeof i === 'object' && !i._isSingleton,
   null: i => i === null,
   undefined: i => i === undefined,
   nice: v => nice.Anything.proto.isPrototypeOf(v),
@@ -36,8 +36,8 @@ const basicChecks = {
     return !v;
   },
   subType: (a, b) => {
-    is.string(a) && (a = nice.Type(a));
-    is.string(b) && (b = nice.Type(b));
+    is.String(a) && (a = nice.Type(a));
+    is.String(b) && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
   browser: () => nice.isEnvBrowser
@@ -48,10 +48,12 @@ for(let i in basicChecks)
 
 
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
-for(let i in nice.jsTypes)
-  nice.is[i] || Check(i, basicJS.includes(i)
-    ? v => typeof v === i
-    : v => v && v.constructor && v.constructor.name === nice.jsTypes[i].jsName);
+for(let i in nice.jsTypes){
+  const low = i.toLowerCase();
+  nice.is[i] || Check(i, basicJS.includes(low)
+    ? v => typeof v === low
+    : v => v && v.constructor ? v.constructor.name === i : false);
+};
 
 
 nice._on('Type', function defineReducer(type) {
@@ -253,5 +255,3 @@ function DealyedSwitch(...a) {
 
   return create(delayedProto, f);
 };
-
-//TODO: bug: nice.Function.number('x2', n => n * 2); doesn't work
