@@ -285,8 +285,8 @@ if(nice.isEnvBrowser){
         .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
   };
 
-  const killSelectors = (css, node) => {
-    _each(css, (_v, k) => killRules(_v, k, getAutoClass(node.className)));
+  const killSelectors = (css, className) => {
+    _each(css, (_v, k) => killRules(_v, k, getAutoClass(className)));
   };
 
 
@@ -346,7 +346,8 @@ if(nice.isEnvBrowser){
         } else {
           _each(o.style, (_v, k) => delStyle(_v, k, oldNode));
           _each(o.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-          killSelectors(o.cssSelectors, oldNode);
+          killSelectors(o.cssSelectors,
+              oldNode.className || (o.attributes && o.attributes.className));
           nice._eachEach(o.eventHandlers, (f, _n, k) =>
                 oldNode.removeEventListener(k, f, true));
         }
