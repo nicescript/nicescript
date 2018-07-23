@@ -1,10 +1,24 @@
 const isProto = def(nice, 'isProto', {}), { Check } = nice;
 nice._on('Check', f =>
-  isProto[f.name] = function(...a) { return f(this.value, ...a); });
+  isProto[f.name] = function(...a) {
+    try {
+      return f(this.value, ...a);
+    } catch (e) {
+      return false;
+    }
+  });
 
 
 is = def(nice, 'is', value => create(isProto, { value }));
-nice._on('Check', f => is[f.name] = f);
+nice._on('Check', f => {
+  is[f.name] = (...a) => {
+    try {
+      return f(...a);
+    } catch (e) {
+      return false;
+    }
+  };
+});
 
 Check.about('Checks if two values are equal.')
   ('equal', (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b))
@@ -82,7 +96,7 @@ const switchProto = create(nice.checkers, {
 defGet(switchProto, 'default', function () {
   const z = this;
   const res = v => z.done ? z.res : v;
-  res.use = f => z.done ? z.res : f(...z.args);
+  res.use = f => z.done ? z.res : f(...z.actionArgs);
   return res;
 });
 
@@ -121,7 +135,7 @@ defGet(delayedProto, 'default', function () {
 function switchResult(v){
   const z = this;
 
-  if(!z.done && z._check(...z.args)){
+  if(!z.done && z._check(...z.checkArgs)){
     z.res = v;
     z.done = true;
   }
@@ -133,8 +147,8 @@ function switchResult(v){
 function switchUse(f){
   const z = this;
 
-  if(!z.done && z._check(...z.args)){
-    z.res = f(...z.args);
+  if(!z.done && z._check(...z.checkArgs)){
+    z.res = f(...z.actionArgs);
     z.done = true;
   }
   z._check = null;
@@ -160,7 +174,8 @@ function delayedUse(f){
 
 const S = Switch = nice.Switch = (...args) => {
   const f = () => f.done ? f.res : args[0];
-  f.args = args;
+  f.checkArgs = args;
+  f.actionArgs = args;
   f.done = false;
 
   f.addCheck = check => {
@@ -209,13 +224,21 @@ nice._on('Check', f => {
   if(!f.name || nice.checkers[f.name])
     return;
 
+  const tryF = (...a) => {
+    try {
+      return f(...a);
+    } catch (e) {
+      return false;
+    }
+  };
+
   if(diggSignaturesLength(f) > 1){
     def(nice.checkers, f.name, function (...a) {
-      return this.addCheck(v => f(v, ...a));
+      return this.addCheck(v => tryF(v, ...a));
     });
   } else {
     defGet(nice.checkers, f.name, function(){
-      return this.addCheck(f);
+      return this.addCheck(tryF);
     });
   };
 });

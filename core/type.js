@@ -26,6 +26,25 @@ nice.registerType({
     apply: function(f){
       f(this);
       return this;
+    },
+
+    Switch: function (...vs) {
+      const s = Switch(this, ...vs);
+      defGet(s, 'up', () => {
+        s();
+        return this;
+      })
+      return s;
+    },
+
+    SwitchArg: function (...vs) {
+      const s = Switch(this, ...vs);
+      s.checkArgs = vs;
+      defGet(s, 'up', () => {
+        s();
+        return this;
+      })
+      return s;
     }
   },
 

@@ -229,5 +229,20 @@ describe("Switch", function() {
   });
 
 
+  it("item's Switch", function() {
+    const n = nice.Num(1)
+      .Switch()
+        .lt(2).use(z => z.inc(1))
+        .up;
+    expect(n()).equal(2);
+  });
 
+
+  it("item's SwitchArg", function() {
+    const n = nice.Num(1)
+      .SwitchArg(5)
+        .lt(10).use((z, a) => z.inc(a))
+        .up;
+    expect(n()).equal(6);
+  });
 });
