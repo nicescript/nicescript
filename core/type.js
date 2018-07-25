@@ -103,7 +103,12 @@ defAll(nice, {
     config.configProto = config.configProto || {};
     config.defaultResult = config.defaultResult || {};
 
-    const type = (...a) => nice.createItem({ type }, ...a);
+    const type = (...a) => {
+      const item = nice.createItem({ type });
+      type.defaultValue && item.setResult(type.defaultValue());
+      type.constructor && type.constructor(item, ...a);
+      return item;
+    };
 
     config.proto._type = type;
     delete config.by;

@@ -59,20 +59,13 @@ defAll(nice, {
   checkers: {},
   checkFunctions: {},
   collectionReducers: {},
-  createItem: ({ type, data, assign }, ...a) => {
+  createItem: ({ type, assign }) => {
     type = nice.type(type);
     const item = create(type.proto, type.creator());
     'name' in type.proto && nice.eraseProperty(item, 'name');
     'length' in type.proto && nice.eraseProperty(item, 'length');
 
     assign && Object.assign(item, assign);
-    if(data){
-      item.setResult(data);
-    } else {
-      type.defaultValue && item.setResult(type.defaultValue());
-      type.constructor && type.constructor(item, ...a);
-    }
-
     return item;
   },
 
@@ -89,7 +82,7 @@ defAll(nice, {
     if(type === nice.Box || type === nice.function)
       return v;
 
-    return nice.createItem({ type, data: v});
+    return nice.createItem({ type }).setResult(v);
   },
 
 
