@@ -4,7 +4,7 @@ nice.Type({
     extends: nice.Value,
     defaultValue: function() {
       return nice.create(this.defaultResult,
-          this === nice.Obj ? {} : {_nt_: this.name });
+          this === nice.Obj ? {} : { _nt_: this.name });
     },
     creator: () => {
       const f = (...a) => {
@@ -114,6 +114,7 @@ M(function get(z, i) {
     }
   }
 
+  //TODO: bug: does not work for undefined
   const res = nice.toItem(vs[i]);
   res._parent = z;
   res._parentKey = i;

@@ -7,7 +7,8 @@ def(nice, '_set', (o, ks, v) => {
   if(ks.pop){
     l = ks.pop();
     let k;
-    while(k = ks.shift()){
+    while(ks.length){
+      k = ks.shift()
       o = o[k] = o[k] || {};
     }
   } else {
@@ -25,7 +26,8 @@ def(nice, '_get', (o, ks) => {
 
   if(ks.pop){
     let k;
-    while(o !== undefined && (k = ks.shift())){
+    while(o !== undefined && ks.length){
+      k = ks.shift();
       o = o[k];
     }
     return o;
