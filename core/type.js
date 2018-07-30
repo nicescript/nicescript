@@ -56,8 +56,27 @@ nice.registerType({
       extend(type, parent);
       return this;
     },
+
     about: function (...a) {
       this.target.description = nice.format(...a);
+      return this;
+    },
+
+    key: function (name, o) {
+      if(name[0] !== name[0].toLowerCase())
+        throw "Property name should start with lowercase letter. ";
+      def(this.target.proto, name, function (...a) {
+        const r = this.getResult();
+        if(a.length){
+          if(is.Object(a[0]))
+            throw "Key must be a primitive value.";
+
+          r[name] = a[0];
+          return this;
+        } else {
+          return is.Anything(o) ? o.get(r[name]) : o[r[name]];
+        }
+      });
       return this;
     }
   },
