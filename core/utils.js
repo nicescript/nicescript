@@ -272,7 +272,7 @@ function compareObjects(a, b){
 }
 
 function calculateChanges(a, b){
-  if(!a)
+  if(a === undefined)
     return b;
   if(Array.isArray(b)){
     return Array.isArray(a) ? compareObjects(a, b) : b;

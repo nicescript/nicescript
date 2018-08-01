@@ -38,8 +38,11 @@ const basicChecks = {
     return i === null || (type !== "object" && type !== "function");
   },
   empty: v => {
-    if(!v)
+    if(is.Nothing(v) || v === null)
       return true;
+
+    if(v === 0 || v === '' || v === false)
+      return false;
 
     if(Array.isArray(v))
       return !v.length;

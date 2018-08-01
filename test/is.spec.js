@@ -50,8 +50,9 @@ describe("is", function() {
 
 
   it("isEmpty", function() {
-    expect(is.empty('')).to.equal(true);
-    expect(is.empty(0)).to.equal(true);
+    expect(is.empty(null)).to.equal(true);
+    expect(is.empty('')).to.equal(false);
+    expect(is.empty(0)).to.equal(false);
     expect(is.empty([])).to.equal(true);
     expect(is.empty({})).to.equal(true);
     expect(is.empty('1')).to.equal(false);
