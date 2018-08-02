@@ -9,11 +9,22 @@ nice.Type('Range')
     let n = 0;
     while(i <= end) f(i++, n++);
   })
-  .Mapping(function map(f){
-    let i = this.start();
+  .Mapping(function map(z, f){
+    let i = z.start();
     let n = 0;
     const a = nice.Arr();
-    while(i <= this.end()) a(f(i++, n++));
+    while(i <= z.end()) a(f(i++, n++));
+    return a;
+  })
+  .Mapping(function filter(z, f){
+    let i = z.start();
+    let n = 0;
+    const a = nice.Arr();
+    while(i <= z.end()) {
+      f(i, n) && a(n);
+      i++;
+      n++;
+    }
     return a;
   })
   .Mapping(function toArray(z){
