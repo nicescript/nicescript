@@ -186,6 +186,11 @@ M.function(function filter(a, f){
 });
 
 
+M(function random(a){
+  return a.get(Math.random() * a.size | 0);
+});
+
+
 M(function sortBy(a, f){
   f = nice.mapper(f);
 
