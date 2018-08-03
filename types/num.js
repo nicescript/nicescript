@@ -76,6 +76,13 @@ M('clamp', (n, min, max) => {
       : n;
 });
 
+M.function('times', (n, f) => {
+  let i = 0;
+  const res = [];
+  while(i < n) res.push(f(i++));
+  return res;
+});
+
 
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));

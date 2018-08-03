@@ -52,4 +52,9 @@ describe("Num", function() {
     expect(n.min(3)()).to.equal(3);
     expect(n.max(3)()).to.equal(7);
   });
+
+
+  it("times", function(){
+    expect(nice(3).times(String)()).to.deep.equal(['0','1','2']);
+  });
 });
