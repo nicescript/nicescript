@@ -30,21 +30,26 @@ nice.registerType({
 
     Switch: function (...vs) {
       const s = Switch(this, ...vs);
-      defGet(s, 'up', () => {
+      return defGet(s, 'up', () => {
         s();
         return this;
-      })
-      return s;
+      });
     },
 
     SwitchArg: function (...vs) {
       const s = Switch(this, ...vs);
       s.checkArgs = vs;
-      defGet(s, 'up', () => {
+      return defGet(s, 'up', () => {
         s();
         return this;
-      })
-      return s;
+      });
+    },
+
+    _notifyUp: function () {
+      let p = this;
+      do {
+        p._notify && p._notify();
+      } while (p = p._parent);
     }
   },
 
@@ -71,7 +76,8 @@ nice.registerType({
           if(is.Object(a[0]))
             throw "Key must be a primitive value.";
 
-          r[name] = a[0];
+//          r[name] = a[0];
+          this.set(name, a[0])
           return this;
         } else {
           return is.Anything(o) ? o.get(r[name]) : o[r[name]];

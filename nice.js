@@ -41,18 +41,12 @@ defAll(nice, {
   checkers: {},
   checkFunctions: {},
   collectionReducers: {},
-  createItem: ({ type, data, assign }, ...a) => {
+  createItem: ({ type, assign }) => {
     type = nice.type(type);
     const item = create(type.proto, type.creator());
     'name' in type.proto && nice.eraseProperty(item, 'name');
     'length' in type.proto && nice.eraseProperty(item, 'length');
     assign && Object.assign(item, assign);
-    if(data){
-      item.setResult(data);
-    } else {
-      type.defaultValue && item.setResult(type.defaultValue());
-      type.constructor && type.constructor(item, ...a);
-    }
     return item;
   },
   toItem: v => {
@@ -63,7 +57,7 @@ defAll(nice, {
     const type = nice.valueType(v);
     if(type === nice.Box || type === nice.function)
       return v;
-    return nice.createItem({ type, data: v});
+    return nice.createItem({ type }).setResult(v);
   },
   valueType: v => {
     if(typeof v === 'number')
@@ -243,7 +237,7 @@ defAll(nice, {
     if(o && o._isSingleton){
       return o;
     } else if(is.nice(o)) {
-      res = o._type();
+      res = nice.createItem({ type: o._type });
       res._result = nice.cloneDeep(o.getResult());
       return res;
     } else if(Array.isArray(o)) {
@@ -358,7 +352,7 @@ function compareObjects(a, b){
   return res;
 }
 function calculateChanges(a, b){
-  if(!a)
+  if(a === undefined)
     return b;
   if(Array.isArray(b)){
     return Array.isArray(a) ? compareObjects(a, b) : b;
@@ -384,7 +378,8 @@ nice.Configurator = (o, ...a) => {
   if(ks.pop){
     l = ks.pop();
     let k;
-    while(k = ks.shift()){
+    while(ks.length){
+      k = ks.shift()
       o = o[k] = o[k] || {};
     }
   } else {
@@ -398,7 +393,8 @@ def(nice, '_get', (o, ks) => {
     return;
   if(ks.pop){
     let k;
-    while(o !== undefined && (k = ks.shift())){
+    while(o !== undefined && ks.length){
+      k = ks.shift();
       o = o[k];
     }
     return o;
@@ -570,6 +566,7 @@ function transform(s){
     for(let i = 0; i < l; i++){
       const isNice = a[i] && a[i]._isAnything;
       const needJs = types[i].type.jsType;
+      
       if(needJs && isNice){
         a[i] = a[i].getResult();
       } else if(!needJs && !isNice){
@@ -713,11 +710,26 @@ nice._on('function', ({name}) => {
   });
 });
 })();
-(function(){"use strict";const isProto = def(nice, 'isProto', {}), { Check } = nice;
+(function(){"use strict";
+const isProto = def(nice, 'isProto', {}), { Check } = nice;
 nice._on('Check', f =>
-  isProto[f.name] = function(...a) { return f(this.value, ...a); });
+  isProto[f.name] = function(...a) {
+    try {
+      return f(this.value, ...a);
+    } catch (e) {
+      return false;
+    }
+  });
 is = def(nice, 'is', value => create(isProto, { value }));
-nice._on('Check', f => is[f.name] = f);
+nice._on('Check', f => {
+  is[f.name] = (...a) => {
+    try {
+      return f(...a);
+    } catch (e) {
+      return false;
+    }
+  };
+});
 Check.about('Checks if two values are equal.')
   ('equal', (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b))
 const basicChecks = {
@@ -735,8 +747,10 @@ const basicChecks = {
     return i === null || (type !== "object" && type !== "function");
   },
   empty: v => {
-    if(!v)
+    if(is.Nothing(v) || v === null)
       return true;
+    if(v === 0 || v === '' || v === false)
+      return false;
     if(Array.isArray(v))
       return !v.length;
     if(typeof v === 'object')
@@ -781,7 +795,7 @@ const switchProto = create(nice.checkers, {
 defGet(switchProto, 'default', function () {
   const z = this;
   const res = v => z.done ? z.res : v;
-  res.use = f => z.done ? z.res : f(...z.args);
+  res.use = f => z.done ? z.res : f(...z.actionArgs);
   return res;
 });
 const actionProto = {};
@@ -811,7 +825,7 @@ defGet(delayedProto, 'default', function () {
 });
 function switchResult(v){
   const z = this;
-  if(!z.done && z._check(...z.args)){
+  if(!z.done && z._check(...z.checkArgs)){
     z.res = v;
     z.done = true;
   }
@@ -820,8 +834,8 @@ function switchResult(v){
 }
 function switchUse(f){
   const z = this;
-  if(!z.done && z._check(...z.args)){
-    z.res = f(...z.args);
+  if(!z.done && z._check(...z.checkArgs)){
+    z.res = f(...z.actionArgs);
     z.done = true;
   }
   z._check = null;
@@ -841,7 +855,8 @@ function delayedUse(f){
 }
 const S = Switch = nice.Switch = (...args) => {
   const f = () => f.done ? f.res : args[0];
-  f.args = args;
+  f.checkArgs = args;
+  f.actionArgs = args;
   f.done = false;
   f.addCheck = check => {
     const preCheck = f._check;
@@ -875,13 +890,20 @@ function diggSignaturesLength(f, n = 0){
 nice._on('Check', f => {
   if(!f.name || nice.checkers[f.name])
     return;
+  const tryF = (...a) => {
+    try {
+      return f(...a);
+    } catch (e) {
+      return false;
+    }
+  };
   if(diggSignaturesLength(f) > 1){
     def(nice.checkers, f.name, function (...a) {
-      return this.addCheck(v => f(v, ...a));
+      return this.addCheck(v => tryF(v, ...a));
     });
   } else {
     defGet(nice.checkers, f.name, function(){
-      return this.addCheck(f);
+      return this.addCheck(tryF);
     });
   };
 });
@@ -941,6 +963,7 @@ nice._on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
       throw this.message || (f.name + ' expected');
+    return nice.OK;
   });
 });
 def(nice, function expect(value, message){
@@ -970,6 +993,27 @@ nice.registerType({
     apply: function(f){
       f(this);
       return this;
+    },
+    Switch: function (...vs) {
+      const s = Switch(this, ...vs);
+      return defGet(s, 'up', () => {
+        s();
+        return this;
+      });
+    },
+    SwitchArg: function (...vs) {
+      const s = Switch(this, ...vs);
+      s.checkArgs = vs;
+      return defGet(s, 'up', () => {
+        s();
+        return this;
+      });
+    },
+    _notifyUp: function () {
+      let p = this;
+      do {
+        p._notify && p._notify();
+      } while (p = p._parent);
     }
   },
   configProto: {
@@ -982,6 +1026,22 @@ nice.registerType({
     },
     about: function (...a) {
       this.target.description = nice.format(...a);
+      return this;
+    },
+    key: function (name, o) {
+      if(name[0] !== name[0].toLowerCase())
+        throw "Property name should start with lowercase letter. ";
+      def(this.target.proto, name, function (...a) {
+        const r = this.getResult();
+        if(a.length){
+          if(is.Object(a[0]))
+            throw "Key must be a primitive value.";
+          this.set(name, a[0])
+          return this;
+        } else {
+          return is.Anything(o) ? o.get(r[name]) : o[r[name]];
+        }
+      });
       return this;
     }
   },
@@ -1017,7 +1077,12 @@ defAll(nice, {
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultResult = config.defaultResult || {};
-    const type = (...a) => nice.createItem({ type }, ...a);
+    const type = (...a) => {
+      const item = nice.createItem({ type });
+      type.defaultValue && item.setResult(type.defaultValue());
+      type.constructor && type.constructor(item, ...a);
+      return item;
+    };
     config.proto._type = type;
     delete config.by;
     Object.defineProperty(type, 'name', {writable: true});
@@ -1179,7 +1244,7 @@ nice.Type({
     extends: nice.Value,
     defaultValue: function() {
       return nice.create(this.defaultResult,
-          this === nice.Obj ? {} : {_nt_: this.name });
+          this === nice.Obj ? {} : { _nt_: this.name });
     },
     creator: () => {
       const f = (...a) => {
@@ -1232,6 +1297,40 @@ Object.assign(nice.Obj.proto, {
   },
   setByType: function (key, type, value){
     this.getResult()[key] = value || type.defaultValue();
+  },
+  boxify: function () {
+    const boxProto = Box.proto;
+    Object.assign(this, {
+      _subscribers: [],
+      getItem: function () {
+      },
+      _notify: function (){
+        if(this._subscribers){
+          this._notifing = true;
+          this._subscribers.forEach(s => {
+            if(s.doCompute){
+              s._notifing || s.doCompute();
+            } else {
+              s(this);
+            }
+          });
+          this._notifing = false;
+        }
+        this._paret && this._parent._notify && this._parent._notify();
+      },
+      listen: function listen(f) {
+        const ss = this._subscribers;
+        if(!ss.includes(f)){
+          ss.push(f);
+          f(this);
+        }
+        return this;
+      },
+      transactionStart: boxProto.transactionStart,
+      transactionEnd: boxProto.transactionEnd,
+      transaction: boxProto.transaction
+    });
+    return this;
   }
 });
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
@@ -1269,6 +1368,7 @@ M(function get(z, i) {
         vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
     }
   }
+  
   const res = nice.toItem(vs[i]);
   res._parent = z;
   res._parentKey = i;
@@ -1309,6 +1409,7 @@ A('set', (z, path, v) => {
       .Object.use(v => v)
       .function.use(v => v)
       ();
+  z._notifyUp();
   return z;
 });
 Func.Nothing.function('each', () => 0);
@@ -1327,6 +1428,7 @@ A('remove', (z, i) => delete z.getResult()[i]);
 A('removeAll', z => z.setResult(z._type.defaultValue()));
 function setResult(v){
   this._parent.getResult()[this._parentKey] = v;
+  this._notifyUp();
 };
 function getResult(){
   return this._parent.getResult()[this._parentKey];
@@ -1424,14 +1526,17 @@ nice._on('Type', type => {
     const f = (...a) => {
       if(a.length === 0){
         f.compute();
-        return f.state;
+        return f._result;
       }
+      if(f._isReactive)
+        throw `This box uses subscriptions you can't change it's value.`;
       f._notifing || f.setState(...a);
       return f._parent || f;
     };
-    f.state = nice.PENDING;
+    f._result = nice.PENDING;
     f._subscriptions = [];
     f._subscribers = [];
+    f._isReactive = false;
     return f;
   },
   constructor: (z, ...a) => a.length && z(...a),
@@ -1439,12 +1544,13 @@ nice._on('Type', type => {
     by: function (...a){
       this._by = a.pop();
       a.length && this.use(...a);
-      this.state = nice.NEED_COMPUTING;
+      this._result = nice.NEED_COMPUTING;
+      this._isReactive = true;
       return this;
     },
     async: function (f){
       this._asyncBy = f;
-      this.state = nice.NEED_COMPUTING;
+      this._result = nice.NEED_COMPUTING;
       return this;
     },
     use: function (...ss){
@@ -1452,9 +1558,10 @@ nice._on('Type', type => {
         if(s.__proto__ === Promise.prototype)
           s = Box().follow(s);
         expect(s !== this, `Box can't use itself`).toBe();
-        expect(s, `Can use only box or promise.`).Box();
+        
         this._subscriptions.push(s);
-        this.state = nice.NEED_COMPUTING;
+        this._isReactive = true;
+        this._result = nice.NEED_COMPUTING;
       });
       this.isHot() && this.compute();
       return this;
@@ -1472,8 +1579,9 @@ nice._on('Type', type => {
       } else {
         expect(s !== this, `Box can't follow itself`).toBe();
         this._subscriptions = [s];
+        this._isReactive = true;
       }
-      this.state = nice.NEED_COMPUTING;
+      this._result = nice.NEED_COMPUTING;
       this.isHot() && this.compute();
       return this;
     },
@@ -1487,30 +1595,33 @@ nice._on('Type', type => {
     },
     doCompute: function (){
       this.transactionStart();
-      this.state = nice.PENDING;
-      let state;
+      this._result = nice.PENDING;
+      let _result;
       const ss = this._subscriptions;
       ss.forEach(s => {
         if(!s._subscribers.includes(this)){
-          s.isResolved() || s.compute();
+          isResolved(s) || s.compute();
           s._subscribers.push(this);
         }
       });
-      const states = ss.map(s => s.state);
-      if(ss.some(s => !s.isResolved())){
-        state = nice.PENDING;
-      } else if(states.find(is.Err)){
-        state = nice.Err(`Dependency error`);
+      const unwrap = s => is.Box(s) ? unwrap(s._result) : s;
+      const _results = ss.map(unwrap);
+      if(ss.some(s => !isResolved(s))){
+        _result = nice.PENDING;
+      } else if(_results.find(is.Err)){
+        _result = nice.Err(`Dependency error`);
       }
       try {
-        if(state){
-          this(state);
+        if(_result){
+          this._simpleSetState(_result);
         } else if(this._by){
-          this(this._by(...states));
+          this._simpleSetState(this._by(..._results));
         } else if(this._asyncBy){
-          this._asyncBy(this, ...states);
+          
+          this._isReactive = false;
+          this._asyncBy(this, ..._results);
         } else {
-          this(states[0]);
+          this._simpleSetState(_results[0]);
         }
       } catch (e) {
         console.log('ups', e);
@@ -1519,43 +1630,59 @@ nice._on('Type', type => {
       } finally {
         return this.transactionEnd(true);
       }
-      return this.state;
+      return this._result;
     },
     compute: function() {
-      return this.state !== nice.NEED_COMPUTING || this._transactionDepth
-        ? this.state : this.doCompute();
+      return this._result !== nice.NEED_COMPUTING || this._transactionDepth
+        ? this._result : this.doCompute();
     },
     valueOf: function() {
-      return this.hasOwnProperty('state') && this.state;
+      return this.hasOwnProperty('_result') && this._result;
     },
     getDiff: function (){
       if(this._diff || this._diff === false)
         return this._diff;
       return this._diff = nice.diff(
           diffConverter(this.initState),
-          diffConverter(this.state)
+          diffConverter(this._result)
+      );
+    },
+    getDiffTo: function (oldValue = this.initState){
+      return this._diff = nice.diff(
+          diffConverter(oldValue),
+          diffConverter(this._result)
       );
     },
     change: function (f){
       this.transactionStart();
-      let res = f(this.state);
-      res === undefined || (this.state = res);
+      let res = f(this._result);
+      res === undefined || (this._result = res);
       this.transactionEnd();
       return this;
     },
-    setState: function(v){
+    _simpleSetState: function(v){
       if(v === undefined)
-        throw `Can't set state of the box to undefined.`;
+        throw `Can't set _result of the box to undefined.`;
       if(v === this)
-        throw `Can't set state of the box to box itself.`;
+        throw `Can't set _result of the box to box itself.`;
       while(v && v._up_)
         v = v._up_;
-      if(nice.is.Box(v))
-        return this.follow(v)();
-      this.transactionStart();
-      this.state = v;
-      this.transactionEnd();
-      return this.state;
+      this._result = v;
+    },
+    setState: function(v){
+      if(v === undefined)
+        throw `Can't set _result of the box to undefined.`;
+      if(v === this)
+        throw `Can't set _result of the box to box itself.`;
+      while(v && v._up_)
+        v = v._up_;
+      if(this._result !== v) {
+        this.transactionStart();
+        this._result = v;
+        this.transactionEnd();
+      }
+      
+      return this._result;
     },
     _notify: function (){
       this._notifing = true;
@@ -1563,7 +1690,7 @@ nice._on('Type', type => {
         if(s.doCompute){
           s._notifing || s.doCompute();
         } else {
-          this.isResolved() && s(this.state);
+          isResolved(this) && s(this._result);
         }
       });
       this._notifing = false;
@@ -1581,7 +1708,7 @@ nice._on('Type', type => {
       return this;
     },
     'default': function (v) {
-      this.isResolved() || this(v);
+      isResolved(this) || this(v);
     },
     error: function(e) {
       return this.setState(is.Err(e) ? e : nice.Err(e));
@@ -1590,8 +1717,8 @@ nice._on('Type', type => {
       if(this._locked)
         throw nice.LOCKED_ERROR;
       if(!this._transactionDepth){
-        this.initState = this.state;
-        this.state = nice.cloneDeep(this.initState);
+        this.initState = this._result;
+        this._result = nice.cloneDeep(this.initState);
         this._diff = null;
         this._transactionDepth = 0;
       }
@@ -1605,12 +1732,12 @@ nice._on('Type', type => {
       const go = this.getDiff();
       go && this._notify();
       this.initState = null;
-      Object.freeze(this.state);
+      (this._result && this._result._notify) || Object.freeze(this._result);
       delete this._diff;
       return go;
     },
     transactionRollback: function(){
-      this._transactionDepth && (this.state = this.initState);
+      this._transactionDepth && (this._result = this.initState);
       this._transactionDepth = 0;
       this.initState = null;
       delete this._diff;
@@ -1621,9 +1748,6 @@ nice._on('Type', type => {
       f();
       this.transactionEnd(p);
       return this;
-    },
-    isResolved: function (){
-      return this.state !== nice.NEED_COMPUTING && this.state !== nice.PENDING;
     },
     getPromise: function () {
       return new Promise((resolve, reject) => {
@@ -1643,14 +1767,14 @@ F.function(function listen(source, f) {
   const ss = source._subscribers;
   if(!ss.includes(f)){
     ss.push(f);
-    source.isResolved() ? f(source.state) : source.compute();
+    isResolved(source) ? f(source._result) : source.compute();
   }
   return source;
 });
 F.function(function listenOnce(source, f) {
-  source.isResolved() || source.compute();
-  if(source.isResolved())
-    return f(source.state);
+  isResolved(source) || source.compute();
+  if(isResolved(source))
+    return f(source._result);
   const _f = v => {
     f(v);
     source.unsubscribe(_f);
@@ -1737,7 +1861,7 @@ nice._on('Action', f => {
   const {name} = f;
   Box.proto.hasOwnProperty(name) || def(Box.proto, name,
     function (...a) {
-      return this.change(state => f(state, ...a));
+      return this.change(_result => f(_result, ...a));
     }
   );
 });
@@ -1748,6 +1872,18 @@ nice._on('Mapping', ({name}) => {
     }
   );
 });
+nice._on('Property', ({name}) => {
+  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
+    function (...a) {
+      return a.length
+        ? this.change(state => state[name](...a))
+        : this._result[name](...a);
+    }
+  );
+});
+function isResolved (s){
+  return s._result !== nice.NEED_COMPUTING && s._result !== nice.PENDING;
+};
 })();
 (function(){"use strict";nice.Type({
   name: 'Err',
@@ -1912,6 +2048,9 @@ M.function(function map(a, f){
 M.function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
 });
+M(function random(a){
+  return a.get(Math.random() * a.size | 0);
+});
 M(function sortBy(a, f){
   f = nice.mapper(f);
   const res = Arr();
@@ -2013,6 +2152,12 @@ M('clamp', (n, min, max) => {
       ? max
       : n;
 });
+M.function('times', (n, f) => {
+  let i = 0;
+  const res = [];
+  while(i < n) res.push(f(i++));
+  return res;
+});
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
@@ -2108,11 +2253,22 @@ nice.Single.extensible = false;
     let n = 0;
     while(i <= end) f(i++, n++);
   })
-  .Mapping(function map(f){
-    let i = this.start();
+  .Mapping(function map(z, f){
+    let i = z.start();
     let n = 0;
     const a = nice.Arr();
-    while(i <= this.end()) a(f(i++, n++));
+    while(i <= z.end()) a(f(i++, n++));
+    return a;
+  })
+  .Mapping(function filter(z, f){
+    let i = z.start();
+    let n = 0;
+    const a = nice.Arr();
+    while(i <= z.end()) {
+      f(i, n) && a(n);
+      i++;
+      n++;
+    }
     return a;
   })
   .Mapping(function toArray(z){
@@ -2129,7 +2285,8 @@ Func.Num.Range(function within(v, r){
   return v >= r.start && v <= r.end;
 });
 })();
-(function(){"use strict";let autoId = 0;
+(function(){"use strict";
+let autoId = 0;
 const AUTO_PREFIX = '_nn_'
 nice.Type('Html')
   .about('Represents HTML element.')
@@ -2175,11 +2332,14 @@ nice.Type('Html')
   .ReadOnly(text)
   .ReadOnly(html)
   .Method.about('Scroll browser screen to an element.')(function scrollTo(z, offset = 10){
-    z.on('domNode', node => {
-      node && window.scrollTo(node.offsetLeft - offset, node.offsetTop - offset);
+    z.on('domNode', n => {
+      n && window.scrollTo(n.offsetLeft - offset, n.offsetTop - offset);
     });
     return z;
   })
+  .Action
+    .about('Map provided collection with provided function and add result as children.')
+      ('mapAndAdd', (z, c, f) => nice.each(c, (v, k) => z.add(f(v, k))))
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
@@ -2359,7 +2519,7 @@ if(nice.isEnvBrowser){
         .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
   };
   const killSelectors = (css, className) => {
-      _each(css, (_v, k) => killRules(_v, k, getAutoClass(className)));
+    _each(css, (_v, k) => killRules(_v, k, getAutoClass(className)));
   };
   const killRules = (vs, selector, id) => {
     const rule = findRule(selector, id);
@@ -2387,64 +2547,111 @@ if(nice.isEnvBrowser){
       add.attributes.className = a.replace(/_nn_(\d+)/, old);
     }
   }
+  function fillNode(o, node){
+    _each(o.style, (_v, k) => addStyle(_v, k, node));
+    _each(o.attributes, (_v, k) => addAttribute(_v, k, node));
+    addSelectors(o.cssSelectors, node);
+    addHandlers(o.eventHandlers, node);
+  }
+  function cleanNode(o, node) {
+    _each(o.style, (_v, k) => delStyle(_v, k, node));
+    _each(o.attributes, (_v, k) => delAttribute(_v, k, node));
+    killSelectors(o.cssSelectors,
+        node.className || (o.attributes && o.attributes.className));
+    nice._eachEach(o.eventHandlers, (f, _n, k) =>
+          node.removeEventListener(k, f, true));
+  }
+  function createTextNode(t, parent, oldNode) {
+    const node = document.createTextNode(is.Nothing(t) ? '' : '' + t);
+    oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
+    return node;
+  }
   function handleNode(add, del, oldNode, parent){
     let node;
     if(del && !is.Nothing(del) && !oldNode)
       throw '!oldNode';
-    preserveAutoClass(add, del, oldNode);
-    del && Switch(del)
-      .Box.use(b => {
-        b.unsubscribe(oldNode.__niceSubscription);
-        oldNode.__niceSubscription = null;
-      })
-      .Object.use(o => {
-        if(o.tag && add === undefined){
+    if(add === undefined){
+      if(del === undefined){
+        throw 'Why are we here?'
+      } else if (is.Box(del)) {
+        throw 'todo:';
+      } else if (is.Object(del)) {
+        if(del.tag){
           killNode(oldNode);
         } else {
-          _each(o.style, (_v, k) => delStyle(_v, k, oldNode));
-          _each(o.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-          killSelectors(o.cssSelectors,
-              oldNode.className || (o.attributes && o.attributes.className));
-          nice._eachEach(o.eventHandlers, (f, _n, k) =>
-                oldNode.removeEventListener(k, f, true));
+          cleanNode(del, node = oldNode);
+          handleChildren(add, del, node);
         }
-      })
-      .default.use(t => add !== undefined || t !== undefined && killNode(oldNode));
-    if(is.Box(add)) {
+        
+      } else {
+        killNode(oldNode);
+      }
+    } else if (is.Box(add)) {
+      let _del = del;
+      node = oldNode;
+      if(del === undefined){
+        node = document.createTextNode(' ');
+        parent.appendChild(node);
+      } else if (is.Box(del)) {
+        throw 'todo:';
+      } else if (is.Object(del)) {
+        ;
+      } else {
+        ;
+      }
       const f = () => {
-        const diff = add.getDiff();
+        const diff = add.getDiffTo(_del);
+        _del = undefined;
         node = handleNode(diff.add, diff.del, node, parent);
+        
       };
       add.listen(f);
-      node = node || oldNode || document.createTextNode(' ');
       node.__niceSubscription = f;
-      oldNode || parent.appendChild(node);
-    } else if(add !== undefined) {
-      if (add && typeof add === 'object') { 
-        const newHtml = add.tag;
-        if(newHtml){
-          if(del && !is.String(del) && !is.Nothing(del)){
-            node = changeHtml(oldNode, newHtml);
-          }
-          node = node || document.createElement(newHtml);
-          oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
+    } else if (is.Object(add)) {
+      const tag = add.tag;
+      preserveAutoClass(add, del, oldNode);
+      if(tag){
+        let victim;
+        if(del === undefined){
+          node = document.createElement(tag);
+        } else if (is.Box(del)) {
+          throw 'todo';
+        } else if (is.Object(del)) {
+          node = changeHtml(oldNode, tag);
+          cleanNode(del, node);
+          victim = oldNode;
         } else {
-          node = oldNode;
+          node = document.createElement(tag);
+          victim = oldNode;
         }
-        _each(add.style, (_v, k) => addStyle(_v, k, node));
-        _each(add.attributes, (_v, k) => addAttribute(_v, k, node));
-        addSelectors(add.cssSelectors, node);
-        addHandlers(add.eventHandlers, node);
-      } else {
-        const text = is.Nothing(add) ? '' : '' + add;
-        node = document.createTextNode(text);
         oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
+        victim && killNode(victim);
+      } else {
+        node = oldNode;
+        if(is.Object(del)){
+          cleanNode(del, node);
+        }
       }
-      oldNode && (oldNode !== node) && killNode(oldNode);
+      
+      handleChildren(add, del, node);
+      fillNode(add, node);
+    } else {
+      if(del === undefined){
+        node = createTextNode(add, parent, oldNode);
+      } else if (is.Box(del)) {
+        throw 'todo';
+      } else if (is.Object(del)) {
+        node = createTextNode(add, parent, oldNode);
+        killNode(oldNode);
+      } else {
+        oldNode.nodeValue = is.Nothing(add) ? '' : '' + add;
+        node = oldNode;
+      }
     }
-    is.Box(add) || (node && node.nodeType === 3)
-            || handleChildren(add, del, node || oldNode);
-    return node || oldNode;
+    
+    if(add !== undefined && !node)
+      throw '!node';
+    return node;
   }
   function handleChildren(add, del, target){
     const a = add && add.children;
@@ -2458,7 +2665,12 @@ if(nice.isEnvBrowser){
   Func.Box(function show(source, parent = document.body){
     const i = parent.childNodes.length;
     let node = null;
-    source.listenDiff(diff => node = handleNode(diff.add, diff.del, node, parent));
+    source.listenDiff(diff => {
+      let before = node;
+      node = handleNode(diff.add, diff.del, node, parent);
+      if(!node)
+        throw '!!!'
+    });
     return source;
   });
   function newNode(tag, parent = document.body){
@@ -2501,7 +2713,11 @@ Html.extend('A').by((z, url, ...children) => {
     ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
     : z.href(url || '#');
 }).about('Represents HTML <a> element.');
-Html.extend('Img').by((z, src) => z.tag('img').src(src))
+Html.extend('Img').by((z, src, x, y) => {
+  z.tag('img').src(src);
+  x === undefined || z.width(x);
+  y === undefined || z.height(y);
+})
   .about('Represents HTML <img> element.');
 })();
 (function(){"use strict";const Html = nice.Html;

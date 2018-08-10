@@ -229,16 +229,16 @@ describe("Box", function() {
   });
 
 
-  it("resolve children 2", function(done){
-    let a = Box(2);
-    let b = Box.async(z => setTimeout(() => z(nice.Arr(3, c)), 1));
-    let c = Box.async(z => setTimeout(() => z(4), 1));
-
-    nice.resolveChildren(nice.Arr(1, a, b), function (v) {
-      expect(v()).to.deep.equal([1, 2, [3, 4]]);
-      done();
-    });
-  });
+//  it("resolve children 2", function(done){
+//    let a = Box(2);
+//    let b = Box.async(z => setTimeout(() => z(nice.Arr(3, c)), 1));
+//    let c = Box.async(z => setTimeout(() => z(4), 1));
+//
+//    nice.resolveChildren(nice.Arr(1, a, b), function (v) {
+//      expect(v()).to.deep.equal([1, 2, [3, 4]]);
+//      done();
+//    });
+//  });
 
 
   it("resolve children 3", function(done){
@@ -344,5 +344,16 @@ describe("Box", function() {
       expect(b()).to.equal(6);
       done();
     });
+  });
+
+
+  it("states property", () => {
+    const T = nice.Type().Num('age')();
+    const a = T().age(10);
+    const box = Box(a);
+
+    expect(box.age()).to.equal(10);
+    expect(box.age(20)).to.equal(box);
+    expect(box.age()).to.equal(20);
   });
 });

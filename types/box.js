@@ -7,14 +7,17 @@ nice.Type({
     const f = (...a) => {
       if(a.length === 0){
         f.compute();
-        return f.state;
+        return f._result;
       }
+      if(f._isReactive)
+        throw `This box uses subscriptions you can't change it's value.`;
       f._notifing || f.setState(...a);
       return f._parent || f;
     };
-    f.state = nice.PENDING;
+    f._result = nice.PENDING;
     f._subscriptions = [];
     f._subscribers = [];
+    f._isReactive = false;
     return f;
   },
 
@@ -24,13 +27,14 @@ nice.Type({
     by: function (...a){
       this._by = a.pop();
       a.length && this.use(...a);
-      this.state = nice.NEED_COMPUTING;
+      this._result = nice.NEED_COMPUTING;
+      this._isReactive = true;
       return this;
     },
 
     async: function (f){
       this._asyncBy = f;
-      this.state = nice.NEED_COMPUTING;
+      this._result = nice.NEED_COMPUTING;
       return this;
     },
 
@@ -40,9 +44,11 @@ nice.Type({
           s = Box().follow(s);
 
         expect(s !== this, `Box can't use itself`).toBe();
-        expect(s, `Can use only box or promise.`).Box();
+        //TODO: restore
+//        expect(s, `Can use only box or promise.`).Box();
         this._subscriptions.push(s);
-        this.state = nice.NEED_COMPUTING;
+        this._isReactive = true;
+        this._result = nice.NEED_COMPUTING;
       });
       this.isHot() && this.compute();
       return this;
@@ -61,8 +67,9 @@ nice.Type({
       } else {
         expect(s !== this, `Box can't follow itself`).toBe();
         this._subscriptions = [s];
+        this._isReactive = true;
       }
-      this.state = nice.NEED_COMPUTING;
+      this._result = nice.NEED_COMPUTING;
       this.isHot() && this.compute();
       return this;
     },
@@ -79,34 +86,38 @@ nice.Type({
 
     doCompute: function (){
       this.transactionStart();
-      this.state = nice.PENDING;
-      let state;
+      this._result = nice.PENDING;
+      let _result;
       const ss = this._subscriptions;
 
       ss.forEach(s => {
         if(!s._subscribers.includes(this)){
-          s.isResolved() || s.compute();
+          isResolved(s) || s.compute();
           s._subscribers.push(this);
         }
       });
 
-      const states = ss.map(s => s.state);
+      const unwrap = s => is.Box(s) ? unwrap(s._result) : s;
+      const _results = ss.map(unwrap);
 
-      if(ss.some(s => !s.isResolved())){
-        state = nice.PENDING;
-      } else if(states.find(is.Err)){
-        state = nice.Err(`Dependency error`);
+      if(ss.some(s => !isResolved(s))){
+        _result = nice.PENDING;
+      } else if(_results.find(is.Err)){
+        _result = nice.Err(`Dependency error`);
       }
 
       try {
-        if(state){
-          this(state);
+        if(_result){
+          this._simpleSetState(_result);
         } else if(this._by){
-          this(this._by(...states));
+          this._simpleSetState(this._by(..._results));
         } else if(this._asyncBy){
-          this._asyncBy(this, ...states);
+          //this will unlock the Box for edit. Maybe there is beter solution
+          this._isReactive = false;
+          this._asyncBy(this, ..._results);
+//          this._isReactive = true;
         } else {
-          this(states[0]);
+          this._simpleSetState(_results[0]);
         }
       } catch (e) {
         console.log('ups', e);
@@ -116,16 +127,16 @@ nice.Type({
         return this.transactionEnd(true);
       }
 
-      return this.state;
+      return this._result;
     },
 
     compute: function() {
-      return this.state !== nice.NEED_COMPUTING || this._transactionDepth
-        ? this.state : this.doCompute();
+      return this._result !== nice.NEED_COMPUTING || this._transactionDepth
+        ? this._result : this.doCompute();
     },
 
     valueOf: function() {
-      return this.hasOwnProperty('state') && this.state;
+      return this.hasOwnProperty('_result') && this._result;
     },
 
     getDiff: function (){
@@ -134,34 +145,56 @@ nice.Type({
 
       return this._diff = nice.diff(
           diffConverter(this.initState),
-          diffConverter(this.state)
+          diffConverter(this._result)
+      );
+    },
+
+    getDiffTo: function (oldValue = this.initState){
+      return this._diff = nice.diff(
+          diffConverter(oldValue),
+          diffConverter(this._result)
       );
     },
 
     change: function (f){
       this.transactionStart();
-      let res = f(this.state);
-      res === undefined || (this.state = res);
+      let res = f(this._result);
+      res === undefined || (this._result = res);
       this.transactionEnd();
       return this;
     },
 
-    setState: function(v){
+    _simpleSetState: function(v){
       if(v === undefined)
-        throw `Can't set state of the box to undefined.`;
+        throw `Can't set _result of the box to undefined.`;
       if(v === this)
-        throw `Can't set state of the box to box itself.`;
+        throw `Can't set _result of the box to box itself.`;
 
       while(v && v._up_)
         v = v._up_;
 
-      if(nice.is.Box(v))
-        return this.follow(v)();
+      this._result = v;
+    },
 
-      this.transactionStart();
-      this.state = v;
-      this.transactionEnd();
-      return this.state;
+    setState: function(v){
+      if(v === undefined)
+        throw `Can't set _result of the box to undefined.`;
+      if(v === this)
+        throw `Can't set _result of the box to box itself.`;
+
+      while(v && v._up_)
+        v = v._up_;
+
+//      if(nice.is.Box(v))
+//        return this.follow(v)();
+
+      if(this._result !== v) {
+        this.transactionStart();
+        this._result = v;
+        this.transactionEnd();
+      }
+      
+      return this._result;
     },
 
     _notify: function (){
@@ -170,7 +203,7 @@ nice.Type({
         if(s.doCompute){
           s._notifing || s.doCompute();
         } else {
-          this.isResolved() && s(this.state);
+          isResolved(this) && s(this._result);
         }
       });
       this._notifing = false;
@@ -192,7 +225,7 @@ nice.Type({
     },
 
     'default': function (v) {
-      this.isResolved() || this(v);
+      isResolved(this) || this(v);
     },
 
     error: function(e) {
@@ -203,8 +236,8 @@ nice.Type({
       if(this._locked)
         throw nice.LOCKED_ERROR;
       if(!this._transactionDepth){
-        this.initState = this.state;
-        this.state = nice.cloneDeep(this.initState);
+        this.initState = this._result;
+        this._result = nice.cloneDeep(this.initState);
         this._diff = null;
         this._transactionDepth = 0;
       }
@@ -221,13 +254,14 @@ nice.Type({
       const go = this.getDiff();
       go && this._notify();
       this.initState = null;
-      Object.freeze(this.state);
+//      is.Box(this._result) || Object.freeze(this._result);
+      (this._result && this._result._notify) || Object.freeze(this._result);
       delete this._diff;
       return go;
     },
 
     transactionRollback: function(){
-      this._transactionDepth && (this.state = this.initState);
+      this._transactionDepth && (this._result = this.initState);
       this._transactionDepth = 0;
       this.initState = null;
       delete this._diff;
@@ -241,9 +275,9 @@ nice.Type({
       return this;
     },
 
-    isResolved: function (){
-      return this.state !== nice.NEED_COMPUTING && this.state !== nice.PENDING;
-    },
+//    isResolved: function (){
+//      return this._result !== nice.NEED_COMPUTING && this._result !== nice.PENDING;
+//    },
 
     getPromise: function () {
       return new Promise((resolve, reject) => {
@@ -270,7 +304,7 @@ F.function(function listen(source, f) {
 
   if(!ss.includes(f)){
     ss.push(f);
-    source.isResolved() ? f(source.state) : source.compute();
+    isResolved(source) ? f(source._result) : source.compute();
   }
 
   return source;
@@ -278,10 +312,10 @@ F.function(function listen(source, f) {
 
 
 F.function(function listenOnce(source, f) {
-  source.isResolved() || source.compute();
+  isResolved(source) || source.compute();
 
-  if(source.isResolved())
-    return f(source.state);
+  if(isResolved(source))
+    return f(source._result);
 
   const _f = v => {
     f(v);
@@ -389,7 +423,7 @@ nice._on('Action', f => {
   const {name} = f;
   Box.proto.hasOwnProperty(name) || def(Box.proto, name,
     function (...a) {
-      return this.change(state => f(state, ...a));
+      return this.change(_result => f(_result, ...a));
     }
   );
 });
@@ -402,3 +436,19 @@ nice._on('Mapping', ({name}) => {
     }
   );
 });
+
+
+nice._on('Property', ({name}) => {
+  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
+    function (...a) {
+      return a.length
+        ? this.change(state => state[name](...a))
+        : this._result[name](...a);
+    }
+  );
+});
+
+
+function isResolved (s){
+  return s._result !== nice.NEED_COMPUTING && s._result !== nice.PENDING;
+};

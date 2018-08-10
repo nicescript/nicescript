@@ -67,6 +67,7 @@ function transform(s){
     for(let i = 0; i < l; i++){
       const isNice = a[i] && a[i]._isAnything;
       const needJs = types[i].type.jsType;
+      //TODO: bug: when a[i] is nice.NotFound
       if(needJs && isNice){
         a[i] = a[i].getResult();
       } else if(!needJs && !isNice){

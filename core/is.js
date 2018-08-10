@@ -1,3 +1,5 @@
+//TODO: add is.Check
+//TODO: add thruly and falsy checks
 const isProto = def(nice, 'isProto', {}), { Check } = nice;
 nice._on('Check', f =>
   isProto[f.name] = function(...a) {

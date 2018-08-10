@@ -13,5 +13,9 @@ Html.extend('A').by((z, url, ...children) => {
 }).about('Represents HTML <a> element.');
 
 
-Html.extend('Img').by((z, src) => z.tag('img').src(src))
+Html.extend('Img').by((z, src, x, y) => {
+  z.tag('img').src(src);
+  x === undefined || z.width(x);
+  y === undefined || z.height(y);
+})
   .about('Represents HTML <img> element.');

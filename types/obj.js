@@ -69,6 +69,44 @@ Object.assign(nice.Obj.proto, {
 
   setByType: function (key, type, value){
     this.getResult()[key] = value || type.defaultValue();
+  },
+
+  boxify: function () {
+    const boxProto = Box.proto;
+    Object.assign(this, {
+      _subscribers: [],
+      getItem: function () {
+
+      },
+      _notify: function (){
+        if(this._subscribers){
+          this._notifing = true;
+          this._subscribers.forEach(s => {
+            if(s.doCompute){
+              s._notifing || s.doCompute();
+            } else {
+              s(this);
+            }
+          });
+          this._notifing = false;
+        }
+        this._paret && this._parent._notify && this._parent._notify();
+      },
+      listen: function listen(f) {
+        const ss = this._subscribers;
+
+        if(!ss.includes(f)){
+          ss.push(f);
+          f(this);
+        }
+
+        return this;
+      },
+      transactionStart: boxProto.transactionStart,
+      transactionEnd: boxProto.transactionEnd,
+      transaction: boxProto.transaction
+    });
+    return this;
   }
 });
 
@@ -158,6 +196,7 @@ A('set', (z, path, v) => {
       .Object.use(v => v)
       .function.use(v => v)
       ();
+  z._notifyUp();
 
   return z;
 });
@@ -187,6 +226,7 @@ A('removeAll', z => z.setResult(z._type.defaultValue()));
 
 function setResult(v){
   this._parent.getResult()[this._parentKey] = v;
+  this._notifyUp();
 };
 
 
