@@ -24,7 +24,9 @@ _each({
   difference: (a, b) => a - b,
   product: (a, b) => a * b,
   fraction: (a, b) => a / b,
-  reminder: (a, b) => a % b
+  reminder: (a, b) => a % b,
+  next: n => n + 1,
+  previous: n => n - 1
 }, (f, name) => M(name, f));
 
 
