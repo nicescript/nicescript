@@ -380,9 +380,10 @@ M(function getProperties(z){
 
 
 nice._on('Type', type => {
-  const smallName = nice._decapitalize(type.name)
-  def(nice.Obj.configProto, type.name, function (name, value = type.defaultValue()) {
-    const targetType = this.target;
+  const smallName = nice._decapitalize(type.name);
+
+  function createProperty(z, name, value){
+    const targetType = z.target;
 
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
@@ -390,7 +391,7 @@ nice._on('Type', type => {
 
     targetType.types[name] = type;
 
-    value && (targetType.defaultResult[name] = value);
+    value !== undefined && (targetType.defaultResult[name] = value);
 
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
@@ -402,7 +403,10 @@ nice._on('Type', type => {
     });
 
     nice.emitAndSave('Property', { type, name, targetType });
+  }
 
+  def(nice.Obj.configProto, smallName, function (name, value = type.defaultValue()) {
+    createProperty(this, name, value);
     return this;
   });
 });

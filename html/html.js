@@ -6,9 +6,9 @@ const AUTO_PREFIX = '_nn_'
 nice.Type('Html')
   .about('Represents HTML element.')
   .by((z, tag) => tag && z.tag(tag))
-  .Str('tag', 'div')
-  .Obj('eventHandlers')
-  .Obj('cssSelectors')
+  .str('tag', 'div')
+  .obj('eventHandlers')
+  .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(z, name, f){
     if(name === 'domNode' && nice.isEnvBrowser){
       if(!z.id())
@@ -20,9 +20,9 @@ nice.Type('Html')
       .Nothing.use(() => z.eventHandlers(name, [f]))
       .default.use(a => a.push(f));
   })
-  .Obj('style')
-  .Obj('attributes')
-  .Arr('children')
+  .obj('style')
+  .obj('attributes')
+  .arr('children')
   .Method('_autoId', z => {
     z.id() || z.id(AUTO_PREFIX + autoId++);
     return z.id();

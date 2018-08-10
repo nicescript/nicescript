@@ -67,7 +67,7 @@ describe("Arr", function() {
 
 
   it("class property", () => {
-    let car = nice.Type().Arr('wheels')();
+    let car = nice.Type().arr('wheels')();
     let c = car();
     c.wheels(16, 17);
 

@@ -164,8 +164,8 @@ describe("Box", function() {
 
   it("inputs", function(){
     let square = Box()
-      .Num('x', 5)
-      .Num('y')
+      .num('x', 5)
+      .num('y')
       .by((x, y) => x * y);
 
     let res;
@@ -183,8 +183,8 @@ describe("Box", function() {
 
   it("follow Box input", function(){
     let square = Box()
-      .Num('x', 5)
-      .Num('y', 5)
+      .num('x', 5)
+      .num('y', 5)
       .by((x, y) => x * y);
 
     let a = Box(2);
@@ -210,7 +210,7 @@ describe("Box", function() {
     let b2 = Box.use(b).by(n => n * 2);
 
     let square = Box()
-      .Num('x', 5)
+      .num('x', 5)
       .by(x => x * x);
 
     square.x(b2);
@@ -249,24 +249,24 @@ describe("Box", function() {
   });
 
 
-  it("values's transformation", function(){
-    let a = Box(2);
-    let b = a.pow(2);
-
-    expect(b._type).to.equal(Box);
-    expect(b()()).to.equal(4);
-
-    a(3);
-    expect(b()()).to.equal(9);
-  });
-
-
-  it("values's action", function(){
-    let a = Box(nice(2));
-
-    expect(a.negate()).to.equal(a);
-    expect(a()()).to.equal(-2);
-  });
+//  it("values's transformation", function(){
+//    let a = Box(2);
+//    let b = a.pow(2);
+//
+//    expect(b._type).to.equal(Box);
+//    expect(b()()).to.equal(4);
+//
+//    a(3);
+//    expect(b()()).to.equal(9);
+//  });
+//
+//
+//  it("values's action", function(){
+//    let a = Box(nice(2));
+//
+//    expect(a.negate()).to.equal(a);
+//    expect(a()()).to.equal(-2);
+//  });
 
 
   it("single time", function(){
@@ -347,13 +347,13 @@ describe("Box", function() {
   });
 
 
-  it("states property", () => {
-    const T = nice.Type().Num('age')();
-    const a = T().age(10);
-    const box = Box(a);
-
-    expect(box.age()).to.equal(10);
-    expect(box.age(20)).to.equal(box);
-    expect(box.age()).to.equal(20);
-  });
+//  it("states property", () => {
+//    const T = nice.Type().num('age')();
+//    const a = T().age(10);
+//    const box = Box(a);
+//
+//    expect(box.age()).to.equal(10);
+//    expect(box.age(20)).to.equal(box);
+//    expect(box.age()).to.equal(20);
+//  });
 });

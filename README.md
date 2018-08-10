@@ -136,8 +136,8 @@ nice(null);     // nice.Null;
 #### User types
 ```javascript
 nice.Type('Dog')
-  .Str('title')
-  .Num('weight')
+  .str('title')
+  .num('weight')
   .by((z, title) => z.title(title));
 
 const d = nice.Dog('Jim').weight(5);
@@ -267,8 +267,8 @@ b(3);                 // b2() === 6
 
 // Named inputs
 const square = Box()
-  .Num('x', 5)
-  .Num('y', 5)
+  .num('x', 5)
+  .num('y', 5)
   .by((x, y) => x * y);
 
 square();                  // 25

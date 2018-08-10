@@ -17,7 +17,7 @@ describe("Single", function() {
 
 
   it("might not have properties", function(){
-    expect(() => nice.Single.extend().Str('qwe')).to.throw();
+    expect(() => nice.Single.extend().str('qwe')).to.throw();
   });
 
 

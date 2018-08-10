@@ -1501,14 +1501,14 @@ M(function getProperties(z){
   return res;
 });
 nice._on('Type', type => {
-  const smallName = nice._decapitalize(type.name)
-  def(nice.Obj.configProto, type.name, function (name, value = type.defaultValue()) {
-    const targetType = this.target;
+  const smallName = nice._decapitalize(type.name);
+  function createProperty(z, name, value){
+    const targetType = z.target;
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
             + `"${nice._decapitalize(name)}" not "${name}"`;
     targetType.types[name] = type;
-    value && (targetType.defaultResult[name] = value);
+    value !== undefined && (targetType.defaultResult[name] = value);
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
       if(!is.subType(res._type, type))
@@ -1516,6 +1516,9 @@ nice._on('Type', type => {
       return res;
     });
     nice.emitAndSave('Property', { type, name, targetType });
+  }
+  def(nice.Obj.configProto, smallName, function (name, value = type.defaultValue()) {
+    createProperty(this, name, value);
     return this;
   });
 });
@@ -1587,7 +1590,7 @@ nice._on('Type', type => {
       return this;
     },
     interval: function (f, t = 200) {
-      setInterval(() => f(this), t);
+      setInterval(() => this.setState(f(this._result)), t);
       return this;
     },
     timeout: function (f, t = 200) {
@@ -1682,7 +1685,6 @@ nice._on('Type', type => {
         this._result = v;
         this.transactionEnd();
       }
-      
       return this._result;
     },
     _notify: function (){
@@ -1802,7 +1804,7 @@ F.Box(function unbind(y, x) {
 nice._on('Type', type => {
   if(!type.name)
     return;
-  def(Box.proto, type.name, function (name, value) {
+  def(Box.proto, nice._decapitalize(type.name), function (name, value) {
     expect(name).String();
     const input = Box();
     value !== undefined && input(value);
@@ -1857,30 +1859,6 @@ def(nice, 'resolveChildren', (v, f) => {
       f(v);
     }
   }
-});
-nice._on('Action', f => {
-  const {name} = f;
-  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-    function (...a) {
-      return this.change(_result => f(_result, ...a));
-    }
-  );
-});
-nice._on('Mapping', ({name}) => {
-  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-    function (...a) {
-      return Box().use(this).by(z => nice[name](z, ...a));
-    }
-  );
-});
-nice._on('Property', ({name}) => {
-  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-    function (...a) {
-      return a.length
-        ? this.change(state => state[name](...a))
-        : this._result[name](...a);
-    }
-  );
 });
 function isResolved (s){
   return s._result !== nice.NEED_COMPUTING && s._result !== nice.PENDING;
@@ -2106,7 +2084,9 @@ _each({
   difference: (a, b) => a - b,
   product: (a, b) => a * b,
   fraction: (a, b) => a / b,
-  reminder: (a, b) => a % b
+  reminder: (a, b) => a % b,
+  next: n => n + 1,
+  previous: n => n - 1
 }, (f, name) => M(name, f));
 `acos
 asin
@@ -2245,8 +2225,8 @@ nice.Single.extensible = false;
 })();
 (function(){"use strict";nice.Type('Range')
   .about('Represent range of numbers.')
-  .Num('start', 0)
-  .Num('end', Infinity)
+  .num('start', 0)
+  .num('end', Infinity)
   .by((z, a, b) => b === undefined ? z.end(a) : z.start(a).end(b))
   .Method(function each(z, f){
     let i = z.start();
@@ -2292,9 +2272,9 @@ const AUTO_PREFIX = '_nn_'
 nice.Type('Html')
   .about('Represents HTML element.')
   .by((z, tag) => tag && z.tag(tag))
-  .Str('tag', 'div')
-  .Obj('eventHandlers')
-  .Obj('cssSelectors')
+  .str('tag', 'div')
+  .obj('eventHandlers')
+  .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(z, name, f){
     if(name === 'domNode' && nice.isEnvBrowser){
       if(!z.id())
@@ -2306,9 +2286,9 @@ nice.Type('Html')
       .Nothing.use(() => z.eventHandlers(name, [f]))
       .default.use(a => a.push(f));
   })
-  .Obj('style')
-  .Obj('attributes')
-  .Arr('children')
+  .obj('style')
+  .obj('attributes')
+  .arr('children')
   .Method('_autoId', z => {
     z.id() || z.id(AUTO_PREFIX + autoId++);
     return z.id();

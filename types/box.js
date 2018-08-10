@@ -75,7 +75,7 @@ nice.Type({
     },
 
     interval: function (f, t = 200) {
-      setInterval(() => f(this), t);
+      setInterval(() => this.setState(f(this._result)), t);
       return this;
     },
 
@@ -193,7 +193,7 @@ nice.Type({
         this._result = v;
         this.transactionEnd();
       }
-      
+
       return this._result;
     },
 
@@ -352,11 +352,12 @@ F.Box(function unbind(y, x) {
 });
 
 
+//named inputs
 nice._on('Type', type => {
   if(!type.name)
     return;
 
-  def(Box.proto, type.name, function (name, value) {
+  def(Box.proto, nice._decapitalize(type.name), function (name, value) {
     expect(name).String();
 
     const input = Box();
@@ -419,34 +420,34 @@ def(nice, 'resolveChildren', (v, f) => {
 });
 
 
-nice._on('Action', f => {
-  const {name} = f;
-  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-    function (...a) {
-      return this.change(_result => f(_result, ...a));
-    }
-  );
-});
-
-
-nice._on('Mapping', ({name}) => {
-  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-    function (...a) {
-      return Box().use(this).by(z => nice[name](z, ...a));
-    }
-  );
-});
-
-
-nice._on('Property', ({name}) => {
-  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-    function (...a) {
-      return a.length
-        ? this.change(state => state[name](...a))
-        : this._result[name](...a);
-    }
-  );
-});
+//nice._on('Action', f => {
+//  const {name} = f;
+//  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
+//    function (...a) {
+//      return this.change(_result => f(_result, ...a));
+//    }
+//  );
+//});
+//
+//
+//nice._on('Mapping', ({name}) => {
+//  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
+//    function (...a) {
+//      return Box().use(this).by(z => nice[name](z, ...a));
+//    }
+//  );
+//});
+//
+//
+//nice._on('Property', ({name}) => {
+//  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
+//    function (...a) {
+//      return a.length
+//        ? this.change(state => state[name](...a))
+//        : this._result[name](...a);
+//    }
+//  );
+//});
 
 
 function isResolved (s){

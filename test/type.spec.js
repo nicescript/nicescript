@@ -69,8 +69,8 @@ describe("Type", function() {
 
 
   it("default", function() {
-    const A = nice.Type().Str('qwe', 'asd')();
-    const B = nice.Type().extends(A).Str('zxc', '123').Str('asd')();
+    const A = nice.Type().str('qwe', 'asd')();
+    const B = nice.Type().extends(A).str('zxc', '123').str('asd')();
 
     expect(A().qwe()).to.equal('asd');
     expect(B().get('qwe')()).to.equal('asd');

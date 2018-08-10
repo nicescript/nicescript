@@ -24,8 +24,8 @@ describe("expect", function() {
 
 
   it("check type", function(){
-    nice.Type('Cat').Str('name');
-    nice.Type('Dog').Str('name');
+    nice.Type('Cat').str('name');
+    nice.Type('Dog').str('name');
 
     const cat = nice.Cat().name('Ball');
     const dog = nice.Dog();
