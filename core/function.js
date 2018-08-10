@@ -117,7 +117,7 @@ function createFunction({ existing, name, action, source, signature, type, descr
   if(type !== 'Check' && name && typeof name === 'string'
           && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
-          + `"${nice._deCapitalize(name)}" not "${name}"`;
+          + `"${nice._decapitalize(name)}" not "${name}"`;
 
   existing = existing || (name && target[name]);
   const f = existing || createFunctionBody(type);

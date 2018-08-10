@@ -298,7 +298,7 @@ defAll(nice, {
   },
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
-  _deCapitalize: s => s[0].toLowerCase() + s.substr(1),
+  _decapitalize: s => s[0].toLowerCase() + s.substr(1),
   doc: () => {
     const res = { types: {}, functions: [] };
     nice._on('signature', s => {
@@ -604,7 +604,7 @@ function createFunction({ existing, name, action, source, signature, type, descr
   if(type !== 'Check' && name && typeof name === 'string'
           && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
-          + `"${nice._deCapitalize(name)}" not "${name}"`;
+          + `"${nice._decapitalize(name)}" not "${name}"`;
   existing = existing || (name && target[name]);
   const f = existing || createFunctionBody(type);
   if(existing && existing.functionType !== type)
@@ -1501,11 +1501,12 @@ M(function getProperties(z){
   return res;
 });
 nice._on('Type', type => {
+  const smallName = nice._decapitalize(type.name)
   def(nice.Obj.configProto, type.name, function (name, value = type.defaultValue()) {
     const targetType = this.target;
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
-            + `"${nice._deCapitalize(name)}" not "${name}"`;
+            + `"${nice._decapitalize(name)}" not "${name}"`;
     targetType.types[name] = type;
     value && (targetType.defaultResult[name] = value);
     defGet(targetType.proto, name, function(){
@@ -2198,7 +2199,7 @@ const sf = {
   trim: (s, a) => sf.trimRight(sf.trimLeft(s, a), a),
   truncate: (s, n, tale) => s.length > n ? s.substr(0, n) + (tale || '') : s,
   capitalize: nice._capitalize,
-  deCapitalize: nice._deCapitalize
+  deCapitalize: nice._decapitalize
 };
 _each(sf, (v, k) => M(k, v));
 `toLocaleLowerCase
@@ -2390,7 +2391,7 @@ nice._on('Extension', ({child, parent}) => {
       this.add(res);
       return res;
     });
-    const _t = nice._deCapitalize(child.name);
+    const _t = nice._decapitalize(child.name);
     Html.proto[_t] || def(Html.proto, _t, function (...a){
       return this.add(child(...a));
     });

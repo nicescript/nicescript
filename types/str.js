@@ -39,7 +39,7 @@ const sf = {
   truncate: (s, n, tale) => s.length > n ? s.substr(0, n) + (tale || '') : s,
 
   capitalize: nice._capitalize,
-  deCapitalize: nice._deCapitalize
+  deCapitalize: nice._decapitalize
 };
 
 _each(sf, (v, k) => M(k, v));

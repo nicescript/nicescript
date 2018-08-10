@@ -380,12 +380,13 @@ M(function getProperties(z){
 
 
 nice._on('Type', type => {
+  const smallName = nice._decapitalize(type.name)
   def(nice.Obj.configProto, type.name, function (name, value = type.defaultValue()) {
     const targetType = this.target;
 
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
-            + `"${nice._deCapitalize(name)}" not "${name}"`;
+            + `"${nice._decapitalize(name)}" not "${name}"`;
 
     targetType.types[name] = type;
 

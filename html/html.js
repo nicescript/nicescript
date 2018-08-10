@@ -121,7 +121,7 @@ nice._on('Extension', ({child, parent}) => {
       this.add(res);
       return res;
     });
-    const _t = nice._deCapitalize(child.name);
+    const _t = nice._decapitalize(child.name);
     Html.proto[_t] || def(Html.proto, _t, function (...a){
       return this.add(child(...a));
     });

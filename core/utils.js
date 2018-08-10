@@ -204,7 +204,7 @@ defAll(nice, {
 
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
 
-  _deCapitalize: s => s[0].toLowerCase() + s.substr(1),
+  _decapitalize: s => s[0].toLowerCase() + s.substr(1),
 
   doc: () => {
     const res = { types: {}, functions: [] };
