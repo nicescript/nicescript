@@ -971,18 +971,7 @@ def(nice, function expect(value, message){
 });
 expect = nice.expect;
 })();
-(function(){"use strict";function extend(child, parent){
-  if(parent.extensible === false)
-    throw `Type ${parent.name} is not extensible.`;
-  create(parent, child);
-  create(parent.proto, child.proto);
-  create(parent.configProto, child.configProto);
-  create(parent.types, child.types);
-  parent.defaultResult && create(parent.defaultResult, child.defaultResult);
-  nice.emitAndSave('Extension', { child, parent });
-  child.super = parent;
-}
-nice.registerType({
+(function(){"use strict";nice.registerType({
   name: 'Anything',
   description: 'Parent type for all types.',
   extend: function (...a){
@@ -1021,7 +1010,7 @@ nice.registerType({
       const type = this.target;
       is.String(parent) && (parent = nice[parent]);
       expect(parent).Type();
-      extend(type, parent);
+      nice.extend(type, parent);
       return this;
     },
     about: function (...a) {
@@ -1057,6 +1046,18 @@ Object.defineProperties(nice.Anything.proto, {
 });
 nice.ANYTHING = Object.seal(create(nice.Anything.proto, new String('ANYTHING')));
 nice.Anything.proto._type = nice.Anything;
+})();
+(function(){"use strict";def(nice, function extend(child, parent){
+  if(parent.extensible === false)
+    throw `Type ${parent.name} is not extensible.`;
+  create(parent, child);
+  create(parent.proto, child.proto);
+  create(parent.configProto, child.configProto);
+  create(parent.types, child.types);
+  parent.defaultResult && create(parent.defaultResult, child.defaultResult);
+  nice.emitAndSave('Extension', { child, parent });
+  child.super = parent;
+});
 defAll(nice, {
   type: t => {
     is.String(t) && (t = nice[t]);
@@ -1087,7 +1088,7 @@ defAll(nice, {
     delete config.by;
     Object.defineProperty(type, 'name', {writable: true});
     Object.assign(type, config);
-    extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
+    nice.extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
     const cfg = create(config.configProto, nice.Configurator(type, ''));
     config.name && nice.registerType(type);
     return cfg;
