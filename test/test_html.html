@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <title>Test page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../nice.js"></script>
+  </head>
+  <body>
+<script>
+"use strict";
+const { Box, Div, Span, H1, H2, H3, B, I, A, next } = nice;
+ 
+const counter = Box(0).interval(next, 1000);
+const counter2 = Box(0).interval(next, 500);
+
+
+H3('Counter').show();
+Box().use(counter).by(c => Div('1: ', c)).show();
+Box().use(counter2).by(c => Div('2: ', c)).show();
+
+
+H3('Underlined | not underlined, always orange').show();
+Box().use(counter).by(c => Div(A('qw', 'Some link'))
+  .Css('A').color('orange')
+    .textDecoration(c % 2 ? 'underline' : 'none').up).show();
+    
+    
+H3('Bold and italic').show();
+Div().b('bold').span(' and ').i('italic').show();
+
+
+H3('Add/remove text nodes 2x 1/123').show();
+Box().by(counter, c => Div(c % 2 ? [1, 2, 3] : [1])).show();
+Box().by(counter, c => Div(c % 2 ? [1, 2, 3] : ['', 1])).show();
+
+
+H3('Add/remove text nodes qwe/qaz').show();
+Box().by(counter, c => Div(c % 2 
+  ? [Span('q'), 'w', Span('e')] 
+  : [Span('q'), Span('a'), 'z'])).show();
+
+
+H3('Blink green blue red').show();
+const color = Box().use(counter2).by(c => c % 2 ? 'red' : 'blue');
+Box().use(counter).use(color).by(c => Div('BLINK').color(c % 2 ? color : 'green')).show();
+
+
+
+H3('Focused input & result').show();
+const input = nice.Input().value('555').focus();
+const result = Box.by(input.value, s => Div(I('Result is: ')).B(s));
+Div(input, result).show();
+
+
+H3('Checked checkbox ').show();
+const c = nice.Checkbox(true);
+Div(c, Box().by(c.checked, c => Span(c ? 'Yes' : 'No'))).show();
+
+
+
+H3('Textarea').show();
+const text = nice.Textarea('qewqweqwqw').show();
+Box().use(text.value).by(s => Div().I('Length: ', s.length)).show();
+nice.is.Str('');
+nice.is.Str('qwe');
+
+</script>
+  
+  </body>
+</html>
