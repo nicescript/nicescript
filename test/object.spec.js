@@ -28,11 +28,28 @@ describe("Obj", function() {
   });
 
 
-  it("set deep", function() {
+  it("get deep", function() {
+    const a = nice();
+    const asd = a.get(['qwe', 'asd']);
+    expect(asd).to.equal(a.get(['qwe', 'asd']));
+    expect(asd).to.equal(a.get('qwe').get('asd'));
+    expect(asd._parent).to.equal(a.get('qwe'));
+    expect(asd.is.NotFound()).to.equal(true);
+  });
+
+
+  it("set deep on empty", function() {
     const a = nice();
     a.set(['qwe', 'asd'], 1);
     expect(a('qwe')()).to.deep.equal({asd:1});
     expect(a.get(['qwe', 'asd'])()).to.equal(1);
+  });
+
+
+  it("set deep on single", function() {
+    const a = nice();
+    a.set('qwe', 1);
+    expect(() => a.set(['qwe', 'asd'], 1)).to.throw("Can't set children to number");
   });
 
 
@@ -65,11 +82,11 @@ describe("Obj", function() {
 
   it("set / get container", function() {
     const a = nice();
-    const b = nice();
-    b.set('asd', 2);
-    a.set('qwe', b);
-    expect(a('qwe')()).to.deep.equal({asd:2});
-    expect(a.get('qwe')()).to.deep.equal({asd:2});
+    const b = nice(a);
+//    b.set('asd', 2);
+//    a.set('qwe', b);
+    expect(b()).to.equal(a);
+//    expect(a.get('qwe')()).to.deep.equal({asd:2});
   });
 
 

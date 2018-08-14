@@ -1,22 +1,35 @@
-//let nice = require('../index.js')();
-//let chai = require('chai');
-//chai.use(require('chai-spies'));
-//let expect = chai.expect;
-//const { Box, is } = nice;
+let nice = require('../index.js')();
+let chai = require('chai');
+chai.use(require('chai-spies'));
+let expect = chai.expect;
+const { Num, Obj,  is } = nice;
+
+describe("Box", function() {
+
+  it("listen single", function(){
+    let n = Num(1);
+    let res;
+
+    n.listen(v => res = v());
+
+    expect(res).to.equal(1);
+    n(2);
+
+    expect(res).to.equal(2);
+  });
+
+
+// TODO: 
+//  it("listen pending", function(){
+//    let n = Num(1);
 //
-//describe("Box", function() {
+//    expect(n()).to.equal(nice.PENDING);
 //
-//  it("simple", function(){
-//    let s = Box();
-//
-//    expect(is.Box(s)).to.equal(true);
-//    expect(s()).to.equal(nice.PENDING);
-//
-//    expect(s(15)).to.equal(s);
-//    expect(s()).to.equal(15);
+//    expect(n(15)).to.equal(n);
+//    expect(n()).to.equal(15);
 //  });
-//
-//
+
+
 //  it("default value", function(){
 //    let s = Box(13);
 //
@@ -346,14 +359,4 @@
 //    });
 //  });
 //
-//
-////  it("states property", () => {
-////    const T = nice.Type().num('age')();
-////    const a = T().age(10);
-////    const box = Box(a);
-////
-////    expect(box.age()).to.equal(10);
-////    expect(box.age(20)).to.equal(box);
-////    expect(box.age()).to.equal(20);
-////  });
-//});
+});

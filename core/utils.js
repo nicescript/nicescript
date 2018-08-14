@@ -131,7 +131,7 @@ defAll(nice, {
     if(o && o._isSingleton){
       return o;
     } else if(is.nice(o)) {
-      res = nice.createItem({ type: o._type });
+      res = nice._newItem(o._type);
       res._result = nice.cloneDeep(o.getResult());
       return res;
     } else if(Array.isArray(o)) {

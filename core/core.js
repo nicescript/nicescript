@@ -59,15 +59,15 @@ defAll(nice, {
   checkers: {},
   checkFunctions: {},
   collectionReducers: {},
-  createItem: ({ type, assign }) => {
-    type = nice.type(type);
-    const item = create(type.proto, type.creator());
-    'name' in type.proto && nice.eraseProperty(item, 'name');
-    'length' in type.proto && nice.eraseProperty(item, 'length');
-
-    assign && Object.assign(item, assign);
-    return item;
-  },
+//  createItem: ({ type, assign }) => {
+//    type = nice.type(type);
+//    const item = create(type.proto, type.creator());
+//    'name' in type.proto && nice.eraseProperty(item, 'name');
+//    'length' in type.proto && nice.eraseProperty(item, 'length');
+//
+//    assign && Object.assign(item, assign);
+//    return item;
+//  },
 
 
   toItem: v => {
@@ -82,21 +82,22 @@ defAll(nice, {
     if(type === nice.Box || type === nice.function)
       return v;
 
-    return nice.createItem({ type }).setResult(v);
+    return nice._newItem(type).setResult(v);
   },
 
-
+  //TODO: maybe replace with nice.typeOf
   valueType: v => {
-    if(typeof v === 'number')
+    const t = typeof v;
+    if(t === 'number')
       return nice.Num;
 
-    if(typeof v === 'function')
+    if(t === 'function')
       return nice.function;
 
-    if(typeof v === 'string')
+    if(t === 'string')
       return nice.Str;
 
-    if(typeof v === 'boolean')
+    if(t === 'boolean')
       return nice.Bool;
 
     if(Array.isArray(v))
@@ -105,7 +106,7 @@ defAll(nice, {
     if(v._nt_)
       return nice[v._nt_];
 
-    if(typeof v === 'object')
+    if(t === 'object')
       return nice.Obj;
 
     throw 'Unknown type';

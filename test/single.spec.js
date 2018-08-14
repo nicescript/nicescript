@@ -26,4 +26,10 @@ describe("Single", function() {
     expect(() => s.get('qwe')).to.throw();
     expect(() => s.set('qwe')).to.throw();
   });
+
+  it("does not have objects methods", function(){
+    let City = nice.Type().single('streets');
+    expect(() => s.get('qwe')).to.throw();
+    expect(() => s.set('qwe')).to.throw();
+  });
 });

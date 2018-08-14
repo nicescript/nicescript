@@ -1,6 +1,6 @@
 nice.Obj.extend({
   name: 'Arr',
-  creator: nice.Single.creator,
+  itemArgs: nice.Single.itemArgs,
   defaultValue: () => [],
   constructor: (z, ...a) => z.push(...a),
   proto: {
@@ -32,11 +32,11 @@ nice.Obj.extend({
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
     pop: function () {
-      return nice.toItem(this.getResult().pop());
+//      return nice.toItem(this.getResult().pop());
     },
 
     shift: function () {
-      return nice.toItem(this.getResult().shift());
+//      return nice.toItem(this.getResult().shift());
     },
   }
 }).about('Ordered list of elements.')

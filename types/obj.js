@@ -3,30 +3,25 @@ nice.Type({
     name: 'Obj',
     extends: nice.Value,
     defaultValue: function() {
-      return nice.create(this.defaultResult,
-          this === nice.Obj ? {} : { _nt_: this.name });
+      return this === nice.Obj ? {} : { _nt_: this.name }
+//      return nice.create(this.defaultResult,
+//          this === nice.Obj ? {} : { _nt_: this.name });
     },
-    creator: () => {
-      const f = (...a) => {
-        if(a.length === 0)
-          return f.getResult();
+    itemArgs: (z, ...a) => {
+      let k = a[0];
 
-        let k = a[0];
+      if(a.length === 1 && k === undefined)
+        throw "Can't use undefined as key.";
 
-        if(a.length === 1 && k === undefined)
-          return f._parent || f;
+      if(is.Str(k))
+        k = k();
 
-        if(is.Str(k))
-          k = k();
+      if(a.length === 1 && k !== undefined && !is.Object(k))
+        return z.get(k);
 
-        if(a.length === 1 && k !== undefined && !is.Object(k))
-          return f.get(k);
-
-        f.setValue(...a);
-        return f._parent || f;
-      };
-      return f;
+      z.setValue(...a);
     },
+    itemNoArgs: z => z.getResult(),
   })
   .about('Parent type for all composite types.')
   .ReadOnly(function values(){
@@ -65,6 +60,7 @@ Object.assign(nice.Obj.proto, {
       vs = o;
     }
     _each(vs, (v, k) => this.set(k, v));
+    return this._parent || this;
   },
 
   setByType: function (key, type, value){
@@ -126,80 +122,80 @@ M(function has(z, i) {
 });
 
 
-M(function get(z, i) {
-  if(i.pop){
-    if(i.length === 1){
-      i = i[0];
-    } else {
-      return z.get(i.shift()).get(i);
-    }
-  }
-  const vs = z.getResult();
+//M(function get(z, i) {
+//  if(i.pop){
+//    if(i.length === 1){
+//      i = i[0];
+//    } else {
+//      return z.get(i.shift()).get(i);
+//    }
+//  }
+//  const vs = z.getResult();
+//
+//  if(is.Str(i))
+//    i = i();
+//
+//  if(!vs.hasOwnProperty(i)){
+//    const types = z._type.types;
+//    if(i in vs === false){
+//      if(types && types[i])
+//        vs[i] = types[i].defaultValue();
+//      else
+//        return nice.NOT_FOUND;
+//    } else {
+//      if(typeof vs[i] === 'object')
+//        vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
+//    }
+//  }
+//
+//  //TODO: bug: does not work for undefined
+//  const res = nice.toItem(vs[i]);
+//  res._parent = z;
+//  res._parentKey = i;
+//  res.setResult = setResult.bind(res);
+//  res.getResult = getResult.bind(res);
+//  return res;
+//});
 
-  if(is.Str(i))
-    i = i();
 
-  if(!vs.hasOwnProperty(i)){
-    const types = z._type.types;
-    if(i in vs === false){
-      if(types && types[i])
-        vs[i] = types[i].defaultValue();
-      else
-        return nice.NOT_FOUND;
-    } else {
-      if(typeof vs[i] === 'object')
-        vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
-    }
-  }
-
-  //TODO: bug: does not work for undefined
-  const res = nice.toItem(vs[i]);
-  res._parent = z;
-  res._parentKey = i;
-  res.setResult = setResult.bind(res);
-  res.getResult = getResult.bind(res);
-  return res;
-});
-
-
-A('set', (z, path, v) => {
-  let data = z.getResult();
-  let k = path;
-  if(path.pop){
-    while(path.length > 1){
-      k = nice.unwrap(path.shift());
-      if(!data.hasOwnProperty(k)){
-        data[k] = {};
-        data = data[k];
-      } else if(data[k]._nt_){
-        if(typeof data[k] !== 'object')
-          throw `Can't set property ${k} of ${data[k]}`;
-        else
-          data = data[k];
-      } else if(typeof data[k] !== 'object') {
-        throw `Can't set property ${k} of ${data[k]}`;
-      } else {
-        data = data[k];
-      }
-    }
-    k = path[0];
-  }
-  k = nice.unwrap(k);
-  const type = z._itemsType;
-
-  data[k] = type
-    ? (v._type && v._type === type ? v : type(v)).getResult()
-    : Switch(v)//TODO: simlify maybe
-      .Box.use(v => v)
-      .primitive.use(v => v)
-      .nice.use(v => v.getResult())
-      .Object.use(v => v)
-      .function.use(v => v)
-      ();
-  z._notifyUp();
-
-  return z;
-});
+//A('set', (z, path, v) => {
+//  let data = z.getResult();
+//  let k = path;
+//  if(path.pop){
+//    while(path.length > 1){
+//      k = nice.unwrap(path.shift());
+//      if(!data.hasOwnProperty(k)){
+//        data[k] = {};
+//        data = data[k];
+//      } else if(data[k]._nt_){
+//        if(typeof data[k] !== 'object')
+//          throw `Can't set property ${k} of ${data[k]}`;
+//        else
+//          data = data[k];
+//      } else if(typeof data[k] !== 'object') {
+//        throw `Can't set property ${k} of ${data[k]}`;
+//      } else {
+//        data = data[k];
+//      }
+//    }
+//    k = path[0];
+//  }
+//  k = nice.unwrap(k);
+//  const type = z._itemsType;
+//
+//  data[k] = type
+//    ? (v._type && v._type === type ? v : type(v)).getResult()
+//    : Switch(v)//TODO: simlify maybe
+//      .Box.use(v => v)
+//      .primitive.use(v => v)
+//      .nice.use(v => v.getResult())
+//      .Object.use(v => v)
+//      .function.use(v => v)
+//      ();
+//  z._notifyUp();
+//
+//  return z;
+//});
 
 
 Func.Nothing.function('each', () => 0);

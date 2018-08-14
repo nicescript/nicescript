@@ -3,16 +3,16 @@ nice.Type({
 
   defaultValue: () => undefined,
 
-  creator: () => {
-    const f = (...a) => {
-      if(a.length === 0)
-        return f.getResult();
-
-      f.setValue(...a);
-      return f._parent || f;
-    };
-    return f;
-  },
+//  creator: () => {
+//    const f = (...a) => {
+//      if(a.length === 0)
+//        return f.getResult();
+//
+//      f.setValue(...a);
+//      return f._parent || f;
+//    };
+//    return f;
+//  },
 
   extends: nice.Value,
 
@@ -20,9 +20,8 @@ nice.Type({
     setValue: function(...a) {
       const { set } = this._type;
       this.setResult(set ? set(...a) : a[0]);
+      return this._parent || this;
     },
-    set: null,
-    get: null,
     setByType: null,
     remove: null,
     removeAll: null,

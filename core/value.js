@@ -22,14 +22,14 @@ nice.Type({
   proto: create(nice.Anything.proto, {
     _isSingleton: false,
 
-    setResult: function(v) {
-      this._result = v;
-      return this;
-    },
-
-    getResult: function() {
-      return this._result;
-    },
+//    setResult: function(v) {
+//      this._result = v;
+//      return this;
+//    },
+//
+//    getResult: function() {
+//      return this._result;
+//    },
 
     valueOf: function (){ return this.getResult(); }
   }),
