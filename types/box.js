@@ -50,7 +50,7 @@ nice.Type({
         this._isReactive = true;
         this._result = nice.NEED_COMPUTING;
       });
-      this.isHot() && this.compute();
+      this._isHot() && this.compute();
       return this;
     },
 
@@ -70,7 +70,7 @@ nice.Type({
         this._isReactive = true;
       }
       this._result = nice.NEED_COMPUTING;
-      this.isHot() && this.compute();
+      this._isHot() && this.compute();
       return this;
     },
 
@@ -209,7 +209,7 @@ nice.Type({
       this._notifing = false;
     },
 
-    isHot: function (){
+    _isHot: function (){
       return this._transactionDepth
         || (this._subscribers && this._subscribers.length);
     },
@@ -295,7 +295,7 @@ const F = Func.Box;
 
 
 function diffConverter(v){
-  return is.Value(v) ? v.getResult() : v;
+  return is.Value(v) ? v._getResult() : v;
 }
 
 
@@ -328,7 +328,7 @@ F.function(function listenOnce(source, f) {
 });
 
 
-F('listenDiff', (b, f) => b.listen(() => f(b.getDiff())));
+//F('listenDiff', (b, f) => b.listen(() => f(b.getDiff())));
 
 
 F(function unsubscribe(s, target){

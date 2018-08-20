@@ -82,7 +82,7 @@ defAll(nice, {
     if(type === nice.Box || type === nice.function)
       return v;
 
-    return nice._newItem(type).setResult(v);
+    return nice._newItem(type)._setResult(v);
   },
 
   //TODO: maybe replace with nice.typeOf

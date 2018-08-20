@@ -38,7 +38,7 @@ defAll(nice, {
     const type = (...a) => {
       const item = nice._newItem(type, null, null);
 //      const item = nice.createItem({ type });
-      type.defaultValue && item.setResult(type.defaultValue());
+      type.defaultValue && item._setResult(type.defaultValue());
       type.constructor && type.constructor(item, ...a);
       return item;
     };

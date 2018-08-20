@@ -69,7 +69,7 @@ function transform(s){
       const needJs = types[i].type.jsType;
       //TODO: bug: when a[i] is nice.NotFound
       if(needJs && isNice){
-        a[i] = a[i].getResult();
+        a[i] = a[i]._getResult();
       } else if(!needJs && !isNice){
         a[i] = nice.toItem(a[i]);
       }

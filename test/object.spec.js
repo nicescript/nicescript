@@ -8,7 +8,7 @@ describe("Obj", function() {
 
   it("constructor", function() {
     const a = nice({asd: 3});
-    expect(a.getResult()).to.deep.equal({asd:3});
+    expect(a._getResult()).to.deep.equal({asd:3});
   });
 
 
@@ -94,14 +94,14 @@ describe("Obj", function() {
     const a = nice({qwe: 1, asd: 3});
     a.remove('qwe');
     expect(a()).to.deep.equal({asd:3});
-    expect(a.getResult()).to.deep.equal({asd:3});
+    expect(a._getResult()).to.deep.equal({asd:3});
   });
 
 
   it("removeAll", () => {
     const a = nice({qwe: 1, asd: 3});
     a.removeAll();
-    expect(a.getResult()).to.deep.equal({});
+    expect(a._getResult()).to.deep.equal({});
   });
 
 

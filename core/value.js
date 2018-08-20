@@ -3,7 +3,7 @@ nice.Type({
 
   extends: 'Something',
 
-  init: i => i.setResult(i._type.default()),
+  init: i => i._setResult(i._type.default()),
 
   default: () => undefined,
 
@@ -16,22 +16,22 @@ nice.Type({
   constructor: (z, ...a) => a.length && z.setValue(...a),
 
   fromResult: function(result){
-    return this().setResult(result);
+    return this()._setResult(result);
   },
 
   proto: create(nice.Anything.proto, {
     _isSingleton: false,
 
-//    setResult: function(v) {
+//    _setResult: function(v) {
 //      this._result = v;
 //      return this;
 //    },
 //
-//    getResult: function() {
+//    _getResult: function() {
 //      return this._result;
 //    },
 
-    valueOf: function (){ return this.getResult(); }
+    valueOf: function (){ return this._getResult(); }
   }),
 
   configProto: {

@@ -170,7 +170,7 @@ function text(){
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(is.function(v) ? v(): v))
-      .getResult().join('');
+      ._getResult().join('');
 };
 
 
@@ -549,7 +549,7 @@ if(nice.isEnvBrowser){
 
 
   Func.Html(function show(source, parent = document.body){
-    handleNode(source.getResult(), undefined, null, parent);
+    handleNode(source._getResult(), undefined, null, parent);
     return source;
   });
 

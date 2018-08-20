@@ -23,7 +23,7 @@ nice._on('Check', f => {
 });
 
 Check.about('Checks if two values are equal.')
-  ('equal', (a, b) => a === b || (a && a.getResult ? a.getResult() : a) === (b && b.getResult ? b.getResult() : b))
+  ('equal', (a, b) => a === b || (a && a._getResult ? a._getResult() : a) === (b && b._getResult ? b._getResult() : b))
 
 const basicChecks = {
   true: v => v === true,

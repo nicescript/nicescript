@@ -32,19 +32,19 @@ nice.Obj.extend({
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
     pop: function () {
-//      return nice.toItem(this.getResult().pop());
+//      return nice.toItem(this._getResult().pop());
     },
 
     shift: function () {
-//      return nice.toItem(this.getResult().shift());
+//      return nice.toItem(this._getResult().shift());
     },
   }
 }).about('Ordered list of elements.')
   .ReadOnly(function size() {
-    return this.getResult().length;
+    return this._getResult().length;
   })
   .Action(function push(z, ...a) {
-    a.forEach(v => z.set(z.getResult().length, v));
+    a.forEach(v => z.set(z._getResult().length, v));
   });
 
 
@@ -108,23 +108,23 @@ A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
 A('add', (z, ...a) => {
   const toAdd = Array.isArray(a[0]) ? a[0] : a;
-  const data = z.getResult();
+  const data = z._getResult();
   toAdd.forEach(v => data.includes(v) || z.push(v));
 });
 
 A('pull', (z, item) => {
   const k = is.Value(item)
-    ? z.getResult().indexOf(item)
+    ? z._getResult().indexOf(item)
     : z.findKey(v => item === v());
   (k === -1 || k === undefined) || z.removeAt(k);
 });
 
 A('insertAt', (z, i, v) => {
-  z.getResult().splice(i, 0, null);
+  z._getResult().splice(i, 0, null);
   z.set(i, v);
 });
 
-A('removeAt', (z, i) => z.getResult().splice(i, 1));
+A('removeAt', (z, i) => z._getResult().splice(i, 1));
 
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
@@ -137,12 +137,12 @@ F('callEach', (z, ...a) => {
 // F.Array(name, (a, ...bs) => a[name](...bs));
 //});
 'splice'.split(',').forEach(name => {
- A(name, (a, ...bs) => a.getResult()[name](...bs));
+ A(name, (a, ...bs) => a._getResult()[name](...bs));
 });
 
 
 function each(z, f){
-  const a = z.getResult();
+  const a = z._getResult();
   const l = a.length;
   for (let i = 0; i < l; i++)
     if(f(z.get(i), i) === nice.STOP)
@@ -155,7 +155,7 @@ F.function(each);
 F.function('forEach', each);
 
 F.function(function eachRight(z, f){
-  const a = z.getResult();
+  const a = z._getResult();
   let i = a.length;
   while (i-- > 0)
     if(f(z.get(i), i) === nice.STOP)
@@ -166,7 +166,7 @@ F.function(function eachRight(z, f){
 
 
 A(function fill(z, v, start = 0, end){
-  const l = z.getResult().length;
+  const l = z._getResult().length;
   end === undefined && (end = l);
   start < 0 && (start += l);
   end < 0 && (end += l);
@@ -195,7 +195,7 @@ M(function sortBy(a, f){
   f = nice.mapper(f);
 
   const res = Arr();
-  const source = a.getResult();
+  const source = a._getResult();
   source
     .map((v, k) => [k, f(v)])
     .sort((a, b) => +(a[1] > b[1]) || +(a[1] === b[1]) - 1)
@@ -227,6 +227,6 @@ M.about('Creates new array with separator between elments.')
 
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
-  const l = z.getResult().length;
+  const l = z._getResult().length;
   return { next: () => ({ value: z.get(i), done: ++i > l }) };
 });

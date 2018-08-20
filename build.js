@@ -16,6 +16,7 @@ const order = [
   'core/is',
   'core/expect',
   'core/anything',
+  'core/observable',
   'core/type',
   'core/simple_types',
   'core/logic',

@@ -4,7 +4,7 @@ chai.use(require('chai-spies'));
 let expect = chai.expect;
 const { Num, Obj,  is } = nice;
 
-describe("Box", function() {
+describe("Observable", function() {
 
   it("listen single", function(){
     let n = Num(1);
@@ -19,7 +19,21 @@ describe("Box", function() {
   });
 
 
-// TODO: 
+  it("listen object", function(){
+    let n = Obj();
+    let res;
+
+    n.listen(v => res = v());
+
+    expect(res).to.deep.equal({});
+
+    n('q', 2);
+
+    expect(res).to.deep.equal({q:2});
+  });
+
+
+// TODO:
 //  it("listen pending", function(){
 //    let n = Num(1);
 //
@@ -30,41 +44,57 @@ describe("Box", function() {
 //  });
 
 
-//  it("default value", function(){
-//    let s = Box(13);
-//
-//    expect(is.Box(s)).to.equal(true);
-//    expect(s()).to.equal(13);
-//    expect(s(15)).to.equal(s);
-//    expect(s()).to.equal(15);
-//  });
-//
-//
-//  it("listen", function(){
-//    let a = Box();
-//    let spy = chai.spy();
-//    a.listen(v => spy(v));
-//    expect(spy).to.not.have.been.called();
-//
-//    a(6);
-//    expect(spy).to.have.been.called.with(6);
-//    expect(a()).to.equal(6);
-//  });
-//
-//
-//  it("listenDiff", function(){
-//    let a = Box();
-//    let spy = chai.spy();
-//    a.listenDiff(v => spy(v));
-//    expect(spy).to.not.have.been.called();
-//
-//    a(6);
-//    expect(spy).to.have.been.called.with({ add:6, del:nice.PENDING });
-//    a(7);
-//    expect(spy).to.have.been.called.with({ add:7, del:6 });
-//  });
-//
-//
+  it("listen diff", function(){
+    let a = Num();
+    let res;
+    a.listen((v, diff) => res = diff);
+    expect(res).to.equal(undefined);
+
+    a(6);
+    expect(res).to.deep.equal({ oldValue: 0 });
+    a(7);
+    expect(res).to.deep.equal({ oldValue: 6 });
+  });
+
+
+  it("listen diff on object", function(){
+    let a = Obj();
+    let res;
+    a.listen((v, diff) => res = diff);
+    expect(res).to.equal(undefined);
+
+    a('q', 6);
+    expect(res).to.deep.equal({ children: { q: { oldValue: undefined } }});
+    a('q', 7);
+    expect(res).to.deep.equal({ children: { q: { oldValue: 6 } }});
+  });
+
+
+  it("listen diff on child", function(){
+    let a = Obj();
+    const q = a.get('q');
+    const f = v => res = v();
+    let res;
+
+    expect(!!a._isHot()).to.equal(false);
+    expect(!!q._isHot()).to.equal(false);
+    q.listen(f);
+    expect(!!a._isHot()).to.equal(true);
+    expect(!!q._isHot()).to.equal(true);
+
+    expect(res).to.equal(undefined);
+
+    a('q', 6);
+    expect(res).to.deep.equal(6);
+    a('q', 7);
+    expect(res).to.deep.equal(7);
+
+    q.unsubscribe(f);
+    expect(!!a._isHot()).to.equal(false);
+    expect(!!q._isHot()).to.equal(false);
+  });
+
+
 //  it("listen 2 targets", function(){
 //    let a = Box();
 //    let spy1 = chai.spy();

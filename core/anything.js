@@ -1,8 +1,3 @@
-//let o = nice(); // assume object
-//nice('qwe', 1); // set {qwe:1}
-//nice('qwe');    // get 1
-//nice.get('qwe')('qwe' , 1) // set {qwe: ['qwe', 1]}}
-
 defAll(nice, {
   _newItem: (type, parent = null, key = null) => {
     const f = create(type ? type.proto : Anything.proto, function(...a){
@@ -16,7 +11,7 @@ defAll(nice, {
       } else {
         return (f._type && f._type.itemNoArgs)
           ? f._type.itemNoArgs(f)
-          : f.getResult();
+          : f._getResult();
       }
     });
     f._parent = parent;
@@ -92,9 +87,9 @@ nice.registerType({
         }
       }
 
-      z.items = z.items || {};
-      if(z.items.hasOwnProperty(i)){
-        return z.items[i];
+      z._items = z._items || {};
+      if(z._items.hasOwnProperty(i)){
+        return z._items[i];
       }
 
       const types = z._type.types;
@@ -114,7 +109,7 @@ nice.registerType({
 
       const type = types[i];
       const item = nice._newItem(type, z, i);
-      const thisResult = this.getResult();
+      const thisResult = this._getResult();
       if(typeof thisResult === 'object' && i in thisResult){
         const result = thisResult[i];
         const vType = nice.typeOf(result);
@@ -131,13 +126,13 @@ nice.registerType({
         nice._assignType(item, type || nice.NotFound);
 //        }
       }
-      return z.items[i] = item;
+      return z._items[i] = item;
     },
 
     set: function(path, v) {
       return this.get(path)(v);
 //      const z = this;
-//      let data = z.getResult();
+//      let data = z._getResult();
 //      let k = path;
 //      if(path.pop){
 //        while(path.length > 1){
@@ -162,11 +157,11 @@ nice.registerType({
 //      const type = z._itemsType;
 //
 //      data[k] = type
-//        ? (v._type && v._type === type ? v : type(v)).getResult()
+//        ? (v._type && v._type === type ? v : type(v))._getResult()
 //        : Switch(v)//TODO: simlify maybe
 //          .Box.use(v => v)
 //          .primitive.use(v => v)
-//          .nice.use(v => v.getResult())
+//          .nice.use(v => v._getResult())
 //          .Object.use(v => v)
 //          .function.use(v => v)
 //          ();
@@ -175,68 +170,72 @@ nice.registerType({
 //      return z;
     },
 
-    assertResultObject: function (){
+    _assertResultObject: function (f){
+      this._hasChanges = true;
       if(this._parent){
-        const parentRes = this._parent.assertResultObject();
-        if(!parentRes.hasOwnProperty(this._parentKey)){
-          //TODO: check items type (maybe array, maybe single)
-          return parentRes[this._parentKey] = {};
-        } else {
-          const t = typeof parentRes[this._parentKey];
-          if(t !== 'object')
-            throw "Can't set children to " + t;
-          else
-            return parentRes[this._parentKey];
-        }
+        this._parent._assertResultObject((parentRes, inTransaction) => {
+          if(!parentRes.hasOwnProperty(this._parentKey)){
+            //TODO: check items type (maybe array, maybe single)
+            f(parentRes[this._parentKey] = {}, inTransaction);
+          } else {
+            const t = typeof parentRes[this._parentKey];
+            if(t !== 'object')
+              throw "Can't set children to " + t;
+            else
+              f(parentRes[this._parentKey], inTransaction);
+          }
+        });
       } else {
         const t = typeof this._result;
         if(t !== 'object')
           throw "Can't set children to " + t;
-        else
-          return this._result;
+
+        if(!this._isHot() || this._transactionDepth){
+          f(this._result, this._transactionDepth);
+        } else {
+          this.transaction(() => f(this._result, true));
+        }
       }
     },
 
-    setResult: function (v){
+    _setResult: function (v){
+      if(v === this._getResult())
+        return;
       if(this._parent){
-        this._parent.assertResultObject()[this._parentKey] = v;
+        this._parent._assertResultObject((o, isTransaction) => {
+          isTransaction && !this.hasOwnProperty('_oldValue')
+              && (this._oldValue = o[this._parentKey]);
+          o[this._parentKey] = v;
+        });
       } else {
-        this._result = v;
+        if(!this._isHot()){
+          this._result = v;
+        } else {
+          if(!this._transactionDepth){
+            this.transaction(() => {
+              this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
+              this._result = v;
+            });
+          } else {
+            this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
+            this._result = v;
+          }
+        }
       }
-      this._notifyUp();
     },
 
-    getResult: function (){
+    _getChildResult: function (k){
+      const res = this._getResult();
+      if(typeof res !== 'object')
+        return null;//TODO: NOT_FOUND
+      return res[k];
+    },
+
+    _getResult: function (){
       return this._parent
-        ? this._parent.getResult()[this._parentKey]
+        ? this._parent._getChildResult(this._parentKey)
         : this._result;
     },
-
-    listen: function(f) {
-      const ss = this._subscribers = this._subscribers || [];
-
-      if(!ss.includes(f)){
-        ss.push(f);
-        isResolved(this) ? f(this) : this.compute();
-      }
-
-      return this;
-    },
-
-    _notify: function (){
-      if(!this._subscribers)
-        return;
-      this._notifing = true;
-      this._subscribers.forEach(s => {
-        if(s.doCompute){
-          s._notifing || s.doCompute();
-        } else {
-          isResolved(this) && s(this);
-        }
-      });
-      this._notifing = false;
-    },
-
   },
 
   configProto: {
@@ -257,12 +256,11 @@ nice.registerType({
       if(name[0] !== name[0].toLowerCase())
         throw "Property name should start with lowercase letter. ";
       def(this.target.proto, name, function (...a) {
-        const r = this.getResult();
+        const r = this._getResult();
         if(a.length){
           if(is.Object(a[0]))
             throw "Key must be a primitive value.";
 
-//          r[name] = a[0];
           this.set(name, a[0])
           return this;
         } else {
@@ -288,10 +286,6 @@ Object.defineProperties(Anything.proto, {
   } }
 });
 
-
-function isResolved (s){
-  return s._result !== nice.NEED_COMPUTING && s._result !== nice.PENDING;
-}
 
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 Anything.proto._type = Anything;

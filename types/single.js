@@ -6,7 +6,7 @@ nice.Type({
 //  creator: () => {
 //    const f = (...a) => {
 //      if(a.length === 0)
-//        return f.getResult();
+//        return f._getResult();
 //
 //      f.setValue(...a);
 //      return f._parent || f;
@@ -19,7 +19,7 @@ nice.Type({
   proto: {
     setValue: function(...a) {
       const { set } = this._type;
-      this.setResult(set ? set(...a) : a[0]);
+      this._setResult(set ? set(...a) : a[0]);
       return this._parent || this;
     },
     setByType: null,

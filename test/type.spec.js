@@ -39,13 +39,13 @@ describe("Type", function() {
   it("super", function() {
     const A = nice.Type({
       proto: {
-        'qwe': function(){ return this.getResult() + 3 }
+        'qwe': function(){ return this._getResult() + 3 }
       }
     })();
 
     const B = nice.Type({
       proto: {
-        'qwe': function(){ return this.getResult() + 5 }
+        'qwe': function(){ return this._getResult() + 5 }
       }
     }).extends(A)();
 

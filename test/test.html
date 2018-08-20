@@ -9,17 +9,15 @@
 <script>
 "use strict";
 const { Box, Div, Span, H1, H2, H3, B, I, A, next } = nice;
-const { Check, Mapping, Switch, is, expect, Num, Str } = nice;
+const { Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
-    let n = Num(1);
-    let res;
+let a = Obj();
+let res;
+a.listen((v, diff) => console.log(res = diff));
+//expect(res).to.equal(undefined);
 
-    n.listen(v => res = v());
-    
-    n(2);
+a('q', 6);
 
-
-    
 </script>
   
   </body>

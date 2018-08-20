@@ -112,7 +112,7 @@ defAll(nice, {
     let res;
     if(is.nice(o)){
       res = o._type();
-      res._result = nice.clone(o.getResult());
+      res._result = nice.clone(o._getResult());
       return res;
     } else if(Array.isArray(o)) {
       res = [];
@@ -132,7 +132,7 @@ defAll(nice, {
       return o;
     } else if(is.nice(o)) {
       res = nice._newItem(o._type);
-      res._result = nice.cloneDeep(o.getResult());
+      res._result = nice.cloneDeep(o._getResult());
       return res;
     } else if(Array.isArray(o)) {
       res = [];

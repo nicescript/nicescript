@@ -10,7 +10,7 @@ describe("Arr", function() {
     let a = nice.Arr();
 
     a(2)(3, 4)(5);
-    expect(a.getResult()).to.deep.equal([2, 3, 4, 5]);
+    expect(a._getResult()).to.deep.equal([2, 3, 4, 5]);
   });
 
 
@@ -78,14 +78,14 @@ describe("Arr", function() {
   it("insertAt", () => {
     let a = nice.Arr(1, 4);
     a.insertAt(1, 2);
-    expect(a.getResult()).to.deep.equal([1, 2, 4]);
+    expect(a._getResult()).to.deep.equal([1, 2, 4]);
   });
 
 
   it("push", () => {
     let a = nice.Arr(1, 4);
     a.push(2, 1);
-    expect(a.getResult()).to.deep.equal([1, 4, 2, 1]);
+    expect(a._getResult()).to.deep.equal([1, 4, 2, 1]);
   });
 
   it("pop", () => {
@@ -114,14 +114,14 @@ describe("Arr", function() {
     let a = nice.Arr(1, 4);
     a.add(2, 1);
     a.add(2, 1);
-    expect(a.getResult()).to.deep.equal([1, 4, 2]);
+    expect(a._getResult()).to.deep.equal([1, 4, 2]);
   });
 
 
   it("removeAll", () => {
     let a = nice.Arr(1, 4);
     a.removeAll();
-    expect(a.getResult()).to.deep.equal([]);
+    expect(a._getResult()).to.deep.equal([]);
   });
 
 
@@ -129,7 +129,7 @@ describe("Arr", function() {
     let a = nice.Arr(1, 2, 3, 4);
     a.removeAt(1);
     a.removeAt(1);
-    expect(a.getResult()).to.deep.equal([1, 4]);
+    expect(a._getResult()).to.deep.equal([1, 4]);
   });
 
 

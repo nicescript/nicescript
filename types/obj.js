@@ -21,7 +21,7 @@ nice.Type({
 
       z.setValue(...a);
     },
-    itemNoArgs: z => z.getResult(),
+    itemNoArgs: z => z._getResult(),
   })
   .about('Parent type for all composite types.')
   .ReadOnly(function values(){
@@ -43,7 +43,7 @@ nice.Type({
     return create(nice.collectionReducers, f);
   }})
   .addProperty('size', { get: function () {
-    return Object.keys(this.getResult()).reduce(n => n + 1, 0);
+    return Object.keys(this._getResult()).reduce(n => n + 1, 0);
   }})
   .Action(function itemsType(z, t){
     z._itemsType = t;
@@ -64,46 +64,46 @@ Object.assign(nice.Obj.proto, {
   },
 
   setByType: function (key, type, value){
-    this.getResult()[key] = value || type.defaultValue();
+    this._getResult()[key] = value || type.defaultValue();
   },
 
-  boxify: function () {
-    const boxProto = Box.proto;
-    Object.assign(this, {
-      _subscribers: [],
-      getItem: function () {
-
-      },
-      _notify: function (){
-        if(this._subscribers){
-          this._notifing = true;
-          this._subscribers.forEach(s => {
-            if(s.doCompute){
-              s._notifing || s.doCompute();
-            } else {
-              s(this);
-            }
-          });
-          this._notifing = false;
-        }
-        this._paret && this._parent._notify && this._parent._notify();
-      },
-      listen: function listen(f) {
-        const ss = this._subscribers;
-
-        if(!ss.includes(f)){
-          ss.push(f);
-          f(this);
-        }
-
-        return this;
-      },
-      transactionStart: boxProto.transactionStart,
-      transactionEnd: boxProto.transactionEnd,
-      transaction: boxProto.transaction
-    });
-    return this;
-  }
+//  boxify: function () {
+//    const boxProto = Box.proto;
+//    Object.assign(this, {
+//      _subscribers: [],
+//      getItem: function () {
+//
+//      },
+//      _notify: function (){
+//        if(this._subscribers){
+//          this._notifing = true;
+//          this._subscribers.forEach(s => {
+//            if(s.doCompute){
+//              s._notifing || s.doCompute();
+//            } else {
+//              s(this);
+//            }
+//          });
+//          this._notifing = false;
+//        }
+//        this._paret && this._parent._notify && this._parent._notify();
+//      },
+//      listen: function listen(f) {
+//        const ss = this._subscribers;
+//
+//        if(!ss.includes(f)){
+//          ss.push(f);
+//          f(this);
+//        }
+//
+//        return this;
+//      },
+//      transactionStart: boxProto.transactionStart,
+//      transactionEnd: boxProto.transactionEnd,
+//      transaction: boxProto.transaction
+//    });
+//    return this;
+//  }
 });
 
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
@@ -118,7 +118,7 @@ M(function has(z, i) {
     }
   }
 
-  return z.getResult().hasOwnProperty(i) ? true : false;
+  return z._getResult().hasOwnProperty(i) ? true : false;
 });
 
 
@@ -130,7 +130,7 @@ M(function has(z, i) {
 //      return z.get(i.shift()).get(i);
 //    }
 //  }
-//  const vs = z.getResult();
+//  const vs = z._getResult();
 //
 //  if(is.Str(i))
 //    i = i();
@@ -152,14 +152,14 @@ M(function has(z, i) {
 //  const res = nice.toItem(vs[i]);
 //  res._parent = z;
 //  res._parentKey = i;
-//  res.setResult = setResult.bind(res);
-//  res.getResult = getResult.bind(res);
+//  res._setResult = _setResult.bind(res);
+//  res._getResult = _getResult.bind(res);
 //  return res;
 //});
 
 
 //A('set', (z, path, v) => {
-//  let data = z.getResult();
+//  let data = z._getResult();
 //  let k = path;
 //  if(path.pop){
 //    while(path.length > 1){
@@ -184,11 +184,11 @@ M(function has(z, i) {
 //  const type = z._itemsType;
 //
 //  data[k] = type
-//    ? (v._type && v._type === type ? v : type(v)).getResult()
+//    ? (v._type && v._type === type ? v : type(v))._getResult()
 //    : Switch(v)//TODO: simlify maybe
 //      .Box.use(v => v)
 //      .primitive.use(v => v)
-//      .nice.use(v => v.getResult())
+//      .nice.use(v => v._getResult())
 //      .Object.use(v => v)
 //      .function.use(v => v)
 //      ();
@@ -201,7 +201,7 @@ M(function has(z, i) {
 Func.Nothing.function('each', () => 0);
 
 F(function each(o, f){
-  for(let k in o.getResult())
+  for(let k in o._getResult())
     if(k !== '_nt_')
       if(f(o.get(k), k) === nice.STOP)
         break;
@@ -210,24 +210,24 @@ F(function each(o, f){
 
 
 F('reverseEach', (o, f) => {
-  Object.keys(o.getResult()).reverse().forEach(k => f(o.get(k), k));
+  Object.keys(o._getResult()).reverse().forEach(k => f(o.get(k), k));
 });
 
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
-A('remove', (z, i) => delete z.getResult()[i]);
-A('removeAll', z => z.setResult(z._type.defaultValue()));
+A('remove', (z, i) => delete z._getResult()[i]);
+A('removeAll', z => z._setResult(z._type.defaultValue()));
 
 
-function setResult(v){
-  this._parent.getResult()[this._parentKey] = v;
+function _setResult(v){
+  this._parent._getResult()[this._parentKey] = v;
   this._notifyUp();
 };
 
 
-function getResult(){
-  return this._parent.getResult()[this._parentKey];
+function _getResult(){
+  return this._parent._getResult()[this._parentKey];
 };
 
 
@@ -253,7 +253,7 @@ nice._on('Type', function defineReducer(type) {
 
 
 M(function reduce(o, f, res){
-  for(let k in o.getResult())
+  for(let k in o._getResult())
     res = f(res, o.get(k), k);
   return res;
 });
@@ -284,7 +284,7 @@ M(function sum(c, f){
 
 
 C(function some(c, f){
-  const items = c.getResult();
+  const items = c._getResult();
   for(let i in items)
     if(f(items[i], i))
       return true;
@@ -293,7 +293,7 @@ C(function some(c, f){
 
 
 C(function every(c, f){
-  const items = c.getResult();
+  const items = c._getResult();
   for(let i in items)
     if(!f(items[i], i))
       return false;
@@ -301,7 +301,7 @@ C(function every(c, f){
 });
 
 //Func.Obj(function includes(c, v){
-//  const items = c.getResult();
+//  const items = c._getResult();
 //
 //  if(items.includes)
 //    return items.includes(v);
@@ -314,7 +314,7 @@ C(function every(c, f){
 //});
 
 M(function find(c, f){
-  const items = c.getResult();
+  const items = c._getResult();
   for(let i in items)
     if(f(items[i], i))
       return items[i];
@@ -323,7 +323,7 @@ M(function find(c, f){
 
 
 M(function findKey(c, f){
-  const items = c.getResult();
+  const items = c._getResult();
   for(let i in items)
     if(f(items[i], i))
       return i;

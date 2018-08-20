@@ -9,7 +9,7 @@ nice.Single.extend({
 })
   .about('Wrapper for JS string.')
   .ReadOnly(function length(){
-    return this.getResult().length;
+    return this._getResult().length;
   });
 
 _each({
