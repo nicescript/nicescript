@@ -69,7 +69,7 @@ function transform(s){
       const needJs = types[i].type.jsType;
       //TODO: bug: when a[i] is nice.NotFound
       if(needJs && isNice){
-        a[i] = a[i]._getResult();
+        a[i] = a[i]();
       } else if(!needJs && !isNice){
         a[i] = nice.toItem(a[i]);
       }
@@ -159,6 +159,7 @@ function createFunctionBody(type){
       throw signatureError(z.name, a);
 
     if(type === 'Action'){
+      //TODO: wrap all actions in transaction
       if(is.primitive(a[0]))
         return s(...a);
       s(...a);

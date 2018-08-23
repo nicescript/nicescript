@@ -1,8 +1,6 @@
 //REMOVE:
-//_setResult
 //_getResult
-//defaultValue
-// most of constructor
+// constructor => initBy
 
 nice = (...a) => {
   if(a.length === 0)
@@ -76,20 +74,20 @@ defAll(nice, {
 //  },
 
 
-  toItem: v => {
-    if(v === undefined)
-      return nice.Undefined();
-
-    if(v === null)
-      return nice.Null();
-
-    const type = nice.valueType(v);
-
-    if(type === nice.Box || type === nice.function)
-      return v;
-
-    return nice._newItem(type)._setResult(v);
-  },
+//  toItem: v => {
+//    if(v === undefined)
+//      return nice.Undefined();
+//
+//    if(v === null)
+//      return nice.Null();
+//
+//    const type = nice.valueType(v);
+//
+//    if(type === nice.Box || type === nice.function)
+//      return v;
+//
+//    return nice._newItem(type)._setResult(v);
+//  },
 
   //TODO: maybe replace with nice.typeOf
   valueType: v => {

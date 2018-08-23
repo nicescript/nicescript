@@ -3,11 +3,7 @@ nice.Type({
 
   extends: 'Something',
 
-  init: i => i._setResult(i._type.default()),
-
   default: () => undefined,
-
-  defaultValue: () => ({}),
 
   isSubType,
 
@@ -15,14 +11,10 @@ nice.Type({
 
 //  constructor: (z, ...a) => a.length && z.setValue(...a),
 
-  fromResult: function(result){
-    return this()._setResult(result);
-  },
-
   proto: create(nice.Anything.proto, {
     _isSingleton: false,
 
-    valueOf: function (){ return this._getResult(); }
+    valueOf: function (){ return this._value; }
   }),
 
   configProto: {

@@ -11,15 +11,15 @@ describe("Arr", function() {
     let a = Arr();
 
     a(2)(3, 4)(5);
-    expect(a._getResult()).to.deep.equal([2, 3, 4, 5]);
+    expect(a.get(1)()).to.equal(3);
+    expect(a.get(3)()).to.equal(5);
   });
 
   it("nice child", function() {
     let a = Arr();
     let o = Obj();
     a(o);
-    expect(a._getResult()[0]).to.equal(o);
-//    expect(a.get(0)).to.equal(o);
+    expect(a.get(0)).to.equal(o);
   });
 
 

@@ -109,43 +109,43 @@ defAll(nice, {
     return f || (v => v);
   },
 
-  clone: o => {
-    let res;
-    if(is.nice(o)){
-      res = o._type();
-      res._result = nice.clone(o._getResult());
-      return res;
-    } else if(Array.isArray(o)) {
-      res = [];
-    } else if(is.Object(o)) {
-      res = {};
-    } else {
-      return o;
-    }
-    for(let i in o)
-      res[i] = o[i];
-    return res;
-  },
-
-  cloneDeep: o => {
-    let res;
-    if(o && o._isSingleton){
-      return o;
-    } else if(is.nice(o)) {
-      res = nice._newItem(o._type);
-      res._result = nice.cloneDeep(o._getResult());
-      return res;
-    } else if(Array.isArray(o)) {
-      res = [];
-    } else if(is.Object(o)) {
-      res = {};
-    } else {
-      return o;
-    }
-    for(let i in o)
-      res[i] = nice.cloneDeep(o[i]);
-    return res;
-  },
+//  clone: o => {
+//    let res;
+//    if(is.nice(o)){
+//      res = o._type();
+//      res._result = nice.clone(o._getResult());
+//      return res;
+//    } else if(Array.isArray(o)) {
+//      res = [];
+//    } else if(is.Object(o)) {
+//      res = {};
+//    } else {
+//      return o;
+//    }
+//    for(let i in o)
+//      res[i] = o[i];
+//    return res;
+//  },
+//
+//  cloneDeep: o => {
+//    let res;
+//    if(o && o._isSingleton){
+//      return o;
+//    } else if(is.nice(o)) {
+//      res = nice._newItem(o._type);
+//      res._result = nice.cloneDeep(o._getResult());
+//      return res;
+//    } else if(Array.isArray(o)) {
+//      res = [];
+//    } else if(is.Object(o)) {
+//      res = {};
+//    } else {
+//      return o;
+//    }
+//    for(let i in o)
+//      res[i] = nice.cloneDeep(o[i]);
+//    return res;
+//  },
 
   diff: (a, b) => {
     if(a === b)

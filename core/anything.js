@@ -86,67 +86,36 @@ nice.registerType({
     },
 
 
-    _assertResultObject: function (f){
-      this._hasChanges = true;
-      if(this._parent){
-        this._parent._assertResultObject((parentRes, inTransaction) => {
-          if(!parentRes.hasOwnProperty(this._parentKey)){
-            const val = this.is.Nothing() ? {} : this._type.defaultValue();
-            f(parentRes[this._parentKey] = val, inTransaction);
-          }
-          const t = typeof parentRes[this._parentKey];
-          if(t !== 'object')
-            throw "Can't set children to " + t;
-          else
-            f(parentRes[this._parentKey], inTransaction);
-        });
-      } else {
-        const t = typeof this._result;
-        if(t !== 'object')
-          throw "Can't set children to " + t;
-
-        if(!this._isHot() || this._transactionDepth){
-          f(this._result, this._transactionDepth);
-        } else {
-          this.transaction(() => f(this._result, true));
-        }
-      }
-    },
-
-//    _setResult: function (v){
-//      if(v === this._getResult())
-//        return;
+//    _assertResultObject: function (f){
+//      this._hasChanges = true;
 //      if(this._parent){
-//        this._parent._assertResultObject((o, isTransaction) => {
-//          isTransaction && !this.hasOwnProperty('_oldValue')
-//              && (this._oldValue = o[this._parentKey]);
-//          o[this._parentKey] = v;
+//        this._parent._assertResultObject((parentRes, inTransaction) => {
+//          if(!parentRes.hasOwnProperty(this._parentKey)){
+//            const val = this.is.Nothing() ? {} : this._type.defaultValue();
+//            f(parentRes[this._parentKey] = val, inTransaction);
+//          }
+//          const t = typeof parentRes[this._parentKey];
+//          if(t !== 'object')
+//            throw "Can't set children to " + t;
+//          else
+//            f(parentRes[this._parentKey], inTransaction);
 //        });
 //      } else {
-//        if(!this._isHot()){
-//          this._result = v;
+//        const t = typeof this._result;
+//        if(t !== 'object')
+//          throw "Can't set children to " + t;
+//
+//        if(!this._isHot() || this._transactionDepth){
+//          f(this._result, this._transactionDepth);
 //        } else {
-//          if(!this._transactionDepth){
-//            this.transaction(() => {
-//              this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
-//              this._result = v;
-//            });
-//          } else {
-//            this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
-//            this._result = v;
-//          }
+//          this.transaction(() => f(this._result, true));
 //        }
 //      }
-//      return this;
 //    },
 
     _setValue: function (v){
       if(v === this._value)
         return;
-//      let target = this;
-//      while(target._parent){
-//        target = target._parent;
-//      }
       this.transaction(isHot => {
         isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
@@ -154,26 +123,26 @@ nice.registerType({
       return this;
     },
 
-    _getChildResult: function (k){
-      const res = this._getResult();
-      if(typeof res !== 'object')
-        return nice.NotFound();
-      return res[k];
-    },
-
-    _getResult: function (){
-//        const parentRes = this._parent._getResult();
-//  return (parentRes && parentRes.hasOwnProperty(this._parentKey))
-//    ? parentRes[this._parentKey]
-//    : this._type.defaultValue();
-
-      let value = this._parent
-        ? this._parent._getChildResult(this._parentKey)
-        : this._result;
-      if(value === undefined)
-        value = this._type.defaultValue();
-      return value;
-    },
+//    _getChildResult: function (k){
+//      const res = this._getResult();
+//      if(typeof res !== 'object')
+//        return nice.NotFound();
+//      return res[k];
+//    },
+//
+//    _getResult: function (){
+////        const parentRes = this._parent._getResult();
+////  return (parentRes && parentRes.hasOwnProperty(this._parentKey))
+////    ? parentRes[this._parentKey]
+////    : this._type.defaultValue();
+//
+//      let value = this._parent
+//        ? this._parent._getChildResult(this._parentKey)
+//        : this._result;
+//      if(value === undefined)
+//        value = this._type.defaultValue();
+//      return value;
+//    },
   },
 
   configProto: {
@@ -190,23 +159,23 @@ nice.registerType({
       return this;
     },
 
-    key: function (name, o) {
-      if(name[0] !== name[0].toLowerCase())
-        throw "Property name should start with lowercase letter. ";
-      def(this.target.proto, name, function (...a) {
-        const r = this._getResult();
-        if(a.length){
-          if(is.Object(a[0]))
-            throw "Key must be a primitive value.";
-
-          this.set(name, a[0])
-          return this;
-        } else {
-          return is.Anything(o) ? o.get(r[name]) : o[r[name]];
-        }
-      });
-      return this;
-    }
+//    key: function (name, o) {
+//      if(name[0] !== name[0].toLowerCase())
+//        throw "Property name should start with lowercase letter. ";
+//      def(this.target.proto, name, function (...a) {
+//        const r = this._getResult();
+//        if(a.length){
+//          if(is.Object(a[0]))
+//            throw "Key must be a primitive value.";
+//
+//          this.set(name, a[0])
+//          return this;
+//        } else {
+//          return is.Anything(o) ? o.get(r[name]) : o[r[name]];
+//        }
+//      });
+//      return this;
+//    }
   },
 
   types: {}

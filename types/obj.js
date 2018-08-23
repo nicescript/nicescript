@@ -13,12 +13,12 @@ nice.Type({
     itemArgsN: (z, os) => _each(os, o => _each(o, (v, k) => z.set(k, v))),
 
     proto: {
-      getDeep(path) {
-        let k = 0;
-        let res = this;
-        while(k < path.length) res = res.get(path[k++]);
-        return res;
-      },
+//      getDeep(path) {
+//        let k = 0;
+//        let res = this;
+//        while(k < path.length) res = res.get(path[k++]);
+//        return res;
+//      },
 
       get(i) {
         const z = this;
@@ -26,56 +26,39 @@ nice.Type({
         if(i._isAnything === true)
           i = i();
 
-
-
-        z._items = z._items || {};
         if(z._items.hasOwnProperty(i)){
           return z._items[i];
         }
 
-        const types = z._type.types;
-
-  //      if(!vs.hasOwnProperty(i)){
-  //        const types = z._type.types;
-  //        if(i in vs === false){
-  //          if(types && types[i])
-  //            vs[i] = types[i].defaultValue();
-  //          else
-  //            return nice.NOT_FOUND;
-  //        } else {
-  //          if(typeof vs[i] === 'object')
-  //            vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
-  //        }
-  //      }
-
-        const type = types[i] || this._itemsType;
+        const type = z._type.types[i] || this._itemsType;
         const item = nice._newItem(type, z, i);
-        const thisResult = this._getResult();
-        if(typeof thisResult === 'object' && i in thisResult){
-          const result = thisResult[i];
-          const vType = nice.typeOf(result);
-          if(type && !is.subType(vType, type)) {
-            throw `Can't create ${type.name} from ${vType.name}: ${JSON.stringify(result)}`;
-          } else {
-            nice._assignType(item, vType);
-          }
-        } else {
-  //        if(defaultValue !== undefined){
-  //          type && nice._assignType(item, type || nice.typeOf(defaultValue));
-  //          thisResult[i] = defaultValue;
-  //        } else {
+//        const thisResult = this._getResult();
+//        if(typeof thisResult === 'object' && i in thisResult){
+//          const result = thisResult[i];
+//          const vType = nice.typeOf(result);
+//          if(type && !is.subType(vType, type)) {
+//            throw `Can't create ${type.name} from ${vType.name}: ${JSON.stringify(result)}`;
+//          } else {
+//            nice._assignType(item, vType);
+//          }
+//        } else {
+//  //        if(defaultValue !== undefined){
+//  //          type && nice._assignType(item, type || nice.typeOf(defaultValue));
+//  //          thisResult[i] = defaultValue;
+//  //        } else {
           !type && nice._assignType(item, nice.NotFound);
   //        }
-        }
+//        }
         return z._items[i] = item;
       },
 
-      setDeep(path, v){
-        return this.getDeep(path)(v);
-      },
+//      setDeep(path, v){
+//        return this.getDeep(path)(v);
+//      },
 
       set: function(i, v) {
-        return this.get(i)(v);
+        this.get(i)(v);
+        return this;
   //      const z = this;
   //      let data = z._getResult();
   //      let k = path;
@@ -153,7 +136,7 @@ nice.Type({
     return create(nice.collectionReducers, f);
   }})
   .addProperty('size', { get: function () {
-    return Object.keys(this._getResult()).reduce(n => n + 1, 0);
+    return Object.keys(this._items).reduce(n => n + 1, 0);
   }})
   .Action(function itemsType(z, t){
     z._itemsType = t;
@@ -174,7 +157,7 @@ Object.assign(nice.Obj.proto, {
 //  },
 //
 //  setByType: function (key, type, value){
-//    this._getResult()[key] = value || type.defaultValue();
+//    this._items[key] = value || type.defaultValue();
 //  },
 
 //  boxify: function () {
@@ -218,113 +201,27 @@ Object.assign(nice.Obj.proto, {
 
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
-//M(function get(z, i) {
-//  if(i.pop){
-//    if(i.length === 1){
-//      i = i[0];
-//    } else {
-//      return z.get(i.shift()).get(i);
-//    }
-//  }
-//  const vs = z._getResult();
-//
-//  if(is.Str(i))
-//    i = i();
-//
-//  if(!vs.hasOwnProperty(i)){
-//    const types = z._type.types;
-//    if(i in vs === false){
-//      if(types && types[i])
-//        vs[i] = types[i].defaultValue();
-//      else
-//        return nice.NOT_FOUND;
-//    } else {
-//      if(typeof vs[i] === 'object')
-//        vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
-//    }
-//  }
-//
-//  //TODO: bug: does not work for undefined
-//  const res = nice.toItem(vs[i]);
-//  res._parent = z;
-//  res._parentKey = i;
-//  res._setResult = _setResult.bind(res);
-//  res._getResult = _getResult.bind(res);
-//  return res;
-//});
-
-
-//A('set', (z, path, v) => {
-//  let data = z._getResult();
-//  let k = path;
-//  if(path.pop){
-//    while(path.length > 1){
-//      k = nice.unwrap(path.shift());
-//      if(!data.hasOwnProperty(k)){
-//        data[k] = {};
-//        data = data[k];
-//      } else if(data[k]._nt_){
-//        if(typeof data[k] !== 'object')
-//          throw `Can't set property ${k} of ${data[k]}`;
-//        else
-//          data = data[k];
-//      } else if(typeof data[k] !== 'object') {
-//        throw `Can't set property ${k} of ${data[k]}`;
-//      } else {
-//        data = data[k];
-//      }
-//    }
-//    k = path[0];
-//  }
-//  k = nice.unwrap(k);
-//  const type = z._itemsType;
-//
-//  data[k] = type
-//    ? (v._type && v._type === type ? v : type(v))._getResult()
-//    : Switch(v)//TODO: simlify maybe
-//      .Box.use(v => v)
-//      .primitive.use(v => v)
-//      .nice.use(v => v._getResult())
-//      .Object.use(v => v)
-//      .function.use(v => v)
-//      ();
-//  z._notifyUp();
-//
-//  return z;
-//});
-
-
 Func.Nothing.function('each', () => 0);
 
 F(function each(o, f){
-  for(let k in o._getResult())
+  for(let k in o._items)
     if(k !== '_nt_')
-      if(is.Stop(f(o.get(k), k)))
+      if(is.Stop(f(o._items[k], k)))
         break;
   return o;
 });
 
 
 F('reverseEach', (o, f) => {
-  Object.keys(o._getResult()).reverse().forEach(k => f(o.get(k), k));
+  Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
 });
 
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
-A('remove', (z, i) => delete z._getResult()[i]);
-A('removeAll', z => z._setResult(z._type.defaultValue()));
-
-
-function _setResult(v){
-  this._parent._getResult()[this._parentKey] = v;
-  this._notifyUp();
-};
-
-
-function _getResult(){
-  return this._parent._getResult()[this._parentKey];
-};
+//TODO: make transaction save
+//A('remove', (z, i) => delete z._getResult()[i]);
+//A('removeAll', z => z._transaction(z => z._type.onCreate(z)));
 
 
 nice._on('Type', function defineReducer(type) {
@@ -349,8 +246,8 @@ nice._on('Type', function defineReducer(type) {
 
 
 M(function reduce(o, f, res){
-  for(let k in o._getResult())
-    res = f(res, o.get(k), k);
+  for(let k in o._items)
+    res = f(res, o._items[k], k);
   return res;
 });
 
@@ -375,53 +272,47 @@ M(function filter(c, f){
 
 
 M(function sum(c, f){
-  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
+  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v()));
 });
 
 
 C(function some(c, f){
-  const items = c._getResult();
-  for(let i in items)
-    if(f(items[i], i))
+  for(let i in c._items)
+    if(f(c._items[i], i))
       return true;
   return false;
 });
 
 
 C(function every(c, f){
-  const items = c._getResult();
-  for(let i in items)
-    if(!f(items[i], i))
+  for(let i in c._items)
+    if(!f(c._items[i], i))
       return false;
   return true;
 });
 
 //Func.Obj(function includes(c, v){
-//  const items = c._getResult();
+//  if(c._items.includes)
+//    return c._items.includes(v);
 //
-//  if(items.includes)
-//    return items.includes(v);
-//
-//  for(let i in items)
-//    if((items[i] === v))
+//  for(let i in c._items)
+//    if((c._items[i] === v))
 //      return true;
 //
 //  return false;
 //});
 
 M(function find(c, f){
-  const items = c._getResult();
-  for(let i in items)
-    if(f(items[i], i))
+  for(let i in c._items)
+    if(f(c._items[i], i))
       return items[i];
   return nice.NotFound();
 });
 
 
 M(function findKey(c, f){
-  const items = c._getResult();
-  for(let i in items)
-    if(f(items[i], i))
+  for(let i in c._items)
+    if(f(c._items[i], i))
       return i;
   return nice.NotFound();
 });
@@ -497,7 +388,7 @@ nice._on('Type', type => {
     nice.emitAndSave('Property', { type, name, targetType });
   }
 
-  def(nice.Obj.configProto, smallName, function (name, value = type.defaultValue()) {
+  def(nice.Obj.configProto, smallName, function (name, value) {
     createProperty(this, name, value);
     return this;
   });

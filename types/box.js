@@ -135,9 +135,9 @@ nice.Type({
         ? this._result : this.doCompute();
     },
 
-    valueOf: function() {
-      return this.hasOwnProperty('_result') && this._result;
-    },
+//    valueOf: function() {
+//      return this.hasOwnProperty('_result') && this._result;
+//    },
 
     getDiff: function (){
       if(this._diff || this._diff === false)

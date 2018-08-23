@@ -391,9 +391,9 @@ function isResolved (s){
 //    .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 
 
-function diffConverter(v){
-  return is.Value(v) ? v._getResult() : v;
-}
+//function diffConverter(v){
+//  return is.Value(v) ? v._getResult() : v;
+//}
 
 
 

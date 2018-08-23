@@ -3,9 +3,10 @@ nice.Obj.extend({
   onCreate: z => z._items = [],
   itemArgs0: z => z._items,
   itemArgs1: (z, v) => z.set(z._items.length, v),
-  itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
-//  defaultValue: () => [],
-//  initBy: (z, ...a) => z.push(...a),
+  itemArgsN: (z, vs) => {
+    vs.forEach( v => z.set(z._items.length, v));
+    return z;
+  },
   proto: {
 //    itemArgs: undefined,
 //    setValue: function (...a){
@@ -36,19 +37,19 @@ nice.Obj.extend({
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
     pop: function () {
-      return nice.toItem(this._getResult().pop());
+      return this._items.pop();
     },
 
     shift: function () {
-      return nice.toItem(this._getResult().shift());
+      return this._items.shift();
     },
   }
 }).about('Ordered list of elements.')
   .ReadOnly(function size() {
-    return this._getResult().length;
+    return this._items.length;
   })
   .Action(function push(z, ...a) {
-    a.forEach(v => z.set(z._getResult().length, v));
+    a.forEach(v => z.set(z._items.length, v));
   });
 
 
@@ -112,23 +113,22 @@ A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
 A('add', (z, ...a) => {
   const toAdd = Array.isArray(a[0]) ? a[0] : a;
-  const data = z._getResult();
-  toAdd.forEach(v => data.includes(v) || z.push(v));
+  toAdd.forEach(v => z._items.includes(v) || z.push(v));
 });
 
 A('pull', (z, item) => {
   const k = is.Value(item)
-    ? z._getResult().indexOf(item)
+    ? z.items.indexOf(item)
     : z.findKey(v => item === v());
   (k === -1 || k === undefined) || z.removeAt(k);
 });
 
 A('insertAt', (z, i, v) => {
-  z._getResult().splice(i, 0, null);
+  z._items.splice(i, 0, null);
   z.set(i, v);
 });
 
-A('removeAt', (z, i) => z._getResult().splice(i, 1));
+A('removeAt', (z, i) => z._items.splice(i, 1));
 
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
@@ -141,12 +141,12 @@ F('callEach', (z, ...a) => {
 // F.Array(name, (a, ...bs) => a[name](...bs));
 //});
 'splice'.split(',').forEach(name => {
- A(name, (a, ...bs) => a._getResult()[name](...bs));
+ A(name, (a, ...bs) => a._items[name](...bs));
 });
 
 
 function each(z, f){
-  const a = z._getResult();
+  const a = z._items;
   const l = a.length;
   for (let i = 0; i < l; i++)
     if(is.Stop(f(z.get(i), i)))
@@ -159,7 +159,7 @@ F.function(each);
 F.function('forEach', each);
 
 F.function(function eachRight(z, f){
-  const a = z._getResult();
+  const a = z._items;
   let i = a.length;
   while (i-- > 0)
     if(is.Stop(f(z.get(i), i)))
@@ -170,7 +170,7 @@ F.function(function eachRight(z, f){
 
 
 A(function fill(z, v, start = 0, end){
-  const l = z._getResult().length;
+  const l = z._items.length;
   end === undefined && (end = l);
   start < 0 && (start += l);
   end < 0 && (end += l);
@@ -199,7 +199,7 @@ M(function sortBy(a, f){
   f = nice.mapper(f);
 
   const res = Arr();
-  const source = a._getResult();
+  const source = a._items;
   source
     .map((v, k) => [k, f(v)])
     .sort((a, b) => +(a[1] > b[1]) || +(a[1] === b[1]) - 1)
@@ -231,6 +231,6 @@ M.about('Creates new array with separator between elments.')
 
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
-  const l = z._getResult().length;
+  const l = z._items.length;
   return { next: () => ({ value: z.get(i), done: ++i > l }) };
 });

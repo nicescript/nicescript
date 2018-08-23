@@ -1,10 +1,8 @@
 nice.Single.extend({
   name: 'Num',
 
-//  defaultValue: () => 0,
   onCreate: z => z._value = 0,
   itemArgs1: (z, n) => z._setValue(+n),
-//  set: n => +n,
 }).about('Wrapper for JS number.');
 
 _each({

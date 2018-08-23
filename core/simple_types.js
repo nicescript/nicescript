@@ -3,14 +3,12 @@ function s(name, parent, description, ){
   nice.Type({
     name,
     extends: parent,
-    defaultValue: () => value,
-//    creator: () => nice[itemTitle],
+    onCreate: z => z._value = value,
     description,
     proto: {
       _isSingleton: true,
     }
   })();
-//  nice[itemTitle] = Object.seal(create(nice[name].proto, new String(itemTitle)));
 }
 
 s('Nothing', 'Anything', 'Parent type for all falsy values.');

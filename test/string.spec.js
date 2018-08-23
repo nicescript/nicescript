@@ -2,7 +2,7 @@ const nice = require('../index.js')();
 const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
-const { Str } = nice;
+const { Str, is } = nice;
 
 describe("Str", function() {
 
@@ -69,24 +69,24 @@ describe("Str", function() {
   });
 
   it("endsWith", () => {
-    expect(nice.is.endsWith('qwe!@#', '@#')).to.equal(true);
-    expect(nice.is.endsWith('qwe!@#', '!', 4)).to.equal(true);
+    expect(is.endsWith('qwe!@#', '@#')).to.equal(true);
+    expect(is.endsWith('qwe!@#', '!', 4)).to.equal(true);
   });
 
 
   it("startsWith", () => {
-    expect(nice.is.startsWith('qwe!@#', 'qwe!')).to.equal(true);
-    expect(nice.is.startsWith('qwe!@#', '!', 3)).to.equal(true);
+    expect(is.startsWith('qwe!@#', 'qwe!')).to.equal(true);
+    expect(is.startsWith('qwe!@#', '!', 3)).to.equal(true);
   });
 
   it("includes", () => {
-    expect(nice.is.includes('qwe!@#', 'qwe!')).to.equal(true);
-    expect(nice.is.includes('qwe!@#', 'qwe', 3)).to.equal(false);
+    expect(is.includes('qwe!@#', 'qwe!')).to.equal(true);
+    expect(is.includes('qwe!@#', 'qwe', 3)).to.equal(false);
   });
 
   it("match", () => {
-    expect(nice.is.match('qwe!@#', /q/)).to.equal(true);
-    expect(nice.is.match('qwe!@#', /a/)).to.equal(false);
+    expect(is.match('qwe!@#', /q/)).to.equal(true);
+    expect(is.match('qwe!@#', /a/)).to.equal(false);
     expect(nice.match('qwe!@#', /q/)()[0]).to.equal('q');
   });
 

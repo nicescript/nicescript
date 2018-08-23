@@ -16,7 +16,6 @@ describe("Obj", function() {
   it("set / get primitive", function() {
     const a = Obj();
     a.set('qwe', 1);
-    expect(a('qwe')()).to.equal(1);
     expect(a.get('qwe')()).to.equal(1);
   });
 
@@ -24,44 +23,43 @@ describe("Obj", function() {
   it("set / get with nice.Str as key", function() {
     const a = Obj();
     a.set('qwe', 1);
-    expect(a(nice('qwe'))()).to.equal(1);
     expect(a.get(nice('qwe'))()).to.equal(1);
   });
 
 
-  it("get deep", function() {
-    const a = Obj();
-    const asd = a.getDeep(['qwe', 'asd']);
-    expect(asd).to.equal(a.getDeep(['qwe', 'asd']));
-    expect(asd).to.equal(a.get('qwe').get('asd'));
-    expect(asd._parent).to.equal(a.get('qwe'));
-    expect(asd.is.NotFound()).to.equal(true);
-  });
+//  it("get deep", function() {
+//    const a = Obj();
+//    const asd = a.getDeep(['qwe', 'asd']);
+//    expect(asd).to.equal(a.getDeep(['qwe', 'asd']));
+//    expect(asd).to.equal(a.get('qwe').get('asd'));
+//    expect(asd._parent).to.equal(a.get('qwe'));
+//    expect(asd.is.NotFound()).to.equal(true);
+//  });
 
 
-  it("set deep on empty", function() {
-    const a = Obj();
-    a.setDeep(['qwe', 'asd'], 1);
-    expect(a('qwe')()).to.deep.equal({asd:1});
-    expect(a.getDeep(['qwe', 'asd'])()).to.equal(1);
-  });
+//  it("set deep on empty", function() {
+//    const a = Obj();
+//    a.setDeep(['qwe', 'asd'], 1);
+//    expect(a('qwe')()).to.deep.equal({asd:1});
+//    expect(a.getDeep(['qwe', 'asd'])()).to.equal(1);
+//  });
+//
+//
+//  it("set deep on single", function() {
+//    const a = Obj();
+//    a.set('qwe', 1);
+//    expect(() => a.setDeep(['qwe', 'asd'], 1)).to.throw("Can't set children to number");
+//  });
 
 
-  it("set deep on single", function() {
-    const a = Obj();
-    a.set('qwe', 1);
-    expect(() => a.setDeep(['qwe', 'asd'], 1)).to.throw("Can't set children to number");
-  });
-
-
-  it("object values", () => {
-    let o = Obj();
-    o('qwe', {'':  1});
-    expect(o.get('qwe')()).to.deep.equal({'':1});
-    expect(o.getDeep(['qwe', ''])()).to.deep.equal(1);
-    o('asd', {'zxc':  {'': 2}});
-    expect(o.getDeep(['asd', 'zxc'])()).to.deep.equal({'':2});
-  });
+//  it("object values", () => {
+//    let o = Obj();
+//    o('qwe', {'':  1});
+//    expect(o.get('qwe')()).to.deep.equal({'':1});
+//    expect(o.getDeep(['qwe', ''])()).to.deep.equal(1);
+//    o('asd', {'zxc':  {'': 2}});
+//    expect(o.getDeep(['asd', 'zxc'])()).to.deep.equal({'':2});
+//  });
 
 
   it("remove", function() {
