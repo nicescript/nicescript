@@ -30,7 +30,7 @@ nice._on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
       throw this.message || (f.name + ' expected');
-    return nice.OK;
+    return nice.Ok();
   });
 });
 

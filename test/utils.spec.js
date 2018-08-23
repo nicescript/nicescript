@@ -146,4 +146,27 @@ describe("utils", function() {
     expect(w2(o)).to.equal(o);
     expect(o.zxc).to.equal(5);
   });
+
+
+  it("clone", function() {
+    let a = nice.Arr(1,2);
+    let b = nice.clone(a);
+
+    expect(b()).to.deep.equal([1,2]);
+    a.push(3);
+
+    expect(b()).to.deep.equal([1,2]);
+  });
+
+
+  it("cloneDeep", function() {
+    let a = nice.Arr(1,2);
+    let b = nice.cloneDeep(a);
+
+    expect(b()).to.deep.equal([1,2]);
+    a.push(3);
+
+    expect(b()).to.deep.equal([1,2]);
+  });
+
 });

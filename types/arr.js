@@ -1,12 +1,16 @@
 nice.Obj.extend({
   name: 'Arr',
-  itemArgs: nice.Single.itemArgs,
-  defaultValue: () => [],
-  constructor: (z, ...a) => z.push(...a),
+  onCreate: z => z._items = [],
+  itemArgs0: z => z._items,
+  itemArgs1: (z, v) => z.set(z._items.length, v),
+  itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
+//  defaultValue: () => [],
+//  initBy: (z, ...a) => z.push(...a),
   proto: {
-    setValue: function (...a){
-      return this.push(...a);
-    },
+//    itemArgs: undefined,
+//    setValue: function (...a){
+//      return this.push(...a);
+//    },
 
   //  _compareItems: (a1, a2, add, del) => {
   //    let i1 = 0, i2 = 0, ii2, n;
@@ -32,11 +36,11 @@ nice.Obj.extend({
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
     pop: function () {
-//      return nice.toItem(this._getResult().pop());
+      return nice.toItem(this._getResult().pop());
     },
 
     shift: function () {
-//      return nice.toItem(this._getResult().shift());
+      return nice.toItem(this._getResult().shift());
     },
   }
 }).about('Ordered list of elements.')
@@ -78,7 +82,7 @@ M.function('reduceRight', (a, f, res) => {
 //f.function('each', (a, f) => {
 //  const l = a.length;
 //  for (let i = 0; i < l; i++)
-//    if(f(a[i], i) === nice.STOP)
+//    if(is.Stop(f(a[i], i)))
 //      break;
 //  return a;
 //});
@@ -145,7 +149,7 @@ function each(z, f){
   const a = z._getResult();
   const l = a.length;
   for (let i = 0; i < l; i++)
-    if(f(z.get(i), i) === nice.STOP)
+    if(is.Stop(f(z.get(i), i)))
       break;
 
   return z;
@@ -158,7 +162,7 @@ F.function(function eachRight(z, f){
   const a = z._getResult();
   let i = a.length;
   while (i-- > 0)
-    if(f(z.get(i), i) === nice.STOP)
+    if(is.Stop(f(z.get(i), i)))
       break;
 
   return z;
@@ -209,7 +213,7 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
   a.each((vv, k) => {
     if(f(v, vv) <= 0){
       i = k;
-      return nice.STOP;
+      return nice.Stop();
     }
   });
   return i;

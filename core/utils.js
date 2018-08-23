@@ -61,7 +61,8 @@ defAll(nice, {
     keys.forEach(k => o[k] = value)),
 
   eraseProperty: (o, k) => {
-    Object.defineProperty(o, k, {writable: true}) && delete o[k];
+    Object.defineProperty(o, k, { writable: true, configurable: true }) && delete o[k];
+//    delete o[k];
   },
 
   stripFunction: f => {

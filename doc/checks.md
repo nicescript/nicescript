@@ -29,7 +29,7 @@ f('red');     //#F00
 f('blue');    //#666  
  
 // using witn expect
-expect('red').red()    // nice.OK  
+expect('red').red()    // nice.Ok() 
 expect('green').red()  // throws 'red expected' 
 ```
 All calls to checks using `is.` and `Switch.` are wrapped in try-catch.

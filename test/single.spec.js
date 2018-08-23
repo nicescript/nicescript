@@ -23,13 +23,7 @@ describe("Single", function() {
 
   it("does not have objects methods", function(){
     let s = nice.Single();
-    expect(() => s.get('qwe')).to.throw();
-    expect(() => s.set('qwe')).to.throw();
-  });
-
-  it("does not have objects methods", function(){
-    let City = nice.Type().single('streets');
-    expect(() => s.get('qwe')).to.throw();
+    expect(s.get('qwe').is.NotFound()).to.equal(true);
     expect(() => s.set('qwe')).to.throw();
   });
 });

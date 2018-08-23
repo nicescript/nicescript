@@ -1,6 +1,12 @@
+//REMOVE:
+//_setResult
+//_getResult
+//defaultValue
+// most of constructor
+
 nice = (...a) => {
   if(a.length === 0)
-    return nice.Obj();
+    return nice.Single();
 
   if(a.length > 1)
     return nice.Arr(...a);
@@ -9,10 +15,10 @@ nice = (...a) => {
     return nice.Arr(...a[0]);
 
   if(a[0] === null)
-    return nice.NULL;
+    return nice.Null();
 
   if(a[0] === undefined)
-    return nice.UNDEFINED;
+    return nice.Undefined();
 
   if(a[0]._type)
     return a[0];
@@ -72,10 +78,10 @@ defAll(nice, {
 
   toItem: v => {
     if(v === undefined)
-      return nice.UNDEFINED;
+      return nice.Undefined();
 
     if(v === null)
-      return nice.NULL;
+      return nice.Null();
 
     const type = nice.valueType(v);
 
@@ -147,7 +153,7 @@ defAll(nice, {
     if(o)
       for(let i in o)
         if(i !== '_nt_')
-          if(f(o[i], i) === nice.STOP)
+          if(is.Stop(f(o[i], i)))
             break;
     return o;
   },

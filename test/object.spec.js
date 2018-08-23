@@ -7,13 +7,14 @@ const Obj = nice.Obj;
 describe("Obj", function() {
 
   it("constructor", function() {
-    const a = nice({asd: 3});
-    expect(a._getResult()).to.deep.equal({asd:3});
+    const a = Obj({asd: 3});
+    expect(a.get('asd')()).to.equal(3);
+    expect(a.get('qwe').is.NotFound()).to.equal(true);
   });
 
 
   it("set / get primitive", function() {
-    const a = nice();
+    const a = Obj();
     a.set('qwe', 1);
     expect(a('qwe')()).to.equal(1);
     expect(a.get('qwe')()).to.equal(1);
@@ -21,7 +22,7 @@ describe("Obj", function() {
 
 
   it("set / get with nice.Str as key", function() {
-    const a = nice();
+    const a = Obj();
     a.set('qwe', 1);
     expect(a(nice('qwe'))()).to.equal(1);
     expect(a.get(nice('qwe'))()).to.equal(1);
@@ -29,9 +30,9 @@ describe("Obj", function() {
 
 
   it("get deep", function() {
-    const a = nice();
-    const asd = a.get(['qwe', 'asd']);
-    expect(asd).to.equal(a.get(['qwe', 'asd']));
+    const a = Obj();
+    const asd = a.getDeep(['qwe', 'asd']);
+    expect(asd).to.equal(a.getDeep(['qwe', 'asd']));
     expect(asd).to.equal(a.get('qwe').get('asd'));
     expect(asd._parent).to.equal(a.get('qwe'));
     expect(asd.is.NotFound()).to.equal(true);
@@ -39,59 +40,32 @@ describe("Obj", function() {
 
 
   it("set deep on empty", function() {
-    const a = nice();
-    a.set(['qwe', 'asd'], 1);
+    const a = Obj();
+    a.setDeep(['qwe', 'asd'], 1);
     expect(a('qwe')()).to.deep.equal({asd:1});
-    expect(a.get(['qwe', 'asd'])()).to.equal(1);
+    expect(a.getDeep(['qwe', 'asd'])()).to.equal(1);
   });
 
 
   it("set deep on single", function() {
-    const a = nice();
+    const a = Obj();
     a.set('qwe', 1);
-    expect(() => a.set(['qwe', 'asd'], 1)).to.throw("Can't set children to number");
-  });
-
-
-  it("has", function() {
-    const a = nice();
-    a.set('qwe', 0).set('zxc', 1);
-    expect(a.has('qwe')()).to.equal(true);
-    expect(a.has('zxc')()).to.equal(true);
-    expect(a.has('asd')()).to.equal(false);
-  });
-
-
-  it("has", function() {
-    const a = nice();
-    a.set(['qwe', 'asd'], 1);
-    expect(a.has(['qwe', 'asd'])()).to.equal(true);
-    expect(a.has(['zxc', 'asd'])()).to.equal(false);
+    expect(() => a.setDeep(['qwe', 'asd'], 1)).to.throw("Can't set children to number");
   });
 
 
   it("object values", () => {
-    let o = nice();
+    let o = Obj();
     o('qwe', {'':  1});
     expect(o.get('qwe')()).to.deep.equal({'':1});
-    expect(o.get(['qwe', ''])()).to.deep.equal(1);
+    expect(o.getDeep(['qwe', ''])()).to.deep.equal(1);
     o('asd', {'zxc':  {'': 2}});
-    expect(o.get(['asd', 'zxc'])()).to.deep.equal({'':2});
-  });
-
-
-  it("set / get container", function() {
-    const a = nice();
-    const b = nice(a);
-//    b.set('asd', 2);
-//    a.set('qwe', b);
-    expect(b()).to.equal(a);
-//    expect(a.get('qwe')()).to.deep.equal({asd:2});
+    expect(o.getDeep(['asd', 'zxc'])()).to.deep.equal({'':2});
   });
 
 
   it("remove", function() {
-    const a = nice({qwe: 1, asd: 3});
+    const a = Obj({qwe: 1, asd: 3});
     a.remove('qwe');
     expect(a()).to.deep.equal({asd:3});
     expect(a._getResult()).to.deep.equal({asd:3});
@@ -99,7 +73,7 @@ describe("Obj", function() {
 
 
   it("removeAll", () => {
-    const a = nice({qwe: 1, asd: 3});
+    const a = Obj({qwe: 1, asd: 3});
     a.removeAll();
     expect(a._getResult()).to.deep.equal({});
   });
@@ -230,7 +204,7 @@ describe("Obj", function() {
 
 
   it("values", function() {
-    const a = nice();
+    const a = Obj();
     a.set('qwe', 3);
     a.set('ad', 2);
     expect(a.values._type).to.equal(nice.Arr);
@@ -300,7 +274,7 @@ describe("Obj", function() {
 
 
   it("map", function() {
-    const a = nice();
+    const a = Obj();
     a.set('qwe', 3);
     a.set('ad', 2);
     let b = a.map(v => v * 2);
@@ -310,7 +284,7 @@ describe("Obj", function() {
 
 
   it("itemsType", function() {
-    const a = nice().itemsType(nice.Num);
+    const a = Obj().itemsType(nice.Num);
     a.set('qwe', 3);
     a.set('ad', '2');
     expect(a._type).to.equal(Obj);
@@ -329,7 +303,7 @@ describe("Obj", function() {
     let sum = 0;
     Obj({qwe: 1, asd: 2}).each(n => {
       sum += n;
-      return nice.STOP;
+      return nice.Stop();
     });
     expect(sum).to.equal(1);
   });
@@ -342,12 +316,14 @@ describe("Obj", function() {
 
 
   it("default object values for property", () => {
-    const t = nice.Type('Site')
+    const T = nice.Type('Site')
+      .num('size', 1)
       .obj('urls', {qwe:1})
       .arr('pages', ['qwe'])
       ();
-    expect(t().urls('qwe')()).to.equal(1);
-    expect(t().pages.get(0)()).to.equal('qwe');
+    expect(T().size()).to.equal(1);
+    expect(T().urls('qwe')()).to.equal(1);
+    expect(T().pages.get(0)()).to.equal('qwe');
   });
 
 

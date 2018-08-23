@@ -170,7 +170,7 @@ defAll(nice.Anything.proto, {
 
 
 function isResolved (s){
-  return s._result !== nice.NEED_COMPUTING && s._result !== nice.PENDING;
+  return !s.is.Pending() && !s.is.NeedComputing();
 }
 
 

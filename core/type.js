@@ -38,8 +38,12 @@ defAll(nice, {
     const type = (...a) => {
       const item = nice._newItem(type, null, null);
 //      const item = nice.createItem({ type });
-      type.defaultValue && item._setResult(type.defaultValue());
-      type.constructor && type.constructor(item, ...a);
+//      type.defaultValue && item._setResult(type.defaultValue());
+      type.onCreate && type.onCreate(item);
+//      type.constructor && type.constructor(item, ...a);
+      type.initBy
+        ? type.initBy(item, ...a)
+        : (a.length && item(...a));
       return item;
     };
 

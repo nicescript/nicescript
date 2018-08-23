@@ -54,10 +54,10 @@ describe("Switch", function() {
   it("delayed equal with default", function() {
     let s = Switch
       .equal(true)(2)
-      .default(nice.NOTHING);
+      .default(nice.Nothing());
 
     expect(s(true)).to.equal(2);
-    expect(s('asd')).to.equal(nice.NOTHING);
+    expect(s('asd').is.Nothing()).to.equal(true);
   });
 
 

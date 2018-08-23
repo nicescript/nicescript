@@ -2,7 +2,7 @@ const index = {};
 
 nice.Type({
   name: 'Interface',
-  constructor: (z, name, ...a) => {
+  initBy: (z, name, ...a) => {
     if(nice[name])
       throw `Can't create interface ${name} name busy.`;
 

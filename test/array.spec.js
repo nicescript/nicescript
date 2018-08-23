@@ -1,28 +1,39 @@
-let nice = require('../index.js')();
-let chai = require('chai');
+const nice = require('../index.js')();
+const chai = require('chai');
 chai.use(require('chai-spies'));
-let expect = chai.expect;
+const expect = chai.expect;
+const { Arr, Obj } = nice;
 
 describe("Arr", function() {
   let x2 = x => x * 2;
 
   it("setter", function() {
-    let a = nice.Arr();
+    let a = Arr();
 
     a(2)(3, 4)(5);
     expect(a._getResult()).to.deep.equal([2, 3, 4, 5]);
   });
 
+  it("nice child", function() {
+    let a = Arr();
+    let o = Obj();
+    a(o);
+    expect(a._getResult()[0]).to.equal(o);
+//    expect(a.get(0)).to.equal(o);
+  });
+
 
   it("constructor", function() {
-    let a = nice.Arr(1, 5, 8);
+    let a = Arr(1, 5, 8);
     a(9);
-    expect(a()).to.deep.equal([1, 5, 8, 9]);
+    expect(a.get(1)()).to.equal(5);
+    expect(a.get(3)()).to.equal(9);
+    expect(a.get(4).is.NotFound()).to.equal(true);
   });
 
 
   it("each", () => {
-    let a = nice.Arr(1, 2);
+    let a = Arr(1, 2);
     let spy = chai.spy();
     a.each(v => spy(v()));
     expect(spy).to.have.been.called.twice();
@@ -30,40 +41,37 @@ describe("Arr", function() {
     expect(spy).to.have.been.called.with(2);
   });
 
+
   it("eachRight", () => {
-    let a = nice.Arr(1, 2);
+    let a = Arr(1, 2);
     let b = [];
     a.eachRight(v => b.push(v()));
     expect(b).to.deep.equal([2, 1]);
   });
 
 
-
   it("filter", () => {
-    let a = nice.Arr(1, 2, 3, 4, 5);
+    let a = Arr(1, 2, 3, 4, 5);
     expect(a.filter(n => n % 2 === 0)()).to.deep.equal([2,4]);
   });
 
 
   it("sortBy", () => {
-    let a = nice.Arr(4, 3, 5);
+    let a = Arr(4, 3, 5);
     expect(a.sortBy()()).to.deep.equal([3,4,5]);
     expect(a.sortBy(v => -v)()).to.deep.equal([5,4,3]);
   });
 
 
   it("size", () => {
-    expect(nice.Arr(4, 3, 5).size).to.equal(3);
-    expect(nice.Arr().size).to.equal(0);
+    expect(Arr(4, 3, 5).size).to.equal(3);
+    expect(Arr().size).to.equal(0);
   });
 
 
   it("map", () => {
-    expect(nice.Arr(4, 3, 5).map(x2)()).to.deep.equal([8,6,10]);
+    expect(Arr(4, 3, 5).map(x2)()).to.deep.equal([8,6,10]);
   });
-
-
-
 
 
   it("class property", () => {
@@ -76,20 +84,20 @@ describe("Arr", function() {
 
 
   it("insertAt", () => {
-    let a = nice.Arr(1, 4);
+    let a = Arr(1, 4);
     a.insertAt(1, 2);
     expect(a._getResult()).to.deep.equal([1, 2, 4]);
   });
 
 
   it("push", () => {
-    let a = nice.Arr(1, 4);
+    let a = Arr(1, 4);
     a.push(2, 1);
     expect(a._getResult()).to.deep.equal([1, 4, 2, 1]);
   });
 
   it("pop", () => {
-    let a = nice.Arr(1, 2);
+    let a = Arr(1, 2);
     let b = a.pop();
     expect(b()).to.equal(2);
     expect(a()).to.deep.equal([1]);
@@ -97,13 +105,13 @@ describe("Arr", function() {
 
 
   it("unshift", () => {
-    let a = nice.Arr(1, 4);
+    let a = Arr(1, 4);
     a.unshift(2, 3);
     expect(a()).to.deep.equal([2, 3, 1, 4]);
   });
 
   it("shift", () => {
-    let a = nice.Arr(1, 4);
+    let a = Arr(1, 4);
     let b = a.shift();
     expect(a()).to.deep.equal([4]);
     expect(b()).to.equal(1);
@@ -111,7 +119,7 @@ describe("Arr", function() {
 
 
   it("add", () => {
-    let a = nice.Arr(1, 4);
+    let a = Arr(1, 4);
     a.add(2, 1);
     a.add(2, 1);
     expect(a._getResult()).to.deep.equal([1, 4, 2]);
@@ -119,14 +127,14 @@ describe("Arr", function() {
 
 
   it("removeAll", () => {
-    let a = nice.Arr(1, 4);
+    let a = Arr(1, 4);
     a.removeAll();
     expect(a._getResult()).to.deep.equal([]);
   });
 
 
   it("removeAt", () => {
-    let a = nice.Arr(1, 2, 3, 4);
+    let a = Arr(1, 2, 3, 4);
     a.removeAt(1);
     a.removeAt(1);
     expect(a._getResult()).to.deep.equal([1, 4]);
@@ -134,15 +142,15 @@ describe("Arr", function() {
 
 
   it("fill", () => {
-    expect(nice.Arr(1, 2, 3).fill(6)()).to.deep.equal([6, 6, 6]);
-    expect(nice.Arr(1, 2, 3).fill(6, 1, 2)()).to.deep.equal([1, 6, 3]);
-    expect(nice.Arr(1, 2, 3).fill(6, 1, 1)()).to.deep.equal([1, 2, 3]);
-    expect(nice.Arr(1, 2, 3).fill(6, -3, -2)()).to.deep.equal([6, 2, 3]);
+    expect(Arr(1, 2, 3).fill(6)()).to.deep.equal([6, 6, 6]);
+    expect(Arr(1, 2, 3).fill(6, 1, 2)()).to.deep.equal([1, 6, 3]);
+    expect(Arr(1, 2, 3).fill(6, 1, 1)()).to.deep.equal([1, 2, 3]);
+    expect(Arr(1, 2, 3).fill(6, -3, -2)()).to.deep.equal([6, 2, 3]);
   });
 
 
   it("Symbol.iterator", () => {
-    expect(() => [...nice.Arr()]).not.to.throw();
+    expect(() => [...Arr()]).not.to.throw();
   });
 
 

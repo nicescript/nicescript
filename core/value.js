@@ -13,7 +13,7 @@ nice.Type({
 
   creator: () => { throw 'Use Single or Object.' },
 
-  constructor: (z, ...a) => a.length && z.setValue(...a),
+//  constructor: (z, ...a) => a.length && z.setValue(...a),
 
   fromResult: function(result){
     return this()._setResult(result);
@@ -22,15 +22,6 @@ nice.Type({
   proto: create(nice.Anything.proto, {
     _isSingleton: false,
 
-//    _setResult: function(v) {
-//      this._result = v;
-//      return this;
-//    },
-//
-//    _getResult: function() {
-//      return this._result;
-//    },
-
     valueOf: function (){ return this._getResult(); }
   }),
 
@@ -38,7 +29,7 @@ nice.Type({
 
 
     by: function(f){
-      this.target.constructor = f;
+      this.target.initBy = f;
       return this;
     },
 

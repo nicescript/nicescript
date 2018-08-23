@@ -3,9 +3,13 @@ const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
 nice.Single.extend({
   name: 'Str',
 
-  defaultValue: () => '',
+//  defaultValue: () => '',
+  onCreate: z => z._value = '',
+  itemArgs1: (z, s) => z._setValue('' + s),
+  itemArgsn: (z, a) => z._setValue(nice.format(...a)),
 
-  set: (...a) => a[0] ? nice.format(...a) : ''
+
+//  set: (...a) => a[0] ? nice.format(...a) : ''
 })
   .about('Wrapper for JS string.')
   .ReadOnly(function length(){

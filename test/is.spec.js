@@ -6,6 +6,18 @@ const expect = chai.expect;
 describe("is", function() {
   const is = nice.is;
 
+
+  it("is", function(){
+    const a = nice.Single(0);
+//    expect(a.is()).to.equal(false);
+    a(1);
+    expect(a.is(1)).to.equal(true);
+    expect(a.is([])).to.equal(false);
+    expect(a.is(a)).to.equal(true);
+    expect(a.is.lt(5)).to.equal(true);
+  });
+
+
   it("equal", function(){
     expect(is.equal(2, 2)).to.equal(true);
     expect(is.equal(2, 3)).to.equal(false);

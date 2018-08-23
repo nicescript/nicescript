@@ -3,7 +3,7 @@ nice.Type({
 
   extends: 'Nothing',
 
-  constructor: (z, message) => {
+  initBy: (z, message) => {
     z.message = message;
     const a = new Err().stack.split('\n');
     a.splice(0, 4);

@@ -104,8 +104,9 @@ defGet(Html.proto, 'hover', function(){
 
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
-  if(this.cssSelectors.has(s)())
-    return this.cssSelectors.get(s);
+  const existing = this.cssSelectors.get(s);
+  if(!existing.is.Nothing())
+    return existing;
   this._autoClass();
   const style = Style();
   style.up = this;

@@ -5,7 +5,7 @@ Mapping.Anything('or', (...as) => {
     if(is.Something(v) && (!v._getResult || v._getResult() !== false))
       return v;
   }
-  return v || nice.NOTHING;
+  return v || nice.Nothing();
 });
 
 

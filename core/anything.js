@@ -1,19 +1,28 @@
 defAll(nice, {
   _newItem: (type, parent = null, key = null) => {
-    const f = create(type ? type.proto : Anything.proto, function(...a){
-      if(a.length){
-        if(!f._type || f._type === nice.NotFound){
-          const type = f._originalType || (a.length > 1 ? Arr : nice.typeOf(a[0]));
-          nice._assignType(f, type);
-        }
-        return f._type.itemArgs ? f._type.itemArgs(f, ...a) : f.setValue(...a);
-//        return f._parent || f;
+    const f = function(...a){
+      if(a.length === 0){
+        return f._type.itemArgs0(f);
+      } else if (a.length === 1){
+        return f._type.itemArgs1(f, a[0]);
       } else {
-        return (f._type && f._type.itemNoArgs)
-          ? f._type.itemNoArgs(f)
-          : f._getResult();
+        return f._type.itemArgsN(f, a);
       }
-    });
+//      if(a.length){
+//        if(!f._type || f._type === nice.NotFound){
+//          const type = f._originalType || nice.Single;
+////          const type = f._originalType || (a.length > 1 ? Arr : nice.typeOf(a[0]));
+//          nice._assignType(f, type);
+//        }
+//        return f._type.itemArgs ? f._type.itemArgs(f, ...a) : f.setValue(...a);
+////        return f._parent || f;
+//      } else {
+//        return (f._type && f._type.itemNoArgs)
+//          ? f._type.itemNoArgs(f)
+//          : f._getResult();
+//      }
+    };
+    nice._assignType(f, type || Anything);
     f._parent = parent;
     f._parentKey = key;
     f._originalType = type;
@@ -35,6 +44,12 @@ nice.registerType({
 
   extend: function (...a){
     return nice.Type(...a).extends(this);
+  },
+
+  itemArgs0: z => z._value,
+  itemArgs1: (z, v) => z._setValue(v),
+  itemArgsN: (z, vs) => {
+    throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
 
   proto: {
@@ -70,120 +85,20 @@ nice.registerType({
       } while (p = p._parent);
     },
 
-    get(i) {
-      const z = this;
-
-      if(i._isAnything === true)
-        i = i();
-
-      if(i.pop){
-        if(i.length === 1){
-          i = i[0];
-        } else {
-          let k = 0;
-          let res = this;
-          while(k < i.length) res = res.get(i[k++]);
-          return res;
-        }
-      }
-
-      z._items = z._items || {};
-      if(z._items.hasOwnProperty(i)){
-        return z._items[i];
-      }
-
-      const types = z._type.types;
-
-//      if(!vs.hasOwnProperty(i)){
-//        const types = z._type.types;
-//        if(i in vs === false){
-//          if(types && types[i])
-//            vs[i] = types[i].defaultValue();
-//          else
-//            return nice.NOT_FOUND;
-//        } else {
-//          if(typeof vs[i] === 'object')
-//            vs[i] = create(vs[i], (types && types[i] && types[i].defaultValue()) || {});
-//        }
-//      }
-
-      const type = types[i];
-      const item = nice._newItem(type, z, i);
-      const thisResult = this._getResult();
-      if(typeof thisResult === 'object' && i in thisResult){
-        const result = thisResult[i];
-        const vType = nice.typeOf(result);
-        if(type && !is.subType(vType, type)) {
-          throw `Can't create ${type.name} from ${vType.name}: ${JSON.stringify(result)}`;
-        } else {
-          nice._assignType(item, vType);
-        }
-      } else {
-//        if(defaultValue !== undefined){
-//          type && nice._assignType(item, type || nice.typeOf(defaultValue));
-//          thisResult[i] = defaultValue;
-//        } else {
-        nice._assignType(item, type || nice.NotFound);
-//        }
-      }
-      return z._items[i] = item;
-    },
-
-    set: function(path, v) {
-      return this.get(path)(v);
-//      const z = this;
-//      let data = z._getResult();
-//      let k = path;
-//      if(path.pop){
-//        while(path.length > 1){
-//          k = nice.unwrap(path.shift());
-//          if(!data.hasOwnProperty(k)){
-//            data[k] = {};
-//            data = data[k];
-//          } else if(data[k]._nt_){
-//            if(typeof data[k] !== 'object')
-//              throw `Can't set property ${k} of ${data[k]}`;
-//            else
-//              data = data[k];
-//          } else if(typeof data[k] !== 'object') {
-//            throw `Can't set property ${k} of ${data[k]}`;
-//          } else {
-//            data = data[k];
-//          }
-//        }
-//        k = path[0];
-//      }
-//      k = nice.unwrap(k);
-//      const type = z._itemsType;
-//
-//      data[k] = type
-//        ? (v._type && v._type === type ? v : type(v))._getResult()
-//        : Switch(v)//TODO: simlify maybe
-//          .Box.use(v => v)
-//          .primitive.use(v => v)
-//          .nice.use(v => v._getResult())
-//          .Object.use(v => v)
-//          .function.use(v => v)
-//          ();
-//      z._notifyUp();
-//
-//      return z;
-    },
 
     _assertResultObject: function (f){
       this._hasChanges = true;
       if(this._parent){
         this._parent._assertResultObject((parentRes, inTransaction) => {
           if(!parentRes.hasOwnProperty(this._parentKey)){
-            //TODO: check items type (maybe array, maybe single)
-            f(parentRes[this._parentKey] = {}, inTransaction);
-          } else {
-            const t = typeof parentRes[this._parentKey];
-            if(t !== 'object')
-              throw "Can't set children to " + t;
-            else
-              f(parentRes[this._parentKey], inTransaction);
+            const val = this.is.Nothing() ? {} : this._type.defaultValue();
+            f(parentRes[this._parentKey] = val, inTransaction);
           }
+          const t = typeof parentRes[this._parentKey];
+          if(t !== 'object')
+            throw "Can't set children to " + t;
+          else
+            f(parentRes[this._parentKey], inTransaction);
         });
       } else {
         const t = typeof this._result;
@@ -198,43 +113,66 @@ nice.registerType({
       }
     },
 
-    _setResult: function (v){
-      if(v === this._getResult())
+//    _setResult: function (v){
+//      if(v === this._getResult())
+//        return;
+//      if(this._parent){
+//        this._parent._assertResultObject((o, isTransaction) => {
+//          isTransaction && !this.hasOwnProperty('_oldValue')
+//              && (this._oldValue = o[this._parentKey]);
+//          o[this._parentKey] = v;
+//        });
+//      } else {
+//        if(!this._isHot()){
+//          this._result = v;
+//        } else {
+//          if(!this._transactionDepth){
+//            this.transaction(() => {
+//              this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
+//              this._result = v;
+//            });
+//          } else {
+//            this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
+//            this._result = v;
+//          }
+//        }
+//      }
+//      return this;
+//    },
+
+    _setValue: function (v){
+      if(v === this._value)
         return;
-      if(this._parent){
-        this._parent._assertResultObject((o, isTransaction) => {
-          isTransaction && !this.hasOwnProperty('_oldValue')
-              && (this._oldValue = o[this._parentKey]);
-          o[this._parentKey] = v;
-        });
-      } else {
-        if(!this._isHot()){
-          this._result = v;
-        } else {
-          if(!this._transactionDepth){
-            this.transaction(() => {
-              this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
-              this._result = v;
-            });
-          } else {
-            this.hasOwnProperty('_oldValue') || (this._oldValue = this._result);
-            this._result = v;
-          }
-        }
-      }
+//      let target = this;
+//      while(target._parent){
+//        target = target._parent;
+//      }
+      this.transaction(isHot => {
+        isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
+        this._value = v;
+      });
+      return this;
     },
 
     _getChildResult: function (k){
       const res = this._getResult();
       if(typeof res !== 'object')
-        return null;//TODO: NOT_FOUND
+        return nice.NotFound();
       return res[k];
     },
 
     _getResult: function (){
-      return this._parent
+//        const parentRes = this._parent._getResult();
+//  return (parentRes && parentRes.hasOwnProperty(this._parentKey))
+//    ? parentRes[this._parentKey]
+//    : this._type.defaultValue();
+
+      let value = this._parent
         ? this._parent._getChildResult(this._parentKey)
         : this._result;
+      if(value === undefined)
+        value = this._type.defaultValue();
+      return value;
     },
   },
 

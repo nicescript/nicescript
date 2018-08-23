@@ -21,7 +21,7 @@ nice.Type({
     return f;
   },
 
-  constructor: (z, ...a) => a.length && z(...a),
+  initBy: (z, ...a) => a.length && z(...a),
 
   proto: {
     by: function (...a){

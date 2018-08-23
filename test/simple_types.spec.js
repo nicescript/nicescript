@@ -5,93 +5,53 @@ const expect = chai.expect;
 
 describe("Simple types", function() {
 
-  it("Anything", () => {
-    expect(nice.ANYTHING.is.Anything()).to.equal(true);
-  });
+//  it("Anything", () => {
+//    expect(nice.Anything().is.Anything()).to.equal(true);
+//  });
 
 
   it("Nothing", () => {
-    expect(nice.NOTHING.is.Anything()).to.equal(true);
-    expect(nice.NOTHING.is.Nothing()).to.equal(true);
-    expect(nice.Nothing() === nice.NOTHING).to.equal(true);
+    expect(nice.Nothing().is.Anything()).to.equal(true);
+    expect(nice.Nothing().is.Nothing()).to.equal(true);
   });
 
 
   it("Null", () => {
-    expect(nice.NULL.is.Anything()).to.equal(true);
-    expect(nice.NULL.is.Nothing()).to.equal(true);
-    expect(nice.NULL.is.Null()).to.equal(true);
-    expect(nice.NULL.is.Something()).to.equal(false);
-    expect(nice.Null() === nice.NULL).to.equal(true);
-    expect(nice(null) === nice.NULL).to.equal(true);
+    expect(nice.Null().is.Anything()).to.equal(true);
+    expect(nice.Null().is.Nothing()).to.equal(true);
+    expect(nice.Null().is.Null()).to.equal(true);
+    expect(nice.Null().is.Something()).to.equal(false);
   });
 
 
   it("Undefined", () => {
-    expect(nice.UNDEFINED.is.Anything()).to.equal(true);
-    expect(nice.UNDEFINED.is.Nothing()).to.equal(true);
-    expect(nice.UNDEFINED.is.Undefined()).to.equal(true);
-    expect(nice.UNDEFINED.is.Something()).to.equal(false);
-    expect(nice.Undefined() === nice.UNDEFINED).to.equal(true);
-    expect(nice(undefined) === nice.UNDEFINED).to.equal(true);
+    expect(nice.Undefined().is.Anything()).to.equal(true);
+    expect(nice.Undefined().is.Nothing()).to.equal(true);
+    expect(nice.Undefined().is.Undefined()).to.equal(true);
+    expect(nice.Undefined().is.Something()).to.equal(false);
   });
 
 
   it("Pending", () => {
-    expect(nice.PENDING.is.Anything()).to.equal(true);
-    expect(nice.PENDING.is.Nothing()).to.equal(true);
-    expect(nice.PENDING.is.Pending()).to.equal(true);
-    expect(nice.PENDING.is.Something()).to.equal(false);
-    expect(nice.Pending() === nice.PENDING).to.equal(true);
+    expect(nice.Pending().is.Anything()).to.equal(true);
+    expect(nice.Pending().is.Nothing()).to.equal(true);
+    expect(nice.Pending().is.Pending()).to.equal(true);
+    expect(nice.Pending().is.Something()).to.equal(false);
   });
 
 
   it("Need computing", () => {
-    expect(nice.NEED_COMPUTING.is.Anything()).to.equal(true);
-    expect(nice.NEED_COMPUTING.is.Nothing()).to.equal(true);
-    expect(nice.NEED_COMPUTING.is.NeedComputing()).to.equal(true);
-    expect(nice.NEED_COMPUTING.is.Something()).to.equal(false);
-    expect(nice.NeedComputing() === nice.NEED_COMPUTING).to.equal(true);
+    expect(nice.NeedComputing().is.Anything()).to.equal(true);
+    expect(nice.NeedComputing().is.Nothing()).to.equal(true);
+    expect(nice.NeedComputing().is.NeedComputing()).to.equal(true);
+    expect(nice.NeedComputing().is.Something()).to.equal(false);
   });
 
 
   it("Something", () => {
-    expect(nice.SOMETHING.is.Anything()).to.equal(true);
-    expect(nice.is(nice.SOMETHING).Anything()).to.equal(true);
-//    expect(nice.Something.is.Nothing()).to.equal(false);
-    expect(nice.Something() === nice.SOMETHING).to.equal(true);
+    expect(nice.Something().is.Anything()).to.equal(true);
+    expect(nice.is(nice.Something()).Anything()).to.equal(true);
+    expect(nice.Something().is.Nothing()).to.equal(false);
   });
 
-
-  it("is", function(){
-    const a = nice.Single(0);
-//    expect(a.is()).to.equal(false);
-    a(1);
-    expect(a.is(1)).to.equal(true);
-    expect(a.is([])).to.equal(false);
-    expect(a.is(a)).to.equal(true);
-    expect(a.is.lt(5)).to.equal(true);
-  });
-
-
-  it("clone", function() {
-    let a = nice.Arr(1,2);
-    let b = nice.clone(a);
-
-    expect(b()).to.deep.equal([1,2]);
-    a.push(3);
-
-    expect(b()).to.deep.equal([1,2]);
-  });
-
-
-  it("cloneDeep", function() {
-    let a = nice.Arr(1,2);
-    let b = nice.cloneDeep(a);
-
-    expect(b()).to.deep.equal([1,2]);
-    a.push(3);
-
-    expect(b()).to.deep.equal([1,2]);
-  });
 });
