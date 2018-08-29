@@ -55,6 +55,11 @@ nice.registerType({
   proto: {
     _isAnything: true,
 
+    valueOf: function() {
+      return this.hasOwnProperty('_value') ? this._value : undefined;
+    },
+
+
     apply: function(f){
       f(this);
       return this;
@@ -77,13 +82,13 @@ nice.registerType({
       });
     },
 
-    _notifyUp: function () {
-      //TODO: change logic
-      let p = this;
-      do {
-        p._notify && p._notify();
-      } while (p = p._parent);
-    },
+//    _notifyUp: function () {
+//      //TODO: change logic
+//      let p = this;
+//      do {
+//        p._notify && p._notify();
+//      } while (p = p._parent);
+//    },
 
 
 //    _assertResultObject: function (f){
@@ -120,7 +125,7 @@ nice.registerType({
         isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
       });
-      return this;
+      return this._parent || this;
     },
 
 //    _getChildResult: function (k){

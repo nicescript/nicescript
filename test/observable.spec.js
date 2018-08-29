@@ -23,13 +23,11 @@ describe("Observable", function() {
     let n = Obj();
     let res;
 
-    n.listen(v => res = v());
+    n.listen(v => res = v.get('q')());
 
-    expect(res).to.deep.equal({});
+    n.set('q', 2);
 
-    n('q', 2);
-
-    expect(res).to.deep.equal({q:2});
+    expect(res).to.equal(2);
   });
 
 
@@ -44,29 +42,29 @@ describe("Observable", function() {
 //  });
 
 
-  it("listen diff", function(){
+  it("listen old value", function(){
     let a = Num();
     let res;
-    a.listen((v, diff) => res = diff);
+    a.listen((v, old) => res = old);
     expect(res).to.equal(undefined);
 
     a(6);
-    expect(res).to.deep.equal({ oldValue: 0 });
+    expect(res).to.deep.equal(0);
     a(7);
-    expect(res).to.deep.equal({ oldValue: 6 });
+    expect(res).to.deep.equal(6);
   });
 
 
-  it("listen diff on object", function(){
+  it("listen old value on object", function(){
     let a = Obj();
     let res;
-    a.listen((v, diff) => res = diff);
+    a.listen((v, old) => res = old);
     expect(res).to.equal(undefined);
 
-    a('q', 6);
-    expect(res).to.deep.equal({ children: { q: { oldValue: undefined } }});
-    a('q', 7);
-    expect(res).to.deep.equal({ children: { q: { oldValue: 6 } }});
+    a.set('q', 6);
+    expect(res).to.deep.equal({ q: undefined });
+    a.set('q', 7);
+    expect(res).to.deep.equal({ q: 6 });
   });
 
 
@@ -84,9 +82,9 @@ describe("Observable", function() {
 
     expect(res).to.equal(undefined);
 
-    a('q', 6);
+    a.set('q', 6);
     expect(res).to.deep.equal(6);
-    a('q', 7);
+    a.set('q', 7);
     expect(res).to.deep.equal(7);
 
     q.unsubscribe(f);

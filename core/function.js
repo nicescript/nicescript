@@ -71,7 +71,7 @@ function transform(s){
       if(needJs && isNice){
         a[i] = a[i]();
       } else if(!needJs && !isNice){
-        a[i] = nice.toItem(a[i]);
+        a[i] = nice(a[i]);
       }
     }
     return s.source(...a);

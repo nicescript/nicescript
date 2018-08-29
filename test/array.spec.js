@@ -19,7 +19,7 @@ describe("Arr", function() {
     let a = Arr();
     let o = Obj();
     a(o);
-    expect(a.get(0)).to.equal(o);
+    expect(a.get(0)() === o).to.equal(true);
   });
 
 
@@ -51,8 +51,9 @@ describe("Arr", function() {
 
 
   it("filter", () => {
-    let a = Arr(1, 2, 3, 4, 5);
-    expect(a.filter(n => n % 2 === 0)()).to.deep.equal([2,4]);
+    const res = Arr(1, 2, 3, 4, 5).filter(n => n % 2 === 0);
+    expect(res.get(0)().is(2)).to.equal(true);
+    expect(res.size).to.equal(2);
   });
 
 

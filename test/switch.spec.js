@@ -216,7 +216,7 @@ describe("Switch", function() {
 
   it("switch action & mapping", function() {
     expect(Switch(5).Number.sum(5).Array.map(x => x * 2)()()).equal(10);
-    expect(Switch([1]).Number.sum(5).Array.map(x => x * 2)()()).deep.equal([2]);
+    expect(Switch([1]).Number.sum(5).Array.map(x => x * 2)().get(0)()).equal(2);
     expect(Switch('qwe').Number.sum(5).Array.map(x => x * 2)()).equal('qwe');
   });
 
@@ -224,7 +224,7 @@ describe("Switch", function() {
   it("delayed switch action & mapping", function() {
     const f = nice.Switch.Number.sum(5).Array.map(x => x * 2);
     expect(f(5)()).equal(10);
-    expect(f([1])()).deep.equal([2]);
+    expect(f([1]).get(0)()).equal(2);
     expect(f('qwe')).equal('qwe');
   });
 

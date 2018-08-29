@@ -1,21 +1,6 @@
+const NO_NEED = {};
+
 defAll(nice.Anything.proto, {
-
-    _addHotChild: function(){
-      if(!this._hotChildCount){
-        this._hotChildCount = 1;
-        this._parent && this._parent._addHotChild();
-      } else {
-        this._hotChildCount++;
-      }
-    },
-
-    _removeHotChild: function(){
-      this._hotChildCount--;
-      if(!this._hotChildCount){
-        this._parent && this._parent._removeHotChild();
-      }
-    },
-
     listen: function(f) {
       const ss = this._subscribers = this._subscribers || [];
 
@@ -24,7 +9,7 @@ defAll(nice.Anything.proto, {
         isResolved(this) ? f(this) : this.compute();
       }
 
-      this._parent && this._parent._addHotChild();
+      this._parent && addHotChild(this._parent);
       return this;
     },
 
@@ -36,51 +21,33 @@ defAll(nice.Anything.proto, {
 //      });
 //    },
 
-    _notify: function (diff){
-      _each(diff.children, (v, k) => {
-        const c = this._items[k];
-        c && c._notify(v);
-      });
-      if(!this._subscribers)
-        return;
-      this._notifing = true;
-      this._subscribers.forEach(s => {
-        if(s.doCompute){
-          s._notifing || s.doCompute();
-        } else {
-          isResolved(this) && s(this, diff);
-        }
-      });
-      this._notifing = false;
-    },
-
-    _getDiff: function (){
-//      if(this._diff || this._diff === false)
-//        return this._diff;
-//      return this._diff = nice.diff(
-//          diffConverter(this.initState),
-//          diffConverter(this._result)
-//      );
-
-      if(this.hasOwnProperty('_oldValue')){
-        ///TODO: if(!this.is.Single())
-        const res = { oldValue: this._oldValue };
-        delete this._oldValue;
-        return res;
-      } else if(this._hasChanges){
-        if(this.is.Single())
-          throw 'ups';
-        const children = {};
-        nice._each(this._items, (v, k) => {
-          const d = v._getDiff();
-          d === false || (children[k] = d);
-        });
-        delete this._hasChanges;
-        return { children };
-      } else {
-        return false;
-      }
-    },
+//    _getDiff: function (){
+////      if(this._diff || this._diff === false)
+////        return this._diff;
+////      return this._diff = nice.diff(
+////          diffConverter(this.initState),
+////          diffConverter(this._result)
+////      );
+//
+//      if(this.hasOwnProperty('_oldValue')){
+//        ///TODO: if(!this.is.Single())
+//        const res = { oldValue: this._oldValue };
+//        delete this._oldValue;
+//        return res;
+//      } else if(this._hasChanges){
+//        if(this.is.Single())
+//          throw 'ups';
+//        const children = {};
+//        nice._each(this._items, (v, k) => {
+//          const d = v._getDiff();
+//          d === false || (children[k] = d);
+//        });
+//        delete this._hasChanges;
+//        return { children };
+//      } else {
+//        return false;
+//      }
+//    },
 
     transactionStart: function(){
       if(this._locked)
@@ -101,14 +68,14 @@ defAll(nice.Anything.proto, {
 
       this._transactionDepth = 0;
 
-      const diff = this._getDiff();
-      diff && this._notify(diff);
+//      const diff = this._getDiff();
+//      diff && this._notify(diff);
 
 //      this.initState = null;
 //      is.Box(this._result) || Object.freeze(this._result);
 //      (this._result && this._result._notify) || Object.freeze(this._result);
 //      delete this._diff;
-      return diff;
+      return notify(this);
     },
 
     transactionRollback: function(){
@@ -128,9 +95,13 @@ defAll(nice.Anything.proto, {
     },
 
     transaction: function (f) {
-      this.transactionStart();
-      f(this);
-      this.transactionEnd();
+      if(this._parent){
+        this._parent.transaction(f);
+      } else {
+        this.transactionStart();
+        f(this);
+        this.transactionEnd();
+      }
       return this;
     },
 
@@ -163,7 +134,7 @@ defAll(nice.Anything.proto, {
     if(!this._subscribers.length){
       this._subscriptions &&
         this._subscriptions.forEach(_s => _s.unsubscribe(this));
-      this._parent && this._parent._removeHotChild();
+      this._parent && removeHotChild(this._parent);
     }
   }
 });
@@ -463,3 +434,52 @@ function isResolved (s){
 //    }
 //  }
 //});
+
+function notify(z){
+  let needNotification = false;
+  let oldValue;
+
+  if(z._items) {
+    _each(z._items, (v, k) => {
+      const res = notify(v);
+      if(res !== NO_NEED){
+        needNotification = true;
+        oldValue = oldValue || {};
+        oldValue[k] = res;
+      }
+    });
+  } else if(z.hasOwnProperty('_oldValue')) {
+    needNotification = true;
+    oldValue = z._oldValue;
+    delete z._oldValue;
+  }
+  if(needNotification && z._subscribers){
+    z._notifing = true;
+    z._subscribers.forEach(s => {
+      if(s.doCompute){
+        s._notifing || s.doCompute();
+      } else {
+        isResolved(z) && s(z, oldValue);
+      }
+    });
+  }
+  z._notifing = false;
+  return needNotification ? oldValue : NO_NEED;
+}
+
+
+function addHotChild(z){
+  if(!z._hotChildCount){
+    z._hotChildCount = 1;
+    z._parent && addHotChild(z._parent);
+  } else {
+    z._hotChildCount++;
+  }
+}
+
+function removeHotChild(z){
+  z._hotChildCount--;
+  if(!z._hotChildCount){
+    z._parent && removeHotChild(z._parent);
+  }
+}

@@ -11,9 +11,11 @@
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
-    const a = Obj({qwe: 1, ads: 3});
-    console.log(a.sum()());
+//    let a = Arr(1, 2, 3, 4, 5);
+//    console.log(a.filter(n => n % 2 === 0)());
 
+    const f = nice.Switch.Number.sum(5).Array.map(x => x * 2);
+    f([1])();
     
 </script>
   

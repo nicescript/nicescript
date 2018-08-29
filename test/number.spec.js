@@ -55,6 +55,6 @@ describe("Num", function() {
 
 
   it("times", function(){
-    expect(nice(3).times(String)()).to.deep.equal(['0','1','2']);
+    expect(nice(3).times(String).get(2)()).to.equal('2');
   });
 });

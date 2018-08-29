@@ -9,8 +9,13 @@ nice.Type({
 //    },
 
     itemArgs0: z => z._items,
-    itemArgs1: (z, o) => _each(o, (v, k) => z.set(k, v)),
-    itemArgsN: (z, os) => _each(os, o => _each(o, (v, k) => z.set(k, v))),
+    itemArgs1: (z, o) => {
+      const t = typeof o;
+      if( t !== 'object' )
+        throw z._type.name + ` doesn't know what to do with ` + t;
+      _each(o, (v, k) => z.set(k, v));
+    },
+    itemArgsN: (z, os) => _each(os, o => z(o)),
 
     proto: {
 //      getDeep(path) {
@@ -305,7 +310,7 @@ C(function every(c, f){
 M(function find(c, f){
   for(let i in c._items)
     if(f(c._items[i], i))
-      return items[i];
+      return c._items[i];
   return nice.NotFound();
 });
 

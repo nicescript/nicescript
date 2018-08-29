@@ -519,7 +519,7 @@ function transform(s){
       if(needJs && isNice){
         a[i] = a[i]();
       } else if(!needJs && !isNice){
-        a[i] = nice.toItem(a[i]);
+        a[i] = nice(a[i]);
       }
     }
     return s.source(...a);
@@ -958,6 +958,9 @@ nice.registerType({
   },
   proto: {
     _isAnything: true,
+    valueOf: function() {
+      return this.hasOwnProperty('_value') ? this._value : undefined;
+    },
     apply: function(f){
       f(this);
       return this;
@@ -977,13 +980,6 @@ nice.registerType({
         return this;
       });
     },
-    _notifyUp: function () {
-      
-      let p = this;
-      do {
-        p._notify && p._notify();
-      } while (p = p._parent);
-    },
     _setValue: function (v){
       if(v === this._value)
         return;
@@ -991,7 +987,7 @@ nice.registerType({
         isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
       });
-      return this;
+      return this._parent || this;
     },
   },
   configProto: {
@@ -1021,66 +1017,16 @@ Object.defineProperties(Anything.proto, {
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 Anything.proto._type = Anything;
 })();
-(function(){"use strict";defAll(nice.Anything.proto, {
-    _addHotChild: function(){
-      if(!this._hotChildCount){
-        this._hotChildCount = 1;
-        this._parent && this._parent._addHotChild();
-      } else {
-        this._hotChildCount++;
-      }
-    },
-    _removeHotChild: function(){
-      this._hotChildCount--;
-      if(!this._hotChildCount){
-        this._parent && this._parent._removeHotChild();
-      }
-    },
+(function(){"use strict";const NO_NEED = {};
+defAll(nice.Anything.proto, {
     listen: function(f) {
       const ss = this._subscribers = this._subscribers || [];
       if(!ss.includes(f)){
         ss.push(f);
         isResolved(this) ? f(this) : this.compute();
       }
-      this._parent && this._parent._addHotChild();
+      this._parent && addHotChild(this._parent);
       return this;
-    },
-    _notify: function (diff){
-      _each(diff.children, (v, k) => {
-        const c = this._items[k];
-        c && c._notify(v);
-      });
-      if(!this._subscribers)
-        return;
-      this._notifing = true;
-      this._subscribers.forEach(s => {
-        if(s.doCompute){
-          s._notifing || s.doCompute();
-        } else {
-          isResolved(this) && s(this, diff);
-        }
-      });
-      this._notifing = false;
-    },
-    _getDiff: function (){
-      if(this.hasOwnProperty('_oldValue')){
-        
-        const res = { oldValue: this._oldValue };
-        delete this._oldValue;
-        return res;
-      } else if(this._hasChanges){
-        if(this.is.Single())
-          throw 'ups';
-        const children = {};
-        nice._each(this._items, (v, k) => {
-          const d = v._getDiff();
-          d === false || (children[k] = d);
-        });
-        delete this._hasChanges;
-        return { children };
-      } else {
-        return false;
-      }
     },
     transactionStart: function(){
       if(this._locked)
@@ -1095,9 +1041,7 @@ Anything.proto._type = Anything;
       if(--this._transactionDepth > 0)
         return false;
       this._transactionDepth = 0;
-      const diff = this._getDiff();
-      diff && this._notify(diff);
-      return diff;
+      return notify(this);
     },
     transactionRollback: function(){
       this._transactionDepth && (this._result = this.initState);
@@ -1112,9 +1056,13 @@ Anything.proto._type = Anything;
         (this._subscribers && this._subscribers.length);
     },
     transaction: function (f) {
-      this.transactionStart();
-      f(this);
-      this.transactionEnd();
+      if(this._parent){
+        this._parent.transaction(f);
+      } else {
+        this.transactionStart();
+        f(this);
+        this.transactionEnd();
+      }
       return this;
     },
   listenOnce: function (f) {
@@ -1133,12 +1081,56 @@ Anything.proto._type = Anything;
     if(!this._subscribers.length){
       this._subscriptions &&
         this._subscriptions.forEach(_s => _s.unsubscribe(this));
-      this._parent && this._parent._removeHotChild();
+      this._parent && removeHotChild(this._parent);
     }
   }
 });
 function isResolved (s){
   return !s.is.Pending() && !s.is.NeedComputing();
+}
+function notify(z){
+  let needNotification = false;
+  let oldValue;
+  if(z._items) {
+    _each(z._items, (v, k) => {
+      const res = notify(v);
+      if(res !== NO_NEED){
+        needNotification = true;
+        oldValue = oldValue || {};
+        oldValue[k] = res;
+      }
+    });
+  } else if(z.hasOwnProperty('_oldValue')) {
+    needNotification = true;
+    oldValue = z._oldValue;
+    delete z._oldValue;
+  }
+  if(needNotification && z._subscribers){
+    z._notifing = true;
+    z._subscribers.forEach(s => {
+      if(s.doCompute){
+        s._notifing || s.doCompute();
+      } else {
+        isResolved(z) && s(z, oldValue);
+      }
+    });
+  }
+  z._notifing = false;
+  return needNotification ? oldValue : NO_NEED;
+}
+function addHotChild(z){
+  if(!z._hotChildCount){
+    z._hotChildCount = 1;
+    z._parent && addHotChild(z._parent);
+  } else {
+    z._hotChildCount++;
+  }
+}
+function removeHotChild(z){
+  z._hotChildCount--;
+  if(!z._hotChildCount){
+    z._parent && removeHotChild(z._parent);
+  }
 }
 })();
 (function(){"use strict";def(nice, function extend(child, parent){
@@ -1237,7 +1229,7 @@ s('Ok', 'Something', 'Empty positive signal.');
   let v;
   for(let i in as){
     v = nice(as[i]);
-    if(is.Something(v) && (!v._getResult || v._getResult() !== false))
+    if(is.Something(v) && v._value !== false)
       return v;
   }
   return v || nice.Nothing();
@@ -1246,7 +1238,7 @@ Func.Anything('and', (...as) => {
   let v;
   for(let i in as){
     v = nice(as[i]);
-    if(!is.Something(v) || (!v._getResult || v._getResult() === false))
+    if(!is.Something(v) || v._value === false)
       return v;
   }
   return v;
@@ -1255,7 +1247,7 @@ Func.Anything('nor', (...as) => {
   let v;
   for(let i in as){
     v = nice(as[i]);
-    if(is.Something(v) && (!v._getResult || v._getResult() !== false))
+    if(is.Something(v) && v._value !== false)
       return nice(false);
   }
   return nice(true);
@@ -1264,7 +1256,7 @@ Func.Anything('xor', (...as) => {
   let count = 0;
   for(let i in as){
     const v = nice(as[i]);
-    if(is.Something(v) && (!v._getResult || v._getResult() !== false))
+    if(is.Something(v) && v._value !== false)
       count++;
   }
   return nice(count && count < as.length ? true : false);
@@ -1327,8 +1319,13 @@ nice.jsTypes.isSubType = isSubType;
     extends: nice.Value,
     onCreate: z => z._items = {},
     itemArgs0: z => z._items,
-    itemArgs1: (z, o) => _each(o, (v, k) => z.set(k, v)),
-    itemArgsN: (z, os) => _each(os, o => _each(o, (v, k) => z.set(k, v))),
+    itemArgs1: (z, o) => {
+      const t = typeof o;
+      if( t !== 'object' )
+        throw z._type.name + ` doesn't know what to do with ` + t;
+      _each(o, (v, k) => z.set(k, v));
+    },
+    itemArgsN: (z, os) => _each(os, o => z(o)),
     proto: {
       get(i) {
         const z = this;
@@ -1467,7 +1464,7 @@ C(function every(c, f){
 M(function find(c, f){
   for(let i in c._items)
     if(f(c._items[i], i))
-      return items[i];
+      return c._items[i];
   return nice.NotFound();
 });
 M(function findKey(c, f){

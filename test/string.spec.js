@@ -87,7 +87,7 @@ describe("Str", function() {
   it("match", () => {
     expect(is.match('qwe!@#', /q/)).to.equal(true);
     expect(is.match('qwe!@#', /a/)).to.equal(false);
-    expect(nice.match('qwe!@#', /q/)()[0]).to.equal('q');
+    expect(nice.match('qwe!@#', /q/)()[0]()).to.equal('q');
   });
 
   it("Symbol.iterator", () => {
