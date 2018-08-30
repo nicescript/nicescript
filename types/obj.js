@@ -35,8 +35,12 @@ nice.Type({
           return z._items[i];
         }
 
-        const type = z._type.types[i] || this._itemsType;
-        const item = nice._newItem(type, z, i);
+        const type = z._type.types[i];
+        return type
+          ? this._items[i] = type()
+          : nice.NotFound();
+//                || this._itemsType;
+//        const item = nice._newItem(type, z, i);
 //        const thisResult = this._getResult();
 //        if(typeof thisResult === 'object' && i in thisResult){
 //          const result = thisResult[i];
@@ -51,10 +55,10 @@ nice.Type({
 //  //          type && nice._assignType(item, type || nice.typeOf(defaultValue));
 //  //          thisResult[i] = defaultValue;
 //  //        } else {
-          !type && nice._assignType(item, nice.NotFound);
-  //        }
-//        }
-        return z._items[i] = item;
+//          !type && nice._assignType(item, nice.NotFound);
+//  //        }
+////        }
+//        return z._items[i] = item;
       },
 
 //      setDeep(path, v){
@@ -62,7 +66,26 @@ nice.Type({
 //      },
 
       set: function(i, v) {
-        this.get(i)(v);
+        const z = this;
+        this.transaction(() => {
+          let res;
+          if(v !== this._items[i]){
+            this._oldValue = this._oldValue || {};
+            this._oldValue[i] = this._items[i];
+          }
+          if(this._itemsType){
+            if(v && v._isAnything){
+              if(v._type.isSubType(this._itemsType))
+                throw `Expected item type is ${this._itemsType.name} but ${v._type.name} is given.`;
+              res = v;
+            } else {
+              res = this._itemsType(v);
+            }
+          } else {
+            res = nice(v);
+          }
+          this._items[i] = res;
+        });
         return this;
   //      const z = this;
   //      let data = z._getResult();
@@ -126,6 +149,11 @@ nice.Type({
     let a = nice.Arr();
     this.each(v => a.push(v));
     return a;
+  })
+  .ReadOnly(function json(){
+    const o = Array.isArray(this._items) ? [] : {};
+    _each(this._items, (v, k) => o[k] = v.json);
+    return o;
   })
   .addProperty('reduceTo', { get: function () {
     const c = this;
@@ -210,9 +238,8 @@ Func.Nothing.function('each', () => 0);
 
 F(function each(o, f){
   for(let k in o._items)
-    if(k !== '_nt_')
-      if(is.Stop(f(o._items[k], k)))
-        break;
+    if(is.Stop(f(o._items[k], k)))
+      break;
   return o;
 });
 
@@ -225,8 +252,8 @@ F('reverseEach', (o, f) => {
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
 //TODO: make transaction save
-//A('remove', (z, i) => delete z._getResult()[i]);
-//A('removeAll', z => z._transaction(z => z._type.onCreate(z)));
+A('remove', (z, i) => delete z._items[i]);
+A('removeAll', z => z.transaction(z => z._type.onCreate(z)));
 
 
 nice._on('Type', function defineReducer(type) {

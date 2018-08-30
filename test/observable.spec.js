@@ -49,9 +49,9 @@ describe("Observable", function() {
     expect(res).to.equal(undefined);
 
     a(6);
-    expect(res).to.deep.equal(0);
+    expect(res).to.equal(0);
     a(7);
-    expect(res).to.deep.equal(6);
+    expect(res).to.equal(6);
   });
 
 
@@ -62,35 +62,49 @@ describe("Observable", function() {
     expect(res).to.equal(undefined);
 
     a.set('q', 6);
-    expect(res).to.deep.equal({ q: undefined });
+    expect(res).to.deep.equal({q:undefined});
     a.set('q', 7);
-    expect(res).to.deep.equal({ q: 6 });
+    expect(res.q()).to.equal(6);
   });
 
 
-  it("listen diff on child", function(){
-    let a = Obj();
-    const q = a.get('q');
-    const f = v => res = v();
-    let res;
+//  it("listenItem", function(){
+//    const a = Obj();
+//    const n = Num();
+//    let res;
+//    a.listenItem('q', (v, old) => res = old);
+//    expect(res).to.equal(undefined);
+//
+//    a.set('q', n);
+//    expect(res).to.deep.equal({q:undefined});
+//    a.set('q', 7);
+//    expect(res.q()).to.equal(6);
+//  });
 
-    expect(!!a._isHot()).to.equal(false);
-    expect(!!q._isHot()).to.equal(false);
-    q.listen(f);
-    expect(!!a._isHot()).to.equal(true);
-    expect(!!q._isHot()).to.equal(true);
 
-    expect(res).to.equal(undefined);
-
-    a.set('q', 6);
-    expect(res).to.deep.equal(6);
-    a.set('q', 7);
-    expect(res).to.deep.equal(7);
-
-    q.unsubscribe(f);
-    expect(!!a._isHot()).to.equal(false);
-    expect(!!q._isHot()).to.equal(false);
-  });
+//  it("listen diff on child", function(){
+//    let a = Obj();
+//    const q = a.get('q');
+//    const f = v => res = v();
+//    let res;
+//
+//    expect(!!a._isHot()).to.equal(false);
+//    expect(!!q._isHot()).to.equal(false);
+//    q.listen(f);
+//    expect(!!a._isHot()).to.equal(true);
+//    expect(!!q._isHot()).to.equal(true);
+//
+//    expect(res).to.equal(undefined);
+//
+//    a.set('q', 6);
+//    expect(res).to.equal(6);
+//    a.set('q', 7);
+//    expect(res).to.equal(7);
+//
+//    q.unsubscribe(f);
+//    expect(!!a._isHot()).to.equal(false);
+//    expect(!!q._isHot()).to.equal(false);
+//  });
 
 
 //  it("listen 2 targets", function(){

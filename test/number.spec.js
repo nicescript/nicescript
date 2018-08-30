@@ -25,6 +25,11 @@ describe("Num", function() {
   });
 
 
+  it("constructor with bad value", function(){
+    expect(() => nice.Num({})).to.throw();
+  });
+
+
   it("setter", function(){
     const n = nice.Num();
     n("7");

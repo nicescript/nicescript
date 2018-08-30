@@ -6,7 +6,7 @@ const expect = chai.expect;
 describe("utils", function() {
   it('nice', function () {
     expect(nice(true, 1, '')._type).to.equal(nice.Arr);
-    expect(nice([1])()).to.deep.equal([1]);
+    expect(nice([1]).json).to.deep.equal([1]);
     expect(nice(true)._type).to.equal(nice.Bool);
     expect(nice(1)._type).to.equal(nice.Num);
     expect(nice('Hi')._type).to.equal(nice.Str);

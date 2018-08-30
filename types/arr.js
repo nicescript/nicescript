@@ -3,10 +3,7 @@ nice.Obj.extend({
   onCreate: z => z._items = [],
   itemArgs0: z => z._items,
   itemArgs1: (z, v) => z.set(z._items.length, v),
-  itemArgsN: (z, vs) => {
-    vs.forEach( v => z.set(z._items.length, v));
-    return z;
-  },
+  itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
   proto: {
 //    itemArgs: undefined,
 //    setValue: function (...a){
@@ -105,16 +102,16 @@ M.function('reduceRight', (a, f, res) => {
 //}));
 //
 //
-M.Array('concat', (a, ...bs) => a._result.concat(...bs));
+M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 
 
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
-A('add', (z, ...a) => {
-  const toAdd = Array.isArray(a[0]) ? a[0] : a;
-  toAdd.forEach(v => z._items.includes(v) || z.push(v));
-});
+//A('add', (z, ...a) => {
+//  const toAdd = Array.isArray(a[0]) ? a[0] : a;
+//  toAdd.forEach(v => z._items.includes(v) || z.push(v));
+//});
 
 A('pull', (z, item) => {
   const k = is.Value(item)

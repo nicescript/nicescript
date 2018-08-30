@@ -1,10 +1,15 @@
 const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
+const allowedSources = {boolean: 1, number: 1, string: 1};
 
 nice.Single.extend({
   name: 'Str',
 
   onCreate: z => z._value = '',
-  itemArgs1: (z, s) => z._setValue('' + s),
+  itemArgs1: (z, s) => {
+    if(!allowedSources[typeof s])
+      throw `Can't create Str from ${typeof n}`;
+    z._setValue('' + s);
+  },
   itemArgsN: (z, a) => z._setValue(nice.format(...a)),
 })
   .about('Wrapper for JS string.')

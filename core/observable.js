@@ -13,6 +13,10 @@ defAll(nice.Anything.proto, {
       return this;
     },
 
+//    listenItem: function (k, f){
+//
+//    },
+
 
 //    listenDiff: function(f) {
 //      this.listen(() => {
@@ -439,16 +443,21 @@ function notify(z){
   let needNotification = false;
   let oldValue;
 
-  if(z._items) {
-    _each(z._items, (v, k) => {
-      const res = notify(v);
-      if(res !== NO_NEED){
-        needNotification = true;
-        oldValue = oldValue || {};
-        oldValue[k] = res;
-      }
-    });
-  } else if(z.hasOwnProperty('_oldValue')) {
+//  if(z._items) {
+//    if(z._oldItems){
+//      needNotification = true;
+//      oldValue = z._oldValue;
+//      delete z._oldValue;
+//    };
+////    _each(z._items, (v, k) => {
+////      const res = notify(v);
+////      if(res !== NO_NEED){
+////        oldValue = oldValue || {};
+////        oldValue[k] = res;
+////      }
+////    });
+//  } else
+  if(z.hasOwnProperty('_oldValue')) {
     needNotification = true;
     oldValue = z._oldValue;
     delete z._oldValue;

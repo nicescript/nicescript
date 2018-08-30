@@ -36,9 +36,9 @@ defAll(nice, {
     config.defaultResult = config.defaultResult || {};
 
     const type = (...a) => {
-      const item = nice._newItem(type, null, null);
-//      const item = nice.createItem({ type });
+      const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
+      _each(type.defaultResult, (v, k) => item[k](v));
       type.initBy
         ? type.initBy(item, ...a)
         : (a.length && item(...a));

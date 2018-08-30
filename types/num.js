@@ -2,7 +2,12 @@ nice.Single.extend({
   name: 'Num',
 
   onCreate: z => z._value = 0,
-  itemArgs1: (z, n) => z._setValue(+n),
+  itemArgs1: (z, n) => {
+    const res = +n;
+    if(Number.isNaN(res))
+      throw `Can't create Num from ${typeof n}`;
+    z._setValue(+n);
+  },
 }).about('Wrapper for JS number.');
 
 _each({

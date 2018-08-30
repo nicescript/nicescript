@@ -65,15 +65,14 @@ describe("Obj", function() {
   it("remove", function() {
     const a = Obj({qwe: 1, asd: 3});
     a.remove('qwe');
-    expect(a()).to.deep.equal({asd:3});
-    expect(a._getResult()).to.deep.equal({asd:3});
+    expect(a.json).to.deep.equal({asd:3});
   });
 
 
   it("removeAll", () => {
     const a = Obj({qwe: 1, asd: 3});
     a.removeAll();
-    expect(a._getResult()).to.deep.equal({});
+    expect(a.json).to.deep.equal({});
   });
 
 
@@ -178,8 +177,8 @@ describe("Obj", function() {
     const g2 = nice.Gate();
 
     expect(g1.items === g2.items).to.equal(false);
-    expect(g1.items()).to.deep.equal(2);
-    expect(g2.items()).to.deep.equal(1);
+    expect(g1.items()).to.equal(2);
+    expect(g2.items()).to.equal(1);
   });
 
 
@@ -188,7 +187,7 @@ describe("Obj", function() {
       .num('height')
       .by(z => z.height(20))();
     const city = City();
-    expect(city().height).to.deep.equal(20);
+    expect(city.height()).to.equal(20);
   });
 
 
@@ -196,8 +195,8 @@ describe("Obj", function() {
     const City = nice.Type()
       .obj('streets')();
     const city = City();
-    city.streets('Main', 1);
-    expect(city.streets('Main')()).to.equal(1);
+    city.streets.set('Main', 1);
+    expect(city.streets.get('Main')()).to.equal(1);
   });
 
 
@@ -206,7 +205,7 @@ describe("Obj", function() {
     a.set('qwe', 3);
     a.set('ad', 2);
     expect(a.values._type).to.equal(nice.Arr);
-    expect(a.values()).to.deep.equal([3, 2]);
+    expect(a.values.json).to.deep.equal([3, 2]);
   });
 
 
@@ -277,7 +276,7 @@ describe("Obj", function() {
     a.set('ad', 2);
     let b = a.map(v => v * 2);
     expect(b._type).to.equal(Obj);
-    expect(b()).to.deep.equal({qwe:6, ad:4});
+    expect(b.json).to.deep.equal({qwe:6, ad:4});
   });
 
 
@@ -285,9 +284,10 @@ describe("Obj", function() {
     const a = Obj().itemsType(nice.Num);
     a.set('qwe', 3);
     a.set('ad', '2');
+    expect(() => a.set('zc', {})).to.throw();
     expect(a._type).to.equal(Obj);
     expect(a._itemsType).to.equal(nice.Num);
-    expect(a()).to.deep.equal({qwe:3, ad:2});
+    expect(a.json).to.deep.equal({qwe:3, ad:2});
   });
 
 
@@ -309,7 +309,7 @@ describe("Obj", function() {
 
   it("filter", () => {
     const a = Obj({qwe: 1, asd: 2});
-    expect(a.filter(n => n() % 2)()).to.deep.equal({qwe:1});
+    expect(a.filter(n => n() % 2).json).to.deep.equal({qwe:1});
   });
 
 
@@ -320,33 +320,33 @@ describe("Obj", function() {
       .arr('pages', ['qwe'])
       ();
     expect(T().size()).to.equal(1);
-    expect(T().urls('qwe')()).to.equal(1);
+    expect(T().urls.get('qwe')()).to.equal(1);
     expect(T().pages.get(0)()).to.equal('qwe');
   });
 
 
-  it("key property with js object", () => {
-    const users = {1: {name: 'Qwe'}};
-    const T = nice.Type()
-      .key('user', users)
-      ();
-    const t = T();
-
-    expect(t.user(1)).to.equal(t);
-    expect(t.user().name).to.equal('Qwe');
-  });
-
-
-  it("key property with Obj", () => {
-    const users = nice({1: nice({name: 'Qwe'})});
-    const T = nice.Type()
-      .key('user', users)
-      ();
-    const t = T();
-
-    expect(t.user(1)).to.equal(t);
-    expect(t.user().get('name')()).to.equal('Qwe');
-  });
+//  it("key property with js object", () => {
+//    const users = {1: {name: 'Qwe'}};
+//    const T = nice.Type()
+//      .key('user', users)
+//      ();
+//    const t = T();
+//
+//    expect(t.user(1)).to.equal(t);
+//    expect(t.user().name).to.equal('Qwe');
+//  });
+//
+//
+//  it("key property with Obj", () => {
+//    const users = nice({1: nice({name: 'Qwe'})});
+//    const T = nice.Type()
+//      .key('user', users)
+//      ();
+//    const t = T();
+//
+//    expect(t.user(1)).to.equal(t);
+//    expect(t.user().get('name')()).to.equal('Qwe');
+//  });
 
 //  it("includes", function() {
 //    const a = Obj({qwe: 1, ads: 3});

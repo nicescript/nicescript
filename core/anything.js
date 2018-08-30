@@ -4,10 +4,11 @@ defAll(nice, {
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        return f._type.itemArgs1(f, a[0]);
+        f._type.itemArgs1(f, a[0]);
       } else {
-        return f._type.itemArgsN(f, a);
+        f._type.itemArgsN(f, a);
       }
+      return this || f;
 //      if(a.length){
 //        if(!f._type || f._type === nice.NotFound){
 //          const type = f._originalType || nice.Single;
@@ -125,7 +126,6 @@ nice.registerType({
         isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
       });
-      return this._parent || this;
     },
 
 //    _getChildResult: function (k){
@@ -164,6 +164,13 @@ nice.registerType({
       return this;
     },
 
+    ReadOnly: function(...a){
+      const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
+      expect(f).function();
+      defGet(this.target.proto, name, f);
+      return this;
+    }
+
 //    key: function (name, o) {
 //      if(name[0] !== name[0].toLowerCase())
 //        throw "Property name should start with lowercase letter. ";
@@ -184,9 +191,12 @@ nice.registerType({
   },
 
   types: {}
-});
+})
 
 const Anything = nice.Anything;
+
+
+defGet(Anything.proto, 'json', function json() { return this._value; });
 
 Object.defineProperties(Anything.proto, {
   switch: { get: function() { return Switch(this); } },

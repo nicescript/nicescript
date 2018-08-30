@@ -40,13 +40,6 @@ nice.Type({
       def(this.target.proto, name, value);
       return this;
     },
-
-    ReadOnly: function(...a){
-      const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
-      expect(f).function();
-      defGet(this.target.proto, name, f);
-      return this;
-    }
   },
 }).about('Parent type for all values.');
 

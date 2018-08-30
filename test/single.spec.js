@@ -23,7 +23,7 @@ describe("Single", function() {
 
   it("does not have objects methods", function(){
     let s = nice.Single();
-    expect(s.get('qwe').is.NotFound()).to.equal(true);
+    expect(s.get).to.equal(undefined);
     expect(() => s.set('qwe')).to.throw();
   });
 });

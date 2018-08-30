@@ -11,12 +11,30 @@
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
-//    let a = Arr(1, 2, 3, 4, 5);
-//    console.log(a.filter(n => n % 2 === 0)());
 
-    const f = nice.Switch.Number.sum(5).Array.map(x => x * 2);
-    f([1])();
-    
+// What happens when we add nice item?
+// n.get('qwe')(nice.Num(1));
+// 1. copy value
+// 2. listen
+
+
+// How to listen to the children?
+//
+var o = Obj();
+//o.listen(f);
+//o.listenItems(f);
+//o.listenItem('name', f);
+//o.listenItems(['name', 'price'], f);
+//o.listenDeep(f);
+
+
+const a = Obj().itemsType(nice.Num);
+a.set('qwe', 3);
+a.set('ad', '2');
+a.set('zc', {});
+
+
+
 </script>
   
   </body>

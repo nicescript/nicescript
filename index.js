@@ -928,10 +928,11 @@ expect = nice.expect;
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        return f._type.itemArgs1(f, a[0]);
+        f._type.itemArgs1(f, a[0]);
       } else {
-        return f._type.itemArgsN(f, a);
+        f._type.itemArgsN(f, a);
       }
+      return this || f;
     };
     nice._assignType(f, type || Anything);
     f._parent = parent;
@@ -987,7 +988,6 @@ nice.registerType({
         isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
       });
-      return this._parent || this;
     },
   },
   configProto: {
@@ -1002,10 +1002,17 @@ nice.registerType({
       this.target.description = nice.format(...a);
       return this;
     },
+    ReadOnly: function(...a){
+      const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
+      expect(f).function();
+      defGet(this.target.proto, name, f);
+      return this;
+    }
   },
   types: {}
-});
+})
 const Anything = nice.Anything;
+defGet(Anything.proto, 'json', function json() { return this._value; });
 Object.defineProperties(Anything.proto, {
   switch: { get: function() { return Switch(this); } },
   is: { get: function() {
@@ -1091,16 +1098,7 @@ function isResolved (s){
 function notify(z){
   let needNotification = false;
   let oldValue;
-  if(z._items) {
-    _each(z._items, (v, k) => {
-      const res = notify(v);
-      if(res !== NO_NEED){
-        needNotification = true;
-        oldValue = oldValue || {};
-        oldValue[k] = res;
-      }
-    });
-  } else if(z.hasOwnProperty('_oldValue')) {
+  if(z.hasOwnProperty('_oldValue')) {
     needNotification = true;
     oldValue = z._oldValue;
     delete z._oldValue;
@@ -1165,8 +1163,9 @@ defAll(nice, {
     config.configProto = config.configProto || {};
     config.defaultResult = config.defaultResult || {};
     const type = (...a) => {
-      const item = nice._newItem(type, null, null);
+      const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
+      _each(type.defaultResult, (v, k) => item[k](v));
       type.initBy
         ? type.initBy(item, ...a)
         : (a.length && item(...a));
@@ -1290,12 +1289,6 @@ Func.Anything('xor', (...as) => {
       def(this.target.proto, name, value);
       return this;
     },
-    ReadOnly: function(...a){
-      const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
-      expect(f).function();
-      defGet(this.target.proto, name, f);
-      return this;
-    }
   },
 }).about('Parent type for all values.');
 defGet(nice.Value.configProto, 'Method', function () {
@@ -1334,14 +1327,32 @@ nice.jsTypes.isSubType = isSubType;
         if(z._items.hasOwnProperty(i)){
           return z._items[i];
         }
-        const type = z._type.types[i] || this._itemsType;
-        const item = nice._newItem(type, z, i);
-          !type && nice._assignType(item, nice.NotFound);
-  
-        return z._items[i] = item;
+        const type = z._type.types[i];
+        return type
+          ? this._items[i] = type()
+          : nice.NotFound();
       },
       set: function(i, v) {
-        this.get(i)(v);
+        const z = this;
+        this.transaction(() => {
+          let res;
+          if(v !== this._items[i]){
+            this._oldValue = this._oldValue || {};
+            this._oldValue[i] = this._items[i];
+          }
+          if(this._itemsType){
+            if(v && v._isAnything){
+              if(v._type.isSubType(this._itemsType))
+                throw `Expected item type is ${this._itemsType.name} but ${v._type.name} is given.`;
+              res = v;
+            } else {
+              res = this._itemsType(v);
+            }
+          } else {
+            res = nice(v);
+          }
+          this._items[i] = res;
+        });
         return this;
   
   
@@ -1389,6 +1400,11 @@ nice.jsTypes.isSubType = isSubType;
     this.each(v => a.push(v));
     return a;
   })
+  .ReadOnly(function json(){
+    const o = Array.isArray(this._items) ? [] : {};
+    _each(this._items, (v, k) => o[k] = v.json);
+    return o;
+  })
   .addProperty('reduceTo', { get: function () {
     const c = this;
     const f = (item, f, init) => {
@@ -1411,15 +1427,16 @@ const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 Func.Nothing.function('each', () => 0);
 F(function each(o, f){
   for(let k in o._items)
-    if(k !== '_nt_')
-      if(is.Stop(f(o._items[k], k)))
-        break;
+    if(is.Stop(f(o._items[k], k)))
+      break;
   return o;
 });
 F('reverseEach', (o, f) => {
   Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
+A('remove', (z, i) => delete z._items[i]);
+A('removeAll', z => z.transaction(z => z._type.onCreate(z)));
 nice._on('Type', function defineReducer(type) {
   const name = type.name;
   if(!name)
@@ -1876,10 +1893,7 @@ nice._on('Type', type => {
   onCreate: z => z._items = [],
   itemArgs0: z => z._items,
   itemArgs1: (z, v) => z.set(z._items.length, v),
-  itemArgsN: (z, vs) => {
-    vs.forEach( v => z.set(z._items.length, v));
-    return z;
-  },
+  itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
   proto: {
   
   
@@ -1929,13 +1943,9 @@ M.function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
-M.Array('concat', (a, ...bs) => a._result.concat(...bs));
+M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
-A('add', (z, ...a) => {
-  const toAdd = Array.isArray(a[0]) ? a[0] : a;
-  toAdd.forEach(v => z._items.includes(v) || z.push(v));
-});
 A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
@@ -2026,7 +2036,12 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
 (function(){"use strict";nice.Single.extend({
   name: 'Num',
   onCreate: z => z._value = 0,
-  itemArgs1: (z, n) => z._setValue(+n),
+  itemArgs1: (z, n) => {
+    const res = +n;
+    if(Number.isNaN(res))
+      throw `Can't create Num from ${typeof n}`;
+    z._setValue(+n);
+  },
 }).about('Wrapper for JS number.');
 _each({
   between: (n, a, b) => n > a && n < b,
@@ -2109,10 +2124,15 @@ A('setMax', (z, n) => { n > z() && z(n); return z._parent || z; });
 A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
 })();
 (function(){"use strict";const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
+const allowedSources = {boolean: 1, number: 1, string: 1};
 nice.Single.extend({
   name: 'Str',
   onCreate: z => z._value = '',
-  itemArgs1: (z, s) => z._setValue('' + s),
+  itemArgs1: (z, s) => {
+    if(!allowedSources[typeof s])
+      throw `Can't create Str from ${typeof n}`;
+    z._setValue('' + s);
+  },
   itemArgsN: (z, a) => z._setValue(nice.format(...a)),
 })
   .about('Wrapper for JS string.')

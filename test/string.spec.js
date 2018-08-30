@@ -13,14 +13,19 @@ describe("Str", function() {
   });
 
   it("empty constructor", function(){
-    const s = nice.Str();
+    const s = Str();
     expect(s()).to.equal('');
   });
 
 
   it("constructor", function(){
-    const s = nice.Str(2);
+    const s = Str(2);
     expect(s()).to.equal('2');
+  });
+
+
+  it("constructor with bad value", function(){
+    expect(() => Str({})).to.throw();
   });
 
 
