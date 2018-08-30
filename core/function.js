@@ -251,3 +251,14 @@ nice._on('function', ({name}) => {
     });
   });
 });
+
+
+const ro = def(nice, 'ReadOnly', {});
+nice._on('Type', type => {
+  ro[type.name] = function (...a) {
+    const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
+    expect(f).function();
+    defGet(type.proto, name, f);
+    return this;
+  };
+});

@@ -659,6 +659,15 @@ nice._on('function', ({name}) => {
     });
   });
 });
+const ro = def(nice, 'ReadOnly', {});
+nice._on('Type', type => {
+  ro[type.name] = function (...a) {
+    const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
+    expect(f).function();
+    defGet(type.proto, name, f);
+    return this;
+  };
+});
 })();
 (function(){"use strict";
 const isProto = def(nice, 'isProto', {}), { Check } = nice;
@@ -2275,20 +2284,20 @@ nice.Type('Html')
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes('className').or('')();
+    const s = z.attributes.get('className').or('')();
     if(s.indexOf(AUTO_PREFIX) < 0){
       const c = AUTO_PREFIX + autoId++;
-      z.attributes('className', s + ' ' + c);
+      z.attributes.set('className', s + ' ' + c);
     }
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes('className').or('')();
+    const current = z.attributes.get('className').or('')();
     if(!vs.length)
       return current;
     const a = current ? current.split(' ') : [];
     vs.forEach(v => !v || a.includes(v) || a.push(v));
-    z.attributes('className', a.join(' '));
+    z.attributes.set('className', a.join(' '));
     return z;
   })
   .ReadOnly(text)
@@ -2343,7 +2352,7 @@ def(Html.proto, 'Css', function(s = ''){
   this._autoClass();
   const style = Style();
   style.up = this;
-  this.cssSelectors(s, style);
+  this.cssSelectors.set(s, style);
   return style;
 });
 nice._on('Extension', ({child, parent}) => {
@@ -2369,14 +2378,14 @@ Html.proto.Box = function(...a) {
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       is.Object(a[0])
-        ? _each(a[0], (v, k) => this.style(property + nice.capitalize(k), v))
-        : this.style(property, is.String(a[0]) ? nice.format(...a) : a[0]);
+        ? _each(a[0], (v, k) => this.style.set(property + nice.capitalize(k), v))
+        : this.style.set(property, is.String(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
     def(Style.proto, property, function(...a) {
       is.Object(a[0])
-        ? _each(a[0], (v, k) => this(property + nice.capitalize(k), v))
-        : this(property, is.String(a[0]) ? nice.format(...a) : a[0]);
+        ? _each(a[0], (v, k) => this.set(property + nice.capitalize(k), v))
+        : this.set(property, is.String(a[0]) ? nice.format(...a) : a[0]);
       return this;
     });
   });
@@ -2392,17 +2401,17 @@ function text(){
   return this.children
       .map(v => v.text
         ? v.text
-        : nice.htmlEscape(is.function(v) ? v(): v))
+        : nice.htmlEscape(is.function(v) ? v() : v))
       ._getResult().join('');
 };
 function compileStyle (s){
   const a = [];
-  _each(s, (v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
+  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v()));
   return a.join(';');
 };
-function compileSelectors (r){
+function compileSelectors (h){
   const a = [];
-  _each(r.cssSelectors, (v, k) => a.push('.', getAutoClass(r.attributes.className),
+  h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')()),
     ' ', k, '{', compileStyle (v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
@@ -2421,8 +2430,21 @@ const resultToHtml = r => {
   a.push('</', r.tag, '>');
   return a.join('');
 };
+nice.ReadOnly.Single(function html() { return '' + this._value; });
+nice.ReadOnly.Arr(function html() { return this._items.map(v => v.html); });
 function html(){
-  return resultToHtml(this._result);
+  const z = this;
+  const a = [compileSelectors(z), '<', z.tag() ];
+  const style = compileStyle(z.style);
+  style && a.push(" ", 'style="', style, '"');
+  z.attributes.each((v, k) => {
+    k === 'className' && (k = 'class', v = v.trim());
+    a.push(" ", k , '="', v(), '"');
+  });
+  a.push('>');
+  z.children.each(c => a.push(c.html));
+  a.push('</', z.tag(), '>');
+  return a.join('');
 };
 defAll(nice, {
   htmlEscape: s => (''+s).replace(/&/g, '&amp;')
