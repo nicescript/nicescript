@@ -42,11 +42,14 @@ defAll(nice, {
   checkers: {},
   checkFunctions: {},
   collectionReducers: {},
-  
   valueType: v => {
     const t = typeof v;
+    if(v === undefined)
+      return nice.Undefined;
+    if(v === null)
+      return nice.Null;
     if(t === 'number')
-      return nice.Num;
+      return Number.isNaN(v) ? nice.NumberError : nice.Num;
     if(t === 'function')
       return nice.function;
     if(t === 'string')
@@ -273,6 +276,9 @@ defAll(nice, {
       res.types[targetType.name].properties.push({ name, type: type.name });
     });
     return res;
+  },
+  fromJson(v){
+    return nice.valueType(v).fromValue(v);
   }
 });
 function compareArrays(a, b){
@@ -966,6 +972,9 @@ nice.registerType({
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
+  fromValue: function(_value){
+    return Object.assign(this(), { _value });
+  },
   proto: {
     _isAnything: true,
     valueOf: function() {
@@ -998,6 +1007,10 @@ nice.registerType({
         this._value = v;
       });
     },
+    by(...inputs){
+      const res = Box();
+      const f = inputs.pop();
+    }
   },
   configProto: {
     extends: function(parent){
@@ -1035,15 +1048,17 @@ Anything.proto._type = Anything;
 })();
 (function(){"use strict";const NO_NEED = {};
 defAll(nice.Anything.proto, {
-    listen: function(f) {
-      const ss = this._subscribers = this._subscribers || [];
-      if(!ss.includes(f)){
-        ss.push(f);
-        isResolved(this) ? f(this) : this.compute();
-      }
-      this._parent && addHotChild(this._parent);
-      return this;
-    },
+  _isResolved() { return true; },
+  listen: function(f) {
+    const ss = this._subscribers = this._subscribers || [];
+    if(!ss.includes(f)){
+      ss.push(f);
+      this.compute && this.compute()
+      f(this._notificationValue ? this._notificationValue() : this);
+    }
+  
+    return this;
+  },
     transactionStart: function(){
       if(this._locked)
         throw nice.LOCKED_ERROR;
@@ -1082,9 +1097,9 @@ defAll(nice.Anything.proto, {
       return this;
     },
   listenOnce: function (f) {
-    isResolved(this) || this.compute();
-    if(isResolved(this))
-      return f(this._result);
+    this._isResolved() || this.compute();
+    if(this._isResolved())
+      return f(this._notificationValue ? this._notificationValue() : this);
     const _f = v => {
       f(v);
       this.unsubscribe(_f);
@@ -1097,13 +1112,9 @@ defAll(nice.Anything.proto, {
     if(!this._subscribers.length){
       this._subscriptions &&
         this._subscriptions.forEach(_s => _s.unsubscribe(this));
-      this._parent && removeHotChild(this._parent);
     }
   }
 });
-function isResolved (s){
-  return !s.is.Pending() && !s.is.NeedComputing();
-}
 function notify(z){
   let needNotification = false;
   let oldValue;
@@ -1118,27 +1129,14 @@ function notify(z){
       if(s.doCompute){
         s._notifing || s.doCompute();
       } else {
-        isResolved(z) && s(z, oldValue);
+        z._isResolved()
+            && s(z._notificationValue ? z._notificationValue() : z, oldValue);
       }
     });
+    z._notifing = false;
   }
-  z._notifing = false;
   return needNotification ? oldValue : NO_NEED;
-}
-function addHotChild(z){
-  if(!z._hotChildCount){
-    z._hotChildCount = 1;
-    z._parent && addHotChild(z._parent);
-  } else {
-    z._hotChildCount++;
-  }
-}
-function removeHotChild(z){
-  z._hotChildCount--;
-  if(!z._hotChildCount){
-    z._parent && removeHotChild(z._parent);
-  }
-}
+};
 })();
 (function(){"use strict";def(nice, function extend(child, parent){
   if(parent.extensible === false)
@@ -1181,7 +1179,6 @@ defAll(nice, {
       return item;
     };
     config.proto._type = type;
-    delete config.by;
     Object.defineProperty(type, 'name', {writable: true});
     Object.assign(type, config);
     nice.extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
@@ -1230,6 +1227,7 @@ s('Fail', 'Nothing', 'Empty negative signal.');
 s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.');
 s('Pending', 'Nothing', 'State of the Box when it awaits input.');
 s('Stop', 'Nothing', 'Value used to stop iterationin .each() and similar functions.');
+s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');
 })();
@@ -1328,6 +1326,11 @@ nice.jsTypes.isSubType = isSubType;
       _each(o, (v, k) => z.set(k, v));
     },
     itemArgsN: (z, os) => _each(os, o => z(o)),
+    fromValue: function(v){
+      const res = this();
+      Object.assign(res._items, nice._map(v, nice.fromJson));
+      return res;
+    },
     proto: {
       get(i) {
         const z = this;
@@ -1343,63 +1346,26 @@ nice.jsTypes.isSubType = isSubType;
       },
       set: function(i, v) {
         const z = this;
-        this.transaction(() => {
+        z.transaction(() => {
           let res;
-          if(v !== this._items[i]){
-            this._oldValue = this._oldValue || {};
-            this._oldValue[i] = this._items[i];
+          if(v !== z._items[i]){
+            z._oldValue = z._oldValue || {};
+            z._oldValue[i] = z._items[i];
           }
-          if(this._itemsType){
+          if(z._itemsType){
             if(v && v._isAnything){
-              if(v._type.isSubType(this._itemsType))
-                throw `Expected item type is ${this._itemsType.name} but ${v._type.name} is given.`;
+              if(v._type.isSubType(z._itemsType))
+                throw `Expected item type is ${z._itemsType.name} but ${v._type.name} is given.`;
               res = v;
             } else {
-              res = this._itemsType(v);
+              res = z._itemsType(v);
             }
           } else {
             res = nice(v);
           }
-          this._items[i] = res;
+          z._items[i] = res;
         });
-        return this;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+        return z;
       },
     }
   })
@@ -1532,51 +1498,39 @@ nice._on('Type', type => {
   });
 });
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";const PENDING = nice.Pending(), NEED_COMPUTING = nice.NeedComputing();
+nice.Type({
   name: 'Box',
   extends: 'Something',
-  creator: () => {
-    const f = (...a) => {
-      if(a.length === 0){
-        f.compute();
-        return f._result;
-      }
-      if(f._isReactive)
-        throw `This box uses subscriptions you can't change it's value.`;
-      f._notifing || f.setState(...a);
-      return f._parent || f;
-    };
-    f._result = nice.PENDING;
-    f._subscriptions = [];
-    f._subscribers = [];
-    f._isReactive = false;
-    return f;
+  onCreate: z => {
+    z._value = PENDING;
+    z._isReactive = false;
+  },
+  itemArgs1: (z, v) => {
+    if(z._isReactive)
+      throw `This box uses subscriptions you can't change it's value.`;
+    z._setValue(v);
   },
   initBy: (z, ...a) => a.length && z(...a),
+  initBy2: (z, ...a) => a.length && z(...a),
+  by (...inputs){
+    const res = Box();
+    res._by = inputs.pop();
+    res._subscriptions = res._subscriptions || [];
+    res._value = nice.NeedComputing();
+    res._isReactive = true;
+    inputs.forEach(s => {
+      if(s.__proto__ === Promise.prototype)
+        s = Box().follow(s);
+      expect(s.listen, `Bad source`).toBe();
+      res._subscriptions.push(s);
+    });
+    return res;
+  },
   proto: {
-    by: function (...a){
-      this._by = a.pop();
-      a.length && this.use(...a);
-      this._result = nice.NEED_COMPUTING;
-      this._isReactive = true;
-      return this;
-    },
     async: function (f){
       this._asyncBy = f;
-      this._result = nice.NEED_COMPUTING;
-      return this;
-    },
-    use: function (...ss){
-      ss.forEach(s => {
-        if(s.__proto__ === Promise.prototype)
-          s = Box().follow(s);
-        expect(s !== this, `Box can't use itself`).toBe();
-        
-        this._subscriptions.push(s);
-        this._isReactive = true;
-        this._result = nice.NEED_COMPUTING;
-      });
-      this._isHot() && this.compute();
+      this._value = NEED_COMPUTING;
       return this;
     },
     follow: function (s){
@@ -1594,7 +1548,7 @@ nice._on('Type', type => {
         this._subscriptions = [s];
         this._isReactive = true;
       }
-      this._result = nice.NEED_COMPUTING;
+      this._value = NEED_COMPUTING;
       this._isHot() && this.compute();
       return this;
     },
@@ -1608,25 +1562,26 @@ nice._on('Type', type => {
     },
     doCompute: function (){
       this.transactionStart();
-      this._result = nice.PENDING;
-      let _result;
+      this._value = PENDING;
+      let _value;
       const ss = this._subscriptions;
       ss.forEach(s => {
+        s._subscribers = s._subscribers || [];
         if(!s._subscribers.includes(this)){
-          isResolved(s) || s.compute();
+          s._isResolved() || s.compute();
           s._subscribers.push(this);
         }
       });
-      const unwrap = s => is.Box(s) ? unwrap(s._result) : s;
+      const unwrap = s => is.Box(s) ? unwrap(s._value) : s;
       const _results = ss.map(unwrap);
-      if(ss.some(s => !isResolved(s))){
-        _result = nice.PENDING;
+      if(ss.some(s => !s._isResolved())){
+        _value = PENDING;
       } else if(_results.find(is.Err)){
-        _result = nice.Err(`Dependency error`);
+        _value = nice.Err(`Dependency error`);
       }
       try {
-        if(_result){
-          this._simpleSetState(_result);
+        if(_value){
+          this._simpleSetState(_value);
         } else if(this._by){
           this._simpleSetState(this._by(..._results));
         } else if(this._asyncBy){
@@ -1641,72 +1596,48 @@ nice._on('Type', type => {
         this.error(e);
         return;
       } finally {
-        return this.transactionEnd(true);
+        return this.transactionEnd();
       }
-      return this._result;
+      return this._value;
     },
     compute: function() {
-      return this._result !== nice.NEED_COMPUTING || this._transactionDepth
-        ? this._result : this.doCompute();
-    },
-    getDiff: function (){
-      if(this._diff || this._diff === false)
-        return this._diff;
-      return this._diff = nice.diff(
-          diffConverter(this.initState),
-          diffConverter(this._result)
-      );
-    },
-    getDiffTo: function (oldValue = this.initState){
-      return this._diff = nice.diff(
-          diffConverter(oldValue),
-          diffConverter(this._result)
-      );
-    },
-    change: function (f){
-      this.transactionStart();
-      let res = f(this._result);
-      res === undefined || (this._result = res);
-      this.transactionEnd();
-      return this;
+      return !is(this._value).NeedComputing() || this._transactionDepth
+        ? this._value : this.doCompute();
     },
     _simpleSetState: function(v){
       if(v === undefined)
-        throw `Can't set _result of the box to undefined.`;
+        throw `Can't set result of the box to undefined.`;
       if(v === this)
-        throw `Can't set _result of the box to box itself.`;
+        throw `Can't set result of the box to box itself.`;
       while(v && v._up_)
         v = v._up_;
-      this._result = v;
+      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
+      this._value = v;
     },
     setState: function(v){
       if(v === undefined)
-        throw `Can't set _result of the box to undefined.`;
+        throw `Can't set result of the box to undefined.`;
       if(v === this)
-        throw `Can't set _result of the box to box itself.`;
+        throw `Can't set result of the box to box itself.`;
       while(v && v._up_)
         v = v._up_;
-      if(this._result !== v) {
+      if(this._value !== v) {
         this.transactionStart();
-        this._result = v;
+        this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
+        this._value = v;
         this.transactionEnd();
       }
-      return this._result;
+      return this._value;
     },
-    _notify: function (){
-      this._notifing = true;
-      this._subscribers.forEach(s => {
-        if(s.doCompute){
-          s._notifing || s.doCompute();
-        } else {
-          isResolved(this) && s(this._result);
-        }
-      });
-      this._notifing = false;
+    _notificationValue(){
+      return this._value;
     },
     _isHot: function (){
       return this._transactionDepth
         || (this._subscribers && this._subscribers.length);
+    },
+    _isResolved (){
+      return !is(this._value).Pending() && !is(this._value).NeedComputing();
     },
     lock: function(){
       this._locked = true;
@@ -1716,47 +1647,8 @@ nice._on('Type', type => {
       this._locked = false;
       return this;
     },
-    'default': function (v) {
-      isResolved(this) || this(v);
-    },
     error: function(e) {
       return this.setState(is.Err(e) ? e : nice.Err(e));
-    },
-    transactionStart: function(){
-      if(this._locked)
-        throw nice.LOCKED_ERROR;
-      if(!this._transactionDepth){
-        this.initState = this._result;
-        this._result = nice.cloneDeep(this.initState);
-        this._diff = null;
-        this._transactionDepth = 0;
-      }
-      this._transactionDepth++;
-      return this;
-    },
-    transactionEnd: function(onlyIfDiff = false){
-      if(--this._transactionDepth > 0)
-        return false;
-      this._transactionDepth = 0;
-      const go = this.getDiff();
-      go && this._notify();
-      this.initState = null;
-      (this._result && this._result._notify) || Object.freeze(this._result);
-      delete this._diff;
-      return go;
-    },
-    transactionRollback: function(){
-      this._transactionDepth && (this._result = this.initState);
-      this._transactionDepth = 0;
-      this.initState = null;
-      delete this._diff;
-      return this;
-    },
-    transaction: function (f, p) {
-      this.transactionStart();
-      f();
-      this.transactionEnd(p);
-      return this;
     },
     getPromise: function () {
       return new Promise((resolve, reject) => {
@@ -1767,30 +1659,9 @@ nice._on('Type', type => {
 }).about('Observable component for declarative style programming.');
 Box = nice.Box;
 const F = Func.Box;
-['use', 'follow', 'once', 'by', 'async']
-    .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 function diffConverter(v){
   return is.Value(v) ? v._getResult() : v;
 }
-F.function(function listen(source, f) {
-  const ss = source._subscribers;
-  if(!ss.includes(f)){
-    ss.push(f);
-    isResolved(source) ? f(source._result) : source.compute();
-  }
-  return source;
-});
-F.function(function listenOnce(source, f) {
-  isResolved(source) || source.compute();
-  if(isResolved(source))
-    return f(source._result);
-  const _f = v => {
-    f(v);
-    source.unsubscribe(_f);
-  };
-  source._subscribers.push(_f);
-  return source;
-});
 F(function unsubscribe(s, target){
   nice._removeArrayValue(s._subscribers, target);
   s._subscribers.length || s._subscriptions.forEach(_s => _s.unsubscribe(s));
@@ -1818,56 +1689,6 @@ nice._on('Type', type => {
     return this.use(input);
   });
 });
-def(nice, 'resolveChildren', (v, f) => {
-  if(!v)
-    return f(v);
-  if(is.Box(v))
-    return v.listenOnce(_v => nice.resolveChildren(_v, f));
-  if(v._result){
-    if(is.Object(v._result)){
-      let count = 0;
-      const next = () => {
-        count--;
-        count === 0 && f(v);
-      };
-      _each(v._result, () => count++);
-      !count ? f(v) : _each(v._result, (vv, kk) => {
-        nice.resolveChildren(vv, _v => {
-          if(_v && _v._type){
-            _v = _v._result;
-          }
-          v._result[kk] = _v;
-          next();
-        });
-      });
-    } else {
-      f(v);
-    }
-  } else {
-    if(is.Object(v)){
-      let count = 0;
-      const next = () => {
-        count--;
-        count === 0 && f(v);
-      };
-      _each(v, () => count++);
-      !count ? f(v) : _each(v, (vv, kk) => {
-        nice.resolveChildren(vv, _v => {
-          if(_v && _v._type){
-            _v = _v._result;
-          }
-          v[kk] = _v;
-          next();
-        });
-      });
-    } else {
-      f(v);
-    }
-  }
-});
-function isResolved (s){
-  return s._result !== nice.NEED_COMPUTING && s._result !== nice.PENDING;
-};
 })();
 (function(){"use strict";nice.Type({
   name: 'Err',
@@ -2402,7 +2223,7 @@ function text(){
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(is.function(v) ? v() : v))
-      ._getResult().join('');
+      .json.join('');
 };
 function compileStyle (s){
   const a = [];
@@ -2414,21 +2235,6 @@ function compileSelectors (h){
   h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')()),
     ' ', k, '{', compileStyle (v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
-};
-const resultToHtml = r => {
-  const a = [compileSelectors(r), '<', r.tag ];
-  const style = compileStyle(r.style);
-  style && a.push(" ", 'style="', style, '"');
-  _each(r.attributes, (v, k) => {
-    k === 'className' && (k = 'class', v = v.trim());
-    a.push(" ", k , '="', v, '"');
-  });
-  a.push('>');
-  _each(r.children, c => a.push(c && c.tag
-    ? resultToHtml(c)
-    : nice.htmlEscape(c)));
-  a.push('</', r.tag, '>');
-  return a.join('');
 };
 nice.ReadOnly.Single(function html() { return '' + this._value; });
 nice.ReadOnly.Arr(function html() { return this._items.map(v => v.html); });

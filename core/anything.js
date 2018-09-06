@@ -9,19 +9,6 @@ defAll(nice, {
         f._type.itemArgsN(f, a);
       }
       return this || f;
-//      if(a.length){
-//        if(!f._type || f._type === nice.NotFound){
-//          const type = f._originalType || nice.Single;
-////          const type = f._originalType || (a.length > 1 ? Arr : nice.typeOf(a[0]));
-//          nice._assignType(f, type);
-//        }
-//        return f._type.itemArgs ? f._type.itemArgs(f, ...a) : f.setValue(...a);
-////        return f._parent || f;
-//      } else {
-//        return (f._type && f._type.itemNoArgs)
-//          ? f._type.itemNoArgs(f)
-//          : f._getResult();
-//      }
     };
     nice._assignType(f, type || Anything);
     f._parent = parent;
@@ -51,6 +38,10 @@ nice.registerType({
   itemArgs1: (z, v) => z._setValue(v),
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
+  },
+
+  fromValue: function(_value){
+    return Object.assign(this(), { _value });
   },
 
   proto: {
@@ -83,42 +74,6 @@ nice.registerType({
       });
     },
 
-//    _notifyUp: function () {
-//      //TODO: change logic
-//      let p = this;
-//      do {
-//        p._notify && p._notify();
-//      } while (p = p._parent);
-//    },
-
-
-//    _assertResultObject: function (f){
-//      this._hasChanges = true;
-//      if(this._parent){
-//        this._parent._assertResultObject((parentRes, inTransaction) => {
-//          if(!parentRes.hasOwnProperty(this._parentKey)){
-//            const val = this.is.Nothing() ? {} : this._type.defaultValue();
-//            f(parentRes[this._parentKey] = val, inTransaction);
-//          }
-//          const t = typeof parentRes[this._parentKey];
-//          if(t !== 'object')
-//            throw "Can't set children to " + t;
-//          else
-//            f(parentRes[this._parentKey], inTransaction);
-//        });
-//      } else {
-//        const t = typeof this._result;
-//        if(t !== 'object')
-//          throw "Can't set children to " + t;
-//
-//        if(!this._isHot() || this._transactionDepth){
-//          f(this._result, this._transactionDepth);
-//        } else {
-//          this.transaction(() => f(this._result, true));
-//        }
-//      }
-//    },
-
     _setValue: function (v){
       if(v === this._value)
         return;
@@ -128,26 +83,11 @@ nice.registerType({
       });
     },
 
-//    _getChildResult: function (k){
-//      const res = this._getResult();
-//      if(typeof res !== 'object')
-//        return nice.NotFound();
-//      return res[k];
-//    },
-//
-//    _getResult: function (){
-////        const parentRes = this._parent._getResult();
-////  return (parentRes && parentRes.hasOwnProperty(this._parentKey))
-////    ? parentRes[this._parentKey]
-////    : this._type.defaultValue();
-//
-//      let value = this._parent
-//        ? this._parent._getChildResult(this._parentKey)
-//        : this._result;
-//      if(value === undefined)
-//        value = this._type.defaultValue();
-//      return value;
-//    },
+    by(...inputs){
+      const res = Box();
+      const f = inputs.pop();
+
+    }
   },
 
   configProto: {

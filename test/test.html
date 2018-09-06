@@ -27,10 +27,11 @@ var o = Obj();
 //o.listenItems(['name', 'price'], f);
 //o.listenDeep(f);
 
+const spy = v => console.log(v());
 
-    const b = B('qwe').Css('A').color('red').up;
-    const id = b.attributes.get('className')().trim();
-
+    const a = Box();
+    let res;
+    a.listen(v => res = v);
 
 </script>
   

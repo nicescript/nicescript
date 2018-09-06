@@ -1,4 +1,4 @@
-//TODO: html.on shoud fall when wrong even named
+//TODO: html.on shoud fall when wrong event named
 //TODO: throw error when adding object that is not Html
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
@@ -171,7 +171,7 @@ function text(){
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(is.function(v) ? v() : v))
-      ._getResult().join('');
+      .json.join('');
 };
 
 

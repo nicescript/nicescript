@@ -1,44 +1,57 @@
-//let nice = require('../index.js')();
-//let chai = require('chai');
-//chai.use(require('chai-spies'));
-//let expect = chai.expect;
-//const { Box, is } = nice;
-//
-//describe("Box", function() {
-//
-//  it("simple", function(){
-//    let s = Box();
-//
-//    expect(is.Box(s)).to.equal(true);
-//    expect(s()).to.equal(nice.PENDING);
-//
-//    expect(s(15)).to.equal(s);
-//    expect(s()).to.equal(15);
-//  });
-//
-//
-//  it("default value", function(){
-//    let s = Box(13);
-//
-//    expect(is.Box(s)).to.equal(true);
-//    expect(s()).to.equal(13);
-//    expect(s(15)).to.equal(s);
-//    expect(s()).to.equal(15);
-//  });
-//
-//
-//  it("listen", function(){
-//    let a = Box();
-//    let spy = chai.spy();
-//    a.listen(v => spy(v));
-//    expect(spy).to.not.have.been.called();
-//
-//    a(6);
-//    expect(spy).to.have.been.called.with(6);
-//    expect(a()).to.equal(6);
-//  });
-//
-//
+let nice = require('../index.js')();
+let chai = require('chai');
+chai.use(require('chai-spies'));
+let expect = chai.expect;
+const { Box, is } = nice;
+
+describe("Box", function() {
+
+  it("simple", function(){
+    let s = Box();
+
+    expect(is.Box(s)).to.equal(true);
+    expect(s().is.Pending()).to.equal(true);
+
+    expect(s(15)).to.equal(s);
+    expect(s()).to.equal(15);
+  });
+
+
+  it("default value", function(){
+    let s = Box(13);
+
+    expect(is.Box(s)).to.equal(true);
+    expect(s()).to.equal(13);
+    expect(s(15)).to.equal(s);
+    expect(s()).to.equal(15);
+  });
+
+
+  it("listen", function(){
+    const a = Box();
+    let res;
+    a.listen(v => res = v);
+    expect(res.is.Pending()).to.equal(true);
+
+    a(6);
+    expect(res).to.equal(6);
+    expect(a()).to.equal(6);
+  });
+
+
+  it("listen old", function(){
+    const a = Box();
+    let res;
+    a.listen((v, old) => res = old);
+    expect(res).to.equal(undefined);
+    a(6);
+    expect(res.is.Pending()).to.equal(true);
+
+    a(7);
+    expect(res).to.equal(6);
+  });
+
+
 //  it("listenDiff", function(){
 //    let a = Box();
 //    let spy = chai.spy();
@@ -50,24 +63,8 @@
 //    a(7);
 //    expect(spy).to.have.been.called.with({ add:7, del:6 });
 //  });
-//
-//
-//  it("listen 2 targets", function(){
-//    let a = Box();
-//    let spy1 = chai.spy();
-//    let spy2 = chai.spy();
-//    a.listen(v => spy1(v));
-//    a.listen(spy2);
-//    expect(spy1).to.not.have.been.called();
-//    expect(spy2).to.not.have.been.called();
-//
-//    a(6);
-//    expect(spy1).to.have.been.called.once.with(6);
-//    expect(spy2).to.have.been.called.once.with(6);
-//    expect(a()).to.equal(6);
-//  });
-//
-//
+
+
 //  it("listenOnce on resolved", function(){
 //    let a = Box(1);
 //    let spy = chai.spy();
@@ -356,4 +353,4 @@
 ////    expect(box.age(20)).to.equal(box);
 ////    expect(box.age()).to.equal(20);
 ////  });
-//});
+});

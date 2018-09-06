@@ -1,5 +1,4 @@
 //REMOVE:
-//_getResult
 // constructor => initBy
 
 nice = (...a) => {
@@ -89,11 +88,16 @@ defAll(nice, {
 //    return nice._newItem(type)._setResult(v);
 //  },
 
-  //TODO: maybe replace with nice.typeOf
   valueType: v => {
     const t = typeof v;
+    if(v === undefined)
+      return nice.Undefined;
+
+    if(v === null)
+      return nice.Null;
+
     if(t === 'number')
-      return nice.Num;
+      return Number.isNaN(v) ? nice.NumberError : nice.Num;
 
     if(t === 'function')
       return nice.function;

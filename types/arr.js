@@ -5,11 +5,6 @@ nice.Obj.extend({
   itemArgs1: (z, v) => z.set(z._items.length, v),
   itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
   proto: {
-//    itemArgs: undefined,
-//    setValue: function (...a){
-//      return this.push(...a);
-//    },
-
   //  _compareItems: (a1, a2, add, del) => {
   //    let i1 = 0, i2 = 0, ii2, n;
   //    const l1 = a1.length, l2 = a2.length;

@@ -239,6 +239,10 @@ defAll(nice, {
     });
 
     return res;
+  },
+
+  fromJson(v){
+    return nice.valueType(v).fromValue(v);
   }
 });
 

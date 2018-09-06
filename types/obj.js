@@ -3,19 +3,22 @@ nice.Type({
     extends: nice.Value,
     onCreate: z => z._items = {},
 
-//    defaultValue: function() {
-//      return nice.create(this.defaultResult,
-//          this === nice.Obj ? {} : { _nt_: this.name });
-//    },
-
     itemArgs0: z => z._items,
+
     itemArgs1: (z, o) => {
       const t = typeof o;
       if( t !== 'object' )
         throw z._type.name + ` doesn't know what to do with ` + t;
       _each(o, (v, k) => z.set(k, v));
     },
+
     itemArgsN: (z, os) => _each(os, o => z(o)),
+
+    fromValue: function(v){
+      const res = this();
+      Object.assign(res._items, nice._map(v, nice.fromJson));
+      return res;
+    },
 
     proto: {
 //      getDeep(path) {
@@ -39,26 +42,6 @@ nice.Type({
         return type
           ? this._items[i] = type()
           : nice.NotFound();
-//                || this._itemsType;
-//        const item = nice._newItem(type, z, i);
-//        const thisResult = this._getResult();
-//        if(typeof thisResult === 'object' && i in thisResult){
-//          const result = thisResult[i];
-//          const vType = nice.typeOf(result);
-//          if(type && !is.subType(vType, type)) {
-//            throw `Can't create ${type.name} from ${vType.name}: ${JSON.stringify(result)}`;
-//          } else {
-//            nice._assignType(item, vType);
-//          }
-//        } else {
-//  //        if(defaultValue !== undefined){
-//  //          type && nice._assignType(item, type || nice.typeOf(defaultValue));
-//  //          thisResult[i] = defaultValue;
-//  //        } else {
-//          !type && nice._assignType(item, nice.NotFound);
-//  //        }
-////        }
-//        return z._items[i] = item;
       },
 
 //      setDeep(path, v){
@@ -67,82 +50,28 @@ nice.Type({
 
       set: function(i, v) {
         const z = this;
-        this.transaction(() => {
+        z.transaction(() => {
           let res;
-          if(v !== this._items[i]){
-            this._oldValue = this._oldValue || {};
-            this._oldValue[i] = this._items[i];
+          if(v !== z._items[i]){
+            z._oldValue = z._oldValue || {};
+            z._oldValue[i] = z._items[i];
           }
-          if(this._itemsType){
+          if(z._itemsType){
             if(v && v._isAnything){
-              if(v._type.isSubType(this._itemsType))
-                throw `Expected item type is ${this._itemsType.name} but ${v._type.name} is given.`;
+              if(v._type.isSubType(z._itemsType))
+                throw `Expected item type is ${z._itemsType.name} but ${v._type.name} is given.`;
               res = v;
             } else {
-              res = this._itemsType(v);
+              res = z._itemsType(v);
             }
           } else {
             res = nice(v);
           }
-          this._items[i] = res;
+          z._items[i] = res;
         });
-        return this;
-  //      const z = this;
-  //      let data = z._getResult();
-  //      let k = path;
-  //      if(path.pop){
-  //        while(path.length > 1){
-  //          k = nice.unwrap(path.shift());
-  //          if(!data.hasOwnProperty(k)){
-  //            data[k] = {};
-  //            data = data[k];
-  //          } else if(data[k]._nt_){
-  //            if(typeof data[k] !== 'object')
-  //              throw `Can't set property ${k} of ${data[k]}`;
-  //            else
-  //              data = data[k];
-  //          } else if(typeof data[k] !== 'object') {
-  //            throw `Can't set property ${k} of ${data[k]}`;
-  //          } else {
-  //            data = data[k];
-  //          }
-  //        }
-  //        k = path[0];
-  //      }
-  //      k = nice.unwrap(k);
-  //      const type = z._itemsType;
-  //
-  //      data[k] = type
-  //        ? (v._type && v._type === type ? v : type(v))._getResult()
-  //        : Switch(v)//TODO: simlify maybe
-  //          .Box.use(v => v)
-  //          .primitive.use(v => v)
-  //          .nice.use(v => v._getResult())
-  //          .Object.use(v => v)
-  //          .function.use(v => v)
-  //          ();
-  //      z._notifyUp();
-  //
-  //      return z;
+        return z;
       },
-
     }
-
-//    itemArgs: (z, ...a) => {
-//      let k = a[0];
-//
-//      if(a.length === 1 && k === undefined)
-//        throw "Can't use undefined as key.";
-//
-//      if(is.Str(k))
-//        k = k();
-//
-//      if(a.length === 1 && k !== undefined && !is.Object(k) && !is.Obj(k))
-//        return z.get(k);
-//
-//      z.setValue(...a);
-//    },
-//    itemNoArgs: z => z._getResult(),
   })
   .about('Parent type for all composite types.')
   .ReadOnly(function values(){
@@ -177,18 +106,6 @@ nice.Type({
 
 
 Object.assign(nice.Obj.proto, {
-//  setValue: function (...a){
-//    let vs = a[0];
-//
-//    if(!is.Object(vs)){
-//      let o = {};
-//      o[vs] = a[1];
-//      vs = o;
-//    }
-//    _each(vs, (v, k) => this.set(k, v));
-//    return this._parent || this;
-//  },
-//
 //  setByType: function (key, type, value){
 //    this._items[key] = value || type.defaultValue();
 //  },

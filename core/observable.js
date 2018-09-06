@@ -1,17 +1,19 @@
 const NO_NEED = {};
 
 defAll(nice.Anything.proto, {
-    listen: function(f) {
-      const ss = this._subscribers = this._subscribers || [];
+  _isResolved() { return true; },
+  listen: function(f) {
+    const ss = this._subscribers = this._subscribers || [];
 
-      if(!ss.includes(f)){
-        ss.push(f);
-        isResolved(this) ? f(this) : this.compute();
-      }
+    if(!ss.includes(f)){
+      ss.push(f);
+      this.compute && this.compute();
+      f(this._notificationValue ? this._notificationValue() : this);
+    }
 
-      this._parent && addHotChild(this._parent);
-      return this;
-    },
+  //      this._parent && addHotChild(this._parent);
+    return this;
+  },
 
 //    listenItem: function (k, f){
 //
@@ -109,6 +111,7 @@ defAll(nice.Anything.proto, {
       return this;
     },
 
+
 //    change: function (f){
 //      this.transactionStart();
 //      let res = f(this._result);
@@ -117,10 +120,10 @@ defAll(nice.Anything.proto, {
 //      return this;
 //    },
   listenOnce: function (f) {
-    isResolved(this) || this.compute();
+    this._isResolved() || this.compute();
 
-    if(isResolved(this))
-      return f(this._result);
+    if(this._isResolved())
+      return f(this._notificationValue ? this._notificationValue() : this);
 
     const _f = v => {
       f(v);
@@ -138,16 +141,10 @@ defAll(nice.Anything.proto, {
     if(!this._subscribers.length){
       this._subscriptions &&
         this._subscriptions.forEach(_s => _s.unsubscribe(this));
-      this._parent && removeHotChild(this._parent);
+//      this._parent && removeHotChild(this._parent);
     }
   }
 });
-
-
-function isResolved (s){
-  return !s.is.Pending() && !s.is.NeedComputing();
-}
-
 
 
 //  creator: () => {
@@ -183,22 +180,6 @@ function isResolved (s){
 //      return this;
 //    },
 
-//    use: function (...ss){
-//      ss.forEach(s => {
-//        if(s.__proto__ === Promise.prototype)
-//          s = Box().follow(s);
-//
-//        expect(s !== this, `Box can't use itself`).toBe();
-//        //TODO: restore
-////        expect(s, `Can use only box or promise.`).Box();
-//        this._subscriptions.push(s);
-//        this._isReactive = true;
-//        this._result = nice.NEED_COMPUTING;
-//      });
-//      this.isHot() && this.compute();
-//      return this;
-//    },
-
 //    follow: function (s){
 //      if(s.__proto__ === Promise.prototype) {
 //        this.doCompute = () => {
@@ -229,62 +210,6 @@ function isResolved (s){
 //      return this;
 //    },
 
-//    doCompute: function (){
-//      this.transactionStart();
-//      this._result = nice.PENDING;
-//      let _result;
-//      const ss = this._subscriptions;
-//
-//      ss.forEach(s => {
-//        if(!s._subscribers.includes(this)){
-//          isResolved(s) || s.compute();
-//          s._subscribers.push(this);
-//        }
-//      });
-//
-//      const unwrap = s => is.Box(s) ? unwrap(s._result) : s;
-//      const _results = ss.map(unwrap);
-//
-//      if(ss.some(s => !isResolved(s))){
-//        _result = nice.PENDING;
-//      } else if(_results.find(is.Err)){
-//        _result = nice.Err(`Dependency error`);
-//      }
-//
-//      try {
-//        if(_result){
-//          this._simpleSetState(_result);
-//        } else if(this._by){
-//          this._simpleSetState(this._by(..._results));
-//        } else if(this._asyncBy){
-//          //this will unlock the Box for edit. Maybe there is beter solution
-//          this._isReactive = false;
-//          this._asyncBy(this, ..._results);
-////          this._isReactive = true;
-//        } else {
-//          this._simpleSetState(_results[0]);
-//        }
-//      } catch (e) {
-//        console.log('ups', e);
-//        this.error(e);
-//        return;
-//      } finally {
-//        return this.transactionEnd(true);
-//      }
-//
-//      return this._result;
-//    },
-//
-//    compute: function() {
-//      return this._result !== nice.NEED_COMPUTING || this._transactionDepth
-//        ? this._result : this.doCompute();
-//    },
-//
-//    valueOf: function() {
-//      return this.hasOwnProperty('_result') && this._result;
-//    },
-//
-//
 //    getDiffTo: function (oldValue = this.initState){
 //      return this._diff = nice.diff(
 //          diffConverter(oldValue),
@@ -364,11 +289,6 @@ function isResolved (s){
 
 //['use', 'follow', 'once', 'by', 'async']
 //    .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
-
-
-//function diffConverter(v){
-//  return is.Value(v) ? v._getResult() : v;
-//}
 
 
 
@@ -468,27 +388,27 @@ function notify(z){
       if(s.doCompute){
         s._notifing || s.doCompute();
       } else {
-        isResolved(z) && s(z, oldValue);
+        z._isResolved()
+            && s(z._notificationValue ? z._notificationValue() : z, oldValue);
       }
     });
+    z._notifing = false;
   }
-  z._notifing = false;
   return needNotification ? oldValue : NO_NEED;
-}
+};
 
+//function addHotChild(z){
+//  if(!z._hotChildCount){
+//    z._hotChildCount = 1;
+//    z._parent && addHotChild(z._parent);
+//  } else {
+//    z._hotChildCount++;
+//  }
+//}
 
-function addHotChild(z){
-  if(!z._hotChildCount){
-    z._hotChildCount = 1;
-    z._parent && addHotChild(z._parent);
-  } else {
-    z._hotChildCount++;
-  }
-}
-
-function removeHotChild(z){
-  z._hotChildCount--;
-  if(!z._hotChildCount){
-    z._parent && removeHotChild(z._parent);
-  }
-}
+//function removeHotChild(z){
+//  z._hotChildCount--;
+//  if(!z._hotChildCount){
+//    z._parent && removeHotChild(z._parent);
+//  }
+//}

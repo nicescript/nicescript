@@ -9,8 +9,6 @@ nice.Type({
 
   creator: () => { throw 'Use Single or Object.' },
 
-//  constructor: (z, ...a) => a.length && z.setValue(...a),
-
   proto: create(nice.Anything.proto, {
     _isSingleton: false,
 

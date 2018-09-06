@@ -46,7 +46,6 @@ defAll(nice, {
     };
 
     config.proto._type = type;
-    delete config.by;
     Object.defineProperty(type, 'name', {writable: true});
     Object.assign(type, config);
     nice.extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
