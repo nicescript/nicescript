@@ -63,7 +63,7 @@ nice.Type({
     },
 
     interval: function (f, t = 200) {
-      setInterval(() => this.setState(f(this._result)), t);
+      setInterval(() => this.setState(f(this._value)), t);
       return this;
     },
 
@@ -74,6 +74,7 @@ nice.Type({
 
     doCompute: function (){
       this.transactionStart();
+      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
       this._value = PENDING;
       let _value;
       const ss = this._subscriptions;
@@ -162,7 +163,7 @@ nice.Type({
       while(v && v._up_)
         v = v._up_;
 
-      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
+//      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
       this._value = v;
     },
 
@@ -306,21 +307,22 @@ F.Box(function unbind(y, x) {
 });
 
 
+//TODO: fix or remove
 //named inputs
-nice._on('Type', type => {
-  if(!type.name)
-    return;
-
-  def(Box.proto, nice._decapitalize(type.name), function (name, value) {
-    expect(name).String();
-
-    const input = Box();
-    value !== undefined && input(value);
-    input._parent = this;
-    def(this, name, input);
-    return this.use(input);
-  });
-});
+//nice._on('Type', type => {
+//  if(!type.name)
+//    return;
+//
+//  def(Box.proto, nice._decapitalize(type.name), function (name, value) {
+//    expect(name).String();
+//
+//    const input = Box();
+//    value !== undefined && input(value);
+//    input._parent = this;
+//    def(this, name, input);
+//    return this.use(input);
+//  });
+//});
 
 
 //def(nice, 'resolveChildren', (v, f) => {

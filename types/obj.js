@@ -20,6 +20,12 @@ nice.Type({
       return res;
     },
 
+    initChildren(item){
+      _each(this.defaultArguments, (as, k) => {
+        item._items[k] = this.types[k](...as);
+      });
+    },
+
     proto: {
 //      getDeep(path) {
 //        let k = 0;
@@ -48,7 +54,7 @@ nice.Type({
 //        return this.getDeep(path)(v);
 //      },
 
-      set: function(i, v) {
+      set: function(i, v, ...tale) {
         const z = this;
         z.transaction(() => {
           let res;
@@ -56,13 +62,14 @@ nice.Type({
             z._oldValue = z._oldValue || {};
             z._oldValue[i] = z._items[i];
           }
-          if(z._itemsType){
+          const type = z._itemsType || (z._type.types && z._type.types[i]);
+          if(type){
             if(v && v._isAnything){
-              if(v._type.isSubType(z._itemsType))
-                throw `Expected item type is ${z._itemsType.name} but ${v._type.name} is given.`;
+              if(v._type.isSubType(type))
+                throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
               res = v;
             } else {
-              res = z._itemsType(v);
+              res = type(v, ...tale);
             }
           } else {
             res = nice(v);
@@ -152,6 +159,8 @@ Object.assign(nice.Obj.proto, {
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
 Func.Nothing.function('each', () => 0);
+
+C('has', (o, k) => o._items.hasOwnProperty(k));
 
 F(function each(o, f){
   for(let k in o._items)
@@ -314,7 +323,7 @@ M(function getProperties(z){
 nice._on('Type', type => {
   const smallName = nice._decapitalize(type.name);
 
-  function createProperty(z, name, value){
+  function createProperty(z, name, ...as){
     const targetType = z.target;
 
     if(name[0] !== name[0].toLowerCase())
@@ -323,7 +332,7 @@ nice._on('Type', type => {
 
     targetType.types[name] = type;
 
-    value !== undefined && (targetType.defaultResult[name] = value);
+    as.length && (targetType.defaultArguments[name] = as);
 
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
@@ -337,8 +346,8 @@ nice._on('Type', type => {
     nice.emitAndSave('Property', { type, name, targetType });
   }
 
-  def(nice.Obj.configProto, smallName, function (name, value) {
-    createProperty(this, name, value);
+  def(nice.Obj.configProto, smallName, function (name, ...as) {
+    createProperty(this, name, ...as);
     return this;
   });
 });

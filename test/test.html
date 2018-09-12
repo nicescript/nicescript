@@ -20,18 +20,16 @@ const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
 // How to listen to the children?
 //
-var o = Obj();
+//var o = Obj();
 //o.listen(f);
 //o.listenItems(f);
 //o.listenItem('name', f);
 //o.listenItems(['name', 'price'], f);
 //o.listenDeep(f);
 
-const spy = v => console.log(v());
+    const o = nice.Obj({qwe:1});
+    const p = nice.Pointer(o);
 
-    const a = Box();
-    let res;
-    a.listen(v => res = v);
 
 </script>
   

@@ -5,7 +5,7 @@ def(nice, function extend(child, parent){
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
-  parent.defaultResult && create(parent.defaultResult, child.defaultResult);
+  parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
   nice.emitAndSave('Extension', { child, parent });
   child.super = parent;
 });
@@ -33,12 +33,12 @@ defAll(nice, {
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
-    config.defaultResult = config.defaultResult || {};
+    config.defaultArguments = config.defaultArguments || {};
 
     const type = (...a) => {
       const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
-      _each(type.defaultResult, (v, k) => item[k](v));
+      type.initChildren(item);
       type.initBy
         ? type.initBy(item, ...a)
         : (a.length && item(...a));
@@ -46,7 +46,7 @@ defAll(nice, {
     };
 
     config.proto._type = type;
-    Object.defineProperty(type, 'name', {writable: true});
+    Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
     nice.extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
 

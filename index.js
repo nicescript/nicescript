@@ -938,7 +938,7 @@ def(nice, function expect(value, message){
 expect = nice.expect;
 })();
 (function(){"use strict";defAll(nice, {
-  _newItem: (type, parent = null, key = null) => {
+  _newItem: (type) => {
     const f = function(...a){
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -950,8 +950,6 @@ expect = nice.expect;
       return this || f;
     };
     nice._assignType(f, type || Anything);
-    f._parent = parent;
-    f._parentKey = key;
     f._originalType = type;
     return f;
   },
@@ -972,6 +970,7 @@ nice.registerType({
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
+  initChildren: () => 0,
   fromValue: function(_value){
     return Object.assign(this(), { _value });
   },
@@ -1002,15 +1001,11 @@ nice.registerType({
     _setValue: function (v){
       if(v === this._value)
         return;
-      this.transaction(isHot => {
-        isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
+      this.transaction(() => {
+        !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
       });
     },
-    by(...inputs){
-      const res = Box();
-      const f = inputs.pop();
-    }
   },
   configProto: {
     extends: function(parent){
@@ -1050,10 +1045,24 @@ Anything.proto._type = Anything;
 defAll(nice.Anything.proto, {
   _isResolved() { return true; },
   listen: function(f) {
+    
+    if(typeof f === 'object'){
+      const { onRemove = () => {}, onAdd = () => {} } = f;
+      f = (v, old) => {
+        if(old === undefined){
+          v.each(onAdd);
+        } else {
+          _each(old, (c, k) => {
+            c === undefined || onRemove(c, k);
+            v._items[k] && onAdd(v._items[k], k);
+          });
+        }
+      };
+    }
     const ss = this._subscribers = this._subscribers || [];
     if(!ss.includes(f)){
       ss.push(f);
-      this.compute && this.compute()
+      this.compute && this.compute();
       f(this._notificationValue ? this._notificationValue() : this);
     }
   
@@ -1087,13 +1096,9 @@ defAll(nice.Anything.proto, {
         (this._subscribers && this._subscribers.length);
     },
     transaction: function (f) {
-      if(this._parent){
-        this._parent.transaction(f);
-      } else {
-        this.transactionStart();
-        f(this);
-        this.transactionEnd();
-      }
+      this.transactionStart();
+      f(this);
+      this.transactionEnd();
       return this;
     },
   listenOnce: function (f) {
@@ -1145,7 +1150,7 @@ function notify(z){
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
-  parent.defaultResult && create(parent.defaultResult, child.defaultResult);
+  parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
   nice.emitAndSave('Extension', { child, parent });
   child.super = parent;
 });
@@ -1168,18 +1173,18 @@ defAll(nice, {
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
-    config.defaultResult = config.defaultResult || {};
+    config.defaultArguments = config.defaultArguments || {};
     const type = (...a) => {
       const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
-      _each(type.defaultResult, (v, k) => item[k](v));
+      type.initChildren(item);
       type.initBy
         ? type.initBy(item, ...a)
         : (a.length && item(...a));
       return item;
     };
     config.proto._type = type;
-    Object.defineProperty(type, 'name', {writable: true});
+    Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
     nice.extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
     const cfg = create(config.configProto, nice.Configurator(type, ''));
@@ -1331,6 +1336,11 @@ nice.jsTypes.isSubType = isSubType;
       Object.assign(res._items, nice._map(v, nice.fromJson));
       return res;
     },
+    initChildren(item){
+      _each(this.defaultArguments, (as, k) => {
+        item._items[k] = this.types[k](...as);
+      });
+    },
     proto: {
       get(i) {
         const z = this;
@@ -1344,7 +1354,7 @@ nice.jsTypes.isSubType = isSubType;
           ? this._items[i] = type()
           : nice.NotFound();
       },
-      set: function(i, v) {
+      set: function(i, v, ...tale) {
         const z = this;
         z.transaction(() => {
           let res;
@@ -1352,13 +1362,14 @@ nice.jsTypes.isSubType = isSubType;
             z._oldValue = z._oldValue || {};
             z._oldValue[i] = z._items[i];
           }
-          if(z._itemsType){
+          const type = z._itemsType || (z._type.types && z._type.types[i]);
+          if(type){
             if(v && v._isAnything){
-              if(v._type.isSubType(z._itemsType))
-                throw `Expected item type is ${z._itemsType.name} but ${v._type.name} is given.`;
+              if(v._type.isSubType(type))
+                throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
               res = v;
             } else {
-              res = z._itemsType(v);
+              res = type(v, ...tale);
             }
           } else {
             res = nice(v);
@@ -1400,6 +1411,7 @@ Object.assign(nice.Obj.proto, {
 });
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 Func.Nothing.function('each', () => 0);
+C('has', (o, k) => o._items.hasOwnProperty(k));
 F(function each(o, f){
   for(let k in o._items)
     if(is.Stop(f(o._items[k], k)))
@@ -1477,13 +1489,13 @@ M(function getProperties(z){
 });
 nice._on('Type', type => {
   const smallName = nice._decapitalize(type.name);
-  function createProperty(z, name, value){
+  function createProperty(z, name, ...as){
     const targetType = z.target;
     if(name[0] !== name[0].toLowerCase())
       throw "Property name should start with lowercase letter. "
             + `"${nice._decapitalize(name)}" not "${name}"`;
     targetType.types[name] = type;
-    value !== undefined && (targetType.defaultResult[name] = value);
+    as.length && (targetType.defaultArguments[name] = as);
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
       if(!is.subType(res._type, type))
@@ -1492,8 +1504,8 @@ nice._on('Type', type => {
     });
     nice.emitAndSave('Property', { type, name, targetType });
   }
-  def(nice.Obj.configProto, smallName, function (name, value) {
-    createProperty(this, name, value);
+  def(nice.Obj.configProto, smallName, function (name, ...as) {
+    createProperty(this, name, ...as);
     return this;
   });
 });
@@ -1553,7 +1565,7 @@ nice.Type({
       return this;
     },
     interval: function (f, t = 200) {
-      setInterval(() => this.setState(f(this._result)), t);
+      setInterval(() => this.setState(f(this._value)), t);
       return this;
     },
     timeout: function (f, t = 200) {
@@ -1562,6 +1574,7 @@ nice.Type({
     },
     doCompute: function (){
       this.transactionStart();
+      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
       this._value = PENDING;
       let _value;
       const ss = this._subscriptions;
@@ -1611,7 +1624,6 @@ nice.Type({
         throw `Can't set result of the box to box itself.`;
       while(v && v._up_)
         v = v._up_;
-      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
       this._value = v;
     },
     setState: function(v){
@@ -1676,18 +1688,6 @@ F.Box(function unbind(y, x) {
   nice.unsubscribe(y, x);
   nice.unsubscribe(x, y);
   return y;
-});
-nice._on('Type', type => {
-  if(!type.name)
-    return;
-  def(Box.proto, nice._decapitalize(type.name), function (name, value) {
-    expect(name).String();
-    const input = Box();
-    value !== undefined && input(value);
-    input._parent = this;
-    def(this, name, input);
-    return this.use(input);
-  });
 });
 })();
 (function(){"use strict";nice.Type({
@@ -1950,8 +1950,8 @@ A('dec', (z, n = 1) => z(z() - n));
 A('divide', (z, n) => z(z() / n));
 A('multiply', (z, n) => z(z() * n));
 A('negate', z => z(-z()));
-A('setMax', (z, n) => { n > z() && z(n); return z._parent || z; });
-A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
+A('setMax', (z, n) => n > z() && z(n));
+A('setMin', (z, n) => n < z() && z(n));
 })();
 (function(){"use strict";const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
 const allowedSources = {boolean: 1, number: 1, string: 1};
@@ -2024,6 +2024,21 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
 });
 })();
 (function(){"use strict";nice.Single.extend({
+  name: 'Pointer',
+  initBy: (z, o, key) => {
+    expect(o).Obj();
+    z._object = o;
+    key === undefined || z(key);
+  },
+  itemArgs0: z => z._object.get(z._value),
+  itemArgs1: (z, k) => {
+    if(!z._object.is.has(k))
+      throw `Key ${k} not found.`;
+    z._setValue(k);
+  },
+}).about('Holds key of an object or array.');
+})();
+(function(){"use strict";nice.Single.extend({
   name: 'Bool',
   onCreate: z => z._value = false,
   itemArgs1: (z, v) => z._setValue(!!v),
@@ -2093,8 +2108,8 @@ nice.Type('Html')
       const el = document.getElementById(z.id());
       el && f(el);
     }
-    nice.Switch(z.eventHandlers(name))
-      .Nothing.use(() => z.eventHandlers(name, [f]))
+    nice.Switch(z.eventHandlers.get(name))
+      .Nothing.use(() => z.eventHandlers.set(name, [f]))
       .default.use(a => a.push(f));
   })
   .obj('style')
@@ -2162,7 +2177,7 @@ const Style = nice.Style;
 defGet(Html.proto, 'hover', function(){
   const style = Style();
   this._autoClass();
-  this.cssSelectors(':hover', style);
+  this.cssSelectors.set(':hover', style);
   return style;
 });
 def(Html.proto, 'Css', function(s = ''){
@@ -2200,22 +2215,25 @@ Html.proto.Box = function(...a) {
     def(Html.proto, property, function(...a) {
       is.Object(a[0])
         ? _each(a[0], (v, k) => this.style.set(property + nice.capitalize(k), v))
-        : this.style.set(property, is.String(a[0]) ? nice.format(...a) : a[0]);
+        : this.style.set(property, a.length > 1 ? nice.format(...a) : a[0]);
       return this;
     });
     def(Style.proto, property, function(...a) {
       is.Object(a[0])
         ? _each(a[0], (v, k) => this.set(property + nice.capitalize(k), v))
-        : this.set(property, is.String(a[0]) ? nice.format(...a) : a[0]);
+        : this.set(property, a.length > 1 ? nice.format(...a) : a[0]);
       return this;
     });
   });
 'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
     Html.proto[property] = function(...a){
-      return a.length
-        ? this.attributes(property, ...a)
-        : nice.Switch(this.attributes(property)).Value.use(v => v()).default('');
+      if(a.length){
+        this.attributes.set(property, a.length > 1 ? nice.format(...a) : a[0]);
+        return this;
+      } else {
+        return this.attributes.get(property);
+      }
     };
   });
 function text(){
@@ -2263,40 +2281,9 @@ if(nice.isEnvBrowser){
   const styleEl = document.createElement('style');
   document.head.appendChild(styleEl);
   const styleSheet = styleEl.sheet;
-  const addStyle = Switch
-    .Box.use((s, k, node) => {
-      const f = v => addStyle(v, k, node);
-      s.listen(f);
-      nice._set(node, ['styleSubscriptions', k], () => s.unsubscribe(f));
-    })
-    .default.use((v, k, node) => node.style[k] = v);
-  const delStyle = Switch
-    .Box.use((s, k, node) => {
-      node.styleSubscriptions[k]();
-      delete node.styleSubscriptions[k];
-      node.style[k] = '';
-    })
-    .default.use((v, k, node) => node.style && (node.style[k] = ''));
-  const addAttribute = Switch
-    .Box.use((s, k, node) => {
-      const f = v => addAttribute(v, k, node);
-      s.listen(f);
-      nice._set(node, ['attrSubscriptions', k], () => s.unsubscribe(f));
-    })
-    .default.use((v, k, node) => node[k] = v);
-  const delAttribute = Switch
-    .Box.use((s, k, node) => {
-      node.attrSubscriptions[k]();
-      delete node.attrSubscriptions[k];
-      node[k] = '';
-    })
-    .default.use((v, k, node) => node[k] = '');
-  const addSelectors = (selectors, node) => {
-    _each(selectors, (_v, k) => addRules(_v, k, getAutoClass(node.className)));
-  };
   const addRules = (vs, selector, className) => {
     const rule = assertRule(selector, className);
-    _each(vs, (value, prop) => rule.style[prop] = value);
+    vs.each((value, prop) => rule.style[prop] = value());
   };
   const findRule = (selector, className) => {
     const s = `.${className} ${selector}`.toLowerCase();
@@ -2305,16 +2292,31 @@ if(nice.isEnvBrowser){
       r.selectorText === s && (rule = r);
     return rule;
   };
+  const findRuleindex = (selector, className) => {
+    const s = `.${className} ${selector}`.toLowerCase();
+    let res;
+    for (const i in styleSheet.cssRules)
+      styleSheet.cssRules[i].selectorText === s && (res = i);
+    return res;
+  };
   const assertRule = (selector, className) => {
     return findRule(selector, className) || styleSheet
         .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
   };
-  const killSelectors = (css, className) => {
-    _each(css, (_v, k) => killRules(_v, k, getAutoClass(className)));
+  function killSelectors(v) {
+    const c = getAutoClass(v.attributes.get('className')());
+    v.cssSelectors.each((v, k) => killRules(v, k, c));
   };
   const killRules = (vs, selector, id) => {
     const rule = findRule(selector, id);
-    rule && _each(vs, (value, prop) => rule.style[prop] = null);
+    rule && vs.each((value, prop) => rule.style[prop] = null);
+  };
+  const killAllRules = (v) => {
+    const c = getAutoClass(v.attributes.get('className')());
+    const a = [];
+    [...styleSheet.cssRules].forEach((r, i) =>
+        r.selectorText.indexOf(c) === 1 && a.unshift(i));
+    a.forEach(i => styleSheet.deleteRule(i));
   };
   function killNode(n){
     n && n.parentNode && n.parentNode.removeChild(n);
@@ -2327,170 +2329,67 @@ if(nice.isEnvBrowser){
     node.parentNode.insertBefore(newNode, node.nextSibling);
     return newNode;
   }
-  function preserveAutoClass(add, del, node){
-    const a = nice._get(add, ['attributes', 'className']) || '';
-    const d = node && node.className || '';
-    const ai = a.indexOf(AUTO_PREFIX);
-    const di = d.indexOf(AUTO_PREFIX);
-    if(ai >= 0 && di >= 0){
-      const old = d.match(/(_nn_\d+)/)[0];
-      delete del.attributes.className;
-      add.attributes.className = a.replace(/_nn_(\d+)/, old);
-    }
-  }
-  function fillNode(o, node){
-    _each(o.style, (_v, k) => addStyle(_v, k, node));
-    _each(o.attributes, (_v, k) => addAttribute(_v, k, node));
-    addSelectors(o.cssSelectors, node);
-    addHandlers(o.eventHandlers, node);
-  }
-  function cleanNode(o, node) {
-    _each(o.style, (_v, k) => delStyle(_v, k, node));
-    _each(o.attributes, (_v, k) => delAttribute(_v, k, node));
-    killSelectors(o.cssSelectors,
-        node.className || (o.attributes && o.attributes.className));
-    nice._eachEach(o.eventHandlers, (f, _n, k) =>
-          node.removeEventListener(k, f, true));
-  }
-  function createTextNode(t, parent, oldNode) {
-    const node = document.createTextNode(is.Nothing(t) ? '' : '' + t);
-    oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
-    return node;
-  }
-  function handleNode(add, del, oldNode, parent){
+  Func.Single('show', (e, parentNode = document.body, position) => {
+    const node = document.createTextNode('');
+    e.listen(v => node.nodeValue = v());
+    return insertAt(parentNode, node, position);
+  });
+  Func.Box('show', (e, parentNode = document.body, position) => {
     let node;
-    if(del && !is.Nothing(del) && !oldNode)
-      throw '!oldNode';
-    if(add === undefined){
-      if(del === undefined){
-        throw 'Why are we here?'
-      } else if (is.Box(del)) {
-        throw 'todo:';
-      } else if (is.Object(del)) {
-        if(del.tag){
-          killNode(oldNode);
-        } else {
-          cleanNode(del, node = oldNode);
-          handleChildren(add, del, node);
-        }
-        
-      } else {
-        killNode(oldNode);
-      }
-    } else if (is.Box(add)) {
-      let _del = del;
-      node = oldNode;
-      if(del === undefined){
-        node = document.createTextNode(' ');
-        parent.appendChild(node);
-      } else if (is.Box(del)) {
-        throw 'todo:';
-      } else if (is.Object(del)) {
-        ;
-      } else {
-        ;
-      }
-      const f = () => {
-        const diff = add.getDiffTo(_del);
-        _del = undefined;
-        node = handleNode(diff.add, diff.del, node, parent);
-        
-      };
-      add.listen(f);
-      node.__niceSubscription = f;
-    } else if (is.Object(add)) {
-      const tag = add.tag;
-      preserveAutoClass(add, del, oldNode);
-      if(tag){
-        let victim;
-        if(del === undefined){
-          node = document.createElement(tag);
-        } else if (is.Box(del)) {
-          throw 'todo';
-        } else if (is.Object(del)) {
-          node = changeHtml(oldNode, tag);
-          cleanNode(del, node);
-          victim = oldNode;
-        } else {
-          node = document.createElement(tag);
-          victim = oldNode;
-        }
-        oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
-        victim && killNode(victim);
-      } else {
-        node = oldNode;
-        if(is.Object(del)){
-          cleanNode(del, node);
-        }
-      }
-      
-      handleChildren(add, del, node);
-      fillNode(add, node);
-    } else {
-      if(del === undefined){
-        node = createTextNode(add, parent, oldNode);
-      } else if (is.Box(del)) {
-        throw 'todo';
-      } else if (is.Object(del)) {
-        node = createTextNode(add, parent, oldNode);
-        killNode(oldNode);
-      } else {
-        oldNode.nodeValue = is.Nothing(add) ? '' : '' + add;
-        node = oldNode;
-      }
-    }
+    e.listen((v, oldValue) => {
+      const oldNode = node;
+      node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
+      node = v.show(parentNode, position);
+      oldNode && removeNode(oldNode, oldValue);
+    });
+  });
+  Func.Html('show', (e, parentNode = document.body, position) => {
+    const node = document.createElement(e.tag());
     
-    if(add !== undefined && !node)
-      throw '!node';
+    insertAt(parentNode, node, position);
+    e.children.listen({
+      onRemove: (v, k) => removeNode(node.childNodes[k], v),
+      onAdd: (v, k) => v.show(node, k),
+    });
+    e.style.listen({
+      onRemove: (v, k) => delete node.style[k],
+      onAdd: (v, k) => node.style[k] = v(),
+    });
+    e.attributes.listen({
+      onRemove: (v, k) => delete node[k],
+      onAdd: (v, k) => node[k] = v(),
+    });
+    e.cssSelectors.listen({
+      onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
+      onAdd: (v, k) => addRules(v, k, getAutoClass(node.className)),
+    });
+    e.eventHandlers.each((hs, k) => {
+      hs.each(f => {
+        if(k === 'domNode')
+          return f(node);
+        node.addEventListener(k, f, true);
+        node.__niceListeners = node.__niceListeners || {};
+        node.__niceListeners[k] = node.__niceListeners[k] || [];
+        
+        node.__niceListeners[k].push(f);
+      });
+    });
+    return node;
+  });
+  function removeNode(node, v){
+    node.parentNode.removeChild(node);
+    v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
+  }
+  function removeAt(parent, position){
+    parent.removeChild(parent.childNodes[position]);
+  }
+  function insertAt(parent, node, position){
+    parent.insertBefore(node, parent.childNodes[position]);
     return node;
   }
-  function handleChildren(add, del, target){
-    const a = add && add.children;
-    const d = del && del.children;
-    const f = k => handleNode(a && a[k], d && d[k], target.childNodes[k], target);
-    const keys = [];
-    _each(a, (v, k) => f( + k));
-    _each(d, (v, k) => (a && a[k]) || keys.push( + k));
-    keys.sort((a,b) => b - a).forEach(f);
-  };
-  Func.Box(function show(source, parent = document.body){
-    const i = parent.childNodes.length;
-    let node = null;
-    source.listenDiff(diff => {
-      let before = node;
-      node = handleNode(diff.add, diff.del, node, parent);
-      if(!node)
-        throw '!!!'
-    });
-    return source;
-  });
-  function newNode(tag, parent = document.body){
-    return parent.appendChild(document.createElement(tag));
-  };
-  Func.Html(function show(source, parent = document.body){
-    handleNode(source._getResult(), undefined, null, parent);
-    return source;
-  });
-  function changeHtml(old, tag){
-    const node = document.createElement(tag);
-    while (old.firstChild) node.appendChild(old.firstChild);
-    for (let i = old.attributes.length - 1; i >= 0; --i) {
-      node.attributes.setNamedItem(old.attributes[i].cloneNode());
-    }
-    addHandlers(old.__niceListeners, node);
-    delete(old.__niceListeners);
-    return node;
-  }
-  function addHandlers(eventHandlers, node){
-    nice._eachEach(eventHandlers, (f, _n, k) => {
-      if(k === 'domNode')
-        return f(node);
-      node.addEventListener(k, f, true);
-      node.__niceListeners = node.__niceListeners || {};
-      node.__niceListeners[k] = node.__niceListeners[k] || [];
-      node.__niceListeners[k].push(f);
-    });
-  }
+  
+  
+  
 };
 })();
 (function(){"use strict";const Html = nice.Html;
@@ -2513,13 +2412,12 @@ Html.extend('Img').by((z, src, x, y) => {
 })();
 (function(){"use strict";const Html = nice.Html;
 function defaultSetValue(t, v){
-  t.attributes('value', v);
+  t.attributes.set('value', v);
 };
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 function attachValue(target, setValue = defaultSetValue){
   let node, mute;
   target.value = Box("");
-  target.value._parent = target;
   if(nice.isEnvBrowser){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
@@ -2535,7 +2433,10 @@ function attachValue(target, setValue = defaultSetValue){
 }
 Html.extend('Input')
   .about('Represents HTML <input> element.')
-  .by((z, type) => attachValue(z.tag('input').attributes('type', type || 'text')));
+  .by((z, type) => {
+    z.tag('input').attributes.set('type', type || 'text');
+    attachValue(z);
+  });
 Html.extend('Button')
   .about('Represents HTML <input type="button"> element.')
   .by((z, text, action) => {
@@ -2550,14 +2451,13 @@ Html.extend('Textarea')
   });
 Html.extend('Submit')
   .about('Represents HTML <input type="submit"> element.')
-  .by((z, text) => z.tag('input').attributes({type: 'submit', value: text}));
+  .by((z, text) => z.tag('input').attributes.set({type: 'submit', value: text}));
 Html.extend('Checkbox')
   .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
     z.tag('input').attributes({type: 'checkbox'});
     z.checked = Box(status || false);
-    z.checked._parent = z;
     let mute;
     z.on('change', e => {
       mute = true;
@@ -2569,6 +2469,6 @@ Html.extend('Checkbox')
       z._autoId();
       z.on('domNode', n => node = n);
     }
-    z.checked.listen(v => node ? node.checked = v : z.attributes('checked', v));
+    z.checked.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   });
 })();;})();; return nice;}

@@ -1,7 +1,7 @@
 const Html = nice.Html;
 
 function defaultSetValue(t, v){
-  t.attributes('value', v);
+  t.attributes.set('value', v);
 };
 
 
@@ -10,7 +10,6 @@ const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 function attachValue(target, setValue = defaultSetValue){
   let node, mute;
   target.value = Box("");
-  target.value._parent = target;
 
   if(nice.isEnvBrowser){
     changeEvents.forEach(k => target.on(k, e => {
@@ -29,7 +28,10 @@ function attachValue(target, setValue = defaultSetValue){
 
 Html.extend('Input')
   .about('Represents HTML <input> element.')
-  .by((z, type) => attachValue(z.tag('input').attributes('type', type || 'text')));
+  .by((z, type) => {
+    z.tag('input').attributes.set('type', type || 'text');
+    attachValue(z);
+  });
 
 
 Html.extend('Button')
@@ -50,7 +52,7 @@ Html.extend('Textarea')
 
 Html.extend('Submit')
   .about('Represents HTML <input type="submit"> element.')
-  .by((z, text) => z.tag('input').attributes({type: 'submit', value: text}));
+  .by((z, text) => z.tag('input').attributes.set({type: 'submit', value: text}));
 
 
 Html.extend('Checkbox')
@@ -59,7 +61,6 @@ Html.extend('Checkbox')
     let node;
     z.tag('input').attributes({type: 'checkbox'});
     z.checked = Box(status || false);
-    z.checked._parent = z;
 
     let mute;
     z.on('change', e => {
@@ -74,5 +75,5 @@ Html.extend('Checkbox')
       z.on('domNode', n => node = n);
     }
 
-    z.checked.listen(v => node ? node.checked = v : z.attributes('checked', v));
+    z.checked.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   });

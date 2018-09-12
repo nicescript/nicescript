@@ -31,6 +31,34 @@ describe("Observable", function() {
   });
 
 
+  it("listen onAdd", function(){
+    const a = nice(1), b = nice(2);
+    let o = Obj();
+    const spy = chai.spy();
+
+    o.set('a', a);
+    o.listen({ onAdd: spy});
+    expect(spy).to.have.been.called.with(a, 'a');
+    o.set('b', b);
+    expect(spy).to.have.been.called.with(b, 'b');
+    o.set('b', a);
+    expect(spy).to.have.been.called.with(a, 'b');
+  });
+
+
+  it("listen onRemove", function(){
+    const a = nice(1), b = nice(2);
+    let o = Obj();
+    const spy = chai.spy();
+
+    o.set('a', a);
+    o.listen({ onRemove: spy});
+    expect(spy).to.not.have.been.called();
+    o.set('a', b);
+    expect(spy).to.have.been.called.with(a, 'a');
+  });
+
+
   it("listen old value", function(){
     let a = Num();
     let res;

@@ -3,6 +3,20 @@ const NO_NEED = {};
 defAll(nice.Anything.proto, {
   _isResolved() { return true; },
   listen: function(f) {
+    //TODO: unsubscribe
+    if(typeof f === 'object'){
+      const { onRemove = () => {}, onAdd = () => {} } = f;
+      f = (v, old) => {
+        if(old === undefined){
+          v.each(onAdd);
+        } else {
+          _each(old, (c, k) => {
+            c === undefined || onRemove(c, k);
+            v._items[k] && onAdd(v._items[k], k);
+          });
+        }
+      };
+    }
     const ss = this._subscribers = this._subscribers || [];
 
     if(!ss.includes(f)){
@@ -81,6 +95,7 @@ defAll(nice.Anything.proto, {
 //      is.Box(this._result) || Object.freeze(this._result);
 //      (this._result && this._result._notify) || Object.freeze(this._result);
 //      delete this._diff;
+//      delete this._oldValue;
       return notify(this);
     },
 
@@ -101,13 +116,9 @@ defAll(nice.Anything.proto, {
     },
 
     transaction: function (f) {
-      if(this._parent){
-        this._parent.transaction(f);
-      } else {
-        this.transactionStart();
-        f(this);
-        this.transactionEnd();
-      }
+      this.transactionStart();
+      f(this);
+      this.transactionEnd();
       return this;
     },
 

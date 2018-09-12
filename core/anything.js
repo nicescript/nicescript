@@ -1,5 +1,5 @@
 defAll(nice, {
-  _newItem: (type, parent = null, key = null) => {
+  _newItem: (type) => {
     const f = function(...a){
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -11,8 +11,6 @@ defAll(nice, {
       return this || f;
     };
     nice._assignType(f, type || Anything);
-    f._parent = parent;
-    f._parentKey = key;
     f._originalType = type;
     return f;
   },
@@ -39,6 +37,8 @@ nice.registerType({
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
+
+  initChildren: () => 0,
 
   fromValue: function(_value){
     return Object.assign(this(), { _value });
@@ -77,17 +77,11 @@ nice.registerType({
     _setValue: function (v){
       if(v === this._value)
         return;
-      this.transaction(isHot => {
-        isHot && !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
+      this.transaction(() => {
+        !this.hasOwnProperty('_oldValue') && (this._oldValue = this._value);
         this._value = v;
       });
     },
-
-    by(...inputs){
-      const res = Box();
-      const f = inputs.pop();
-
-    }
   },
 
   configProto: {

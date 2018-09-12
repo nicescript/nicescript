@@ -324,30 +324,6 @@ describe("Obj", function() {
     expect(T().pages.get(0)()).to.equal('qwe');
   });
 
-
-//  it("key property with js object", () => {
-//    const users = {1: {name: 'Qwe'}};
-//    const T = nice.Type()
-//      .key('user', users)
-//      ();
-//    const t = T();
-//
-//    expect(t.user(1)).to.equal(t);
-//    expect(t.user().name).to.equal('Qwe');
-//  });
-//
-//
-//  it("key property with Obj", () => {
-//    const users = nice({1: nice({name: 'Qwe'})});
-//    const T = nice.Type()
-//      .key('user', users)
-//      ();
-//    const t = T();
-//
-//    expect(t.user(1)).to.equal(t);
-//    expect(t.user().get('name')()).to.equal('Qwe');
-//  });
-
 //  it("includes", function() {
 //    const a = Obj({qwe: 1, ads: 3});
 //    expect(a.is.includes(7)).to.equal(false);

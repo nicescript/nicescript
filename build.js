@@ -28,6 +28,7 @@ const order = [
   'types/arr',
   'types/num',
   'types/str',
+  'types/pointer',
   'types/bool',
 //  'core/interface',
   'types/range',

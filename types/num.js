@@ -96,5 +96,5 @@ A('dec', (z, n = 1) => z(z() - n));
 A('divide', (z, n) => z(z() / n));
 A('multiply', (z, n) => z(z() * n));
 A('negate', z => z(-z()));
-A('setMax', (z, n) => { n > z() && z(n); return z._parent || z; });
-A('setMin', (z, n) => { n < z() && z(n); return z._parent || z; });
+A('setMax', (z, n) => n > z() && z(n));
+A('setMin', (z, n) => n < z() && z(n));
