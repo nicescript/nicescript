@@ -17,15 +17,16 @@ const configProto = {
 const skippedProto = {};
 
 const functionProto = {
-  addSignature: function (action, signature){
+  addSignature: function (body, signature){
     if(signature && signature.length){
       const ss = this.signatures = this.signatures || new Map();
       const type = signature[0].type;
       ss.has(type) || ss.set(type, createFunctionBody({name: this.name}));
-      ss.get(type).addSignature(action, signature.slice(1));
+      ss.get(type).addSignature(body, signature.slice(1));
     } else {
-      this.action = action;
+      this.body = body;
     }
+//    addDerivedSignatures(this, signature, body);
     return this;
   },
 
@@ -42,9 +43,9 @@ const parseParams = (...a) => {
   if(!a[0])
     return {};
 
-  const [name, action] = a.length === 2 ? a : [a[0].name, a[0]];
+  const [name, body] = a.length === 2 ? a : [a[0].name, a[0]];
 
-  return typeof action === 'function' ? { name, action } : a[0];
+  return typeof body === 'function' ? { name, body } : a[0];
 };
 
 
@@ -54,7 +55,7 @@ function toItemType({type}){
 
 
 function transform(s){
-  s.source = s.action;
+  s.source = s.body;
   if(s.signature.length === 0)
     return s;
 
@@ -62,7 +63,7 @@ function transform(s){
 
   s.signature = types.map(toItemType);
 
-  s.action = (...a) => {
+  s.body = (...a) => {
     const l = types.length;
     for(let i = 0; i < l; i++){
       const isNice = a[i] && a[i]._isAnything;
@@ -77,7 +78,7 @@ function transform(s){
     return s.source(...a);
   };
 
-  def(s.action, 'length', s.source.length);
+  def(s.body, 'length', s.source.length);
 
   return s;
 }
@@ -85,13 +86,13 @@ function transform(s){
 
 function Configurator(name){
   const z = create(configProto, (...a) => {
-    const { name, action, signature } = parseParams(...a);
+    const { name, body, signature } = parseParams(...a);
     const res = createFunction(transform({
       description: z.description,
       type: z.functionType,
       existing: z.existing,
       name: z.name || name,
-      action: action || z.action,
+      body: body || z.body,
       signature: (z.signature || []).concat(signature || [])
     }));
     return z.returnValue || res;
@@ -109,9 +110,24 @@ function configurator(...a){
   return Configurator(cfg.name).next(cfg);
 };
 
+//TODO: finish and remove transform()
+//function addDerivedSignatures(f, signature, body){
+//  signature.forEach((v, k) => {
+//    if(is.jsType(v)){
+//      const t = mathingNiceType(type);
+//      if(t && !hasSignature(f))
+//
+//        f.addSignature()
+//
+//    } else {
+//
+//    }
+//  });
+//}
+
 
 //optimization: create function that don't check fist argument for type.proto
-function createFunction({ existing, name, action, source, signature, type, description }){
+function createFunction({ existing, name, body, source, signature, type, description }){
   const target = type === 'Check' ? nice.checkFunctions : nice;
 
   if(type !== 'Check' && name && typeof name === 'string'
@@ -125,7 +141,7 @@ function createFunction({ existing, name, action, source, signature, type, descr
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
 
-  action && f.addSignature(action, signature);
+  body && f.addSignature(wrap(type, body), signature);
   if(name){
     if(!existing){
       if(f.name !== name){
@@ -141,35 +157,61 @@ function createFunction({ existing, name, action, source, signature, type, descr
       nice.emitAndSave('function', f);
       type && nice.emitAndSave(type, f);
     }
-    action && nice.emitAndSave('signature',
-      {name, action, signature, type, description, source });
+    body && nice.emitAndSave('signature',
+      { name, body, signature, type, description, source });
   }
 
   return f;
 };
 
 
+function wrap(type, body){
+  if(type === 'Action'){
+    //TODO: wrap all actions in transaction
+    // TODO: primitive case
+//    if(is.primitive(a[0]))
+//      return s(...a);
+    return function (...as) { body(...as); return as[0]; };
+  }
+
+  //TODO: remove nice() maybe
+  if(type === 'Mapping')
+    return function (...as) { return nice(body(...as)); };
+
+  return body;
+}
+
+
 function createFunctionBody(type){
-  const z = create(functionProto, (...a) => {
-    if(a.includes(nice))
-      return skip(a, z);
+  const z = create(functionProto, (...args) => {
+    if(args.includes(nice))
+      return skip(args, z);
 
-    const s = findAction(z, a);
-    if(!s)
-      throw signatureError(z.name, a);
+    let res;
+    let target = z;
 
-    if(type === 'Action'){
-      //TODO: wrap all actions in transaction
-      if(is.primitive(a[0]))
-        return s(...a);
-      s(...a);
-      return a[0];
+    if(!args.length || !target.signatures) {
+      res = target.body;
+    } else {
+      for(let i in args) {
+        let type = nice.typeOf(args[i++]);
+        while(!res && type){
+          if(target.signatures.has(type)){
+            target = target.signatures.get(type);
+            res = target.body;
+          } else {
+            type = Object.getPrototypeOf(type);
+          }
+        }
+        if(res)
+          break;
+      }
     }
 
-    if(type === 'Mapping')
-      return nice(s(...a));
+    if(!res)
+      throw signatureError(z.name, args);
 
-    return s(...a);
+    return res(...args);
   });
 
   z.functionType = type;
@@ -179,24 +221,7 @@ function createFunctionBody(type){
 
 
 function findAction(target, args){
-  let res;
 
-  if(!args.length || !target.signatures)
-    return target.action;
-
-  for(let i in args) {
-    let type = nice.typeOf(args[i++]);
-    while(!res && type){
-      if(target.signatures.has(type)){
-        target = target.signatures.get(type);
-        res = target.action;
-      } else {
-        type = Object.getPrototypeOf(type);
-      }
-    }
-    if(res)
-      return res;
-  }
 }
 
 

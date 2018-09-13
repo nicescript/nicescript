@@ -221,7 +221,7 @@ defGet(delayedProto, 'not', function (){
 
 
 function diggSignaturesLength(f, n = 0){
-  f.action && f.action.length > n && (n = f.action.length);
+  f.body && f.body.length > n && (n = f.body.length);
   f.signatures && f.signatures.forEach(v => n = diggSignaturesLength(v, n));
   return n;
 }

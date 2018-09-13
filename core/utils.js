@@ -217,7 +217,7 @@ defAll(nice, {
       const o = {};
 
       _each(s, (v, k) => nice.Switch(k)
-        .equal('action')()
+        .equal('body')()
         .equal('source').use(() => o.source = v.toString())
         .equal('signature').use(() => o[k] = v.map(t => t.type.name))
         .default.use(() => o[k] = v));
