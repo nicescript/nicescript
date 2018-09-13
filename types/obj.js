@@ -65,7 +65,7 @@ nice.Type({
           const type = z._itemsType || (z._type.types && z._type.types[i]);
           if(type){
             if(v && v._isAnything){
-              if(v._type.isSubType(type))
+              if(!v._type.isSubType(type))
                 throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
               res = v;
             } else {

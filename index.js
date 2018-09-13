@@ -1369,7 +1369,7 @@ nice.jsTypes.isSubType = isSubType;
           const type = z._itemsType || (z._type.types && z._type.types[i]);
           if(type){
             if(v && v._isAnything){
-              if(v._type.isSubType(type))
+              if(!v._type.isSubType(type))
                 throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
               res = v;
             } else {
@@ -2343,9 +2343,15 @@ if(nice.isEnvBrowser){
     e.listen((v, oldValue) => {
       const oldNode = node;
       node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
-      node = v.show(parentNode, position);
+      node = nice.show(v, parentNode, position);
       oldNode && removeNode(oldNode, oldValue);
     });
+  });
+  Func.Nothing('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode, document.createTextNode(''), position);
+  });
+  Func.Bool('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode, document.createTextNode(''), position);
   });
   Func.Html('show', (e, parentNode = document.body, position) => {
     const node = document.createElement(e.tag());
@@ -2353,7 +2359,7 @@ if(nice.isEnvBrowser){
     insertAt(parentNode, node, position);
     e.children.listen({
       onRemove: (v, k) => removeNode(node.childNodes[k], v),
-      onAdd: (v, k) => v.show(node, k),
+      onAdd: (v, k) => nice.show(v, node, k),
     });
     e.style.listen({
       onRemove: (v, k) => delete node.style[k],

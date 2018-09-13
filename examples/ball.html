@@ -5,12 +5,15 @@
   </head>
   <body style="margin:0;overflow: hidden;">
 <script>
-const { Div, H1, Box, clamp } = nice;  
+const { Type, Div, H1, Box, clamp } = nice;  
 let speed = 5;
 
-const ball = Box({ x: 0, dx: speed, y: 0, dy: speed, size: 20 });
+Type('Ball').num('x').num('dx').num('y').num('dy').num('size').num('speed');
 
-const platform = Box({ x: 0, height: 20, width: 60 });
+const ball = nice.Ball().dx(speed).dy(speed).size(20);
+
+Type('Platform').num('x').num('height').num('width');
+const platform = nice.Platform().height(20).width(60);
 
 const gameOver = Box.by(ball, b => b.y + b.size > window.innerHeight);
 

@@ -609,10 +609,20 @@ if(nice.isEnvBrowser){
     e.listen((v, oldValue) => {
       const oldNode = node;
       node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
-      node = v.show(parentNode, position);
+      node = nice.show(v, parentNode, position);
 //      oldNode && killNode(oldNode);
       oldNode && removeNode(oldNode, oldValue);
     });
+  });
+
+  Func.Nothing('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode, document.createTextNode(''), position);
+  });
+
+  Func.Bool('show', (e, parentNode = document.body, position) => {
+    if(e())
+      throw `I don't know how to display "true"`;
+    return insertAt(parentNode, document.createTextNode(''), position);
   });
 
 
@@ -623,7 +633,7 @@ if(nice.isEnvBrowser){
     e.children.listen({
 //      onRemove: (v, k) => removeAt(node, k),
       onRemove: (v, k) => removeNode(node.childNodes[k], v),
-      onAdd: (v, k) => v.show(node, k),
+      onAdd: (v, k) => nice.show(v, node, k),
     });
     e.style.listen({
       onRemove: (v, k) => delete node.style[k],
