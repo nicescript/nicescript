@@ -1,6 +1,5 @@
 //REMOVE:
 // constructor => initBy
-
 nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -54,6 +53,7 @@ defAll = nice.defineAll;
 
 
 defAll(nice, {
+  TYPE_KEY: '_nt_',
   SOURCE_ERROR: 'Source error',
   LOCKED_ERROR: 'Item is closed for modification',
   curry: (f, arity = f.length) =>(...a) => a.length >= arity
@@ -111,8 +111,8 @@ defAll(nice, {
     if(Array.isArray(v))
       return nice.Arr;
 
-    if(v._nt_)
-      return nice[v._nt_];
+    if(v[nice.TYPE_KEY])
+      return nice[v[nice.TYPE_KEY]];
 
     if(t === 'object')
       return nice.Obj;
@@ -130,7 +130,10 @@ defAll(nice, {
     }});
   },
 
-  defineGetter: (o, n, get) => Object.defineProperty(o, n, { get, enumerable: true }),
+  defineGetter: (o, ...a) => {
+    const [key, get] = a.length === 2 ? a : [a[0].name, a[0]];
+    return Object.defineProperty(o, key, { get, enumerable: true });
+  },
 
   with: (o, f) => o === nice
     ? o => (f(o), o)
@@ -154,7 +157,7 @@ defAll(nice, {
   _each: (o, f) => {
     if(o)
       for(let i in o)
-        if(i !== '_nt_')
+        if(i !== nice.TYPE_KEY)
           if(is.Stop(f(o[i], i)))
             break;
     return o;

@@ -34,6 +34,7 @@ def(nice, 'defineAll', (target, o) => {
 });
 defAll = nice.defineAll;
 defAll(nice, {
+  TYPE_KEY: '_nt_',
   SOURCE_ERROR: 'Source error',
   LOCKED_ERROR: 'Item is closed for modification',
   curry: (f, arity = f.length) =>(...a) => a.length >= arity
@@ -58,8 +59,8 @@ defAll(nice, {
       return nice.Bool;
     if(Array.isArray(v))
       return nice.Arr;
-    if(v._nt_)
-      return nice[v._nt_];
+    if(v[nice.TYPE_KEY])
+      return nice[v[nice.TYPE_KEY]];
     if(t === 'object')
       return nice.Obj;
     throw 'Unknown type';
@@ -72,7 +73,10 @@ defAll(nice, {
       return value;
     }});
   },
-  defineGetter: (o, n, get) => Object.defineProperty(o, n, { get, enumerable: true }),
+  defineGetter: (o, ...a) => {
+    const [key, get] = a.length === 2 ? a : [a[0].name, a[0]];
+    return Object.defineProperty(o, key, { get, enumerable: true });
+  },
   with: (o, f) => o === nice
     ? o => (f(o), o)
     : f === nice
@@ -90,7 +94,7 @@ defAll(nice, {
   _each: (o, f) => {
     if(o)
       for(let i in o)
-        if(i !== '_nt_')
+        if(i !== nice.TYPE_KEY)
           if(is.Stop(f(o[i], i)))
             break;
     return o;
@@ -177,6 +181,15 @@ defAll(nice, {
   stringCutBegining: (c, s) => s.indexOf(c) === 0 ? s.substr(c.length) : s,
   seconds: () => Date.now() / 1000 | 0,
   minutes: () => Date.now() / 60000 | 0,
+  isEqual: (a, b) => {
+    if(a === b)
+      return true;
+    if(a && a._isAnything && '_value' in a)
+      a = a._value;
+    if(b && b._isAnything  && '_value' in b)
+      b = b._value;
+    return a === b;
+  }
 });
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
 nice._eachEach = (o, f) => {
@@ -588,8 +601,7 @@ function createFunction({ existing, name, body, source, signature, type, descrip
 function wrap(type, body){
   if(type === 'Action'){
     
-    
-    return function (...as) { body(...as); return as[0]; };
+    return (a, ...as) => a.transaction(() => body(a, ...as));
   }
   
   if(type === 'Mapping')
@@ -700,8 +712,7 @@ nice._on('Check', f => {
   };
 });
 Check.about('Checks if two values are equal.')
-  ('equal', (a, b) => a === b ||
-      (a && a._isAnything ? a._value : a) === (b && b._isAnything ? b._value : b));
+  ('equal', nice.isEqual);
 const basicChecks = {
   true: v => v === true,
   false: v => v === false,
@@ -1239,6 +1250,15 @@ s('Stop', 'Nothing', 'Value used to stop iterationin .each() and similar functio
 s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');
+defGet(nice.Nothing.proto, function json() {
+  return {[nice.TYPE_KEY]: this._type.name};
+});
+defGet(nice.Null.proto, function json() {
+  return null;
+});
+defGet(nice.Undefined.proto, function json() {
+  return undefined;
+});
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
   let v;
@@ -1393,6 +1413,8 @@ nice.jsTypes.isSubType = isSubType;
   .ReadOnly(function json(){
     const o = Array.isArray(this._items) ? [] : {};
     _each(this._items, (v, k) => o[k] = v.json);
+    Switch(this._type.name).String.use(s =>
+      ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
   .addProperty('reduceTo', { get: function () {
@@ -1426,8 +1448,20 @@ F('reverseEach', (o, f) => {
   Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
-A('remove', (z, i) => delete z._items[i]);
-A('removeAll', z => z.transaction(z => z._type.onCreate(z)));
+A('replaceAll', (z, o) => {
+  
+  z._oldValue = z._items;
+  z._items = o._items;
+});
+A('remove', (z, i) => {
+  z._oldValue = z._oldValue || {};
+  z._oldValue[i] = z._items[i];
+  delete z._items[i];
+});
+A('removeAll', z => {
+  z._oldValue = z._items;
+  z._type.onCreate(z);
+});
 nice._on('Type', function defineReducer(type) {
   const name = type.name;
   if(!name)
@@ -1589,8 +1623,8 @@ nice.Type({
           s._subscribers.push(this);
         }
       });
-      const unwrap = s => is.Box(s) ? unwrap(s._value) : s;
-      const _results = ss.map(unwrap);
+      const _results = ss.map(s =>
+          s._notificationValue ? s._notificationValue() : s);
       if(ss.some(s => !s._isResolved())){
         _value = PENDING;
       } else if(_results.find(is.Err)){
@@ -1646,7 +1680,8 @@ nice.Type({
       return this._value;
     },
     _notificationValue(){
-      return this._value;
+      let res = this._value;
+      return res && res._notificationValue ? res._notificationValue() : res;
     },
     _isHot: function (){
       return this._transactionDepth
@@ -1787,10 +1822,23 @@ A('pull', (z, item) => {
   (k === -1 || k === undefined) || z.removeAt(k);
 });
 A('insertAt', (z, i, v) => {
-  z._items.splice(i, 0, null);
-  z.set(i, v);
+  i = +i;
+  const old = z._items;
+  z._oldValue = z._oldValue || {};
+  z._items = [];
+  _each(old, (_v, k) => {
+    +k === i && z._items.push(nice(v));
+    z._items.push(_v);
+  });
 });
-A('removeAt', (z, i) => z._items.splice(i, 1));
+A('removeAt', (z, i) => {
+  i = +i;
+  const old = z._items;
+  z._oldValue = z._oldValue || {};
+  z._oldValue[i] = undefined;
+  z._items = [];
+  _each(old, (v, k) => +k === i || z._items.push(v));
+});
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
   return z;
@@ -2032,14 +2080,27 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   initBy: (z, o, key) => {
     expect(o).Obj();
     z._object = o;
-    key === undefined || z(key);
+    z(key === undefined ? null : key);
   },
-  itemArgs0: z => z._object.get(z._value),
+  itemArgs0: z => {
+    return z._value !== null && z._object.is.has(z._value)
+      ? z._object.get(z._value)
+      : nice.Null();
+  },
   itemArgs1: (z, k) => {
+    if(k === null || is(k).Null())
+      return z._setValue(null);
+    if(k && k._isAnything)
+      k = z._object.findKey(v => k.is.equal(v))();
     if(!z._object.is.has(k))
       throw `Key ${k} not found.`;
     z._setValue(k);
   },
+  proto: {
+    _notificationValue(){
+      return this();
+    },
+  }
 }).about('Holds key of an object or array.');
 })();
 (function(){"use strict";nice.Single.extend({
@@ -2351,6 +2412,8 @@ if(nice.isEnvBrowser){
     return insertAt(parentNode, document.createTextNode(''), position);
   });
   Func.Bool('show', (e, parentNode = document.body, position) => {
+    if(e())
+      throw `I don't know how to display "true"`;
     return insertAt(parentNode, document.createTextNode(''), position);
   });
   Func.Html('show', (e, parentNode = document.body, position) => {

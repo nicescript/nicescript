@@ -76,6 +76,19 @@ defAll(nice, {
   seconds: () => Date.now() / 1000 | 0,
 
   minutes: () => Date.now() / 60000 | 0,
+
+  isEqual: (a, b) => {
+    if(a === b)
+      return true;
+
+    if(a && a._isAnything && '_value' in a)
+      a = a._value;
+
+    if(b && b._isAnything  && '_value' in b)
+      b = b._value;
+
+    return a === b;
+  }
 });
 
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);

@@ -317,11 +317,12 @@ describe("Obj", function() {
     const T = nice.Type('Site')
       .num('size', 1)
       .obj('urls', {qwe:1})
-      .arr('pages', ['qwe'])
+      .arr('pages', 'qwe', 'asd')
       ();
     expect(T().size()).to.equal(1);
     expect(T().urls.get('qwe')()).to.equal(1);
     expect(T().pages.get(0)()).to.equal('qwe');
+    expect(T().pages.get(1)()).to.equal('asd');
   });
 
 //  it("includes", function() {

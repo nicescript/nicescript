@@ -89,6 +89,8 @@ nice.Type({
   .ReadOnly(function json(){
     const o = Array.isArray(this._items) ? [] : {};
     _each(this._items, (v, k) => o[k] = v.json);
+    Switch(this._type.name).String.use(s =>
+      ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
   .addProperty('reduceTo', { get: function () {
@@ -177,9 +179,22 @@ F('reverseEach', (o, f) => {
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
-//TODO: make transaction save
-A('remove', (z, i) => delete z._items[i]);
-A('removeAll', z => z.transaction(z => z._type.onCreate(z)));
+A('replaceAll', (z, o) => {
+  //TODO: check type
+  z._oldValue = z._items;
+  z._items = o._items;
+});
+
+A('remove', (z, i) => {
+  z._oldValue = z._oldValue || {};
+  z._oldValue[i] = z._items[i];
+  delete z._items[i];
+});
+
+A('removeAll', z => {
+  z._oldValue = z._items;
+  z._type.onCreate(z);
+});
 
 
 nice._on('Type', function defineReducer(type) {

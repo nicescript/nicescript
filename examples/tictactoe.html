@@ -5,17 +5,17 @@
   </head>
   <body>
 <script>
-const { Div, H1, OL, Li, Box, Button } = nice;  
+const { Num, Arr, Div, H1, Ol, Li, Box, Button } = nice;  
 
-const step = Box(0);
+const step = Num(0);
 
 const whoseTurn = n => n % 2 ? 'o' : 'x';
 
 const current = Box.by(step, whoseTurn);
 
-const state = Box([]).fill(null, 0, 9);
+const state = Arr().fill(null, 0, 9);
 
-const history = Box([state()]);
+const history = Arr(state());
 
 const lines = [
   [0, 1, 2],
@@ -28,13 +28,15 @@ const lines = [
   [2, 4, 6]
 ];
 
-const gameOver = Box.by(state, s => 
-    lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a)));
+const gameOver = Box.by(state, s => {
+  s = s.json;
+  return lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a))
+});
     
 const handleClick = i => {
+  history.size > step + 1 && history.splice(step + 1);
   state.set(i, current());
-  history().length > step + 1 && history.splice(step + 1);
-  history.push(state());
+  history.push(state.json);
   step.inc();
 };
 
@@ -43,10 +45,10 @@ const sellView = (v, i) => Div(v)
   .width('4rem').height('4rem')
   .border('1px #000 solid')
   .margin('-1px')
-  .on('click', () => gameOver() || state()[i] || handleClick(i));
+  .on('click', () => gameOver() || state.get(i).is.Str() || handleClick(i));
   
 const historyButton = (s, i) => 
-  Li(Button('Go to move #' + i, () => { state(s); step(i); }));
+  Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.json); step(i); }));
  
 Div(
   H1('Tic Tac Toe'),
@@ -55,7 +57,7 @@ Div(
   Box.by(gameOver, current, (o, c) => o 
     ? 'Winner: ' + whoseTurn(step() - 1)
     : 'Next player: ' + c),  
-  Box.by(history, h => OL(h.map(historyButton))),
+  Box.by(history, h => Ol(h.map(historyButton))),
 ).show();
 </script>
   </body>

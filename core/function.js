@@ -167,11 +167,10 @@ function createFunction({ existing, name, body, source, signature, type, descrip
 
 function wrap(type, body){
   if(type === 'Action'){
-    //TODO: wrap all actions in transaction
     // TODO: primitive case
 //    if(is.primitive(a[0]))
 //      return s(...a);
-    return function (...as) { body(...as); return as[0]; };
+    return (a, ...as) => a.transaction(() => body(a, ...as));
   }
 
   //TODO: remove nice() maybe

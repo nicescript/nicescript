@@ -87,8 +87,8 @@ nice.Type({
         }
       });
 
-      const unwrap = s => is.Box(s) ? unwrap(s._value) : s;
-      const _results = ss.map(unwrap);
+      const _results = ss.map(s =>
+          s._notificationValue ? s._notificationValue() : s);
 
       if(ss.some(s => !s._isResolved())){
         _value = PENDING;
@@ -190,7 +190,8 @@ nice.Type({
     },
 
     _notificationValue(){
-      return this._value;
+      let res = this._value;
+      return res && res._notificationValue ? res._notificationValue() : res;
     },
 
     _isHot: function (){

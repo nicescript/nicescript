@@ -116,11 +116,24 @@ A('pull', (z, item) => {
 });
 
 A('insertAt', (z, i, v) => {
-  z._items.splice(i, 0, null);
-  z.set(i, v);
+  i = +i;
+  const old = z._items;
+  z._oldValue = z._oldValue || {};
+  z._items = [];
+  _each(old, (_v, k) => {
+    +k === i && z._items.push(nice(v));
+    z._items.push(_v);
+  });
 });
 
-A('removeAt', (z, i) => z._items.splice(i, 1));
+A('removeAt', (z, i) => {
+  i = +i;
+  const old = z._items;
+  z._oldValue = z._oldValue || {};
+  z._oldValue[i] = undefined;
+  z._items = [];
+  _each(old, (v, k) => +k === i || z._items.push(v));
+});
 
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );

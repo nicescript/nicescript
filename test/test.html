@@ -26,10 +26,9 @@ const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 //o.listenItem('name', f);
 //o.listenItems(['name', 'price'], f);
 //o.listenDeep(f);
-
     const o = nice.Obj({qwe:1});
     const p = nice.Pointer(o);
-
+    p().is.Null();
 
 </script>
   

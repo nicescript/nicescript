@@ -21,6 +21,7 @@ describe("Simple types", function() {
     expect(nice.Null().is.Nothing()).to.equal(true);
     expect(nice.Null().is.Null()).to.equal(true);
     expect(nice.Null().is.Something()).to.equal(false);
+    expect(nice.Null().json).to.equal(null);
   });
 
 
@@ -29,6 +30,7 @@ describe("Simple types", function() {
     expect(nice.Undefined().is.Nothing()).to.equal(true);
     expect(nice.Undefined().is.Undefined()).to.equal(true);
     expect(nice.Undefined().is.Something()).to.equal(false);
+    expect(nice.Undefined().json).to.equal(undefined);
   });
 
 

@@ -5,32 +5,32 @@
   </head>
   <body style="margin:0">
 <script>
-const { Div, Box, Input, A, Switch } = nice;
+const { Type, Arr, Div, Span, Box, Input, A, Switch } = nice;
 const KEY = 'ToDoData';
 
-const tasks = Box(JSON.parse(localStorage.getItem(KEY)) || [
-    {text:"Buy milk", status: true},
-    {text:"Walk the dog"},
-    {text:"Feed the fish"},
-    {text:"Wash windows"}
-  ])
-  .listen(v => localStorage.setItem(KEY, JSON.stringify(v)));
+const Task = Type('Task').str('text').bool('status')
+  .by((z,s) => s && z.text(s))();
+
+const tasks = Switch(localStorage.getItem(KEY))
+  .null.use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
+  .default.use(s => nice.fromJson(JSON.parse(s)));
+
+tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.json)));
 
 const create = e => {
-  tasks.push({ text: search.value() });
+  tasks.push(Task(search.value()));
   search.value("");
   e.preventDefault();
 };
 
-const search = Input("search").placeholder('Type no search or add tasks')
-  .boxSizing('border-box').width("100%").fontSize("20px")
+const search = Input("search").placeholder('Type to search or add tasks')
+  .boxSizing('border-box').width("100%").fontSize("20px").padding('.2em .3em')
   .on('keyup', e => e.keyCode === 13 && create(e))
   .focus();
 
 const deleteButton = (state, k) => Box.by(state, Switch
   .true(A(() => tasks.removeAt(k), 'x')
-      .textDecoration('none').color('#E33').marginLeft('.5em'))
-  .default(null));
+      .textDecoration('none').color('#E33').marginLeft('.5em')));
 
 const TaskView = (task, k) => {
   const isHover = Box(false);
@@ -39,26 +39,26 @@ const TaskView = (task, k) => {
     .on('mouseover', () => isHover(true))
     .on('mouseleave', () => isHover(false))
     .Checkbox(task.status)
-      .on('change', e => tasks.set([k, 'status'], e.target.checked))
+      .on('change', e => tasks.get(k).status(e.target.checked))
       .up
-    .Span(task.text || '---').marginLeft(".5em")
-      .textDecoration(task.status ? 'line-through' : 'none')
-      .up
+    .add(Box.by(task.status, s => Span(task.text || '---')
+        .marginLeft(".5em")
+        .textDecoration(s() ? 'line-through' : 'none')))
     .add(deleteButton(isHover, k));
 };    
 
 
-const list = Box.by(search.value, tasks, (s, ts) => 
-  Div(ts.filter(t => RegExp(s, 'i').test(t.text)).map(TaskView)));
-
-
-const addLink = Box.by(search.value, s => s && Div().padding("1em 0")
-  .A(create, 'Add: ', s).textDecoration('none').up
-  .Span(' [Enter]').color('#999').fontSize('small').up
-);
-
-
-Div(search, list, addLink).font("20px Arial").padding("1rem").show();
+Div(
+  search,  
+  Box.by(search.value, tasks, (s, ts) => 
+    Div(ts.filter(t => RegExp(s, 'i').test(t.text)).map(TaskView))),
+  Box.by(search.value, s => s && Div().padding("1em 0")
+    .A(create, 'Add: ', s).textDecoration('none').up
+    .Span(' [Enter]').color('#999').fontSize('small').up)
+) .font("20px Arial")
+  .padding("1rem")
+  .show();
+  
 </script>
   </body>
 </html>
