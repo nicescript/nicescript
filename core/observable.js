@@ -2,7 +2,7 @@ const NO_NEED = {};
 
 defAll(nice.Anything.proto, {
   _isResolved() { return true; },
-  listen: function(f) {
+  listen(f) {
     //TODO: unsubscribe
     if(typeof f === 'object'){
       const { onRemove = () => {}, onAdd = () => {} } = f;
@@ -21,27 +21,31 @@ defAll(nice.Anything.proto, {
 
     if(!ss.includes(f)){
       ss.push(f);
-      this.compute && this.compute();
-      f(this._notificationValue ? this._notificationValue() : this);
+      if(this.compute){
+        this.compute();
+      } else {
+        const val = this._notificationValue ? this._notificationValue() : this;
+        is(val).Pending() || f(val);
+      }
     }
 
   //      this._parent && addHotChild(this._parent);
     return this;
   },
 
-//    listenItem: function (k, f){
+//    listenItem (k, f){
 //
 //    },
 
 
-//    listenDiff: function(f) {
+//    listenDiff(f) {
 //      this.listen(() => {
 //        const diff = this._getDiff();
 //        diff === false || f(diff);
 //      });
 //    },
 
-//    _getDiff: function (){
+//    _getDiff (){
 ////      if(this._diff || this._diff === false)
 ////        return this._diff;
 ////      return this._diff = nice.diff(
@@ -69,7 +73,7 @@ defAll(nice.Anything.proto, {
 //      }
 //    },
 
-    transactionStart: function(){
+    transactionStart (){
       if(this._locked)
         throw nice.LOCKED_ERROR;
       if(!this._transactionDepth){
@@ -82,7 +86,7 @@ defAll(nice.Anything.proto, {
       return this;
     },
 
-    transactionEnd: function(){
+    transactionEnd (){
       if(--this._transactionDepth > 0)
         return false;
 
@@ -96,10 +100,10 @@ defAll(nice.Anything.proto, {
 //      (this._result && this._result._notify) || Object.freeze(this._result);
 //      delete this._diff;
 //      delete this._oldValue;
-      return notify(this);
+      this._oldValue === this._value || notify(this);
     },
 
-    transactionRollback: function(){
+    transactionRollback (){
       this._transactionDepth && (this._result = this.initState);
       this._transactionDepth = 0;
       this.initState = null;
@@ -107,7 +111,7 @@ defAll(nice.Anything.proto, {
       return this;
     },
 
-    _isHot: function (){
+    _isHot (){
       //TODO: why _transactionDepth here??
 //      return this._transactionDepth
 //        || (this._subscribers && this._subscribers.length);
@@ -115,7 +119,7 @@ defAll(nice.Anything.proto, {
         (this._subscribers && this._subscribers.length);
     },
 
-    transaction: function (f) {
+    transaction (f) {
       this.transactionStart();
       f(this);
       this.transactionEnd();
@@ -130,7 +134,7 @@ defAll(nice.Anything.proto, {
 //      this.transactionEnd();
 //      return this;
 //    },
-  listenOnce: function (f) {
+  listenOnce (f) {
     this._isResolved() || this.compute();
 
     if(this._isResolved())
@@ -141,13 +145,13 @@ defAll(nice.Anything.proto, {
       this.unsubscribe(_f);
     };
 
-    this._subscribers.push(_f);
+    (this._subscribers = this._subscribers || []).push(_f);
 
     return this;
   },
 
 
-  unsubscribe: function (target){
+  unsubscribe (target){
     nice._removeArrayValue(this._subscribers, target);
     if(!this._subscribers.length){
       this._subscriptions &&
@@ -319,56 +323,6 @@ defAll(nice.Anything.proto, {
 //  return y;
 //});
 
-
-//def(nice, 'resolveChildren', (v, f) => {
-//  if(!v)
-//    return f(v);
-//
-//  if(is.Box(v))
-//    return v.listenOnce(_v => nice.resolveChildren(_v, f));
-//
-//  if(v._result){
-//    if(is.Object(v._result)){
-//      let count = 0;
-//      const next = () => {
-//        count--;
-//        count === 0 && f(v);
-//      };
-//      _each(v._result, () => count++);
-//      !count ? f(v) : _each(v._result, (vv, kk) => {
-//        nice.resolveChildren(vv, _v => {
-//          if(_v && _v._type){
-//            _v = _v._result;
-//          }
-//          v._result[kk] = _v;
-//          next();
-//        });
-//      });
-//    } else {
-//      f(v);
-//    }
-//  } else {
-//    if(is.Object(v)){
-//      let count = 0;
-//      const next = () => {
-//        count--;
-//        count === 0 && f(v);
-//      };
-//      _each(v, () => count++);
-//      !count ? f(v) : _each(v, (vv, kk) => {
-//        nice.resolveChildren(vv, _v => {
-//          if(_v && _v._type){
-//            _v = _v._result;
-//          }
-//          v[kk] = _v;
-//          next();
-//        });
-//      });
-//    } else {
-//      f(v);
-//    }
-//  }
-//});
 
 function notify(z){
   let needNotification = false;

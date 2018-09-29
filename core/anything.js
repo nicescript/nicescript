@@ -85,7 +85,7 @@ nice.registerType({
   },
 
   configProto: {
-    extends: function(parent){
+    extends (parent){
       const type = this.target;
       is.String(parent) && (parent = nice[parent]);
       expect(parent).Type();
@@ -93,15 +93,17 @@ nice.registerType({
       return this;
     },
 
-    about: function (...a) {
+    about (...a) {
       this.target.description = nice.format(...a);
       return this;
     },
 
-    ReadOnly: function(...a){
+    ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
       expect(f).function();
-      defGet(this.target.proto, name, f);
+      defGet(this.target.proto, name, function() {
+        return f(this);
+      });
       return this;
     }
 

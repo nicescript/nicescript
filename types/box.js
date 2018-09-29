@@ -35,22 +35,23 @@ nice.Type({
     return res;
   },
 
-  proto: {
-    async: function (f){
-      this._asyncBy = f;
-      this._value = NEED_COMPUTING;
-      return this;
-    },
+  async: function (f){
+    const b = Box();
+    b._asyncBy = f;
+    b._value = NEED_COMPUTING;
+    return b;
+  },
 
+  proto: {
     follow: function (s){
       if(s.__proto__ === Promise.prototype) {
         this.doCompute = () => {
           this.transactionStart();
           s.then(v => {
-              this(v);
-              this.transactionEnd();
-              delete this.doCompute;
-            }, e => this.error(e));
+            this(v);
+            this.transactionEnd();
+            delete this.doCompute;
+          }, e => this.error(e));
         };
       } else {
         expect(s !== this, `Box can't follow itself`).toBe();
@@ -77,7 +78,7 @@ nice.Type({
       this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
       this._value = PENDING;
       let _value;
-      const ss = this._subscriptions;
+      const ss = this._subscriptions || [];
 
       ss.forEach(s => {
         s._subscribers = s._subscribers || [];
@@ -105,6 +106,7 @@ nice.Type({
           //this will unlock the Box for edit. Maybe there is beter solution
           this._isReactive = false;
           this._asyncBy(this, ..._results);
+          return;
 //          this._isReactive = true;
         } else {
           this._simpleSetState(_results[0]);
@@ -221,62 +223,17 @@ nice.Type({
       return this.setState(is.Err(e) ? e : nice.Err(e));
     },
 
-//    transactionStart: function(){
-//      if(this._locked)
-//        throw nice.LOCKED_ERROR;
-//      if(!this._transactionDepth){
-//        this.initState = this._result;
-//        this._result = nice.cloneDeep(this.initState);
-//        this._diff = null;
-//        this._transactionDepth = 0;
-//      }
-//      this._transactionDepth++;
-//      return this;
-//    },
-//
-//    transactionEnd: function(onlyIfDiff = false){
-//      if(--this._transactionDepth > 0)
-//        return false;
-//
-//      this._transactionDepth = 0;
-//
-//      const go = this.getDiff();
-//      go && this._notify();
-//      this.initState = null;
-////      is.Box(this._result) || Object.freeze(this._result);
-//      (this._result && this._result._notify) || Object.freeze(this._result);
-//      delete this._diff;
-//      return go;
-//    },
-
-//    transactionRollback: function(){
-//      this._transactionDepth && (this._result = this.initState);
-//      this._transactionDepth = 0;
-//      this.initState = null;
-//      delete this._diff;
-//      return this;
-//    },
-//
-//    transaction: function (f, p) {
-//      this.transactionStart();
-//      f();
-//      this.transactionEnd(p);
-//      return this;
-//    },
-
     getPromise: function () {
       return new Promise((resolve, reject) => {
         this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
       });
     }
   }
-}).about('Observable component for declarative style programming.');
+})
+  .ReadOnly('json', ({_value}) => _value._isAnything ? _value.json : _value)
+  .about('Observable component for declarative style programming.');
 Box = nice.Box;
 const F = Func.Box;
-
-
-//['use', 'follow', 'once', 'by', 'async']
-//    .forEach(k => def(Box, k, (...a) => Box()[k](...a)));
 
 
 function diffConverter(v){
@@ -284,12 +241,11 @@ function diffConverter(v){
 }
 
 
-//F('listenDiff', (b, f) => b.listen(() => f(b.getDiff())));
-
-
 F(function unsubscribe(s, target){
-  nice._removeArrayValue(s._subscribers, target);
-  s._subscribers.length || s._subscriptions.forEach(_s => _s.unsubscribe(s));
+  const {_subscribers, _subscriptions} = s;
+  nice._removeArrayValue(_subscribers, target);
+  !_subscribers.length && _subscriptions
+      && _subscriptions.forEach(_s => _s.unsubscribe(s));
 });
 
 
@@ -326,45 +282,43 @@ F.Box(function unbind(y, x) {
 //});
 
 
-//def(nice, 'resolveChildren', (v, f) => {
-//  if(!v)
-//    return f(v);
-//
-//  if(is.Box(v))
-//    return v.listenOnce(_v => nice.resolveChildren(_v, f));
-//
-//  if(v._result){
-//    if(is.Object(v._result)){
-//      let count = 0;
-//      const next = () => {
-//        count--;
-//        count === 0 && f(v);
-//      };
-//      _each(v._result, () => count++);
-//      !count ? f(v) : _each(v._result, (vv, kk) => {
-//        nice.resolveChildren(vv, _v => {
+def(nice, 'resolveChildren', (v, f) => {
+  if(!v)
+    return f(v);
+
+  if(is.Box(v))
+    return v.listenOnce(_v => nice.resolveChildren(_v, f));
+
+//  if(v._value){
+    if(is.Obj(v)){
+      let count = v.size;
+      const next = () => {
+        count--;
+        count === 0 && f(v);
+      };
+      !count ? f(v) : _each(v._items, (vv, kk) => {
+        nice.resolveChildren(vv, _v => {
 //          if(_v && _v._type){
-//            _v = _v._result;
+//            _v = _v._value;
 //          }
-//          v._result[kk] = _v;
-//          next();
-//        });
-//      });
-//    } else {
-//      f(v);
-//    }
+//          v._items[kk] = _v;
+          next();
+        });
+      });
+    } else {
+      f(v);
+    }
 //  } else {
 //    if(is.Object(v)){
-//      let count = 0;
+//      let count = v.size;
 //      const next = () => {
 //        count--;
 //        count === 0 && f(v);
 //      };
-//      _each(v, () => count++);
 //      !count ? f(v) : _each(v, (vv, kk) => {
 //        nice.resolveChildren(vv, _v => {
 //          if(_v && _v._type){
-//            _v = _v._result;
+//            _v = _v._value;
 //          }
 //          v[kk] = _v;
 //          next();
@@ -374,34 +328,4 @@ F.Box(function unbind(y, x) {
 //      f(v);
 //    }
 //  }
-//});
-
-
-//nice._on('Action', f => {
-//  const {name} = f;
-//  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-//    function (...a) {
-//      return this.change(_result => f(_result, ...a));
-//    }
-//  );
-//});
-//
-//
-//nice._on('Mapping', ({name}) => {
-//  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-//    function (...a) {
-//      return Box().use(this).by(z => nice[name](z, ...a));
-//    }
-//  );
-//});
-//
-//
-//nice._on('Property', ({name}) => {
-//  Box.proto.hasOwnProperty(name) || def(Box.proto, name,
-//    function (...a) {
-//      return a.length
-//        ? this.change(state => state[name](...a))
-//        : this._result[name](...a);
-//    }
-//  );
-//});
+});

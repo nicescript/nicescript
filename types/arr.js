@@ -37,8 +37,10 @@ nice.Obj.extend({
     },
   }
 }).about('Ordered list of elements.')
-  .ReadOnly(function size() {
-    return this._items.length;
+  .ReadOnly('size', z => {
+          console.log(z);
+          console.log(z._items);
+    return z._items.length;
   })
   .Action(function push(z, ...a) {
     a.forEach(v => z.set(z._items.length, v));

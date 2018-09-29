@@ -282,7 +282,7 @@ nice._on('Type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
     expect(f).function();
-    defGet(type.proto, name, f);
+    defGet(type.proto, name, function() { return f(this); } );
     return this;
   };
 });

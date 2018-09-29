@@ -17,19 +17,13 @@ const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 // 1. copy value
 // 2. listen
 
+    let a = Box(2);
+    let b = Box.async(z => setTimeout(() => z(Arr(3, 4)), 1));
+    let c = Box.async(z => setTimeout(() => z(4), 1));
 
-// How to listen to the children?
-//
-//var o = Obj();
-//o.listen(f);
-//o.listenItems(f);
-//o.listenItem('name', f);
-//o.listenItems(['name', 'price'], f);
-//o.listenDeep(f);
-    const o = nice.Obj({qwe:1});
-    const p = nice.Pointer(o);
-    p().is.Null();
-
+    nice.resolveChildren(Arr(1, a, b), function (v) {
+      console.log(v.json);
+    });
 </script>
   
   </body>

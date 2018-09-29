@@ -41,14 +41,16 @@ H1('NiceScript Documentation').margin('1rem').show();
 
 const search = Input("search").placeholder('Search')
   .margin('1rem').padding('.2rem .5rem')
-  .focus().show();
+  .focus();
+
+search.show();
 
 
 const functionsPane = Div(H2('Functions').padding('1rem'));
 const functions = [];
 const functionType = Box('All');
 
-Box().use(functionType).by(t => Span(
+Box.by(functionType, t => Span(
   ['All', 'Check', 'Mapping', 'Action'].map(v => 
       (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
 ).margin('.5rem')).show();
@@ -64,7 +66,7 @@ const functionView = f => Div().padding('1rem')
 
 const start = Date.now();
             
-Box().use(functionType).use(search.value).by((type, q) => Div(functions
+Box.by(functionType, search.value, (type, q) => Div(functions
     .filter(f => (type === 'All' || type === f.functionType) 
         && (!q || f.name.toString().includes(q)))
     .map(functionView))).listen(v => {

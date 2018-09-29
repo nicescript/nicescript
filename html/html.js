@@ -170,8 +170,8 @@ Html.proto.Box = function(...a) {
   });
 
 
-function text(){
-  return this.children
+function text(z){
+  return z.children
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(is.function(v) ? v() : v))
@@ -192,12 +192,11 @@ function compileSelectors (h){
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 
+nice.ReadOnly.Box('html', ({_value}) => _value._isAnything ? _value.html : '' + _value);
+nice.ReadOnly.Single('html', z => '' + z._value);
+nice.ReadOnly.Arr('html', z => z._items.map(v => v.html));
 
-nice.ReadOnly.Single(function html() { return '' + this._value; });
-nice.ReadOnly.Arr(function html() { return this._items.map(v => v.html); });
-
-function html(){
-  const z = this;
+function html(z){
   const a = [compileSelectors(z), '<', z.tag() ];
   const style = compileStyle(z.style);
   style && a.push(" ", 'style="', style, '"');

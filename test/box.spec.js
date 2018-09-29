@@ -2,7 +2,7 @@ let nice = require('../index.js')();
 let chai = require('chai');
 chai.use(require('chai-spies'));
 let expect = chai.expect;
-const { Box, is } = nice;
+const { Box, is, Num, Arr } = nice;
 
 describe("Box", function() {
 
@@ -31,11 +31,19 @@ describe("Box", function() {
     const a = Box();
     let res;
     a.listen(v => res = v);
-    expect(res.is.Pending()).to.equal(true);
 
     a(6);
     expect(res).to.equal(6);
     expect(a()).to.equal(6);
+  });
+
+  it("listen reactive unique", function(){
+    const spy = chai.spy();
+    const a = Num();
+    const b = Box.by(a, n => n / 2 | 0);
+    b.listen(spy);
+    a(1);
+    expect(spy).to.have.been.called.once();
   });
 
 
@@ -218,34 +226,44 @@ describe("Box", function() {
 //  });
 //
 //
-//  it("resolve children 1", function(done){
-//    nice.resolveChildren(nice.Arr(1, 2), function (v) {
-//      expect(v()).to.deep.equal([1, 2]);
-//      done();
-//    });
-//  });
-//
-//
-////  it("resolve children 2", function(done){
-////    let a = Box(2);
-////    let b = Box.async(z => setTimeout(() => z(nice.Arr(3, c)), 1));
-////    let c = Box.async(z => setTimeout(() => z(4), 1));
-////
-////    nice.resolveChildren(nice.Arr(1, a, b), function (v) {
-////      expect(v()).to.deep.equal([1, 2, [3, 4]]);
-////      done();
-////    });
-////  });
-//
-//
-//  it("resolve children 3", function(done){
-//    nice.resolveChildren({}, function (v) {
-//      expect(v).to.deep.equal({});
-//      done();
-//    });
-//  });
-//
-//
+  it("resolve children 1", function(done){
+    nice.resolveChildren(Arr(1, 2), function (v) {
+      expect(v.json).to.deep.equal([1, 2]);
+      done();
+    });
+  });
+
+
+  it("resolve children 2", function(done){
+    let a = Box.by(() => 2);
+
+    nice.resolveChildren(Arr(1, a), function (v) {
+      expect(v.json).to.deep.equal([1, 2]);
+      done();
+    });
+  });
+
+  it("resolve children 3", function(done){
+    let a = Box(2);
+    let b = Box.async(z => setTimeout(() => z(Arr(3, 4)), 1));
+    let c = Box.async(z => setTimeout(() => z(4), 1));
+
+    nice.resolveChildren(Arr(1, a, b), function (v) {
+      const j = v.json;
+      expect(j).to.deep.equal([1, 2, [3, 4]]);
+      done();
+    });
+  });
+
+
+  it("resolve children 4", function(done){
+    nice.resolveChildren({}, function (v) {
+      expect(v).to.deep.equal({});
+      done();
+    });
+  });
+
+
 ////  it("values's transformation", function(){
 ////    let a = Box(2);
 ////    let b = a.pow(2);
@@ -289,14 +307,14 @@ describe("Box", function() {
 //  });
 //
 //
-//  it("async", function(done){
-//    Box
-//      .async(z => z.timeout(() => z(5), 1))
-//      .listen(v => {
-//        expect(v).to.equal(5);
-//        done();
-//      });
-//  });
+  it("async", function(done){
+    Box
+      .async(z => z.timeout(() => z(5), 1))
+      .listen(v => {
+        expect(v).to.equal(5);
+        done();
+      });
+  });
 //
 //
 //  it("basic sync chain", function(){

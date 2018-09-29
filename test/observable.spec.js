@@ -303,33 +303,6 @@ describe("Observable", function() {
 //  });
 //
 //
-//  it("resolve children 1", function(done){
-//    nice.resolveChildren(nice.Arr(1, 2), function (v) {
-//      expect(v()).to.deep.equal([1, 2]);
-//      done();
-//    });
-//  });
-//
-//
-////  it("resolve children 2", function(done){
-////    let a = Box(2);
-////    let b = Box.async(z => setTimeout(() => z(nice.Arr(3, c)), 1));
-////    let c = Box.async(z => setTimeout(() => z(4), 1));
-////
-////    nice.resolveChildren(nice.Arr(1, a, b), function (v) {
-////      expect(v()).to.deep.equal([1, 2, [3, 4]]);
-////      done();
-////    });
-////  });
-//
-//
-//  it("resolve children 3", function(done){
-//    nice.resolveChildren({}, function (v) {
-//      expect(v).to.deep.equal({});
-//      done();
-//    });
-//  });
-//
 //
 ////  it("values's transformation", function(){
 ////    let a = Box(2);
@@ -371,26 +344,6 @@ describe("Observable", function() {
 //    a(5);
 //    expect(spy).to.have.been.called.once.with(10);
 //    expect(a2()).to.equal(10);
-//  });
-//
-//
-//  it("async", function(done){
-//    Box
-//      .async(z => z.timeout(() => z(5), 1))
-//      .listen(v => {
-//        expect(v).to.equal(5);
-//        done();
-//      });
-//  });
-//
-//
-//  it("basic sync chain", function(){
-//    let a = Box(9);
-//    let a2 = Box.use(a).by( v => v * 2 );
-//    let spy = chai.spy();
-//    a2.listen(spy);
-//    expect(spy).to.have.been.called.once().with(18);
-//    expect(a2()).to.equal(18);
 //  });
 //
 //

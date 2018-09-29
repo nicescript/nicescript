@@ -13,9 +13,7 @@ nice.Single.extend({
   itemArgsN: (z, a) => z._setValue(nice.format(...a)),
 })
   .about('Wrapper for JS string.')
-  .ReadOnly(function length(){
-    return this._value.length;
-  });
+  .ReadOnly('length', z => z._value.length);
 
 _each({
   endsWith: (s, p, l) => s.endsWith(p, l),

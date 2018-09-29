@@ -81,15 +81,15 @@ nice.Type({
     }
   })
   .about('Parent type for all composite types.')
-  .ReadOnly(function values(){
+  .ReadOnly(function values(z){
     let a = nice.Arr();
-    this.each(v => a.push(v));
+    z.each(v => a.push(v));
     return a;
   })
-  .ReadOnly(function json(){
-    const o = Array.isArray(this._items) ? [] : {};
-    _each(this._items, (v, k) => o[k] = v.json);
-    Switch(this._type.name).String.use(s =>
+  .ReadOnly(function json(z){
+    const o = Array.isArray(z._items) ? [] : {};
+    _each(z._items, (v, k) => o[k] = v.json);
+    Switch(z._type.name).String.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
