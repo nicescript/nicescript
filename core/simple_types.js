@@ -24,14 +24,14 @@ s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');
 
-defGet(nice.Nothing.proto, function json() {
+defGet(nice.Nothing.proto, function jsValue() {
   return {[nice.TYPE_KEY]: this._type.name};
 });
 
-defGet(nice.Null.proto, function json() {
+defGet(nice.Null.proto, function jsValue() {
   return null;
 });
 
-defGet(nice.Undefined.proto, function json() {
+defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });

@@ -86,9 +86,9 @@ nice.Type({
     z.each(v => a.push(v));
     return a;
   })
-  .ReadOnly(function json(z){
+  .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = v.json);
+    _each(z._items, (v, k) => o[k] = v.jsValue);
     Switch(z._type.name).String.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;

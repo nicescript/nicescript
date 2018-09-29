@@ -228,7 +228,7 @@ describe("Box", function() {
 //
   it("resolve children 1", function(done){
     nice.resolveChildren(Arr(1, 2), function (v) {
-      expect(v.json).to.deep.equal([1, 2]);
+      expect(v.jsValue).to.deep.equal([1, 2]);
       done();
     });
   });
@@ -238,7 +238,7 @@ describe("Box", function() {
     let a = Box.by(() => 2);
 
     nice.resolveChildren(Arr(1, a), function (v) {
-      expect(v.json).to.deep.equal([1, 2]);
+      expect(v.jsValue).to.deep.equal([1, 2]);
       done();
     });
   });
@@ -249,7 +249,7 @@ describe("Box", function() {
     let c = Box.async(z => setTimeout(() => z(4), 1));
 
     nice.resolveChildren(Arr(1, a, b), function (v) {
-      const j = v.json;
+      const j = v.jsValue;
       expect(j).to.deep.equal([1, 2, [3, 4]]);
       done();
     });

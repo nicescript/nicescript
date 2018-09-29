@@ -132,7 +132,7 @@ nice.registerType({
 const Anything = nice.Anything;
 
 
-defGet(Anything.proto, 'json', function json() { return this._value; });
+defGet(Anything.proto, 'jsValue', function jsValue() { return this._value; });
 
 Object.defineProperties(Anything.proto, {
   switch: { get: function() { return Switch(this); } },

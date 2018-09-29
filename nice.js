@@ -1046,7 +1046,7 @@ nice.registerType({
   types: {}
 })
 const Anything = nice.Anything;
-defGet(Anything.proto, 'json', function json() { return this._value; });
+defGet(Anything.proto, 'jsValue', function jsValue() { return this._value; });
 Object.defineProperties(Anything.proto, {
   switch: { get: function() { return Switch(this); } },
   is: { get: function() {
@@ -1256,13 +1256,13 @@ s('Stop', 'Nothing', 'Value used to stop iterationin .each() and similar functio
 s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');
-defGet(nice.Nothing.proto, function json() {
+defGet(nice.Nothing.proto, function jsValue() {
   return {[nice.TYPE_KEY]: this._type.name};
 });
-defGet(nice.Null.proto, function json() {
+defGet(nice.Null.proto, function jsValue() {
   return null;
 });
-defGet(nice.Undefined.proto, function json() {
+defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });
 })();
@@ -1416,9 +1416,9 @@ nice.jsTypes.isSubType = isSubType;
     z.each(v => a.push(v));
     return a;
   })
-  .ReadOnly(function json(z){
+  .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = v.json);
+    _each(z._items, (v, k) => o[k] = v.jsValue);
     Switch(z._type.name).String.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
@@ -1716,7 +1716,7 @@ nice.Type({
     }
   }
 })
-  .ReadOnly('json', ({_value}) => _value._isAnything ? _value.json : _value)
+  .ReadOnly('jsValue', ({_value}) => _value._isAnything ? _value.jsValue : _value)
   .about('Observable component for declarative style programming.');
 Box = nice.Box;
 const F = Func.Box;
@@ -2347,7 +2347,7 @@ function text(z){
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(is.function(v) ? v() : v))
-      .json.join('');
+      .jsValue.join('');
 };
 function compileStyle (s){
   const a = [];

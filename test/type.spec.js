@@ -38,7 +38,7 @@ describe("Type", function() {
   it("extends", function() {
     const T = nice.Type('T14').num('size')();
 
-    expect(T().size(5).json).to.deep.equal({ _nt_: "T14", size:5 });
+    expect(T().size(5).jsValue).to.deep.equal({ _nt_: "T14", size:5 });
   });
 
 

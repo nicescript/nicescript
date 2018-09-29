@@ -230,7 +230,7 @@ nice.Type({
     }
   }
 })
-  .ReadOnly('json', ({_value}) => _value._isAnything ? _value.json : _value)
+  .ReadOnly('jsValue', ({_value}) => _value._isAnything ? _value.jsValue : _value)
   .about('Observable component for declarative style programming.');
 Box = nice.Box;
 const F = Func.Box;

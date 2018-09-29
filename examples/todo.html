@@ -15,7 +15,7 @@ const tasks = Switch(localStorage.getItem(KEY))
   .null.use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
   .default.use(s => nice.fromJson(JSON.parse(s)));
 
-tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.json)));
+tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.jsValue)));
 
 const create = e => {
   tasks.push(Task(search.value()));

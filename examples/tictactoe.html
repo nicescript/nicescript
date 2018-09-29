@@ -29,14 +29,14 @@ const lines = [
 ];
 
 const gameOver = Box.by(state, s => {
-  s = s.json;
+  s = s.jsValue;
   return lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a))
 });
     
 const handleClick = i => {
   history.size > step + 1 && history.splice(step + 1);
   state.set(i, current());
-  history.push(state.json);
+  history.push(state.jsValue);
   step.inc();
 };
 
@@ -48,7 +48,7 @@ const sellView = (v, i) => Div(v)
   .on('click', () => gameOver() || state.get(i).is.Str() || handleClick(i));
   
 const historyButton = (s, i) => 
-  Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.json); step(i); }));
+  Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.jsValue); step(i); }));
  
 Div(
   H1('Tic Tac Toe'),

@@ -65,14 +65,14 @@ describe("Obj", function() {
   it("remove", function() {
     const a = Obj({qwe: 1, asd: 3});
     a.remove('qwe');
-    expect(a.json).to.deep.equal({asd:3});
+    expect(a.jsValue).to.deep.equal({asd:3});
   });
 
 
   it("removeAll", () => {
     const a = Obj({qwe: 1, asd: 3});
     a.removeAll();
-    expect(a.json).to.deep.equal({});
+    expect(a.jsValue).to.deep.equal({});
   });
 
 
@@ -205,7 +205,7 @@ describe("Obj", function() {
     a.set('qwe', 3);
     a.set('ad', 2);
     expect(a.values._type).to.equal(nice.Arr);
-    expect(a.values.json).to.deep.equal([3, 2]);
+    expect(a.values.jsValue).to.deep.equal([3, 2]);
   });
 
 
@@ -276,7 +276,7 @@ describe("Obj", function() {
     a.set('ad', 2);
     let b = a.map(v => v * 2);
     expect(b._type).to.equal(Obj);
-    expect(b.json).to.deep.equal({qwe:6, ad:4});
+    expect(b.jsValue).to.deep.equal({qwe:6, ad:4});
   });
 
 
@@ -287,7 +287,7 @@ describe("Obj", function() {
     expect(() => a.set('zc', {})).to.throw();
     expect(a._type).to.equal(Obj);
     expect(a._itemsType).to.equal(nice.Num);
-    expect(a.json).to.deep.equal({qwe:3, ad:2});
+    expect(a.jsValue).to.deep.equal({qwe:3, ad:2});
   });
 
 
@@ -309,7 +309,7 @@ describe("Obj", function() {
 
   it("filter", () => {
     const a = Obj({qwe: 1, asd: 2});
-    expect(a.filter(n => n() % 2).json).to.deep.equal({qwe:1});
+    expect(a.filter(n => n() % 2).jsValue).to.deep.equal({qwe:1});
   });
 
 

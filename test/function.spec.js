@@ -162,7 +162,7 @@ describe("Func", function() {
     const a = nice.Arr();
     expect(typeof a.qwedsd2).to.equal('function');
     expect(a.qwedsd2()).to.equal(a);
-    expect(a.json).to.deep.equal([1]);
+    expect(a.jsValue).to.deep.equal([1]);
     expect(() => nice.Func(function qwedsd2(){ })).to.throw();
     nice._on('Action', (_f) => {
       f === _f && done();

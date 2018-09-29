@@ -175,7 +175,7 @@ function text(z){
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(is.function(v) ? v() : v))
-      .json.join('');
+      .jsValue.join('');
 };
 
 
