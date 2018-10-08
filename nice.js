@@ -1314,8 +1314,13 @@ Func.Anything('xor', (...as) => {
     valueOf: function (){ return this._value; }
   }),
   configProto: {
-    by: function(f){
-      this.target.initBy = f;
+    by: function(...a){
+      if(typeof a[0] === 'function')
+        this.target.initBy = a[0];
+      else if(typeof a[0] === 'string')
+        this.target.initBy = (z, ...vs) => {
+          a.forEach((name, i) => z.set(name, vs[i]));
+        }
       return this;
     },
     assign: function (...o) {
@@ -1386,6 +1391,8 @@ nice.jsTypes.isSubType = isSubType;
       },
       set: function(i, v, ...tale) {
         const z = this;
+        if(i._isAnything === true)
+          i = i();
         z.transaction(() => {
           let res;
           if(v !== z._items[i]){
@@ -1408,6 +1415,14 @@ nice.jsTypes.isSubType = isSubType;
         });
         return z;
       },
+      setDefault: function (i, v, ...tale) {
+        const z = this;
+        if(i._isAnything === true)
+          i = i();
+        if(!z._items.hasOwnProperty(i))
+          z.set(i, v, ...tale);
+        return z;
+      }
     }
   })
   .about('Parent type for all composite types.')
@@ -1491,8 +1506,24 @@ M(function map(c, f){
     res.set(i, f(c.get(i), i));
   return res;
 });
+M(function rMap(c, f){
+  const res = c._type();
+  c.listen({
+    onAdd: (v, k) => res.set(k, f(v, k)),
+    onRemove: (v, k) => res.remove(k)
+  });
+  return res;
+});
 M(function filter(c, f){
   return c._type().apply(z => c.each((v, k) => f(v,k) && z.set(k, v)));
+});
+M(function rFilter(c, f){
+  const res = c._type();
+  c.listen({
+    onAdd: (v, k) => f(v, k) && res.set(k, v),
+    onRemove: (v, k) => res.remove(k)
+  });
+  return res;
 });
 M(function sum(c, f){
   return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v()));
@@ -1858,6 +1889,8 @@ A('pull', (z, item) => {
 A('insertAt', (z, i, v) => {
   i = +i;
   const old = z._items;
+  if(old.length <= i)
+    return z._items.push(v);
   z._oldValue = z._oldValue || {};
   z._items = [];
   _each(old, (_v, k) => {

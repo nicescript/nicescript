@@ -120,6 +120,8 @@ A('pull', (z, item) => {
 A('insertAt', (z, i, v) => {
   i = +i;
   const old = z._items;
+  if(old.length <= i)
+    return z._items.push(v);
   z._oldValue = z._oldValue || {};
   z._items = [];
   _each(old, (_v, k) => {

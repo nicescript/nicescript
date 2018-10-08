@@ -3,6 +3,9 @@ const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
 const Obj = nice.Obj;
+const x2 = n => n * 2;
+const even = n => n % 2 === 0;
+
 
 describe("Obj", function() {
 
@@ -274,9 +277,18 @@ describe("Obj", function() {
     const a = Obj();
     a.set('qwe', 3);
     a.set('ad', 2);
-    let b = a.map(v => v * 2);
+    let b = a.map(x2);
     expect(b._type).to.equal(Obj);
     expect(b.jsValue).to.deep.equal({qwe:6, ad:4});
+  });
+
+
+  it("rMap", function() {
+    const a = Obj({qwe: 1, asd: 3});
+    const b = a.rMap(x2);
+    a.set('zxc', 2);
+    expect(b._type).to.equal(Obj);
+    expect(b.jsValue).to.deep.equal({qwe:2, asd:6, zxc:4});
   });
 
 
@@ -310,6 +322,17 @@ describe("Obj", function() {
   it("filter", () => {
     const a = Obj({qwe: 1, asd: 2});
     expect(a.filter(n => n() % 2).jsValue).to.deep.equal({qwe:1});
+  });
+
+
+  it("rFilter", function() {
+    const a = Obj({qwe: 1, asd: 2});
+    const b = a.rFilter(even);
+    a.set('zxc', 4);
+    expect(b._type).to.equal(Obj);
+    expect(b.jsValue).to.deep.equal({asd:2, zxc:4});
+    a.remove('asd');
+    expect(b.jsValue).to.deep.equal({zxc:4});
   });
 
 

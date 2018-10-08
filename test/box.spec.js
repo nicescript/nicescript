@@ -46,6 +46,16 @@ describe("Box", function() {
     expect(spy).to.have.been.called.once();
   });
 
+  
+  it("listen reactive unique", function(){
+    const spy = chai.spy();
+    const a = Num();
+    const b = Box.by(a, n => n / 2 | 0);
+    b.listen(spy);
+    a(1);
+    expect(spy).to.have.been.called.once();
+  });
+
 
   it("listen old", function(){
     const a = Box();

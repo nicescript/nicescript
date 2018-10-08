@@ -1,5 +1,5 @@
 const nice = require('../index.js')();
-const { Html, B, Div, Span, I, Box }= nice;
+const { Html, B, Div, Span, I, Box, Arr, Obj } = nice;
 const chai = require('chai');
 const expect = chai.expect;
 
@@ -54,6 +54,13 @@ describe("Html", function() {
     const div2 = B('qwe');
     div.add(div2);
     expect(div.html).to.equal('<li><b>qwe</b></li>');
+  });
+
+  it("insert Html", function() {
+    const li = Html('li');
+    const a = Obj({'qwe':1, 'asd':2});
+    li.mapAndAdd(a, (v, k) => k + v);
+    expect(li.html).to.equal('<li>qwe1asd2</li>');
   });
 
 

@@ -18,8 +18,13 @@ nice.Type({
   configProto: {
 
 
-    by: function(f){
-      this.target.initBy = f;
+    by: function(...a){
+      if(typeof a[0] === 'function')
+        this.target.initBy = a[0];
+      else if(typeof a[0] === 'string')
+        this.target.initBy = (z, ...vs) => {
+          a.forEach((name, i) => z.set(name, vs[i]));
+        }
       return this;
     },
 

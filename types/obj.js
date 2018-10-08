@@ -56,6 +56,10 @@ nice.Type({
 
       set: function(i, v, ...tale) {
         const z = this;
+
+        if(i._isAnything === true)
+          i = i();
+
         z.transaction(() => {
           let res;
           if(v !== z._items[i]){
@@ -78,6 +82,17 @@ nice.Type({
         });
         return z;
       },
+
+      setDefault: function (i, v, ...tale) {
+        const z = this;
+
+        if(i._isAnything === true)
+          i = i();
+
+        if(!z._items.hasOwnProperty(i))
+          z.set(i, v, ...tale);
+        return z;
+      }
     }
   })
   .about('Parent type for all composite types.')
@@ -239,10 +254,28 @@ M(function map(c, f){
 });
 
 
+M(function rMap(c, f){
+  const res = c._type();
+  c.listen({
+    onAdd: (v, k) => res.set(k, f(v, k)),
+    onRemove: (v, k) => res.remove(k)
+  });
+  return res;
+});
+
+
 M(function filter(c, f){
   return c._type().apply(z => c.each((v, k) => f(v,k) && z.set(k, v)));
 });
 
+M(function rFilter(c, f){
+  const res = c._type();
+  c.listen({
+    onAdd: (v, k) => f(v, k) && res.set(k, v),
+    onRemove: (v, k) => res.remove(k)
+  });
+  return res;
+});
 
 M(function sum(c, f){
   return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v()));
