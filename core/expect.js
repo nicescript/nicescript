@@ -26,7 +26,7 @@ def(nice, 'expectPrototype', {
 });
 
 
-nice._on('Check', f => {
+reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
       throw this.message || (f.name + ' expected');

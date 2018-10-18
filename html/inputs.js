@@ -52,14 +52,17 @@ Html.extend('Textarea')
 
 Html.extend('Submit')
   .about('Represents HTML <input type="submit"> element.')
-  .by((z, text) => z.tag('input').attributes.set({type: 'submit', value: text}));
+  .by((z, text, action) => {
+    z.tag('input').attributes({type: 'submit', value: text});
+    action && z.on('click', action);
+  });
 
 
 Html.extend('Checkbox')
   .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
-    z.tag('input').attributes({type: 'checkbox'});
+    z.tag('input').attributes({type: 'checkbox', checked: status || false});
     z.checked = Box(status || false);
 
     let mute;

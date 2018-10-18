@@ -151,7 +151,7 @@ defAll(nice, {
 
     nice.types[name] = type;
     def(nice, name, type);
-    nice.emitAndSave('Type', type);
+    reflect.emitAndSave('Type', type);
   },
 
   _each: (o, f) => {

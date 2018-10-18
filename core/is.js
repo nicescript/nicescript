@@ -1,7 +1,7 @@
 //TODO: add is.Check
 //TODO: add thruly and falsy checks
 const isProto = def(nice, 'isProto', {}), { Check } = nice;
-nice._on('Check', f =>
+reflect.on('Check', f =>
   isProto[f.name] = function(...a) {
     try {
       return f(this.value, ...a);
@@ -12,7 +12,7 @@ nice._on('Check', f =>
 
 
 is = def(nice, 'is', value => create(isProto, { value }));
-nice._on('Check', f => {
+reflect.on('Check', f => {
   is[f.name] = (...a) => {
     try {
       return f(...a);
@@ -75,7 +75,7 @@ for(let i in nice.jsTypes){
 };
 
 
-nice._on('Type', function defineReducer(type) {
+reflect.on('Type', function defineReducer(type) {
   type.name && Check(type.name, v =>
     v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
@@ -90,7 +90,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal: function (v) {
-    this._check = (...a) => v === a[0];
+    this._check = (...a) => is.equal(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -107,7 +107,7 @@ defGet(switchProto, 'default', function () {
 
 const actionProto = {};
 
-nice._on('function', f => {
+reflect.on('function', f => {
   if(f.functionType !== 'Check'){
     actionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
   }
@@ -122,7 +122,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal: function (f) {
-    this._check = (...a) => a[0] === f;
+    this._check = (...a) => is.equal(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
@@ -225,7 +225,7 @@ function diggSignaturesLength(f, n = 0){
   return n;
 }
 
-nice._on('Check', f => {
+reflect.on('Check', f => {
   if(!f.name || nice.checkers[f.name])
     return;
 

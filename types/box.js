@@ -249,24 +249,24 @@ F(function unsubscribe(s, target){
 });
 
 
-F.Box(function bind(y, x) {
-  y(x());
-  x.listen(y);
-  y.listen(x);
-  return y;
-});
-
-
-F.Box(function unbind(y, x) {
-  nice.unsubscribe(y, x);
-  nice.unsubscribe(x, y);
-  return y;
-});
+//F.Box(function bind(y, x) {
+//  y(x());
+//  x.listen(y);
+//  y.listen(x);
+//  return y;
+//});
+//
+//
+//F.Box(function unbind(y, x) {
+//  nice.unsubscribe(y, x);
+//  nice.unsubscribe(x, y);
+//  return y;
+//});
 
 
 //TODO: fix or remove
 //named inputs
-//nice._on('Type', type => {
+//reflect.on('Type', type => {
 //  if(!type.name)
 //    return;
 //

@@ -1,5 +1,6 @@
 //TODO: html.on shoud fall when wrong event named
 //TODO: throw error when adding object that is not Html
+//TODO: bug: two bodies after page.show()
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
 
@@ -19,6 +20,7 @@ nice.Type('Html')
     nice.Switch(z.eventHandlers.get(name))
       .Nothing.use(() => z.eventHandlers.set(name, [f]))
       .default.use(a => a.push(f));
+    return z;
   })
   .obj('style')
   .obj('attributes')
@@ -115,7 +117,7 @@ def(Html.proto, 'Css', function(s = ''){
 });
 
 
-nice._on('Extension', ({child, parent}) => {
+reflect.on('Extension', ({child, parent}) => {
   if(parent === Html || Html.isPrototypeOf(parent)){
     def(Html.proto, child.name, function (...a){
       const res = child(...a);

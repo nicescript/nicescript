@@ -8,7 +8,7 @@ nice.Type({
 }).about('Parent type for all non composite types.');
 
 
-nice._on('Type', type => {
+reflect.on('Type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
   });

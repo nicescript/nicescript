@@ -38,8 +38,6 @@ nice.Obj.extend({
   }
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => {
-          console.log(z);
-          console.log(z._items);
     return z._items.length;
   })
   .Action(function push(z, ...a) {

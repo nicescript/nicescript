@@ -46,7 +46,7 @@ describe("Box", function() {
     expect(spy).to.have.been.called.once();
   });
 
-  
+
   it("listen reactive unique", function(){
     const spy = chai.spy();
     const a = Num();

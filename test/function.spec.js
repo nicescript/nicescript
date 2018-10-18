@@ -164,7 +164,7 @@ describe("Func", function() {
     expect(a.qwedsd2()).to.equal(a);
     expect(a.jsValue).to.deep.equal([1]);
     expect(() => nice.Func(function qwedsd2(){ })).to.throw();
-    nice._on('Action', (_f) => {
+    nice.reflect.on('Action', (_f) => {
       f === _f && done();
     });
   });
@@ -177,7 +177,7 @@ describe("Func", function() {
     expect(typeof t.brt53).to.equal('function');
     expect(t.brt53()).to.equal(t);
     expect(t().qwe()).to.equal(2);
-    nice._on('Action', (_f) => {
+    nice.reflect.on('Action', (_f) => {
       nice.brt53 === _f && done();
     });
   });

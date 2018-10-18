@@ -223,7 +223,7 @@ defAll(nice, {
   doc: () => {
     const res = { types: {}, functions: [] };
 
-    nice._on('signature', s => {
+    reflect.on('signature', s => {
       if(!s.name || s.name[0] === '_')
         return;
 
@@ -238,7 +238,7 @@ defAll(nice, {
     });
 
 
-    nice._on('Type', t => {
+    reflect.on('Type', t => {
       if(!t.name || t.name[0] === '_')
         return;
       const o = { name: t.name, properties: [] };
@@ -247,7 +247,7 @@ defAll(nice, {
       res.types[t.name] = o;
     });
 
-    nice._on('Property', ({ type, name, targetType }) => {
+    reflect.on('Property', ({ type, name, targetType }) => {
       res.types[targetType.name].properties.push({ name, type: type.name });
     });
 

@@ -1,4 +1,4 @@
-;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Box,Action,Mapping,Check;
+;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Box,Action,Mapping,Check,reflect;
 (function(){"use strict";
 nice = (...a) => {
   if(a.length === 0)
@@ -89,7 +89,7 @@ defAll(nice, {
       nice.error('Please start type name with a upper case letter');
     nice.types[name] = type;
     def(nice, name, type);
-    nice.emitAndSave('Type', type);
+    reflect.emitAndSave('Type', type);
   },
   _each: (o, f) => {
     if(o)
@@ -266,7 +266,7 @@ defAll(nice, {
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
   doc: () => {
     const res = { types: {}, functions: [] };
-    nice._on('signature', s => {
+    reflect.on('signature', s => {
       if(!s.name || s.name[0] === '_')
         return;
       const o = {};
@@ -277,7 +277,7 @@ defAll(nice, {
         .default.use(() => o[k] = v));
       res.functions.push(o);
     });
-    nice._on('Type', t => {
+    reflect.on('Type', t => {
       if(!t.name || t.name[0] === '_')
         return;
       const o = { name: t.name, properties: [] };
@@ -285,7 +285,7 @@ defAll(nice, {
       t.extends && (o.extends = t.super.name);
       res.types[t.name] = o;
     });
-    nice._on('Property', ({ type, name, targetType }) => {
+    reflect.on('Property', ({ type, name, targetType }) => {
       res.types[targetType.name].properties.push({ name, type: type.name });
     });
     return res;
@@ -384,7 +384,7 @@ function assertEvents(o, name){
   return events[name] || (events[name] = []);
 }
 const EventEmitter = {
-  _on: function (name, f) {
+  on: function (name, f) {
     const a = assertListeners(this, name);
     if(!a.includes(f)){
       this.emit('newListener', name, f);
@@ -427,7 +427,7 @@ const EventEmitter = {
         : 0
       : 0;
   },
-  removeListener: function (name, f) {
+  off: function (name, f) {
     if(this.hasOwnProperty('_listeners') && this._listeners[name]){
       nice._removeArrayValue(this._listeners[name], f);
       this.emit('removeListener', name, f);
@@ -444,7 +444,9 @@ const EventEmitter = {
   }
 };
 nice.eventEmitter = o => Object.assign(o, EventEmitter);
-create(EventEmitter, nice);
+def(nice, 'EventEmitter', EventEmitter);
+def(nice, 'reflect', create(EventEmitter));
+reflect = nice.reflect;
 })();
 (function(){"use strict";nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
 const jsHierarchy = {
@@ -590,10 +592,10 @@ function createFunction({ existing, name, body, source, signature, type, descrip
     firstType && !firstType.proto.hasOwnProperty(name) && type !== 'Check'
         && def(firstType.proto, name, function(...a) { return f(this, ...a); });
     if(!existing){
-      nice.emitAndSave('function', f);
-      type && nice.emitAndSave(type, f);
+      reflect.emitAndSave('function', f);
+      type && reflect.emitAndSave(type, f);
     }
-    body && nice.emitAndSave('signature',
+    body && reflect.emitAndSave('signature',
       { name, body, signature, type, description, source });
   }
   return f;
@@ -661,12 +663,12 @@ function skip(a, f){
   });
 }
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
-nice._on('Type', handleType);
+reflect.on('Type', handleType);
 Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
 Check = def(nice, 'Check', configurator({functionType: 'Check'}));
-nice._on('function', ({name}) => {
+reflect.on('function', ({name}) => {
   name && !skippedProto[name] && def(skippedProto, name, function(...a){
     return create(skippedProto, a.includes(nice)
       ? (...b) => {
@@ -682,7 +684,7 @@ nice._on('function', ({name}) => {
   });
 });
 const ro = def(nice, 'ReadOnly', {});
-nice._on('Type', type => {
+reflect.on('Type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
     expect(f).function();
@@ -693,7 +695,7 @@ nice._on('Type', type => {
 })();
 (function(){"use strict";
 const isProto = def(nice, 'isProto', {}), { Check } = nice;
-nice._on('Check', f =>
+reflect.on('Check', f =>
   isProto[f.name] = function(...a) {
     try {
       return f(this.value, ...a);
@@ -702,7 +704,7 @@ nice._on('Check', f =>
     }
   });
 is = def(nice, 'is', value => create(isProto, { value }));
-nice._on('Check', f => {
+reflect.on('Check', f => {
   is[f.name] = (...a) => {
     try {
       return f(...a);
@@ -754,7 +756,7 @@ for(let i in nice.jsTypes){
     ? v => typeof v === low
     : v => v && v.constructor ? v.constructor.name === i : false);
 };
-nice._on('Type', function defineReducer(type) {
+reflect.on('Type', function defineReducer(type) {
   type.name && Check(type.name, v =>
     v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
@@ -767,7 +769,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal: function (v) {
-    this._check = (...a) => v === a[0];
+    this._check = (...a) => is.equal(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -780,7 +782,7 @@ defGet(switchProto, 'default', function () {
   return res;
 });
 const actionProto = {};
-nice._on('function', f => {
+reflect.on('function', f => {
   if(f.functionType !== 'Check'){
     actionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
   }
@@ -793,7 +795,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal: function (f) {
-    this._check = (...a) => a[0] === f;
+    this._check = (...a) => is.equal(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
@@ -868,7 +870,7 @@ function diggSignaturesLength(f, n = 0){
   f.signatures && f.signatures.forEach(v => n = diggSignaturesLength(v, n));
   return n;
 }
-nice._on('Check', f => {
+reflect.on('Check', f => {
   if(!f.name || nice.checkers[f.name])
     return;
   const tryF = (...a) => {
@@ -940,7 +942,7 @@ function DealyedSwitch(...a) {
       throw this.message || ('Value does not match function ' + f);
   }
 });
-nice._on('Check', f => {
+reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
       throw this.message || (f.name + ' expected');
@@ -1172,7 +1174,7 @@ function notify(z){
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
-  nice.emitAndSave('Extension', { child, parent });
+  reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
 });
 defAll(nice, {
@@ -1433,7 +1435,7 @@ nice.jsTypes.isSubType = isSubType;
   })
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = v.jsValue);
+    _each(z._items, (v, k) => o[k] = v._isAnything ? v.jsValue : v);
     Switch(z._type.name).String.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
@@ -1483,7 +1485,7 @@ A('removeAll', z => {
   z._oldValue = z._items;
   z._type.onCreate(z);
 });
-nice._on('Type', function defineReducer(type) {
+reflect.on('Type', function defineReducer(type) {
   const name = type.name;
   if(!name)
     return;
@@ -1562,7 +1564,7 @@ M(function getProperties(z){
   for(let i in z) z[i]._isProperty && res.push(z[i]);
   return res;
 });
-nice._on('Type', type => {
+reflect.on('Type', type => {
   const smallName = nice._decapitalize(type.name);
   function createProperty(z, name, ...as){
     const targetType = z.target;
@@ -1577,7 +1579,7 @@ nice._on('Type', type => {
         throw `Can't create ${type.name} property. Value is ${res._type.name}`;
       return res;
     });
-    nice.emitAndSave('Property', { type, name, targetType });
+    reflect.emitAndSave('Property', { type, name, targetType });
   }
   def(nice.Obj.configProto, smallName, function (name, ...as) {
     createProperty(this, name, ...as);
@@ -1760,17 +1762,6 @@ F(function unsubscribe(s, target){
   !_subscribers.length && _subscriptions
       && _subscriptions.forEach(_s => _s.unsubscribe(s));
 });
-F.Box(function bind(y, x) {
-  y(x());
-  x.listen(y);
-  y.listen(x);
-  return y;
-});
-F.Box(function unbind(y, x) {
-  nice.unsubscribe(y, x);
-  nice.unsubscribe(x, y);
-  return y;
-});
 def(nice, 'resolveChildren', (v, f) => {
   if(!v)
     return f(v);
@@ -1814,7 +1805,7 @@ def(nice, 'resolveChildren', (v, f) => {
   proto: {
   }
 }).about('Parent type for all non composite types.');
-nice._on('Type', type => {
+reflect.on('Type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
   });
@@ -1859,8 +1850,6 @@ nice._on('Type', type => {
   }
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => {
-          console.log(z);
-          console.log(z._items);
     return z._items.length;
   })
   .Action(function push(z, ...a) {
@@ -2078,6 +2067,8 @@ nice.Single.extend({
   name: 'Str',
   onCreate: z => z._value = '',
   itemArgs1: (z, s) => {
+    if(s._isAnything)
+       s = s();
     if(!allowedSources[typeof s])
       throw `Can't create Str from ${typeof n}`;
     z._setValue('' + s);
@@ -2250,6 +2241,7 @@ nice.Type('Html')
     nice.Switch(z.eventHandlers.get(name))
       .Nothing.use(() => z.eventHandlers.set(name, [f]))
       .default.use(a => a.push(f));
+    return z;
   })
   .obj('style')
   .obj('attributes')
@@ -2330,7 +2322,7 @@ def(Html.proto, 'Css', function(s = ''){
   this.cssSelectors.set(s, style);
   return style;
 });
-nice._on('Extension', ({child, parent}) => {
+reflect.on('Extension', ({child, parent}) => {
   if(parent === Html || Html.isPrototypeOf(parent)){
     def(Html.proto, child.name, function (...a){
       const res = child(...a);
@@ -2598,12 +2590,15 @@ Html.extend('Textarea')
   });
 Html.extend('Submit')
   .about('Represents HTML <input type="submit"> element.')
-  .by((z, text) => z.tag('input').attributes.set({type: 'submit', value: text}));
+  .by((z, text, action) => {
+    z.tag('input').attributes({type: 'submit', value: text});
+    action && z.on('click', action);
+  });
 Html.extend('Checkbox')
   .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
-    z.tag('input').attributes({type: 'checkbox'});
+    z.tag('input').attributes({type: 'checkbox', checked: status || false});
     z.checked = Box(status || false);
     let mute;
     z.on('change', e => {

@@ -15,17 +15,17 @@ nice.Type({
 
     a.forEach(k => (index[k] = index[k] || []).push(z));
 
-    nice._on('Type', type => match(type, z) && z.matchingTypes.push(type));
+    reflect.on('Type', type => match(type, z) && z.matchingTypes.push(type));
     Check(name, type => z.matchingTypes.includes(type._type || type));
 
     Object.freeze(z);
     def(nice, name, z);
-    nice.emitAndSave('interface', z);
+    reflect.emitAndSave('interface', z);
   }
 });
 
 
-nice.onNew('signature', s => {
+reflect.onNew('signature', s => {
   if(s.type === 'Check')
     return;
 

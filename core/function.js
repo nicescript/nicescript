@@ -154,10 +154,10 @@ function createFunction({ existing, name, body, source, signature, type, descrip
     firstType && !firstType.proto.hasOwnProperty(name) && type !== 'Check'
         && def(firstType.proto, name, function(...a) { return f(this, ...a); });
     if(!existing){
-      nice.emitAndSave('function', f);
-      type && nice.emitAndSave(type, f);
+      reflect.emitAndSave('function', f);
+      type && reflect.emitAndSave(type, f);
     }
-    body && nice.emitAndSave('signature',
+    body && reflect.emitAndSave('signature',
       { name, body, signature, type, description, source });
   }
 
@@ -253,14 +253,14 @@ function skip(a, f){
 
 
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
-nice._on('Type', handleType);
+reflect.on('Type', handleType);
 Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
 Check = def(nice, 'Check', configurator({functionType: 'Check'}));
 
 
-nice._on('function', ({name}) => {
+reflect.on('function', ({name}) => {
   name && !skippedProto[name] && def(skippedProto, name, function(...a){
     return create(skippedProto, a.includes(nice)
       ? (...b) => {
@@ -278,7 +278,7 @@ nice._on('function', ({name}) => {
 
 
 const ro = def(nice, 'ReadOnly', {});
-nice._on('Type', type => {
+reflect.on('Type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
     expect(f).function();

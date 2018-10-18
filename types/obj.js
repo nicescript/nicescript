@@ -103,7 +103,7 @@ nice.Type({
   })
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = v.jsValue);
+    _each(z._items, (v, k) => o[k] = v._isAnything ? v.jsValue : v);
     Switch(z._type.name).String.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
@@ -212,7 +212,7 @@ A('removeAll', z => {
 });
 
 
-nice._on('Type', function defineReducer(type) {
+reflect.on('Type', function defineReducer(type) {
   const name = type.name;
   if(!name)
     return;
@@ -368,7 +368,7 @@ M(function getProperties(z){
 });
 
 
-nice._on('Type', type => {
+reflect.on('Type', type => {
   const smallName = nice._decapitalize(type.name);
 
   function createProperty(z, name, ...as){
@@ -391,7 +391,7 @@ nice._on('Type', type => {
       return res;
     });
 
-    nice.emitAndSave('Property', { type, name, targetType });
+    reflect.emitAndSave('Property', { type, name, targetType });
   }
 
   def(nice.Obj.configProto, smallName, function (name, ...as) {

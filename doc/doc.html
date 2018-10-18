@@ -55,7 +55,7 @@ Box.by(functionType, t => Span(
       (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
 ).margin('.5rem')).show();
 
-nice._on('function', f => functions.push(f));
+reflect.on('function', f => functions.push(f));
 
 const functionView = f => Div().padding('1rem')
   .H3(highlightText(f.name.toString(), search.value(), s => Span(s).color('red')))

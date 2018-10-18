@@ -15,7 +15,7 @@ function assertEvents(o, name){
 }
 
 const EventEmitter = {
-  _on: function (name, f) {
+  on: function (name, f) {
     const a = assertListeners(this, name);
     if(!a.includes(f)){
       this.emit('newListener', name, f);
@@ -66,7 +66,7 @@ const EventEmitter = {
       : 0;
   },
 
-  removeListener: function (name, f) {
+  off: function (name, f) {
     if(this.hasOwnProperty('_listeners') && this._listeners[name]){
       nice._removeArrayValue(this._listeners[name], f);
       this.emit('removeListener', name, f);
@@ -84,6 +84,7 @@ const EventEmitter = {
   }
 };
 
-
 nice.eventEmitter = o => Object.assign(o, EventEmitter);
-create(EventEmitter, nice);
+def(nice, 'EventEmitter', EventEmitter);
+def(nice, 'reflect', create(EventEmitter));
+reflect = nice.reflect;

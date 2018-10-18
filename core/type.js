@@ -6,7 +6,7 @@ def(nice, function extend(child, parent){
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
-  nice.emitAndSave('Extension', { child, parent });
+  reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
 });
 
