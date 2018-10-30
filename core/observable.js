@@ -14,6 +14,11 @@ defAll(nice.Anything.proto, {
             c === undefined || onRemove(c, k);
             v._items[k] && onAdd(v._items[k], k);
           });
+          //TODO: bug: old['removedKey] = undefined does not work for arrays (Arr().insertAt())
+//          v.each((c, k) => {
+//            if(!old.hasOwnProperty(k))
+//              onAdd(v._items[k], k);
+//          });
         }
       };
     }

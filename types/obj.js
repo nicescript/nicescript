@@ -54,15 +54,21 @@ nice.Type({
 //        return this.getDeep(path)(v);
 //      },
 
-      set: function(i, v, ...tale) {
-        const z = this;
-
+      checkKey (i) {
         if(i._isAnything === true)
           i = i();
 
+        return i;
+      },
+
+      set: function(i, v, ...tale) {
+        const z = this;
+
+        i = z.checkKey(i);
+
         z.transaction(() => {
           let res;
-          if(v !== z._items[i]){
+          if(!is.equal(v, z._items[i])){
             z._oldValue = z._oldValue || {};
             z._oldValue[i] = z._items[i];
           }

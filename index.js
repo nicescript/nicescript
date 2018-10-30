@@ -126,6 +126,18 @@ defAll(nice, {
       res[i] = f(o[i]);
     return res;
   },
+  _pick: (o, a) => {
+    let res = {};
+    for(let i in o)
+      a.includes(i) && (res[i] = o[i]);
+    return res;
+  },
+  _size: o => {
+    let res = 0;
+    for(let i in o)
+      res++;
+    return res;
+  },
   orderedStringify: o => !is.Object(o)
     ? JSON.stringify(o)
     : Array.isArray(o)
@@ -996,6 +1008,10 @@ nice.registerType({
     valueOf: function() {
       return this.hasOwnProperty('_value') ? this._value : undefined;
     },
+    super: function (...as){
+      this._type.super.initBy(this, ...as);
+      return this;
+    },
     apply: function(f){
       f(this);
       return this;
@@ -1075,6 +1091,7 @@ defAll(nice.Anything.proto, {
             c === undefined || onRemove(c, k);
             v._items[k] && onAdd(v._items[k], k);
           });
+          
         }
       };
     }
@@ -1391,13 +1408,17 @@ nice.jsTypes.isSubType = isSubType;
           ? this._items[i] = type()
           : nice.NotFound();
       },
-      set: function(i, v, ...tale) {
-        const z = this;
+      checkKey (i) {
         if(i._isAnything === true)
           i = i();
+        return i;
+      },
+      set: function(i, v, ...tale) {
+        const z = this;
+        i = z.checkKey(i);
         z.transaction(() => {
           let res;
-          if(v !== z._items[i]){
+          if(!is.equal(v, z._items[i])){
             z._oldValue = z._oldValue || {};
             z._oldValue[i] = z._items[i];
           }
@@ -1841,12 +1862,19 @@ reflect.on('Type', type => {
   
   
   
-    pop: function () {
+    pop () {
       return this._items.pop();
     },
-    shift: function () {
+    shift () {
       return this._items.shift();
     },
+    checkKey (i) {
+      if(i._isAnything === true)
+        i = i();
+      if(typeof i !== 'number')
+        throw 'Arr only likes number keys.';
+      return i;
+    }
   }
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => {
@@ -1875,17 +1903,17 @@ A('pull', (z, item) => {
     : z.findKey(v => item === v());
   (k === -1 || k === undefined) || z.removeAt(k);
 });
-A('insertAt', (z, i, v) => {
+A.Number('insertAt', (z, i, v) => {
   i = +i;
   const old = z._items;
-  if(old.length <= i)
-    return z._items.push(v);
   z._oldValue = z._oldValue || {};
   z._items = [];
   _each(old, (_v, k) => {
     +k === i && z._items.push(nice(v));
     z._items.push(_v);
   });
+  if(old.length <= i)
+    return z._items[i] = nice(v);
 });
 A('removeAt', (z, i) => {
   i = +i;
@@ -2067,7 +2095,7 @@ nice.Single.extend({
   name: 'Str',
   onCreate: z => z._value = '',
   itemArgs1: (z, s) => {
-    if(s._isAnything)
+    if(s && s._isAnything)
        s = s();
     if(!allowedSources[typeof s])
       throw `Can't create Str from ${typeof n}`;
@@ -2277,7 +2305,20 @@ nice.Type('Html')
   })
   .Action
     .about('Map provided collection with provided function and add result as children.')
-      ('mapAndAdd', (z, c, f) => nice.each(c, (v, k) => z.add(f(v, k))))
+      ('mapAndAdd', (z, c, f) => {
+        const positions = {};
+        c._isAnything
+          ? c.listen({
+              onRemove: (v, k) => z.children.remove(positions[k]),
+              onAdd: (v, k) => {
+                const res = f(v, k);
+                if(!is.Nothing(res)){
+                  z.children.set(k, res);
+                }
+              }
+            })
+          : nice.each(c, (v, k) => z.add(f(v, k)));
+      })
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
@@ -2536,9 +2577,8 @@ if(nice.isEnvBrowser){
   Html.extend(t).by((z, ...cs) => z.tag(t.toLowerCase()).add(...cs))
     .about('Represents HTML <%s> element.', t.toLowerCase()));
 Html.extend('A').by((z, url, ...children) => {
-  z.tag('a');
-  z.add(...children);
-  is.function(url)
+  z.tag('a').add(...children);
+  is.function(url) && !url._isAnything
     ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
     : z.href(url || '#');
 }).about('Represents HTML <a> element.');
@@ -2576,29 +2616,30 @@ Html.extend('Input')
     z.tag('input').attributes.set('type', type || 'text');
     attachValue(z);
   });
-Html.extend('Button')
+const Input = nice.Input;
+Input.extend('Button')
   .about('Represents HTML <input type="button"> element.')
   .by((z, text, action) => {
-    z.tag('input').attributes({type: 'button', value: text}).on('click', action);
+    z.super('button').attributes({ value: text }).on('click', action);
   });
-Html.extend('Textarea')
+Input.extend('Textarea')
   .about('Represents HTML <textarea> element.')
   .by((z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
     z.value(value ? '' + value : "");
   });
-Html.extend('Submit')
+Input.extend('Submit')
   .about('Represents HTML <input type="submit"> element.')
   .by((z, text, action) => {
-    z.tag('input').attributes({type: 'submit', value: text});
+    z.super('submit').attributes({ value: text });
     action && z.on('click', action);
   });
-Html.extend('Checkbox')
+Input.extend('Checkbox')
   .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
-    z.tag('input').attributes({type: 'checkbox', checked: status || false});
+    z.super('checkbox').attributes({ checked: status || false });
     z.checked = Box(status || false);
     let mute;
     z.on('change', e => {

@@ -6,7 +6,7 @@ nice.Single.extend({
 
   onCreate: z => z._value = '',
   itemArgs1: (z, s) => {
-    if(s._isAnything)
+    if(s && s._isAnything)
        s = s();
     if(!allowedSources[typeof s])
       throw `Can't create Str from ${typeof n}`;

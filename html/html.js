@@ -57,7 +57,22 @@ nice.Type('Html')
   })
   .Action
     .about('Map provided collection with provided function and add result as children.')
-      ('mapAndAdd', (z, c, f) => nice.each(c, (v, k) => z.add(f(v, k))))
+      ('mapAndAdd', (z, c, f) => {
+        const positions = {};
+        c._isAnything
+          ? c.listen({
+              onRemove: (v, k) => z.children.remove(positions[k]),
+              onAdd: (v, k) => {
+                const res = f(v, k);
+                if(!is.Nothing(res)){
+//                  z.children.insertAt(res, k);
+                  z.children.set(k, res);
+//                  z.add(f(v, k));
+                }
+              }
+            })
+          : nice.each(c, (v, k) => z.add(f(v, k)));
+      })
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {

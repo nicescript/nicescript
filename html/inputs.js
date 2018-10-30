@@ -32,16 +32,16 @@ Html.extend('Input')
     z.tag('input').attributes.set('type', type || 'text');
     attachValue(z);
   });
+const Input = nice.Input;
 
-
-Html.extend('Button')
+Input.extend('Button')
   .about('Represents HTML <input type="button"> element.')
   .by((z, text, action) => {
-    z.tag('input').attributes({type: 'button', value: text}).on('click', action);
+    z.super('button').attributes({ value: text }).on('click', action);
   });
 
 
-Html.extend('Textarea')
+Input.extend('Textarea')
   .about('Represents HTML <textarea> element.')
   .by((z, value) => {
     z.tag('textarea');
@@ -50,19 +50,19 @@ Html.extend('Textarea')
   });
 
 
-Html.extend('Submit')
+Input.extend('Submit')
   .about('Represents HTML <input type="submit"> element.')
   .by((z, text, action) => {
-    z.tag('input').attributes({type: 'submit', value: text});
+    z.super('submit').attributes({ value: text });
     action && z.on('click', action);
   });
 
 
-Html.extend('Checkbox')
+Input.extend('Checkbox')
   .about('Represents HTML <input type="checkbox"> element.')
   .by((z, status) => {
     let node;
-    z.tag('input').attributes({type: 'checkbox', checked: status || false});
+    z.super('checkbox').attributes({ checked: status || false });
     z.checked = Box(status || false);
 
     let mute;

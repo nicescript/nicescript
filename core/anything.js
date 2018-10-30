@@ -51,6 +51,10 @@ nice.registerType({
       return this.hasOwnProperty('_value') ? this._value : undefined;
     },
 
+    super: function (...as){
+      this._type.super.initBy(this, ...as);
+      return this;
+    },
 
     apply: function(f){
       f(this);

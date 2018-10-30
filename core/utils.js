@@ -9,6 +9,20 @@ defAll(nice, {
     return res;
   },
 
+  _pick: (o, a) => {
+    let res = {};
+    for(let i in o)
+      a.includes(i) && (res[i] = o[i]);
+    return res;
+  },
+
+  _size: o => {
+    let res = 0;
+    for(let i in o)
+      res++;
+    return res;
+  },
+
   orderedStringify: o => !is.Object(o)
     ? JSON.stringify(o)
     : Array.isArray(o)

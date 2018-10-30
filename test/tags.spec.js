@@ -45,6 +45,11 @@
     expect(c.html).to.equal('<input type="submit" value="Go"></input>');
   });
 
+  it("Button", function() {
+    const c = nice.Button('Go');
+    expect(c.html).to.equal('<input type="button" value="Go"></input>');
+  });
+
   it("Textarea", function() {
     const t = nice.Textarea('qwe');
     expect(t.html).to.equal('<textarea>qwe</textarea>');

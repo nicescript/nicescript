@@ -28,13 +28,21 @@ nice.Obj.extend({
   //    }
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
-    pop: function () {
+    pop () {
       return this._items.pop();
     },
 
-    shift: function () {
+    shift () {
       return this._items.shift();
     },
+
+    checkKey (i) {
+      if(i._isAnything === true)
+        i = i();
+      if(typeof i !== 'number')
+        throw 'Arr only likes number keys.';
+      return i;
+    }
   }
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => {
@@ -115,17 +123,17 @@ A('pull', (z, item) => {
   (k === -1 || k === undefined) || z.removeAt(k);
 });
 
-A('insertAt', (z, i, v) => {
+A.Number('insertAt', (z, i, v) => {
   i = +i;
   const old = z._items;
-  if(old.length <= i)
-    return z._items.push(v);
   z._oldValue = z._oldValue || {};
   z._items = [];
   _each(old, (_v, k) => {
     +k === i && z._items.push(nice(v));
     z._items.push(_v);
   });
+  if(old.length <= i)
+    return z._items[i] = nice(v);
 });
 
 A('removeAt', (z, i) => {

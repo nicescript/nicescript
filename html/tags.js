@@ -5,9 +5,8 @@ const Html = nice.Html;
     .about('Represents HTML <%s> element.', t.toLowerCase()));
 
 Html.extend('A').by((z, url, ...children) => {
-  z.tag('a');
-  z.add(...children);
-  is.function(url)
+  z.tag('a').add(...children);
+  is.function(url) && !url._isAnything
     ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
     : z.href(url || '#');
 }).about('Represents HTML <a> element.');

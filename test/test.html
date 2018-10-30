@@ -10,6 +10,34 @@
 "use strict";
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
+//// TODO: add bug:
+//const a = Arr();
+//
+//Div().mapAndAdd(a, H1).show();
+//
+//a.push(1);
+//a.unshift(1);
+//a.push(1);
+//a.insertAt(1,1);
+
+// TODO: add bug:
+//const o = Obj({'qwe': 2});
+//const div = Div().mapAndAdd(o, H3);
+////Div().mapAndAdd(o, H3).show();
+//console.log(div.html);
+
+//o.listen({
+//  onRemove: console.log
+//});
+//
+//o.transaction(() => {
+//  o.set('qwe', 1);
+//  o.set('asd', 3);
+//});
+
+    let a = Arr(1, 4);
+    a.insertAt(1, 2);
+
 
 </script>
   

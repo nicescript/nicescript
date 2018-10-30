@@ -42,7 +42,7 @@ describe("Type", function() {
   });
 
 
-  it("super", function() {
+  it("super property", function() {
     const A = nice.Type({
       proto: {
         'qwe': function(){ return this._value + 3 }
@@ -59,9 +59,26 @@ describe("Type", function() {
     const b = B(1);
 
     expect(B.super).to.equal(A);
-//
-//    expect(b.super.qwe()).to.equal(4);
-//    expect(b.qwe()).to.equal(6);
+  });
+
+
+  it("super constructor", function() {
+    const A = nice.Type({
+      proto: {
+        'qwe': function(){ return this._value + 3 }
+      }
+    }).by((z, a) => z.a = a).extends(nice.Value)();
+
+    const B = nice.Type({
+      proto: {
+        'qwe': function(){ return this._value + 5 }
+      }
+    }).by(z => z.super('B')).extends(A)();
+
+    const a = A(1);
+    const b = B(1);
+
+    expect(b.a).to.equal('B');
   });
 
 
