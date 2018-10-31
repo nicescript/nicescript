@@ -83,3 +83,29 @@ nice.typeOf = v => {
   return nice.Obj;
 };
 
+
+nice.getType = v => {
+  if(!v || !v._isAnything){
+    const jsType = typeof v;
+
+    if(jsType === 'object'){
+      const constName = v.constructor.name;
+      const res = nice.jsTypes[constName];
+      if(!res)
+        throw 'Unsupported object type ' + jsType;
+      return res;
+    }
+
+    const res = nice.jsBasicTypes[jsType];
+    if(!res)
+      throw 'Unsupported type ' + jsType;
+    return res;
+  }
+
+  return v._type;
+};
+
+
+
+
+

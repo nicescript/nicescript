@@ -48,6 +48,22 @@ describe("Func", function() {
   });
 
 
+  it("combinations js", () => {
+    const f = nice.Func.Str.Number((s, n) => s._type.name + s() + typeof n + n);
+    expect(f('q', 1)).to.equal('Strqnumber1');
+    expect(f(nice('q'), 1)).to.equal('Strqnumber1');
+    expect(f('q', nice(1))).to.equal('Strqnumber1');
+    expect(f(nice('q'), nice(1))).to.equal('Strqnumber1');
+  });
+
+
+  it("uniq restrain", () => {
+    nice.Type('Qwe45633');
+    nice.Func.Qwe45633(function zzzz(){return 1;});
+    expect(() => nice.Func.Qwe45633(function zzzz(){return 2;})).to.throw();
+  });
+
+
   it("first parameter's type method", () => {
     const qwe = nice.Type('Qwe456');
     nice.Func.Qwe456(function zzzz(){return 1;});

@@ -10,16 +10,21 @@ nice.Single.extend({
   },
 }).about('Wrapper for JS number.');
 
+
+Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);
+
 _each({
-  between: (n, a, b) => n > a && n < b,
   integer: n => Number.isInteger(n),
   saveInteger: n => Number.isSaveInteger(n),
   finite: n => Number.isFinite(n),
+}, (f, name) => Check.Number(name, f));
+
+_each({
   lt: (n, a) => n < a,
   lte: (n, a) => n <= a,
   gt: (n, a) => n > a,
   gte: (n, a) => n >= a,
-}, (f, name) => Check.Number(name, f));
+}, (f, name) => Check.Single.Single(name, f));
 
 const M = Mapping.Number;
 

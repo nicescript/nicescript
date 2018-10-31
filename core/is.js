@@ -218,13 +218,6 @@ defGet(delayedProto, 'not', function (){
 });
 
 
-
-function diggSignaturesLength(f, n = 0){
-  f.body && f.body.length > n && (n = f.body.length);
-  f.signatures && f.signatures.forEach(v => n = diggSignaturesLength(v, n));
-  return n;
-}
-
 reflect.on('Check', f => {
   if(!f.name || nice.checkers[f.name])
     return;
@@ -237,7 +230,7 @@ reflect.on('Check', f => {
     }
   };
 
-  if(diggSignaturesLength(f) > 1){
+  if(f.maxLength > 1){
     def(nice.checkers, f.name, function (...a) {
       return this.addCheck(v => tryF(v, ...a));
     });

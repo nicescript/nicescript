@@ -17,24 +17,46 @@ const configProto = {
 const skippedProto = {};
 
 const functionProto = {
-  addSignature: function (body, signature){
+  addSignature (body, signature, name){
+    const ss = this.signatures = this.signatures || new Map();
     if(signature && signature.length){
-      const ss = this.signatures = this.signatures || new Map();
-      const type = signature[0].type;
-      ss.has(type) || ss.set(type, createFunctionBody({name: this.name}));
-      ss.get(type).addSignature(body, signature.slice(1));
+      const combinations = allSignatureCombinations(signature);
+      combinations.forEach(combination => {
+        let _ss = ss;
+        const lastI = combination.signature.length - 1;
+        combination.signature.forEach((type, i) => {
+          if(_ss.has(type)){
+            _ss = _ss.get(type);
+          } else {
+            const s = new Map();
+            _ss.set(type, s);
+            _ss = s;
+          }
+        });
+        if(_ss.action) {
+          if(!_ss.transformations || !_ss.transformations.length)
+            throw `Function "${name}" already have signature
+                [${signature.map(v=>v.name + ' ')}]`;
+          if(_ss.transformations.length > combination.transformations.length){
+            _ss.action = body;
+            _ss.transformations = combination.transformations;
+          }
+        } else {
+          _ss.action = body;
+          _ss.transformations = combination.transformations;
+        }
+      });
     } else {
-      this.body = body;
+      ss.action = body;
     }
-//    addDerivedSignatures(this, signature, body);
     return this;
   },
 
-  ary: function (n){
+  ary (n){
     return (...a) => this(...a.splice(0, n));
   },
 
-  about: function(s) {
+  about (s) {
     return configurator({ description: s });
   }
 };
@@ -50,51 +72,21 @@ const parseParams = (...a) => {
 
 
 function toItemType({type}){
-  return { type: type.jsType ? nice[type.niceType] : type };
-}
-
-
-function transform(s){
-  s.source = s.body;
-  if(s.signature.length === 0)
-    return s;
-
-  const types = s.signature;
-
-  s.signature = types.map(toItemType);
-
-  s.body = (...a) => {
-    const l = types.length;
-    for(let i = 0; i < l; i++){
-      const isNice = a[i] && a[i]._isAnything;
-      const needJs = types[i].type.jsType;
-      //TODO: bug: when a[i] is nice.NotFound
-      if(needJs && isNice){
-        a[i] = a[i]();
-      } else if(!needJs && !isNice){
-        a[i] = nice(a[i]);
-      }
-    }
-    return s.source(...a);
-  };
-
-  def(s.body, 'length', s.source.length);
-
-  return s;
+  return { type: type._isJsType ? nice[type.niceType] : type };
 }
 
 
 function Configurator(name){
   const z = create(configProto, (...a) => {
     const { name, body, signature } = parseParams(...a);
-    const res = createFunction(transform({
+    const res = createFunction({
       description: z.description,
       type: z.functionType,
       existing: z.existing,
       name: z.name || name,
       body: body || z.body,
       signature: (z.signature || []).concat(signature || [])
-    }));
+    });
     return z.returnValue || res;
   });
 
@@ -109,21 +101,6 @@ function configurator(...a){
   const cfg = parseParams(...a);
   return Configurator(cfg.name).next(cfg);
 };
-
-//TODO: finish and remove transform()
-//function addDerivedSignatures(f, signature, body){
-//  signature.forEach((v, k) => {
-//    if(is.jsType(v)){
-//      const t = mathingNiceType(type);
-//      if(t && !hasSignature(f))
-//
-//        f.addSignature()
-//
-//    } else {
-//
-//    }
-//  });
-//}
 
 
 //optimization: create function that don't check fist argument for type.proto
@@ -141,7 +118,9 @@ function createFunction({ existing, name, body, source, signature, type, descrip
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
 
-  body && f.addSignature(wrap(type, body), signature);
+  //optimization: maybe signature might be just an array of types??
+  body && f.addSignature(body, signature.map(v => v.type), name);
+  f.maxLength >= signature.length || (f.maxLength = signature.length);
   if(name){
     if(!existing){
       if(f.name !== name){
@@ -150,9 +129,13 @@ function createFunction({ existing, name, body, source, signature, type, descrip
       }
       existing || def(target, name, f);
     }
-    const firstType = signature[0] && signature[0].type;
-    firstType && !firstType.proto.hasOwnProperty(name) && type !== 'Check'
-        && def(firstType.proto, name, function(...a) { return f(this, ...a); });
+    let firstType = signature[0] && signature[0].type;
+    if(firstType){
+      if(firstType._isJsType)
+        firstType = nice[firstType.niceType];
+      firstType && !firstType.proto.hasOwnProperty(name) && type !== 'Check'
+          && def(firstType.proto, name, function(...a) { return f(this, ...a); });
+    }
     if(!existing){
       reflect.emitAndSave('function', f);
       type && reflect.emitAndSave(type, f);
@@ -165,62 +148,103 @@ function createFunction({ existing, name, body, source, signature, type, descrip
 };
 
 
-function wrap(type, body){
-  if(type === 'Action'){
-    // TODO: primitive case
-//    if(is.primitive(a[0]))
-//      return s(...a);
-    return (a, ...as) => a.transaction(() => body(a, ...as));
-  }
-
-  //TODO: remove nice() maybe
-  if(type === 'Mapping')
-    return function (...as) { return nice(body(...as)); };
-
-  return body;
-}
-
-
-function createFunctionBody(type){
+function createFunctionBody(functionType){
   const z = create(functionProto, (...args) => {
     if(args.includes(nice))
       return skip(args, z);
 
-    let res;
-    let target = z;
+    let target = z.signatures;
 
-    if(!args.length || !target.signatures) {
-      res = target.body;
-    } else {
-      for(let i in args) {
-        let type = nice.typeOf(args[i++]);
-        while(!res && type){
-          if(target.signatures.has(type)){
-            target = target.signatures.get(type);
-            res = target.body;
+    for(let i in args) {
+      if(target && target.size){
+        let type = nice.getType(args[i++]);
+        let found = null;
+        while(type){
+          if(target.has(type)){
+            found = target.get(type);
+            break;
           } else {
             type = Object.getPrototypeOf(type);
           }
         }
-        if(res)
-          break;
+        target = found;
       }
     }
 
-    if(!res)
+    if(!target)
       throw signatureError(z.name, args);
 
-    return res(...args);
+    if(target.transformations)
+      for(let i in target.transformations)
+        args[i] = target.transformations[i](args[i]);
+
+    if(functionType === 'Action')
+      args[0].transactionStart();
+
+    const res = target.action(...args);
+
+    if(functionType === 'Mapping')
+      return nice(res);
+
+    if(functionType === 'Action'){
+      args[0].transactionEnd();
+      return args[0];
+    }
+
+    return res;
   });
 
-  z.functionType = type;
+  z.functionType = functionType;
 
   return z;
 }
 
 
-function findAction(target, args){
+function mirrorType (t) {
+  if(t._isJsType){
+    return nice[t.niceType];
+  } else if (t._isNiceType){
+    const jsTypeName = nice.typesToJsTypesMap[t.name];
+    return jsTypeName === undefined ? null : nice.jsTypes[jsTypeName] || null;
+  }
+  throw 'I need type';
+};
 
+
+function addCombination (a, type, mirror, transformation) {
+  let res = [];
+  const position = a[0].signature.length;
+
+  a.forEach((last, k) => {
+    res.push({
+      signature: [ ...last.signature, type],
+      transformations: Object.assign({}, last.transformations )
+    });
+    mirror !== null && res.push({
+      signature: [ ...last.signature, mirror],
+      transformations: Object.assign({}, last.transformations, { [position]: transformation})
+    });
+  });
+  return res;
+}
+
+function allSignatureCombinations (ts) {
+  let res = [];
+
+  ts.forEach((type, i) => {
+    const mirror = mirrorType(type);
+    if(i === 0){
+      res.push({signature: [type], transformations: []});
+      mirror === null || res.push({
+        signature: [mirror],
+        transformations: { 0: type._isJsType ? v => v() : nice}
+      });
+    } else {
+      res = addCombination (res, type, mirror, type._isJsType ? v => v() : nice);
+    }
+  });
+
+  return res;
 }
 
 

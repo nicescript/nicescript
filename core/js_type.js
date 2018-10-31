@@ -28,6 +28,18 @@ nice.jsBasicTypesMap = {
   function: 'Func'
 };
 
+nice.typesToJsTypesMap = {
+  Str: 'String',
+  Num: 'Number',
+  Obj: 'Object',
+  Arr: 'Array',
+  Bool: 'Boolean',
+  Single: 'primitive'
+//  Func: 'Function', TODO: ??
+//  'undefined': 'Undefined',
+//  'null': 'Null'
+}
+
 for(let i in jsHierarchy)
   jsHierarchy[i].split(',').forEach(name => {
     const parent = nice.jsTypes[i];
@@ -35,6 +47,15 @@ for(let i in jsHierarchy)
     nice.jsTypes[name] = create(parent,
         { name,
           proto,
-          jsType: true,
+          _isJsType: true,
           niceType: jsTypesMap[name] });
   });
+
+nice.jsBasicTypes = {
+  object: nice.jsTypes.Object,
+  array: nice.jsTypes.Array,
+  number: nice.jsTypes.Number,
+  boolean: nice.jsTypes.Boolen,
+  string: nice.jsTypes.String,
+  function: nice.jsTypes.function
+};

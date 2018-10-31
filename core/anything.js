@@ -44,6 +44,8 @@ nice.registerType({
     return Object.assign(this(), { _value });
   },
 
+  _isNiceType: true,
+
   proto: {
     _isAnything: true,
 
