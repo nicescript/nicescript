@@ -2393,9 +2393,8 @@ nice.Type('Html')
               onRemove: (v, k) => z.children.remove(positions[k]),
               onAdd: (v, k) => {
                 const res = f(v, k);
-                if(!is.Nothing(res)){
-                  z.children.set(k, res);
-                }
+                const i = c.is.Array() ? k : Object.keys(c()).indexOf(k);
+                  z.children.set(i, res);
               }
             })
           : nice.each(c, (v, k) => z.add(f(v, k)));
