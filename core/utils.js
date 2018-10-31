@@ -2,21 +2,21 @@ const formatRe = /(%([jds%]))/g;
 const formatMap = { s: String, d: Number, j: JSON.stringify };
 
 defAll(nice, {
-  _map: (o, f) => {
+  _map (o, f) {
     let res = {};
     for(let i in o)
       res[i] = f(o[i]);
     return res;
   },
 
-  _pick: (o, a) => {
+  _pick (o, a) {
     let res = {};
     for(let i in o)
       a.includes(i) && (res[i] = o[i]);
     return res;
   },
 
-  _size: o => {
+  _size (o) {
     let res = 0;
     for(let i in o)
       res++;
@@ -31,7 +31,7 @@ defAll(nice, {
           a.push("\"" + key + '\":' + nice.orderedStringify(o[key]));
         }, [], Object.keys(o).sort()).join(',') + '}',
 
-  objDiggDefault: (o, ...a) => {
+  objDiggDefault (o, ...a) {
     const v = a.pop(), l = a.length;
     let i = 0;
 
@@ -45,7 +45,7 @@ defAll(nice, {
     return o;
   },
 
-  objDiggMin: (o, ...a) => {
+  objDiggMin (o, ...a) {
     const n = a.pop();
     const k = a.pop();
     a.push({});
@@ -54,7 +54,7 @@ defAll(nice, {
     return tale[k];
   },
 
-  objDiggMax: (o, ...a) => {
+  objDiggMax (o, ...a) {
     const n = a.pop();
     const k = a.pop();
     a.push({});
@@ -63,7 +63,7 @@ defAll(nice, {
     return tale[k];
   },
 
-  objMax: (...oo) => {
+  objMax (...oo) {
     return nice.reduceTo((res, o) => {
       _each(o, (v, k) => {
         (res[k] || 0) < v && (res[k] = v);
@@ -91,7 +91,16 @@ defAll(nice, {
 
   minutes: () => Date.now() / 60000 | 0,
 
-  isEqual: (a, b) => {
+  speedTest (f, times = 1) {
+    const start = Date.now();
+    let i = 0;
+    while(i++ < times) f();
+    const res = Date.now() - start
+    console.log('Test took ', res);
+    return res;
+  },
+
+  isEqual (a, b) {
     if(a === b)
       return true;
 
@@ -116,14 +125,14 @@ nice._eachEach = (o, f) => {
 
 
 defAll(nice, {
-  format: (t, ...a) => {
+  format (t, ...a) {
     t = '' + t;
     a.unshift(t.replace(formatRe, (match, ptn, flag) =>
         flag === '%' ? '%' : formatMap[flag](a.shift())));
     return a.join(' ');
   },
 
-  objectComparer: (o1, o2, add, del) => {
+  objectComparer (o1, o2, add, del) {
     _each(o2, (v, k) => o1[k] === v || add(v, k));
     _each(o1, (v, k) => o2[k] === v || del(v, k));
   },
@@ -174,7 +183,7 @@ defAll(nice, {
 //    return res;
 //  },
 
-  diff: (a, b) => {
+  diff (a, b) {
     if(a === b)
       return false;
 
@@ -211,7 +220,7 @@ defAll(nice, {
 });
 
 defAll(nice, {
-  super: (o, name, v) => {
+  super (o, name, v) {
     v = v || o[name];
     const parent = Object.getPrototypeOf(o);
     if(parent && parent[name]){
@@ -234,7 +243,7 @@ defAll(nice, {
 
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
 
-  doc: () => {
+  doc () {
     const res = { types: {}, functions: [] };
 
     reflect.on('signature', s => {
@@ -244,8 +253,8 @@ defAll(nice, {
       const o = {};
 
       _each(s, (v, k) => nice.Switch(k)
-        .equal('body')()
-        .equal('source').use(() => o.source = v.toString())
+        .equal('body').use(() => o.source = v.toString())
+//        .equal('source').use(() => o.source = v.toString())
         .equal('signature').use(() => o[k] = v.map(t => t.type.name))
         .default.use(() => o[k] = v));
       res.functions.push(o);
@@ -268,7 +277,7 @@ defAll(nice, {
     return res;
   },
 
-  fromJson(v){
+  fromJson (v) {
     return nice.valueType(v).fromValue(v);
   }
 });
