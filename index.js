@@ -1144,18 +1144,7 @@ defAll(nice.Anything.proto, {
   listen(f) {
     
     if(typeof f === 'object'){
-      const { onRemove = () => {}, onAdd = () => {} } = f;
-      f = (v, old) => {
-        if(old === undefined){
-          v.each(onAdd);
-        } else {
-          _each(old, (c, k) => {
-            c === undefined || onRemove(c, k);
-            v._items[k] && onAdd(v._items[k], k);
-          });
-          
-        }
-      };
+      f = this._itemsListener(f);
     }
     const ss = this._subscribers = this._subscribers || [];
     if(!ss.includes(f)){
@@ -1167,7 +1156,6 @@ defAll(nice.Anything.proto, {
         is(val).Pending() || f(val);
       }
     }
-  
     return this;
   },
     transactionStart (){
@@ -1184,12 +1172,13 @@ defAll(nice.Anything.proto, {
         return false;
       this._transactionDepth = 0;
       this._oldValue === this._value || notify(this);
+      delete this._newValue;
     },
     transactionRollback (){
       this._transactionDepth && (this._result = this.initState);
       this._transactionDepth = 0;
       this.initState = null;
-      delete this._diff;
+      delete this._newValue;
       return this;
     },
     _isHot (){
@@ -1464,7 +1453,7 @@ nice.jsTypes.isSubType = isSubType;
       _each(o, (v, k) => z.set(k, v));
     },
     itemArgsN: (z, os) => _each(os, o => z(o)),
-    fromValue: function(v){
+    fromValue (v) {
       const res = this();
       Object.assign(res._items, nice._map(v, nice.fromJson));
       return res;
@@ -1492,38 +1481,53 @@ nice.jsTypes.isSubType = isSubType;
           i = i();
         return i;
       },
-      set: function(i, v, ...tale) {
+      set (i, v, ...tale) {
         const z = this;
         i = z.checkKey(i);
-        z.transaction(() => {
-          let res;
-          if(!is.equal(v, z._items[i])){
-            z._oldValue = z._oldValue || {};
-            z._oldValue[i] = z._items[i];
-          }
-          const type = z._itemsType || (z._type.types && z._type.types[i]);
-          if(type){
-            if(v && v._isAnything){
-              if(!v._type.isSubType(type))
-                throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-              res = v;
-            } else {
-              res = type(v, ...tale);
-            }
+        z.transactionStart();
+        let res;
+        if(!is.equal(v, z._items[i])){
+          z._oldValue = z._oldValue || {};
+          z._oldValue[i] = z._items[i];
+        }
+        const type = z._itemsType || (z._type.types && z._type.types[i]);
+        if(type){
+          if(v && v._isAnything){
+            if(!v._type.isSubType(type))
+              throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
+            res = v;
           } else {
-            res = nice(v);
+            res = type(v, ...tale);
           }
-          z._items[i] = res;
-        });
+        } else {
+          res = nice(v);
+        }
+        z._items[i] = res;
+        z._newValue = z._newValue || {};
+        z._newValue[i] = res;
+        z.transactionEnd();
         return z;
       },
-      setDefault: function (i, v, ...tale) {
+      setDefault (i, v, ...tale) {
         const z = this;
         if(i._isAnything === true)
           i = i();
         if(!z._items.hasOwnProperty(i))
           z.set(i, v, ...tale);
         return z;
+      },
+      _itemsListener (o) {
+        const { onRemove, onAdd } = o;
+        return (v, old) => {
+          if(old === undefined){
+            onAdd && v.each(onAdd);
+          } else {
+            _each(old, (c, k) => {
+              onRemove && c !== undefined && onRemove(c, k);
+              onAdd && v._items[k] && onAdd(v._items[k], k);
+            });
+          }
+        };
       }
     }
   })
@@ -1942,7 +1946,13 @@ reflect.on('Type', type => {
   
   
     pop () {
-      return this._items.pop();
+      const i = this._items.length - 1;
+      let e;
+      if(i >= 0){
+        e = this._items[i];
+        this.removeAt(i);
+      }
+      return e;
     },
     shift () {
       return this._items.shift();
@@ -1953,6 +1963,28 @@ reflect.on('Type', type => {
       if(typeof i !== 'number')
         throw 'Arr only likes number keys.';
       return i;
+    },
+    _itemsListener (o) {
+      const { onRemove, onAdd } = o;
+      return (v, old) => {
+        if(old === undefined){
+          onAdd && v.each(onAdd);
+        } else {
+          const l = Math.max(...Object.keys(old || {}), ...Object.keys(v._newValue || {}));
+          let i = 0;
+          while(i <= l){
+            if (onRemove) {
+              old[i] !== undefined && onRemove(old[i], i);
+            }
+            if(onAdd) {
+              if(v._newValue && v._newValue.hasOwnProperty(i)){
+                onAdd(v._newValue[i], i);
+              }
+            }
+            i++;
+          }
+        }
+      };
     }
   }
 }).about('Ordered list of elements.')
@@ -1960,7 +1992,7 @@ reflect.on('Type', type => {
     return z._items.length;
   })
   .Action(function push(z, ...a) {
-    a.forEach(v => z.set(z._items.length, v));
+    a.forEach(v => z.insertAt(z._items.length, v));
   });
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
@@ -1984,21 +2016,24 @@ A('pull', (z, item) => {
 });
 A.Number('insertAt', (z, i, v) => {
   i = +i;
+  v = nice(v);
   const old = z._items;
   z._oldValue = z._oldValue || {};
+  z._newValue = z._newValue || {};
+  z._newValue[i] = v;
   z._items = [];
   _each(old, (_v, k) => {
-    +k === i && z._items.push(nice(v));
+    +k === i && z._items.push(v);
     z._items.push(_v);
   });
   if(old.length <= i)
-    return z._items[i] = nice(v);
+    return z._items[i] = v;
 });
 A('removeAt', (z, i) => {
   i = +i;
   const old = z._items;
   z._oldValue = z._oldValue || {};
-  z._oldValue[i] = undefined;
+  z._oldValue[i] = old[i];
   z._items = [];
   _each(old, (v, k) => +k === i || z._items.push(v));
 });
@@ -2038,6 +2073,14 @@ A(function fill(z, v, start = 0, end){
 });
 M.function(function map(a, f){
   return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
+});
+M(function rMap(a, f){
+  const res = a._type();
+  a.listen({
+    onAdd: (v, k) => res.insertAt(k, f(v, k)),
+    onRemove: (v, k) => res.removeAt(k)
+  });
+  return res;
 });
 M.function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
@@ -2386,16 +2429,26 @@ nice.Type('Html')
   })
   .Action
     .about('Map provided collection with provided function and add result as children.')
-      ('mapAndAdd', (z, c, f) => {
+      .Obj('mapChildren', (z, c, f) => {
         const positions = {};
         c._isAnything
           ? c.listen({
               onRemove: (v, k) => z.children.remove(positions[k]),
               onAdd: (v, k) => {
-                const res = f(v, k);
-                const i = c.is.Array() ? k : Object.keys(c()).indexOf(k);
-                  z.children.set(i, res);
+                const i = c.is.Arr() ? k : Object.keys(c()).indexOf(k);
+                positions[k] = i;
+                z.children.insertAt(i, f(v, k));
               }
+            })
+          : nice.each(c, (v, k) => z.add(f(v, k)));
+      })
+  .Action
+    .about('Map provided array with provided function and add result as children.')
+      .Arr('mapChildren', (z, c, f) => {
+        c._isAnything
+          ? c.listen({
+              onRemove: (v, k) => z.children.removeAt(k),
+              onAdd: (v, k) => z.children.insertAt(k, f(v, k))
             })
           : nice.each(c, (v, k) => z.add(f(v, k)));
       })

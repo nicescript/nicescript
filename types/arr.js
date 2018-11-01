@@ -1,3 +1,4 @@
+//TODO: change all actions to use insertAt|removeAt
 nice.Obj.extend({
   name: 'Arr',
   onCreate: z => z._items = [],
@@ -29,7 +30,13 @@ nice.Obj.extend({
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
     pop () {
-      return this._items.pop();
+      const i = this._items.length - 1;
+      let e;
+      if(i >= 0){
+        e = this._items[i];
+        this.removeAt(i);
+      }
+      return e;
     },
 
     shift () {
@@ -42,6 +49,35 @@ nice.Obj.extend({
       if(typeof i !== 'number')
         throw 'Arr only likes number keys.';
       return i;
+    },
+
+    _itemsListener (o) {
+      const { onRemove, onAdd } = o;
+      return (v, old) => {
+        if(old === undefined){
+          onAdd && v.each(onAdd);
+        } else {
+          const l = Math.max(...Object.keys(old || {}), ...Object.keys(v._newValue || {}));
+          let i = 0;
+          while(i <= l){
+            if (onRemove) {
+              old[i] !== undefined && onRemove(old[i], i);
+            }
+            if(onAdd) {
+              if(v._newValue && v._newValue.hasOwnProperty(i)){
+                onAdd(v._newValue[i], i);
+              }
+//              else {
+//                old.hasOwnProperty(i) && onAdd(v._items[i], i);
+//              }
+            }
+            i++;
+          }
+//          onRemove && _each(old, (v, k) => {
+//            k >= l && onRemove(v, k);
+//          });
+        }
+      };
     }
   }
 }).about('Ordered list of elements.')
@@ -49,7 +85,7 @@ nice.Obj.extend({
     return z._items.length;
   })
   .Action(function push(z, ...a) {
-    a.forEach(v => z.set(z._items.length, v));
+    a.forEach(v => z.insertAt(z._items.length, v));
   });
 
 
@@ -125,22 +161,25 @@ A('pull', (z, item) => {
 
 A.Number('insertAt', (z, i, v) => {
   i = +i;
+  v = nice(v);
   const old = z._items;
   z._oldValue = z._oldValue || {};
+  z._newValue = z._newValue || {};
+  z._newValue[i] = v;
   z._items = [];
   _each(old, (_v, k) => {
-    +k === i && z._items.push(nice(v));
+    +k === i && z._items.push(v);
     z._items.push(_v);
   });
   if(old.length <= i)
-    return z._items[i] = nice(v);
+    return z._items[i] = v;
 });
 
 A('removeAt', (z, i) => {
   i = +i;
   const old = z._items;
   z._oldValue = z._oldValue || {};
-  z._oldValue[i] = undefined;
+  z._oldValue[i] = old[i];
   z._items = [];
   _each(old, (v, k) => +k === i || z._items.push(v));
 });
@@ -199,6 +238,14 @@ M.function(function map(a, f){
   return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
 });
 
+M(function rMap(a, f){
+  const res = a._type();
+  a.listen({
+    onAdd: (v, k) => res.insertAt(k, f(v, k)),
+    onRemove: (v, k) => res.removeAt(k)
+  });
+  return res;
+});
 
 M.function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));

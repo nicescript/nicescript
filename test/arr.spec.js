@@ -91,6 +91,15 @@ describe("Arr", function() {
   });
 
 
+  it("insertAt subscription", () => {
+    let a = Arr();
+    const onAdd = chai.spy();
+    a.listen({ onAdd });
+    a.insertAt(0, 2);
+    expect(onAdd).to.have.been.called();
+  });
+
+
   it("push", () => {
     let a = Arr(1, 4);
     a.push(2, 1);
@@ -98,10 +107,12 @@ describe("Arr", function() {
   });
 
   it("pop", () => {
-    let a = Arr(1, 2);
-    let b = a.pop();
+    const a = Arr(1, 2);
+    const b = a.pop();
+    const c = a.rMap(x2);
     expect(b()).to.equal(2);
     expect(a.jsValue).to.deep.equal([1]);
+    expect(c.jsValue).to.deep.equal([2]);
   });
 
 

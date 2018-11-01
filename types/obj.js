@@ -14,7 +14,7 @@ nice.Type({
 
     itemArgsN: (z, os) => _each(os, o => z(o)),
 
-    fromValue: function(v){
+    fromValue (v) {
       const res = this();
       Object.assign(res._items, nice._map(v, nice.fromJson));
       return res;
@@ -61,35 +61,36 @@ nice.Type({
         return i;
       },
 
-      set: function(i, v, ...tale) {
+      set (i, v, ...tale) {
         const z = this;
 
         i = z.checkKey(i);
-
-        z.transaction(() => {
-          let res;
-          if(!is.equal(v, z._items[i])){
-            z._oldValue = z._oldValue || {};
-            z._oldValue[i] = z._items[i];
-          }
-          const type = z._itemsType || (z._type.types && z._type.types[i]);
-          if(type){
-            if(v && v._isAnything){
-              if(!v._type.isSubType(type))
-                throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-              res = v;
-            } else {
-              res = type(v, ...tale);
-            }
+        z.transactionStart();
+        let res;
+        if(!is.equal(v, z._items[i])){
+          z._oldValue = z._oldValue || {};
+          z._oldValue[i] = z._items[i];
+        }
+        const type = z._itemsType || (z._type.types && z._type.types[i]);
+        if(type){
+          if(v && v._isAnything){
+            if(!v._type.isSubType(type))
+              throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
+            res = v;
           } else {
-            res = nice(v);
+            res = type(v, ...tale);
           }
-          z._items[i] = res;
-        });
+        } else {
+          res = nice(v);
+        }
+        z._items[i] = res;
+        z._newValue = z._newValue || {};
+        z._newValue[i] = res;
+        z.transactionEnd();
         return z;
       },
 
-      setDefault: function (i, v, ...tale) {
+      setDefault (i, v, ...tale) {
         const z = this;
 
         if(i._isAnything === true)
@@ -98,6 +99,20 @@ nice.Type({
         if(!z._items.hasOwnProperty(i))
           z.set(i, v, ...tale);
         return z;
+      },
+
+      _itemsListener (o) {
+        const { onRemove, onAdd } = o;
+        return (v, old) => {
+          if(old === undefined){
+            onAdd && v.each(onAdd);
+          } else {
+            _each(old, (c, k) => {
+              onRemove && c !== undefined && onRemove(c, k);
+              onAdd && v._items[k] && onAdd(v._items[k], k);
+            });
+          }
+        };
       }
     }
   })

@@ -5,22 +5,7 @@ defAll(nice.Anything.proto, {
   listen(f) {
     //TODO: unsubscribe
     if(typeof f === 'object'){
-      const { onRemove = () => {}, onAdd = () => {} } = f;
-      f = (v, old) => {
-        if(old === undefined){
-          v.each(onAdd);
-        } else {
-          _each(old, (c, k) => {
-            c === undefined || onRemove(c, k);
-            v._items[k] && onAdd(v._items[k], k);
-          });
-          //TODO: bug: old['removedKey] = undefined does not work for arrays (Arr().insertAt())
-//          v.each((c, k) => {
-//            if(!old.hasOwnProperty(k))
-//              onAdd(v._items[k], k);
-//          });
-        }
-      };
+      f = this._itemsListener(f);
     }
     const ss = this._subscribers = this._subscribers || [];
 
@@ -34,15 +19,8 @@ defAll(nice.Anything.proto, {
       }
     }
 
-  //      this._parent && addHotChild(this._parent);
     return this;
   },
-
-//    listenItem (k, f){
-//
-//    },
-
-
 //    listenDiff(f) {
 //      this.listen(() => {
 //        const diff = this._getDiff();
@@ -106,13 +84,15 @@ defAll(nice.Anything.proto, {
 //      delete this._diff;
 //      delete this._oldValue;
       this._oldValue === this._value || notify(this);
+      delete this._newValue;
     },
 
     transactionRollback (){
       this._transactionDepth && (this._result = this.initState);
       this._transactionDepth = 0;
       this.initState = null;
-      delete this._diff;
+//      delete this._diff;
+      delete this._newValue;
       return this;
     },
 

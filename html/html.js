@@ -57,16 +57,26 @@ nice.Type('Html')
   })
   .Action
     .about('Map provided collection with provided function and add result as children.')
-      ('mapAndAdd', (z, c, f) => {
+      .Obj('mapChildren', (z, c, f) => {
         const positions = {};
         c._isAnything
           ? c.listen({
               onRemove: (v, k) => z.children.remove(positions[k]),
               onAdd: (v, k) => {
-                const res = f(v, k);
-                const i = c.is.Array() ? k : Object.keys(c()).indexOf(k);
-                z.children.set(i, res);
+                const i = c.is.Arr() ? k : Object.keys(c()).indexOf(k);
+                positions[k] = i;
+                z.children.insertAt(i, f(v, k));
               }
+            })
+          : nice.each(c, (v, k) => z.add(f(v, k)));
+      })
+  .Action
+    .about('Map provided array with provided function and add result as children.')
+      .Arr('mapChildren', (z, c, f) => {
+        c._isAnything
+          ? c.listen({
+              onRemove: (v, k) => z.children.removeAt(k),
+              onAdd: (v, k) => z.children.insertAt(k, f(v, k))
             })
           : nice.each(c, (v, k) => z.add(f(v, k)));
       })
