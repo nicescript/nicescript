@@ -56,30 +56,34 @@ nice.Type('Html')
     return z;
   })
   .Action
-    .about('Map provided collection with provided function and add result as children.')
-      .Obj('mapChildren', (z, c, f) => {
+    .about('Map provided Obj with provided function and add result as children.')
+      .Obj('mapChildren', (z, o, f) => {
         const positions = {};
-        c._isAnything
-          ? c.listen({
-              onRemove: (v, k) => z.children.remove(positions[k]),
-              onAdd: (v, k) => {
-                const i = c.is.Arr() ? k : Object.keys(c()).indexOf(k);
-                positions[k] = i;
-                z.children.insertAt(i, f(v, k));
-              }
-            })
-          : nice.each(c, (v, k) => z.add(f(v, k)));
+        o.listen({
+            onRemove: (v, k) => z.children.remove(positions[k]),
+            onAdd: (v, k) => {
+              const i = o.is.Arr() ? k : Object.keys(o()).indexOf(k);
+              positions[k] = i;
+              z.children.insertAt(i, f(v, k));
+            }
+          })
+      })
+  .Action
+    .about('Map provided Object with provided function and add result as children.')
+      .Object('mapChildren', (z, o, f) => {
+        nice._each(o, (v, k) => z.add(f(v, k)));
       })
   .Action
     .about('Map provided array with provided function and add result as children.')
-      .Arr('mapChildren', (z, c, f) => {
-        c._isAnything
-          ? c.listen({
-              onRemove: (v, k) => z.children.removeAt(k),
-              onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-            })
-          : nice.each(c, (v, k) => z.add(f(v, k)));
+      .Arr('mapChildren', (z, a, f) => {
+        a.listen({
+          onRemove: (v, k) => z.children.removeAt(k),
+          onAdd: (v, k) => z.children.insertAt(k, f(v, k))
+        })
       })
+  .Action
+    .about('Map provided array with provided function and add result as children.')
+      .Array('mapChildren', (z, a, f) => a.forEach((v, k) => z.add(f(v, k))))
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {

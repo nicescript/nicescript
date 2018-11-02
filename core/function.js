@@ -34,10 +34,12 @@ const functionProto = {
           }
         });
         if(_ss.action) {
-          if(!_ss.transformations || !_ss.transformations.length)
+          const existingN = nice._size(_ss.transformations);
+          const newN = nice._size(combination.transformations);
+          if(!existingN && !newN)
             throw `Function "${name}" already have signature
                 [${signature.map(v=>v.name + ' ')}]`;
-          if(_ss.transformations.length > combination.transformations.length){
+          if(existingN > newN){
             _ss.action = body;
             _ss.transformations = combination.transformations;
           }

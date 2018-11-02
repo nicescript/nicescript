@@ -47,6 +47,12 @@ describe("Func", function() {
     expect(f(2)).to.equal(4);
   });
 
+  it("overload", () => {
+    const f = nice.Func()
+      .Array(s => s + s)
+      .Arr(n => n * 2);
+  });
+
 
   it("combinations js", () => {
     const f = nice.Func.Str.Number((s, n) => s._type.name + s() + typeof n + n);
