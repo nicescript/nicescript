@@ -220,7 +220,8 @@ function compileSelectors (h){
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 
-nice.ReadOnly.Box('html', ({_value}) => _value._isAnything ? _value.html : '' + _value);
+nice.ReadOnly.Box('html', ({_value}) => _value && _value._isAnything
+    ? _value.html : '' + _value);
 nice.ReadOnly.Single('html', z => '' + z._value);
 nice.ReadOnly.Arr('html', z => z._items.map(v => v.html));
 

@@ -55,7 +55,7 @@ nice.jsBasicTypes = {
   object: nice.jsTypes.Object,
   array: nice.jsTypes.Array,
   number: nice.jsTypes.Number,
-  boolean: nice.jsTypes.Boolen,
+  boolean: nice.jsTypes.Boolean,
   string: nice.jsTypes.String,
   function: nice.jsTypes.function
 };

@@ -514,7 +514,7 @@ nice.jsBasicTypes = {
   object: nice.jsTypes.Object,
   array: nice.jsTypes.Array,
   number: nice.jsTypes.Number,
-  boolean: nice.jsTypes.Boolen,
+  boolean: nice.jsTypes.Boolean,
   string: nice.jsTypes.String,
   function: nice.jsTypes.function
 };
@@ -2566,7 +2566,8 @@ function compileSelectors (h){
     ' ', k, '{', compileStyle (v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
-nice.ReadOnly.Box('html', ({_value}) => _value._isAnything ? _value.html : '' + _value);
+nice.ReadOnly.Box('html', ({_value}) => _value && _value._isAnything
+    ? _value.html : '' + _value);
 nice.ReadOnly.Single('html', z => '' + z._value);
 nice.ReadOnly.Arr('html', z => z._items.map(v => v.html));
 function html(z){
