@@ -66,7 +66,7 @@ nice.Type('Html')
               positions[k] = i;
               z.children.insertAt(i, f(v, k));
             }
-          })
+          });
       })
   .Action
     .about('Map provided Object with provided function and add result as children.')
@@ -79,7 +79,7 @@ nice.Type('Html')
         a.listen({
           onRemove: (v, k) => z.children.removeAt(k),
           onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-        })
+        });
       })
   .Action
     .about('Map provided array with provided function and add result as children.')
@@ -350,6 +350,7 @@ if(nice.isEnvBrowser){
 
   function killNode(n){
     n && n.parentNode && n.parentNode.removeChild(n);
+    n.__niceDie();
   }
 
 
@@ -365,269 +366,9 @@ if(nice.isEnvBrowser){
   }
 
 
-//  function preserveAutoClass(add, del, node){
-//    const a = nice._get(add, ['attributes', 'className']) || '';
-//    const d = node && node.className || '';
-//    const ai = a.indexOf(AUTO_PREFIX);
-//    const di = d.indexOf(AUTO_PREFIX);
-//
-//    if(ai >= 0 && di >= 0){
-//      const old = d.match(/(_nn_\d+)/)[0];
-//      delete del.attributes.className;
-//      add.attributes.className = a.replace(/_nn_(\d+)/, old);
-//    }
-//  }
-//
-//
-//  function fillNode(o, node){
-//    _each(o.style, (_v, k) => addStyle(_v, k, node));
-//    _each(o.attributes, (_v, k) => addAttribute(_v, k, node));
-//    addSelectors(o.cssSelectors, node);
-//    addHandlers(o.eventHandlers, node);
-//  }
-//
-//
-//  function cleanNode(o, node) {
-//    _each(o.style, (_v, k) => delStyle(_v, k, node));
-//    _each(o.attributes, (_v, k) => delAttribute(_v, k, node));
-//    killSelectors(o.cssSelectors,
-//        node.className || (o.attributes && o.attributes.className));
-//    nice._eachEach(o.eventHandlers, (f, _n, k) =>
-//          node.removeEventListener(k, f, true));
-//  }
-//
-//
-//  function createTextNode(t, parent, oldNode) {
-//    const node = document.createTextNode(is.Nothing(t) ? '' : '' + t);
-//    oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
-//    return node;
-//  }
-//
-//
-//  function handleNode(add, del, oldNode, parent){
-//    let node;
-//
-//    if(del && !is.Nothing(del) && !oldNode)
-//      throw '!oldNode';
-//
-//    if(add === undefined){
-//      if(del === undefined){
-//        throw 'Why are we here?'
-//      } else if (is.Box(del)) {
-//        throw 'todo:';
-//      } else if (is.Object(del)) {
-//        if(del.tag){
-//          killNode(oldNode);
-//        } else {
-//          cleanNode(del, node = oldNode);
-//          handleChildren(add, del, node);
-//        }
-//        //TODO: kill subscriptions in old node's children
-//      } else {
-//        killNode(oldNode);
-//      }
-//    } else if (is.Box(add)) {
-//      let _del = del;
-//      node = oldNode;
-//      if(del === undefined){
-//        node = document.createTextNode(' ');
-//        parent.appendChild(node);
-//      } else if (is.Box(del)) {
-//        throw 'todo:';
-////        const diff = add.getDiffTo(we need old value here _del);
-//      } else if (is.Object(del)) {
-//        ;
-//      } else {
-//        ;
-//      }
-//      const f = () => {
-//        const diff = add.getDiffTo(_del);
-//        _del = undefined;
-//        node = handleNode(diff.add, diff.del, node, parent);
-//        //TODO: handle node.__niceSubscription = f; if node chenged
-//      };
-//      add.listen(f);
-//      node.__niceSubscription = f;
-//    } else if (is.Object(add)) {
-//      const tag = add.tag;
-//      preserveAutoClass(add, del, oldNode);
-//      if(tag){
-//        let victim;
-//        if(del === undefined){
-//          node = document.createElement(tag);
-//        } else if (is.Box(del)) {
-//          throw 'todo';
-//        } else if (is.Object(del)) {
-//          node = changeHtml(oldNode, tag);
-//          cleanNode(del, node);
-//          victim = oldNode;
-//        } else {
-//          node = document.createElement(tag);
-//          victim = oldNode;
-//        }
-//        oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
-//        victim && killNode(victim);
-//      } else {
-//        node = oldNode;
-//        if(is.Object(del)){
-//          cleanNode(del, node);
-//        }
-//      }
-//      //optimization: move to the tale
-//      handleChildren(add, del, node);
-//      fillNode(add, node);
-//    } else {
-//      if(del === undefined){
-//        node = createTextNode(add, parent, oldNode);
-////        if(oldNode)
-////          throw 'Strange??'
-////        killNode(oldNode);
-//      } else if (is.Box(del)) {
-//        throw 'todo';
-//      } else if (is.Object(del)) {
-//        node = createTextNode(add, parent, oldNode);
-//        killNode(oldNode);
-//      } else {
-//        oldNode.nodeValue = is.Nothing(add) ? '' : '' + add;
-//        node = oldNode;
-//      }
-//    }
-//
-//    //BUG: if object is given as child and its not a nice.Html
-//    if(add !== undefined && !node)
-//      throw '!node';
-//
-//    return node;
-//  }
-////  function handleNode(add, del, oldNode, parent){
-////    let node;
-////
-////    if(del && !is.Nothing(del) && !oldNode)
-////      throw '!oldNode';
-////
-////    preserveAutoClass(add, del, oldNode);
-////
-////    del && Switch(del)
-////      .Box.use(b => {
-////        b.unsubscribe(oldNode.__niceSubscription);
-////        oldNode.__niceSubscription = null;
-////      })
-////      .Object.use(o => {
-////        if(o.tag && add === undefined){
-////          killNode(oldNode);
-////        } else {
-////          _each(o.style, (_v, k) => delStyle(_v, k, oldNode));
-////          _each(o.attributes, (_v, k) => delAttribute(_v, k, oldNode));
-////          killSelectors(o.cssSelectors,
-////              oldNode.className || (o.attributes && o.attributes.className));
-////          nice._eachEach(o.eventHandlers, (f, _n, k) =>
-////                oldNode.removeEventListener(k, f, true));
-////        }
-////      })
-////      .default.use(t => add !== undefined || t !== undefined && killNode(oldNode));
-////
-////
-////    if(is.Box(add)) {
-////      const f = () => {
-////        const diff = add.getDiff();
-////        node = handleNode(diff.add, diff.del, node, parent);
-////      };
-////      add.listen(f);
-////      node = node || oldNode || document.createTextNode(' ');
-////      node.__niceSubscription = f;
-////      oldNode || parent.appendChild(node);
-////    } else if(add !== undefined) {
-////      if (add && typeof add === 'object') { //full node
-////        const newHtml = add.tag;
-////        if(newHtml){
-////          if(del && !is.String(del) && !is.Nothing(del)){
-////            node = changeHtml(oldNode, newHtml);
-////          }
-////          node = node || document.createElement(newHtml);
-////          oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
-////        } else {
-////          node = oldNode;
-////        }
-////        _each(add.style, (_v, k) => addStyle(_v, k, node));
-////        _each(add.attributes, (_v, k) => addAttribute(_v, k, node));
-////        addSelectors(add.cssSelectors, node);
-////        addHandlers(add.eventHandlers, node);
-////      } else {
-////        const text = is.Nothing(add) ? '' : '' + add;
-////        node = document.createTextNode(text);
-////        oldNode ? insertBefore(oldNode, node) : parent.appendChild(node);
-////      }
-////      oldNode && (oldNode !== node) && killNode(oldNode);
-////    }
-////    is.Box(add) || (node && node.nodeType === 3)
-////            || handleChildren(add, del, node || oldNode);
-////    return node || oldNode;
-////  }
-//
-//
-//  function handleChildren(add, del, target){
-//    const a = add && add.children;
-//    const d = del && del.children;
-//    const f = k => handleNode(a && a[k], d && d[k], target.childNodes[k], target);
-//    const keys = [];
-//
-//    _each(a, (v, k) => f( + k));
-//    _each(d, (v, k) => (a && a[k]) || keys.push( + k));
-//    keys.sort((a,b) => b - a).forEach(f);
-//  };
-//
-//
-//  Func.Box(function show(source, parent = document.body){
-//    const i = parent.childNodes.length;
-//    let node = null;
-//    source.listenDiff(diff => {
-//      let before = node;
-//      node = handleNode(diff.add, diff.del, node, parent);
-//      if(!node)
-//        throw '!!!'
-//    });
-//    return source;
-//  });
-//
-//
-//  function newNode(tag, parent = document.body){
-//    return parent.appendChild(document.createElement(tag));
-//  };
-
-
-//  Func.Html(function show(source, parent = document.body){
-//    handleNode(source._getResult(), undefined, null, parent);
-//    return source;
-//  });
-
-
-//  function changeHtml(old, tag){
-//    const node = document.createElement(tag);
-//    while (old.firstChild) node.appendChild(old.firstChild);
-//    for (let i = old.attributes.length - 1; i >= 0; --i) {
-//      node.attributes.setNamedItem(old.attributes[i].cloneNode());
-//    }
-//    addHandlers(old.__niceListeners, node);
-//    delete(old.__niceListeners);
-//    return node;
-//  }
-//
-//
-//  function addHandlers(eventHandlers, node){
-//    nice._eachEach(eventHandlers, (f, _n, k) => {
-//      if(k === 'domNode')
-//        return f(node);
-//      node.addEventListener(k, f, true);
-//      node.__niceListeners = node.__niceListeners || {};
-//      node.__niceListeners[k] = node.__niceListeners[k] || [];
-//      node.__niceListeners[k].push(f);
-//    });
-//  }
-
-
   Func.Single('show', (e, parentNode = document.body, position) => {
     const node = document.createTextNode('');
-    e.listen(v => node.nodeValue = v());
+    node.__niceDie = e.listen(v => node.nodeValue = v());
     return insertAt(parentNode, node, position);
   });
 
@@ -656,48 +397,72 @@ if(nice.isEnvBrowser){
 
   Func.Html('show', (e, parentNode = document.body, position) => {
     const node = document.createElement(e.tag());
+    const subscriptions = [];
+
     //don't move this line to bootom. it's here for domNode event
     insertAt(parentNode, node, position);
-    e.children.listen({
-//      onRemove: (v, k) => removeAt(node, k),
+    subscriptions.push(e.children.listen({
       onRemove: (v, k) => removeNode(node.childNodes[k], v),
       onAdd: (v, k) => nice.show(v, node, k),
-    });
-    e.style.listen({
+    }));
+    subscriptions.push(e.style.listen({
       onRemove: (v, k) => delete node.style[k],
       onAdd: (v, k) => node.style[k] = v(),
-    });
-    e.attributes.listen({
+    }));
+    subscriptions.push(e.attributes.listen({
       onRemove: (v, k) => delete node[k],
       onAdd: (v, k) => node[k] = v(),
-    });
-    e.cssSelectors.listen({
+    }));
+    subscriptions.push(e.cssSelectors.listen({
       onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
       onAdd: (v, k) => addRules(v, k, getAutoClass(node.className)),
-    });
-    e.eventHandlers.each((hs, k) => {
-      hs.each(f => {
-        if(k === 'domNode')
-          return f(node);
-        node.addEventListener(k, f, true);
-        node.__niceListeners = node.__niceListeners || {};
-        node.__niceListeners[k] = node.__niceListeners[k] || [];
-        //TODO: unsubscribe
-        node.__niceListeners[k].push(f);
-      });
-    });
+    }));
+    subscriptions.push(e.eventHandlers.listen({
+      onAdd: (hs, k) => {
+        hs.each(f => {
+          if(k === 'domNode')
+            return f(node);
+          node.addEventListener(k, f, true);
+          node.__niceListeners = node.__niceListeners || {};
+          node.__niceListeners[k] = node.__niceListeners[k] || [];
+          //TODO: unsubscribe
+          node.__niceListeners[k].push(f);
+        });
+      },
+      onRemove: (hs, k) => {
+        console.log('Removed, ', k);
+      }
+    }));
+    node.__niceDie = () => {
+      delete node.__niceDie;
+      for (let s of subscriptions) {
+        s();
+      }
+      for (let n of node.childNodes) {
+        n.__niceDie && n.__niceDie();
+      }
+    };
     return node;
+  });
+
+
+  Func.Html('show', (e, node) => {
+
   });
 
 
   function removeNode(node, v){
     node.parentNode.removeChild(node);
+    node.__niceDie();
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
   }
 
 
   function removeAt(parent, position){
+    const c = parent.childNodes[position];
     parent.removeChild(parent.childNodes[position]);
+    //TODO: ?? clean cssSelectors
+    c.__niceDie();
   }
 
   function insertAt(parent, node, position){
@@ -709,3 +474,12 @@ if(nice.isEnvBrowser){
   //  selectors.each((v, k) => addRules(v, k, getAutoClass(node.className)));
   //};
 };
+
+
+def(nice, 'iterateNodesTree', (f, node = document.body) => {
+  f(node);
+  if(node.childNodes)
+    for (let n of node.childNodes) {
+      nice.iterateNodesTree(f, n);
+    };
+});

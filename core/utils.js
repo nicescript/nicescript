@@ -198,12 +198,13 @@ defAll(nice, {
   },
 
   memoize: f => {
-    const results = {};
-    return (k, ...a) => {
-      if(results.hasOwnProperty(k))
-        return results[k];
-      return results[k] = f(k, ...a);
+    const res = (k, ...a) => {
+      if(res._items.hasOwnProperty(k))
+        return res._items[k];
+      return res._items[k] = f(k, ...a);
     };
+    res._items = {};
+    return res;
   },
 
   once: f => {

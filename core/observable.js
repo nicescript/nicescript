@@ -19,7 +19,7 @@ defAll(nice.Anything.proto, {
       }
     }
 
-    return this;
+    return () => this.unsubscribe(f);
   },
 //    listenDiff(f) {
 //      this.listen(() => {
@@ -134,7 +134,6 @@ defAll(nice.Anything.proto, {
 
     return this;
   },
-
 
   unsubscribe (target){
     nice._removeArrayValue(this._subscribers, target);

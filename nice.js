@@ -247,12 +247,13 @@ defAll(nice, {
     return (add || del) ? { del, add } : false;
   },
   memoize: f => {
-    const results = {};
-    return (k, ...a) => {
-      if(results.hasOwnProperty(k))
-        return results[k];
-      return results[k] = f(k, ...a);
+    const res = (k, ...a) => {
+      if(res._items.hasOwnProperty(k))
+        return res._items[k];
+      return res._items[k] = f(k, ...a);
     };
+    res._items = {};
+    return res;
   },
   once: f => {
     let resultCalled = false;
@@ -1158,7 +1159,7 @@ defAll(nice.Anything.proto, {
         is(val).Pending() || f(val);
       }
     }
-    return this;
+    return () => this.unsubscribe(f);
   },
     transactionStart (){
       if(this._locked)
@@ -2441,7 +2442,7 @@ nice.Type('Html')
               positions[k] = i;
               z.children.insertAt(i, f(v, k));
             }
-          })
+          });
       })
   .Action
     .about('Map provided Object with provided function and add result as children.')
@@ -2454,7 +2455,7 @@ nice.Type('Html')
         a.listen({
           onRemove: (v, k) => z.children.removeAt(k),
           onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-        })
+        });
       })
   .Action
     .about('Map provided array with provided function and add result as children.')
@@ -2633,6 +2634,7 @@ if(nice.isEnvBrowser){
   };
   function killNode(n){
     n && n.parentNode && n.parentNode.removeChild(n);
+    n.__niceDie();
   }
   function insertBefore(node, newNode){
     node.parentNode.insertBefore(newNode, node);
@@ -2644,7 +2646,7 @@ if(nice.isEnvBrowser){
   }
   Func.Single('show', (e, parentNode = document.body, position) => {
     const node = document.createTextNode('');
-    e.listen(v => node.nodeValue = v());
+    node.__niceDie = e.listen(v => node.nodeValue = v());
     return insertAt(parentNode, node, position);
   });
   Func.Box('show', (e, parentNode = document.body, position) => {
@@ -2666,43 +2668,62 @@ if(nice.isEnvBrowser){
   });
   Func.Html('show', (e, parentNode = document.body, position) => {
     const node = document.createElement(e.tag());
+    const subscriptions = [];
     
     insertAt(parentNode, node, position);
-    e.children.listen({
+    subscriptions.push(e.children.listen({
       onRemove: (v, k) => removeNode(node.childNodes[k], v),
       onAdd: (v, k) => nice.show(v, node, k),
-    });
-    e.style.listen({
+    }));
+    subscriptions.push(e.style.listen({
       onRemove: (v, k) => delete node.style[k],
       onAdd: (v, k) => node.style[k] = v(),
-    });
-    e.attributes.listen({
+    }));
+    subscriptions.push(e.attributes.listen({
       onRemove: (v, k) => delete node[k],
       onAdd: (v, k) => node[k] = v(),
-    });
-    e.cssSelectors.listen({
+    }));
+    subscriptions.push(e.cssSelectors.listen({
       onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
       onAdd: (v, k) => addRules(v, k, getAutoClass(node.className)),
-    });
-    e.eventHandlers.each((hs, k) => {
-      hs.each(f => {
-        if(k === 'domNode')
-          return f(node);
-        node.addEventListener(k, f, true);
-        node.__niceListeners = node.__niceListeners || {};
-        node.__niceListeners[k] = node.__niceListeners[k] || [];
-        
-        node.__niceListeners[k].push(f);
-      });
-    });
+    }));
+    subscriptions.push(e.eventHandlers.listen({
+      onAdd: (hs, k) => {
+        hs.each(f => {
+          if(k === 'domNode')
+            return f(node);
+          node.addEventListener(k, f, true);
+          node.__niceListeners = node.__niceListeners || {};
+          node.__niceListeners[k] = node.__niceListeners[k] || [];
+          
+          node.__niceListeners[k].push(f);
+        });
+      },
+      onRemove: (hs, k) => {
+        console.log('Removed, ', k);
+      }
+    }));
+    node.__niceDie = () => {
+      delete node.__niceDie;
+      for (let s of subscriptions) {
+        s();
+      }
+      for (let n of node.childNodes) {
+        n.__niceDie && n.__niceDie();
+      }
+    };
     return node;
   });
   function removeNode(node, v){
     node.parentNode.removeChild(node);
+    node.__niceDie();
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
   }
   function removeAt(parent, position){
+    const c = parent.childNodes[position];
     parent.removeChild(parent.childNodes[position]);
+    
+    c.__niceDie();
   }
   function insertAt(parent, node, position){
     parent.insertBefore(node, parent.childNodes[position]);
@@ -2712,6 +2733,13 @@ if(nice.isEnvBrowser){
   
   
 };
+def(nice, 'iterateNodesTree', (f, node = document.body) => {
+  f(node);
+  if(node.childNodes)
+    for (let n of node.childNodes) {
+      nice.iterateNodesTree(f, n);
+    };
+});
 })();
 (function(){"use strict";const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre'.split(',').forEach(t =>

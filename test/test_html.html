@@ -66,6 +66,14 @@ Box.by(text.value, s => Div().I('Length: ', s.length)).show();
 nice.is.Str('');
 nice.is.Str('qwe');
 
+let i = 0;
+while(i++ < 1e3){
+  const input = nice.Input();
+  input.value.listen(console.log);
+//  input.on('change', v => console.log(v))
+          input.show();
+}
+
 </script>
   
   </body>
