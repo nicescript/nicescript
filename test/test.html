@@ -11,10 +11,25 @@
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
+const a = Arr(1,2,3,4,5,6,7);
+const b = Arr(1,2,3,4,5,6,7);
 
-const f = nice.Func()
-    .Array(s => s + s)
-    .Arr(n => n * 2);
+nice.Button('go', () => s(i++ % 2)).show();
+
+const s = nice.Bool(false);
+
+const staticDiv = Div('off').mapChildren(b, I);
+const box = nice.Box.by(s, on => on() ? Div().mapChildren(a, v => {
+  return Box.by(() => Div().mapChildren(b, vv => B(vv + '_' + v)));
+}) : staticDiv);
+const node = box.show();
+let i = 0;
+//setInterval(() => {
+//  s(i++ % 2);
+////  s(0);
+//}, 100);
+
+//box.hide(node);
 
 </script>
   

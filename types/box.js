@@ -22,7 +22,7 @@ nice.Type({
   by (...inputs){
     const res = Box();
     res._by = inputs.pop();
-    res._subscriptions = res._subscriptions || [];
+    res._subscriptions = [];
     res._value = nice.NeedComputing();
     res._isReactive = true;
     inputs.forEach(s => {
@@ -81,10 +81,10 @@ nice.Type({
       const ss = this._subscriptions || [];
 
       ss.forEach(s => {
-        s._subscribers = s._subscribers || [];
-        if(!s._subscribers.includes(this)){
+        s._subscribers = s._subscribers || new Map();
+        if(!s._subscribers.has(this)){
           s._isResolved() || s.compute();
-          s._subscribers.push(this);
+          s._subscribers.set(this, () => this._notifing || this.doCompute());
         }
       });
 
@@ -198,7 +198,7 @@ nice.Type({
 
     _isHot: function (){
       return this._transactionDepth
-        || (this._subscribers && this._subscribers.length);
+        || (this._subscribers && this._subscribers.size);
     },
 
     _isResolved (){
@@ -239,29 +239,6 @@ const F = Func.Box;
 function diffConverter(v){
   return is.Value(v) ? v._getResult() : v;
 }
-
-
-F(function unsubscribe(s, target){
-  const {_subscribers, _subscriptions} = s;
-  nice._removeArrayValue(_subscribers, target);
-  !_subscribers.length && _subscriptions
-      && _subscriptions.forEach(_s => _s.unsubscribe(s));
-});
-
-
-//F.Box(function bind(y, x) {
-//  y(x());
-//  x.listen(y);
-//  y.listen(x);
-//  return y;
-//});
-//
-//
-//F.Box(function unbind(y, x) {
-//  nice.unsubscribe(y, x);
-//  nice.unsubscribe(x, y);
-//  return y;
-//});
 
 
 //TODO: fix or remove

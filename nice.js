@@ -1144,14 +1144,15 @@ Anything.proto._type = Anything;
 (function(){"use strict";const NO_NEED = {};
 defAll(nice.Anything.proto, {
   _isResolved() { return true; },
-  listen(f) {
+  listen (f, target) {
     
     if(typeof f === 'object'){
       f = this._itemsListener(f);
     }
-    const ss = this._subscribers = this._subscribers || [];
-    if(!ss.includes(f)){
-      ss.push(f);
+    const key = target || f;
+    const ss = this._subscribers = this._subscribers || new Map();
+    if(!ss.has(key)){
+      ss.set(key, f);
       if(this.compute){
         this.compute();
       } else {
@@ -1159,56 +1160,62 @@ defAll(nice.Anything.proto, {
         is(val).Pending() || f(val);
       }
     }
-    return () => this.unsubscribe(f);
+    if(target) {
+      target._subscriptions = target._subscriptions || [];
+      target._subscriptions.push(this);
+    }
+    return () => this.unsubscribe(key);
   },
-    transactionStart (){
-      if(this._locked)
-        throw nice.LOCKED_ERROR;
-      if(!this._transactionDepth){
-        this._transactionDepth = 0;
-      }
-      this._transactionDepth++;
-      return this;
-    },
-    transactionEnd (){
-      if(--this._transactionDepth > 0)
-        return false;
+  transactionStart (){
+    if(this._locked)
+      throw nice.LOCKED_ERROR;
+    if(!this._transactionDepth){
       this._transactionDepth = 0;
-      this._oldValue === this._value || notify(this);
-      delete this._newValue;
-    },
-    transactionRollback (){
-      this._transactionDepth && (this._result = this.initState);
-      this._transactionDepth = 0;
-      this.initState = null;
-      delete this._newValue;
-      return this;
-    },
-    _isHot (){
-      
-      return this._hotChildCount ||
-        (this._subscribers && this._subscribers.length);
-    },
-    transaction (f) {
-      this.transactionStart();
-      f(this);
-      this.transactionEnd();
-      return this;
-    },
-  listenOnce (f) {
+    }
+    this._transactionDepth++;
+    return this;
+  },
+  transactionEnd (){
+    if(--this._transactionDepth > 0)
+      return false;
+    this._transactionDepth = 0;
+    this._oldValue === this._value || notify(this);
+    delete this._newValue;
+  },
+  transactionRollback (){
+    this._transactionDepth && (this._result = this.initState);
+    this._transactionDepth = 0;
+    this.initState = null;
+    delete this._newValue;
+    return this;
+  },
+  _isHot (){
+    
+    return this._hotChildCount ||
+      (this._subscribers && this._subscribers.size);
+  },
+  transaction (f) {
+    this.transactionStart();
+    f(this);
+    this.transactionEnd();
+    return this;
+  },
+  listenOnce (f, target) {
     this._isResolved() || this.compute();
     if(this._isResolved())
       return f(this._notificationValue ? this._notificationValue() : this);
+    const key = target || f;
     const _f = v => {
       f(v);
-      this.unsubscribe(_f);
+      this.unsubscribe(key);
     };
-    (this._subscribers = this._subscribers || []).push(_f);
+    (this._subscribers = this._subscribers || new Map());
+    this._subscribers.set(key, f);
     return this;
   },
   unsubscribe (target){
-    nice._removeArrayValue(this._subscribers, target);
-    if(!this._subscribers.length){
+    this._subscribers.delete(target);
+    if(!this._subscribers.size){
       this._subscriptions &&
         this._subscriptions.forEach(_s => _s.unsubscribe(this));
     }
@@ -1225,12 +1232,8 @@ function notify(z){
   if(needNotification && z._subscribers){
     z._notifing = true;
     z._subscribers.forEach(s => {
-      if(s.doCompute){
-        s._notifing || s.doCompute();
-      } else {
         z._isResolved()
             && s(z._notificationValue ? z._notificationValue() : z, oldValue);
-      }
     });
     z._notifing = false;
   }
@@ -1712,7 +1715,7 @@ nice.Type({
   by (...inputs){
     const res = Box();
     res._by = inputs.pop();
-    res._subscriptions = res._subscriptions || [];
+    res._subscriptions = [];
     res._value = nice.NeedComputing();
     res._isReactive = true;
     inputs.forEach(s => {
@@ -1764,10 +1767,10 @@ nice.Type({
       let _value;
       const ss = this._subscriptions || [];
       ss.forEach(s => {
-        s._subscribers = s._subscribers || [];
-        if(!s._subscribers.includes(this)){
+        s._subscribers = s._subscribers || new Map();
+        if(!s._subscribers.has(this)){
           s._isResolved() || s.compute();
-          s._subscribers.push(this);
+          s._subscribers.set(this, () => this._notifing || this.doCompute());
         }
       });
       const _results = ss.map(s =>
@@ -1833,7 +1836,7 @@ nice.Type({
     },
     _isHot: function (){
       return this._transactionDepth
-        || (this._subscribers && this._subscribers.length);
+        || (this._subscribers && this._subscribers.size);
     },
     _isResolved (){
       return !is(this._value).Pending() && !is(this._value).NeedComputing();
@@ -1863,12 +1866,6 @@ const F = Func.Box;
 function diffConverter(v){
   return is.Value(v) ? v._getResult() : v;
 }
-F(function unsubscribe(s, target){
-  const {_subscribers, _subscriptions} = s;
-  nice._removeArrayValue(_subscribers, target);
-  !_subscribers.length && _subscriptions
-      && _subscriptions.forEach(_s => _s.unsubscribe(s));
-});
 def(nice, 'resolveChildren', (v, f) => {
   if(!v)
     return f(v);
@@ -2442,7 +2439,7 @@ nice.Type('Html')
               positions[k] = i;
               z.children.insertAt(i, f(v, k));
             }
-          });
+          }, z.children);
       })
   .Action
     .about('Map provided Object with provided function and add result as children.')
@@ -2455,7 +2452,7 @@ nice.Type('Html')
         a.listen({
           onRemove: (v, k) => z.children.removeAt(k),
           onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-        });
+        }, z.children);
       })
   .Action
     .about('Map provided array with provided function and add result as children.')
@@ -2633,8 +2630,10 @@ if(nice.isEnvBrowser){
     a.forEach(i => styleSheet.deleteRule(i));
   };
   function killNode(n){
-    n && n.parentNode && n.parentNode.removeChild(n);
-    n.__niceDie();
+    n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
+    n && nice._eachEach(n.__niceListeners, (listener, i, type) => {
+      n.removeEventListener(type, listener);
+    });
   }
   function insertBefore(node, newNode){
     node.parentNode.insertBefore(newNode, node);
@@ -2646,17 +2645,35 @@ if(nice.isEnvBrowser){
   }
   Func.Single('show', (e, parentNode = document.body, position) => {
     const node = document.createTextNode('');
-    node.__niceDie = e.listen(v => node.nodeValue = v());
+    onShow(node);
+    e._shownNodes = e._shownNodes || new WeakMap();
+    e._shownNodes.set(node, e.listen(v => node.nodeValue = v()));
     return insertAt(parentNode, node, position);
+  });
+  Func.Single('hide', (e, node) => {
+    onHide(node);
+    const subscription = e._shownNodes && e._shownNodes.get(node);
+    subscription();
+    killNode(node);
   });
   Func.Box('show', (e, parentNode = document.body, position) => {
     let node;
-    e.listen((v, oldValue) => {
+    e._shownNodes = e._shownNodes || new WeakMap();
+    const f = (v, oldValue) => {
       const oldNode = node;
       node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
       node = nice.show(v, parentNode, position);
-      oldNode && removeNode(oldNode, oldValue);
-    });
+      e._shownNodes.set(node, f);
+      if(oldNode){
+        oldValue && oldValue.hide ? oldValue.hide(oldNode) : killNode(oldNode);
+      }
+    };
+    e.listen(f);
+  });
+  Func.Box('hide', (e, node) => {
+    e.unsubscribe(e._shownNodes.get(node));
+    e._shownNodes.delete(node);
+    e._value && e._value.hide(node);
   });
   Func.Nothing('show', (e, parentNode = document.body, position) => {
     return insertAt(parentNode, document.createTextNode(''), position);
@@ -2668,62 +2685,64 @@ if(nice.isEnvBrowser){
   });
   Func.Html('show', (e, parentNode = document.body, position) => {
     const node = document.createElement(e.tag());
-    const subscriptions = [];
+    onShow(node);
     
     insertAt(parentNode, node, position);
-    subscriptions.push(e.children.listen({
-      onRemove: (v, k) => removeNode(node.childNodes[k], v),
-      onAdd: (v, k) => nice.show(v, node, k),
-    }));
-    subscriptions.push(e.style.listen({
-      onRemove: (v, k) => delete node.style[k],
-      onAdd: (v, k) => node.style[k] = v(),
-    }));
-    subscriptions.push(e.attributes.listen({
-      onRemove: (v, k) => delete node[k],
-      onAdd: (v, k) => node[k] = v(),
-    }));
-    subscriptions.push(e.cssSelectors.listen({
-      onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
-      onAdd: (v, k) => addRules(v, k, getAutoClass(node.className)),
-    }));
-    subscriptions.push(e.eventHandlers.listen({
-      onAdd: (hs, k) => {
-        hs.each(f => {
-          if(k === 'domNode')
-            return f(node);
-          node.addEventListener(k, f, true);
-          node.__niceListeners = node.__niceListeners || {};
-          node.__niceListeners[k] = node.__niceListeners[k] || [];
-          
-          node.__niceListeners[k].push(f);
-        });
-      },
-      onRemove: (hs, k) => {
-        console.log('Removed, ', k);
-      }
-    }));
-    node.__niceDie = () => {
-      delete node.__niceDie;
-      for (let s of subscriptions) {
-        s();
-      }
-      for (let n of node.childNodes) {
-        n.__niceDie && n.__niceDie();
-      }
-    };
+    e.attachNode(node);
     return node;
+  });
+  Func.Html('attachNode', (e, node) => {
+    e._shownNodes = e._shownNodes || new WeakMap();
+    e._shownNodes.set(node, [
+      e.children.listen({
+        onRemove: (v, k) => removeNode(node.childNodes[k], v),
+        onAdd: (v, k) => nice.show(v, node, k),
+      }),
+      e.style.listen({
+        onRemove: (v, k) => delete node.style[k],
+        onAdd: (v, k) => node.style[k] = v(),
+      }),
+      e.attributes.listen({
+        onRemove: (v, k) => delete node[k],
+        onAdd: (v, k) => node[k] = v(),
+      }),
+      e.cssSelectors.listen({
+        onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
+        onAdd: (v, k) => addRules(v, k, getAutoClass(node.className)),
+      }),
+      e.eventHandlers.listen({
+        onAdd: (hs, k) => {
+          hs.each(f => {
+            if(k === 'domNode')
+              return f(node);
+            node.addEventListener(k, f, true);
+            node.__niceListeners = node.__niceListeners || {};
+            node.__niceListeners[k] = node.__niceListeners[k] || [];
+            node.__niceListeners[k].push(f);
+          });
+        },
+        onRemove: (hs, k) => {
+          console.log('TODO: Remove, ', k);
+        }
+      })
+    ]);
+  });
+  Func.Html('hide', (e, node) => {
+    onHide(node);
+    const subscriptions = e._shownNodes && e._shownNodes.get(node);
+    e._shownNodes.delete(node);
+    subscriptions.forEach(f => f());
+    e.children.each((c, k) => c.hide(node.childNodes[0]));
+    killNode(node);
   });
   function removeNode(node, v){
     node.parentNode.removeChild(node);
-    node.__niceDie();
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
   }
   function removeAt(parent, position){
     const c = parent.childNodes[position];
     parent.removeChild(parent.childNodes[position]);
     
-    c.__niceDie();
   }
   function insertAt(parent, node, position){
     parent.insertBefore(node, parent.childNodes[position]);
@@ -2740,6 +2759,14 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
       nice.iterateNodesTree(f, n);
     };
 });
+nice.nodesCounter = nice.Num();
+const nodes = nice.shownNodes = new Map();
+function onShow(node){
+  nice.nodesCounter.inc();
+}
+function onHide(node){
+  nice.nodesCounter.dec();
+}
 })();
 (function(){"use strict";const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre'.split(',').forEach(t =>
