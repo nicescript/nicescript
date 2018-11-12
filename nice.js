@@ -1142,10 +1142,9 @@ nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 Anything.proto._type = Anything;
 })();
 (function(){"use strict";const NO_NEED = {};
-defAll(nice.Anything.proto, {
+def(nice, 'observableProto', {
   _isResolved() { return true; },
   listen (f, target) {
-    
     if(typeof f === 'object'){
       f = this._itemsListener(f);
     }
@@ -1221,6 +1220,7 @@ defAll(nice.Anything.proto, {
     }
   }
 });
+defAll(nice.Anything.proto, nice.observableProto);
 function notify(z){
   let needNotification = false;
   let oldValue;
@@ -2009,6 +2009,15 @@ M.function('reduceRight', (a, f, res) => {
 M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
+A('add', (z, ...a) => {
+  a.forEach(v => z.is.includes(v) || z.push(v));
+});
+Check.Arr('includes', (a, v) => {
+  for(let i of a._items)
+    if(is.equal(i, v))
+      return true;
+  return false;
+});
 A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
@@ -2467,10 +2476,10 @@ nice.Type('Html')
         return c.each(_c => z.add(_c));
       if(c === undefined || c === null)
         return;
-      if(is.String(c))
+      if(is.String(c) || is.Str(c))
         return z.children(c);
-      if(is.Number(c))
-        return z.children('' + c);
+      if(is.Number(c) || is.Num(c))
+        return z.children(c);
       if(c === z)
         return z.children(`Errro: Can't add element to itself.`);
       if(!c || !is.Anything(c))
@@ -2645,13 +2654,11 @@ if(nice.isEnvBrowser){
   }
   Func.Single('show', (e, parentNode = document.body, position) => {
     const node = document.createTextNode('');
-    onShow(node);
     e._shownNodes = e._shownNodes || new WeakMap();
     e._shownNodes.set(node, e.listen(v => node.nodeValue = v()));
     return insertAt(parentNode, node, position);
   });
   Func.Single('hide', (e, node) => {
-    onHide(node);
     const subscription = e._shownNodes && e._shownNodes.get(node);
     subscription();
     killNode(node);
@@ -2685,7 +2692,6 @@ if(nice.isEnvBrowser){
   });
   Func.Html('show', (e, parentNode = document.body, position) => {
     const node = document.createElement(e.tag());
-    onShow(node);
     
     insertAt(parentNode, node, position);
     e.attachNode(node);
@@ -2728,7 +2734,6 @@ if(nice.isEnvBrowser){
     ]);
   });
   Func.Html('hide', (e, node) => {
-    onHide(node);
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
     subscriptions.forEach(f => f());
@@ -2759,14 +2764,6 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
       nice.iterateNodesTree(f, n);
     };
 });
-nice.nodesCounter = nice.Num();
-const nodes = nice.shownNodes = new Map();
-function onShow(node){
-  nice.nodesCounter.inc();
-}
-function onHide(node){
-  nice.nodesCounter.dec();
-}
 })();
 (function(){"use strict";const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre'.split(',').forEach(t =>

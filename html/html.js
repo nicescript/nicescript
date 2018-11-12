@@ -96,11 +96,11 @@ nice.Type('Html')
       if(c === undefined || c === null)
         return;
 
-      if(is.String(c))
+      if(is.String(c) || is.Str(c))
         return z.children(c);
 
-      if(is.Number(c))
-        return z.children('' + c);
+      if(is.Number(c) || is.Num(c))
+        return z.children(c);
 
       if(c === z)
         return z.children(`Errro: Can't add element to itself.`);

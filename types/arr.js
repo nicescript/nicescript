@@ -147,10 +147,16 @@ M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0)
 
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
-//A('add', (z, ...a) => {
-//  const toAdd = Array.isArray(a[0]) ? a[0] : a;
-//  toAdd.forEach(v => z._items.includes(v) || z.push(v));
-//});
+A('add', (z, ...a) => {
+  a.forEach(v => z.is.includes(v) || z.push(v));
+});
+
+Check.Arr('includes', (a, v) => {
+  for(let i of a._items)
+    if(is.equal(i, v))
+      return true;
+  return false;
+});
 
 A('pull', (z, item) => {
   const k = is.Value(item)

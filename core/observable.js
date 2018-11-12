@@ -1,9 +1,8 @@
 const NO_NEED = {};
 
-defAll(nice.Anything.proto, {
+def(nice, 'observableProto', {
   _isResolved() { return true; },
   listen (f, target) {
-    //TODO: unsubscribe
     if(typeof f === 'object'){
       f = this._itemsListener(f);
     }
@@ -118,6 +117,8 @@ defAll(nice.Anything.proto, {
     }
   }
 });
+
+defAll(nice.Anything.proto, nice.observableProto);
 
 
 function notify(z){
