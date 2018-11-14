@@ -774,8 +774,7 @@ reflect.on('Type', type => {
   };
 });
 })();
-(function(){"use strict";
-const isProto = def(nice, 'isProto', {}), { Check } = nice;
+(function(){"use strict";const isProto = def(nice, 'isProto', {}), { Check } = nice;
 reflect.on('Check', f =>
   isProto[f.name] = function(...a) {
     try {
@@ -794,6 +793,7 @@ reflect.on('Check', f => {
     }
   };
 });
+['Check', 'Action', 'Mapping'].forEach(t => Check(t, v => v.functionType === t));
 Check.about('Checks if two values are equal.')
   ('equal', nice.isEqual);
 const basicChecks = {
@@ -810,6 +810,10 @@ const basicChecks = {
     const type = typeof i;
     return i === null || (type !== "object" && type !== "function");
   },
+  truly: v => v._isAnything
+    ? is.Nothing(v) ? false : !!v()
+    : !!v,
+  falsy: v => !is.truly(v),
   empty: v => {
     if(is.Nothing(v) || v === null)
       return true;
@@ -1892,7 +1896,7 @@ def(nice, 'resolveChildren', (v, f) => {
   extends: 'Nothing',
   initBy: (z, message) => {
     z.message = message;
-    const a = new Err().stack.split('\n');
+    const a = new Error().stack.split('\n');
     a.splice(0, 4);
     z.trace = a.join('\n');
   },

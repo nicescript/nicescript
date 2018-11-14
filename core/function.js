@@ -312,16 +312,3 @@ reflect.on('Type', type => {
     return this;
   };
 });
-
-
-//TODO: bug:
-//var f1 = nice.each(nice, n => n * 2);
-//undefined
-//f1([1])
-//ƒ undefined
-//f1([1])()
-//[ƒ]
-//f1([1]).jsValue
-//[1]
-//f1([1, 2]).jsValue
-//(2) [1, 2]

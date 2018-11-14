@@ -5,7 +5,7 @@ nice.Type({
 
   initBy: (z, message) => {
     z.message = message;
-    const a = new Err().stack.split('\n');
+    const a = new Error().stack.split('\n');
     a.splice(0, 4);
     z.trace = a.join('\n');
   },

@@ -1,5 +1,3 @@
-//TODO: add is.Check
-//TODO: add thruly and falsy checks
 const isProto = def(nice, 'isProto', {}), { Check } = nice;
 reflect.on('Check', f =>
   isProto[f.name] = function(...a) {
@@ -22,6 +20,8 @@ reflect.on('Check', f => {
   };
 });
 
+['Check', 'Action', 'Mapping'].forEach(t => Check(t, v => v.functionType === t));
+
 Check.about('Checks if two values are equal.')
   ('equal', nice.isEqual);
 
@@ -39,6 +39,10 @@ const basicChecks = {
     const type = typeof i;
     return i === null || (type !== "object" && type !== "function");
   },
+  truly: v => v._isAnything
+    ? is.Nothing(v) ? false : !!v()
+    : !!v,
+  falsy: v => !is.truly(v),
   empty: v => {
     if(is.Nothing(v) || v === null)
       return true;

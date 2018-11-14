@@ -89,4 +89,29 @@ describe("is", function() {
     expect(is.RegExp(/.*/)).to.equal(true);
     expect(is.ArrayBuffer(/.*/)).to.equal(false);
   });
+
+  it("truly", function() {
+    expect(is.truly(null)).to.equal(false);
+    expect(is.truly(0)).to.equal(false);
+    expect(is.truly("")).to.equal(false);
+    expect(is.truly(nice(""))).to.equal(false);
+    expect(is.truly(nice.Err())).to.equal(false);
+    expect(is.truly(1)).to.equal(true);
+    expect(is.truly([])).to.equal(true);
+    expect(is.truly(nice('ww'))).to.equal(true);
+  });
+
+
+  it("falsy", function() {
+    expect(is.falsy(null)).to.equal(true);
+    expect(is.falsy(0)).to.equal(true);
+    expect(is.falsy("")).to.equal(true);
+    expect(is.falsy(nice(""))).to.equal(true);
+    expect(is.falsy(nice.Err())).to.equal(true);
+    expect(is.falsy(1)).to.equal(false);
+    expect(is.falsy([])).to.equal(false);
+    expect(is.falsy(nice('ww'))).to.equal(false);
+  });
+
+
 });
