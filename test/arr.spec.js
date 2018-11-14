@@ -197,5 +197,15 @@ describe("Arr", function() {
   });
 
 
-
+  it("intersection", () => {
+    const a = Arr(1, 4, 3);
+    const ja = [1, 4, 3];
+    const b = Arr(2, 4, 1);
+    const jb = [2, 4, 1];
+    expect(a.intersection([]).jsValue).to.deep.equal([]);
+//    expect(a.intersection(b).jsValue).to.deep.equal([1,4]);
+//    expect(nice.intersection(ja, b).jsValue).to.deep.equal([1,4]);
+//    expect(nice.intersection(a, jb).jsValue).to.deep.equal([1,4]);
+//    expect(nice.intersection(ja, jb).jsValue).to.deep.equal([1,4]);
+  });
 });

@@ -241,24 +241,6 @@ function diffConverter(v){
 }
 
 
-//TODO: fix or remove
-//named inputs
-//reflect.on('Type', type => {
-//  if(!type.name)
-//    return;
-//
-//  def(Box.proto, nice._decapitalize(type.name), function (name, value) {
-//    expect(name).String();
-//
-//    const input = Box();
-//    value !== undefined && input(value);
-//    input._parent = this;
-//    def(this, name, input);
-//    return this.use(input);
-//  });
-//});
-
-
 def(nice, 'resolveChildren', (v, f) => {
   if(!v)
     return f(v);
@@ -266,43 +248,18 @@ def(nice, 'resolveChildren', (v, f) => {
   if(is.Box(v))
     return v.listenOnce(_v => nice.resolveChildren(_v, f));
 
-//  if(v._value){
-    if(is.Obj(v)){
-      let count = v.size;
-      const next = () => {
-        count--;
-        count === 0 && f(v);
-      };
-      !count ? f(v) : _each(v._items, (vv, kk) => {
-        nice.resolveChildren(vv, _v => {
-//          if(_v && _v._type){
-//            _v = _v._value;
-//          }
-//          v._items[kk] = _v;
-          next();
-        });
+  if(is.Obj(v)){
+    let count = v.size;
+    const next = () => {
+      count--;
+      count === 0 && f(v);
+    };
+    !count ? f(v) : _each(v._items, (vv, kk) => {
+      nice.resolveChildren(vv, _v => {
+        next();
       });
-    } else {
-      f(v);
-    }
-//  } else {
-//    if(is.Object(v)){
-//      let count = v.size;
-//      const next = () => {
-//        count--;
-//        count === 0 && f(v);
-//      };
-//      !count ? f(v) : _each(v, (vv, kk) => {
-//        nice.resolveChildren(vv, _v => {
-//          if(_v && _v._type){
-//            _v = _v._value;
-//          }
-//          v[kk] = _v;
-//          next();
-//        });
-//      });
-//    } else {
-//      f(v);
-//    }
-//  }
+    });
+  } else {
+    f(v);
+  }
 });

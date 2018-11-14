@@ -1,4 +1,3 @@
-//TODO: html.on shoud fall when wrong event named
 //TODO: throw error when adding object that is not Html
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'

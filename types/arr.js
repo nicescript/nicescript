@@ -91,7 +91,6 @@ nice.Obj.extend({
 
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
-const f = Func.Array, m = Mapping.Array, a = Action.Array;
 
 M.function('reduce', (a, f, res) => {
   each(a, (v, k) => res = f(res, v, k));
@@ -285,6 +284,20 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
     }
   });
   return i;
+});
+
+
+M.Array('intersection', (a, b) => {
+  const res = Arr();
+  a.each(v => b.includes(v) && res.push(v));
+  return res;
+});
+
+
+Mapping.Array.Array('intersection', (a, b) => {
+  const res = [];
+  a.forEach(v => is.includes(b, v) && res.push(v));
+  return res;
 });
 
 

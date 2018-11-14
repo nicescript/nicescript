@@ -1875,20 +1875,20 @@ def(nice, 'resolveChildren', (v, f) => {
     return f(v);
   if(is.Box(v))
     return v.listenOnce(_v => nice.resolveChildren(_v, f));
-    if(is.Obj(v)){
-      let count = v.size;
-      const next = () => {
-        count--;
-        count === 0 && f(v);
-      };
-      !count ? f(v) : _each(v._items, (vv, kk) => {
-        nice.resolveChildren(vv, _v => {
-          next();
-        });
+  if(is.Obj(v)){
+    let count = v.size;
+    const next = () => {
+      count--;
+      count === 0 && f(v);
+    };
+    !count ? f(v) : _each(v._items, (vv, kk) => {
+      nice.resolveChildren(vv, _v => {
+        next();
       });
-    } else {
-      f(v);
-    }
+    });
+  } else {
+    f(v);
+  }
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2001,7 +2001,6 @@ nice.Obj.extend({
   });
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
-const f = Func.Array, m = Mapping.Array, a = Action.Array;
 M.function('reduce', (a, f, res) => {
   each(a, (v, k) => res = f(res, v, k));
   return res;
@@ -2121,6 +2120,16 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
     }
   });
   return i;
+});
+M.Array('intersection', (a, b) => {
+  const res = Arr();
+  a.each(v => b.includes(v) && res.push(v));
+  return res;
+});
+Mapping.Array.Array('intersection', (a, b) => {
+  const res = [];
+  a.forEach(v => is.includes(b, v) && res.push(v));
+  return res;
 });
 M.about('Creates new array with separator between elments.')
 (function intersperse(a, separator) {
