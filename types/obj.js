@@ -67,7 +67,7 @@ nice.Type({
         i = z.checkKey(i);
         z.transactionStart();
         let res;
-        if(!nice.isEqual(v, z._items[i])){
+        if(!nice.equal(v, z._items[i])){
           z._oldValue = z._oldValue || {};
           z._oldValue[i] = z._items[i];
         }

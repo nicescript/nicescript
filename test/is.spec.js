@@ -4,10 +4,10 @@ chai.use(require('chai-spies'));
 const expect = chai.expect;
 
 describe("is", function() {
-  it("isEqual", function(){
-    expect(nice(2).isEqual(2)).to.equal(true);
-    expect(nice.isEqual(2, 2)).to.equal(true);
-    expect(nice.isEqual(2, 3)).to.equal(false);
+  it("equal", function(){
+    expect(nice(2).equal(2)).to.equal(true);
+    expect(nice.equal(2, 2)).to.equal(true);
+    expect(nice.equal(2, 3)).to.equal(false);
   });
 
 

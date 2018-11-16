@@ -152,7 +152,7 @@ A('add', (z, ...a) => {
 
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(nice.isEqual(i, v))
+    if(nice.equal(i, v))
       return true;
   return false;
 });

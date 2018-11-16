@@ -22,11 +22,8 @@
 
 ['Check', 'Action', 'Mapping'].forEach(t => Check('is' + t, v => v.functionType === t));
 
-//Check.about('Checks if two values are equal.')
-//  ('equal', nice.isEqual);
-
 const basicChecks = {
-  isEqual (a, b) {
+  equal (a, b) {
     if(a === b)
       return true;
 
@@ -99,7 +96,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal (v) {
-    this._check = (...a) => nice.isEqual(v, a[0]);
+    this._check = (...a) => nice.equal(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -131,7 +128,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal (f) {
-    this._check = (...a) => nice.isEqual(a[0], f);
+    this._check = (...a) => nice.equal(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;

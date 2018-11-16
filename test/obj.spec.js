@@ -96,8 +96,8 @@ describe("Obj", function() {
 
     const ball = Cat().name('Ball');
     expect(ball.name()).to.equal('Ball');
-    expect(ball.name.isEqual('Ball')).to.equal(true);
-    expect(ball.name.isEqual('Flat')).to.equal(false);
+    expect(ball.name.equal('Ball')).to.equal(true);
+    expect(ball.name.equal('Flat')).to.equal(false);
   });
 
 

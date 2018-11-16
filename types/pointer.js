@@ -26,7 +26,7 @@ nice.Single.extend({
       if(z._object.has(k())) {
         return z._setValue(k());
       } else {
-        k = z._object.findKey(v => nice.isEqual(k, v));
+        k = z._object.findKey(v => nice.equal(k, v));
         if(!k.isNotFound())
           return z._setValue(k());
       }

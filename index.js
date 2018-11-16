@@ -870,7 +870,7 @@ Anything.proto._type = Anything;
 (function(){"use strict";
 ['Check', 'Action', 'Mapping'].forEach(t => Check('is' + t, v => v.functionType === t));
 const basicChecks = {
-  isEqual (a, b) {
+  equal (a, b) {
     if(a === b)
       return true;
     if(a && a._isAnything && '_value' in a)
@@ -928,7 +928,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal (v) {
-    this._check = (...a) => nice.isEqual(v, a[0]);
+    this._check = (...a) => nice.equal(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -954,7 +954,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal (f) {
-    this._check = (...a) => nice.isEqual(a[0], f);
+    this._check = (...a) => nice.equal(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
@@ -1456,7 +1456,7 @@ nice.jsTypes.isSubType = isSubType;
         i = z.checkKey(i);
         z.transactionStart();
         let res;
-        if(!nice.isEqual(v, z._items[i])){
+        if(!nice.equal(v, z._items[i])){
           z._oldValue = z._oldValue || {};
           z._oldValue[i] = z._items[i];
         }
@@ -1975,7 +1975,7 @@ A('add', (z, ...a) => {
 });
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(nice.isEqual(i, v))
+    if(nice.equal(i, v))
       return true;
   return false;
 });
@@ -2288,7 +2288,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
       if(z._object.has(k())) {
         return z._setValue(k());
       } else {
-        k = z._object.findKey(v => nice.isEqual(k, v));
+        k = z._object.findKey(v => nice.equal(k, v));
         if(!k.isNotFound())
           return z._setValue(k());
       }
