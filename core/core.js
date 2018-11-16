@@ -123,7 +123,7 @@ defAll(nice, {
 
   defineCached: (target, ...a) => {
     const [key, f] = a.length === 2 ? a : [a[0].name, a[0]];
-    Object.defineProperty(target, key, { configurable: true, get: function (){
+    Object.defineProperty(target, key, { configurable: true, get (){
       let value = f.apply(this);
       def(this, key, value);
       return value;
@@ -143,7 +143,7 @@ defAll(nice, {
 
   types: {},
 
-  registerType: function(type){
+  registerType (type){
     const name = type.name;
 
     name[0] !== name[0].toUpperCase() &&

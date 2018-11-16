@@ -67,7 +67,7 @@ defAll(nice, {
   },
   defineCached: (target, ...a) => {
     const [key, f] = a.length === 2 ? a : [a[0].name, a[0]];
-    Object.defineProperty(target, key, { configurable: true, get: function (){
+    Object.defineProperty(target, key, { configurable: true, get (){
       let value = f.apply(this);
       def(this, key, value);
       return value;
@@ -83,7 +83,7 @@ defAll(nice, {
       ? f => (f(o), o)
       : (f(o), o),
   types: {},
-  registerType: function(type){
+  registerType (type){
     const name = type.name;
     name[0] !== name[0].toUpperCase() &&
       nice.error('Please start type name with a upper case letter');
@@ -398,7 +398,7 @@ function assertEvents(o, name){
   return events[name] || (events[name] = []);
 }
 const EventEmitter = {
-  on: function (name, f) {
+  on (name, f) {
     const a = assertListeners(this, name);
     if(!a.includes(f)){
       this.emit('newListener', name, f);
@@ -408,7 +408,7 @@ const EventEmitter = {
     }
     return this;
   },
-  onNew: function (name, f) {
+  onNew (name, f) {
     const a = assertListeners(this, name);
     if(!a.includes(f)){
       this.emit('newListener', name, f);
@@ -416,16 +416,16 @@ const EventEmitter = {
     }
     return this;
   },
-  emit: function (name, ...a) {
+  emit (name, ...a) {
     this.listeners(name).forEach(f => f.apply(this, a));
     return this;
   },
-  emitAndSave: function (name, ...a) {
+  emitAndSave (name, ...a) {
     assertEvents(this, name).push(a);
     this.listeners(name).forEach(f => f.apply(this, a));
     return this;
   },
-  listeners: function (name) {
+  listeners (name) {
     const listeners = this._listeners;
     let a = (listeners && listeners[name]) || [];
     a.length && nice.prototypes(this).forEach(({_listeners:ls}) => {
@@ -434,21 +434,21 @@ const EventEmitter = {
     });
     return a;
   },
-  listenerCount: function (name){
+  listenerCount (name){
     return this._listeners
       ? this._listeners[name]
         ? this._listeners[name].length
         : 0
       : 0;
   },
-  off: function (name, f) {
+  off (name, f) {
     if(this.hasOwnProperty('_listeners') && this._listeners[name]){
       nice._removeArrayValue(this._listeners[name], f);
       this.emit('removeListener', name, f);
     }
     return this;
   },
-  removeAllListeners: function (name) {
+  removeAllListeners (name) {
     if(this.hasOwnProperty('_listeners')){
       const a = this._listeners[name];
       this._listeners[name] = [];
@@ -516,7 +516,7 @@ nice.jsBasicTypes = {
 };
 })();
 (function(){"use strict";const configProto = {
-  next: function (o) {
+  next (o) {
     let c = Configurator(this.name || o.name);
     c.signature = (this.signature || []).concat(o.signature || []);
     c.existing = o.existing || this.existing;
@@ -525,7 +525,7 @@ nice.jsBasicTypes = {
     c.description = o.description || this.description;
     return c;
   },
-  about: function(s) { return this.next({ description: s}); }
+  about (s) { return this.next({ description: s}); }
 };
 const skippedProto = {};
 const functionProto = {
@@ -788,7 +788,7 @@ reflect.on('Type', type => {
 nice.registerType({
   name: 'Anything',
   description: 'Parent type for all types.',
-  extend: function (...a){
+  extend (...a){
     return nice.Type(...a).extends(this);
   },
   itemArgs0: z => z._value,
@@ -797,31 +797,31 @@ nice.registerType({
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
   initChildren: () => 0,
-  fromValue: function(_value){
+  fromValue (_value){
     return Object.assign(this(), { _value });
   },
   _isNiceType: true,
   proto: {
     _isAnything: true,
-    valueOf: function() {
+    valueOf () {
       return this.hasOwnProperty('_value') ? this._value : undefined;
     },
-    super: function (...as){
+    super (...as){
       this._type.super.initBy(this, ...as);
       return this;
     },
-    apply: function(f){
+    apply(f){
       f(this);
       return this;
     },
-    Switch: function (...vs) {
+    Switch (...vs) {
       const s = Switch(this, ...vs);
       return defGet(s, 'up', () => {
         s();
         return this;
       });
     },
-    SwitchArg: function (...vs) {
+    SwitchArg (...vs) {
       const s = Switch(this, ...vs);
       s.checkArgs = vs;
       return defGet(s, 'up', () => {
@@ -829,7 +829,7 @@ nice.registerType({
         return this;
       });
     },
-    _setValue: function (v){
+    _setValue (v){
       if(v === this._value)
         return;
       this.transaction(() => {
@@ -920,14 +920,14 @@ reflect.on('Type', function defineReducer(type) {
     v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 const switchProto = create(nice.checkers, {
-  valueOf: function () { return this.res; },
-  check: function (f) {
+  valueOf () { return this.res; },
+  check (f) {
     this._check = f;
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
   },
-  equal: function (v) {
+  equal (v) {
     this._check = (...a) => nice.isEqual(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
@@ -947,13 +947,13 @@ reflect.on('function', f => {
   }
 });
 const delayedProto = create(nice.checkers, {
-  check: function (f) {
+  check (f) {
     this._check = f;
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
   },
-  equal: function (f) {
+  equal (f) {
     this._check = (...a) => nice.isEqual(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
@@ -1073,7 +1073,7 @@ function DealyedSwitch(...a) {
 };
 })();
 (function(){"use strict";def(nice, 'expectPrototype', {
-  toBe: function(value){
+  toBe (value){
     if(!value) {
       if(!this.value)
         throw this.message || 'Value expected';
@@ -1082,7 +1082,7 @@ function DealyedSwitch(...a) {
         throw this.message || value + ' expected';
     }
   },
-  notToBe: function(value){
+  notToBe (value){
     if(!value) {
       if(this.value)
         throw this.message || 'No value expected';
@@ -1091,7 +1091,7 @@ function DealyedSwitch(...a) {
         throw this.message || value + ' not expected';
     }
   },
-  toMatch: function(f){
+  toMatch (f){
     if(!f(this.value))
       throw this.message || ('Value does not match function ' + f);
   }
@@ -1156,7 +1156,6 @@ def(nice, 'observableProto', {
     return this;
   },
   _isHot (){
-    
     return this._hotChildCount ||
       (this._subscribers && this._subscribers.size);
   },
@@ -1199,8 +1198,8 @@ function notify(z){
   if(needNotification && z._subscribers){
     z._notifing = true;
     z._subscribers.forEach(s => {
-        z._isResolved()
-            && s(z._notificationValue ? z._notificationValue() : z, oldValue);
+      z._isResolved()
+          && s(z._notificationValue ? z._notificationValue() : z, oldValue);
     });
     z._notifing = false;
   }
@@ -1369,10 +1368,10 @@ Func.Anything('xor', (...as) => {
   isSubType,
   creator: () => { throw 'Use Single or Object.' },
   proto: create(nice.Anything.proto, {
-    valueOf: function (){ return this._value; }
+    valueOf (){ return this._value; }
   }),
   configProto: {
-    by: function(...a){
+    by(...a){
       if(typeof a[0] === 'function')
         this.target.initBy = a[0];
       else if(typeof a[0] === 'string')
@@ -1381,15 +1380,15 @@ Func.Anything('xor', (...as) => {
         }
       return this;
     },
-    assign: function (...o) {
+    assign (...o) {
       Object.assign(this.target.proto, ...o);
       return this;
     },
-    addProperty: function (name, cfg){
+    addProperty (name, cfg){
       Object.defineProperty(this.target.proto, name, cfg);
       return this;
     },
-    Const: function(name, value){
+    Const (name, value){
       def(this.target, name, value);
       def(this.target.proto, name, value);
       return this;
@@ -1515,7 +1514,7 @@ nice.jsTypes.isSubType = isSubType;
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .addProperty('reduceTo', { get: function () {
+  .addProperty('reduceTo', { get () {
     const c = this;
     const f = (item, f, init) => {
       init && init(item);
@@ -1525,14 +1524,12 @@ nice.jsTypes.isSubType = isSubType;
     f.collection = c;
     return create(nice.collectionReducers, f);
   }})
-  .addProperty('size', { get: function () {
+  .addProperty('size', { get () {
     return Object.keys(this._items).reduce(n => n + 1, 0);
   }})
   .Action(function itemsType(z, t){
     z._itemsType = t;
   });
-Object.assign(nice.Obj.proto, {
-});
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 Func.Nothing('each', () => 0);
 C('has', (o, k) => o._items.hasOwnProperty(k));
@@ -1691,14 +1688,14 @@ nice.Type({
     });
     return res;
   },
-  async: function (f){
+  async (f){
     const b = Box();
     b._asyncBy = f;
     b._value = NEED_COMPUTING;
     return b;
   },
   proto: {
-    follow: function (s){
+    follow (s){
       if(s.__proto__ === Promise.prototype) {
         this.doCompute = () => {
           this.transactionStart();
@@ -1717,15 +1714,15 @@ nice.Type({
       this._isHot() && this.compute();
       return this;
     },
-    interval: function (f, t = 200) {
+    interval (f, t = 200) {
       setInterval(() => this.setState(f(this._value)), t);
       return this;
     },
-    timeout: function (f, t = 200) {
+    timeout (f, t = 200) {
       setTimeout(() => f(this), t);
       return this;
     },
-    doCompute: function (){
+    doCompute (){
       this.transactionStart();
       this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
       this._value = PENDING;
@@ -1767,11 +1764,11 @@ nice.Type({
       }
       return this._value;
     },
-    compute: function() {
+    compute () {
       return !nice.isNeedComputing(this._value) || this._transactionDepth
         ? this._value : this.doCompute();
     },
-    _simpleSetState: function(v){
+    _simpleSetState (v){
       if(v === undefined)
         throw `Can't set result of the box to undefined.`;
       if(v === this)
@@ -1780,7 +1777,7 @@ nice.Type({
         v = v._up_;
       this._value = v;
     },
-    setState: function(v){
+    setState (v){
       if(v === undefined)
         throw `Can't set result of the box to undefined.`;
       if(v === this)
@@ -1795,29 +1792,29 @@ nice.Type({
       }
       return this._value;
     },
-    _notificationValue(){
+    _notificationValue () {
       let res = this._value;
       return res && res._notificationValue ? res._notificationValue() : res;
     },
-    _isHot: function (){
+    _isHot (){
       return this._transactionDepth
         || (this._subscribers && this._subscribers.size);
     },
     _isResolved (){
       return !nice.isPending(this._value) && !nice.isNeedComputing(this._value);
     },
-    lock: function(){
+    lock (){
       this._locked = true;
       return this;
     },
-    unlock: function(){
+    unlock (){
       this._locked = false;
       return this;
     },
-    error: function(e) {
+    error (e) {
       return this.setState(is.Err(e) ? e : nice.Err(e));
     },
-    getPromise: function () {
+    getPromise () {
       return new Promise((resolve, reject) => {
         this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
       });
@@ -1863,8 +1860,8 @@ def(nice, 'resolveChildren', (v, f) => {
   },
   creator: () => ({}),
   proto: {
-    valueOf: function() { return new Err(this.message); },
-    toString: function() { return `Error: ${this.message}`; }
+    valueOf () { return new Err(this.message); },
+    toString () { return `Error: ${this.message}`; }
   }
 }).about('Represents error.');
 })();

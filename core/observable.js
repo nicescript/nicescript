@@ -31,9 +31,6 @@ def(nice, 'observableProto', {
     if(this._locked)
       throw nice.LOCKED_ERROR;
     if(!this._transactionDepth){
-//        this.initState = this._result;
-//        this._result = nice.cloneDeep(this.initState);
-//        this._diff = null;
       this._transactionDepth = 0;
     }
     this._transactionDepth++;
@@ -46,14 +43,6 @@ def(nice, 'observableProto', {
 
     this._transactionDepth = 0;
 
-//      const diff = this._getDiff();
-//      diff && this._notify(diff);
-
-//      this.initState = null;
-//      is.Box(this._result) || Object.freeze(this._result);
-//      (this._result && this._result._notify) || Object.freeze(this._result);
-//      delete this._diff;
-//      delete this._oldValue;
     this._oldValue === this._value || notify(this);
     delete this._newValue;
   },
@@ -62,15 +51,11 @@ def(nice, 'observableProto', {
     this._transactionDepth && (this._result = this.initState);
     this._transactionDepth = 0;
     this.initState = null;
-//      delete this._diff;
     delete this._newValue;
     return this;
   },
 
   _isHot (){
-    //TODO: why _transactionDepth here??
-//      return this._transactionDepth
-//        || (this._subscribers && this._subscribers.length);
     return this._hotChildCount ||
       (this._subscribers && this._subscribers.size);
   },
@@ -82,14 +67,6 @@ def(nice, 'observableProto', {
     return this;
   },
 
-
-//    change: function (f){
-//      this.transactionStart();
-//      let res = f(this._result);
-//      res === undefined || (this._result = res);
-//      this.transactionEnd();
-//      return this;
-//    },
   listenOnce (f, target) {
     this._isResolved() || this.compute();
 
@@ -110,7 +87,6 @@ def(nice, 'observableProto', {
 
   unsubscribe (target){
     this._subscribers.delete(target);
-//    nice._removeArrayValue(this._subscribers, target);
     if(!this._subscribers.size){
       this._subscriptions &&
         this._subscriptions.forEach(_s => _s.unsubscribe(this));
@@ -133,12 +109,8 @@ function notify(z){
   if(needNotification && z._subscribers){
     z._notifing = true;
     z._subscribers.forEach(s => {
-//      if(s.doCompute){
-//        s._notifing || s.doCompute();
-//      } else {
-        z._isResolved()
-            && s(z._notificationValue ? z._notificationValue() : z, oldValue);
-//      }
+      z._isResolved()
+          && s(z._notificationValue ? z._notificationValue() : z, oldValue);
     });
     z._notifing = false;
   }

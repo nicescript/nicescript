@@ -10,12 +10,12 @@ nice.Type({
   creator: () => { throw 'Use Single or Object.' },
 
   proto: create(nice.Anything.proto, {
-    valueOf: function (){ return this._value; }
+    valueOf (){ return this._value; }
   }),
 
   configProto: {
 
-    by: function(...a){
+    by(...a){
       if(typeof a[0] === 'function')
         this.target.initBy = a[0];
       else if(typeof a[0] === 'string')
@@ -25,17 +25,17 @@ nice.Type({
       return this;
     },
 
-    assign: function (...o) {
+    assign (...o) {
       Object.assign(this.target.proto, ...o);
       return this;
     },
 
-    addProperty: function (name, cfg){
+    addProperty (name, cfg){
       Object.defineProperty(this.target.proto, name, cfg);
       return this;
     },
 
-    Const: function(name, value){
+    Const (name, value){
       def(this.target, name, value);
       def(this.target.proto, name, value);
       return this;

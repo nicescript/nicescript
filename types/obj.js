@@ -129,7 +129,7 @@ nice.Type({
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .addProperty('reduceTo', { get: function () {
+  .addProperty('reduceTo', { get () {
     const c = this;
 
     const f = (item, f, init) => {
@@ -142,57 +142,12 @@ nice.Type({
 
     return create(nice.collectionReducers, f);
   }})
-  .addProperty('size', { get: function () {
+  .addProperty('size', { get () {
     return Object.keys(this._items).reduce(n => n + 1, 0);
   }})
   .Action(function itemsType(z, t){
     z._itemsType = t;
   });
-
-
-Object.assign(nice.Obj.proto, {
-//  setByType: function (key, type, value){
-//    this._items[key] = value || type.defaultValue();
-//  },
-
-//  boxify: function () {
-//    const boxProto = Box.proto;
-//    Object.assign(this, {
-//      _subscribers: [],
-//      getItem: function () {
-//
-//      },
-//      _notify: function (){
-//        if(this._subscribers){
-//          this._notifing = true;
-//          this._subscribers.forEach(s => {
-//            if(s.doCompute){
-//              s._notifing || s.doCompute();
-//            } else {
-//              s(this);
-//            }
-//          });
-//          this._notifing = false;
-//        }
-//        this._paret && this._parent._notify && this._parent._notify();
-//      },
-//      listen: function listen(f) {
-//        const ss = this._subscribers;
-//
-//        if(!ss.includes(f)){
-//          ss.push(f);
-//          f(this);
-//        }
-//
-//        return this;
-//      },
-//      transactionStart: boxProto.transactionStart,
-//      transactionEnd: boxProto.transactionEnd,
-//      transaction: boxProto.transaction
-//    });
-//    return this;
-//  }
-});
 
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 

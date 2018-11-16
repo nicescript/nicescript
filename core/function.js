@@ -1,5 +1,5 @@
 const configProto = {
-  next: function (o) {
+  next (o) {
     let c = Configurator(this.name || o.name);
 
     c.signature = (this.signature || []).concat(o.signature || []);
@@ -11,7 +11,7 @@ const configProto = {
     return c;
   },
 
-  about: function(s) { return this.next({ description: s}); }
+  about (s) { return this.next({ description: s}); }
 };
 
 const skippedProto = {};

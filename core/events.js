@@ -15,7 +15,7 @@ function assertEvents(o, name){
 }
 
 const EventEmitter = {
-  on: function (name, f) {
+  on (name, f) {
     const a = assertListeners(this, name);
     if(!a.includes(f)){
       this.emit('newListener', name, f);
@@ -26,7 +26,7 @@ const EventEmitter = {
     return this;
   },
 
-  onNew: function (name, f) {
+  onNew (name, f) {
     const a = assertListeners(this, name);
     if(!a.includes(f)){
       this.emit('newListener', name, f);
@@ -35,18 +35,18 @@ const EventEmitter = {
     return this;
   },
 
-  emit: function (name, ...a) {
+  emit (name, ...a) {
     this.listeners(name).forEach(f => f.apply(this, a));
     return this;
   },
 
-  emitAndSave: function (name, ...a) {
+  emitAndSave (name, ...a) {
     assertEvents(this, name).push(a);
     this.listeners(name).forEach(f => f.apply(this, a));
     return this;
   },
 
-  listeners: function (name) {
+  listeners (name) {
     const listeners = this._listeners;
     let a = (listeners && listeners[name]) || [];
 
@@ -58,7 +58,7 @@ const EventEmitter = {
     return a;
   },
 
-  listenerCount: function (name){
+  listenerCount (name){
     return this._listeners
       ? this._listeners[name]
         ? this._listeners[name].length
@@ -66,7 +66,7 @@ const EventEmitter = {
       : 0;
   },
 
-  off: function (name, f) {
+  off (name, f) {
     if(this.hasOwnProperty('_listeners') && this._listeners[name]){
       nice._removeArrayValue(this._listeners[name], f);
       this.emit('removeListener', name, f);
@@ -74,7 +74,7 @@ const EventEmitter = {
     return this;
   },
 
-  removeAllListeners: function (name) {
+  removeAllListeners (name) {
     if(this.hasOwnProperty('_listeners')){
       const a = this._listeners[name];
       this._listeners[name] = [];

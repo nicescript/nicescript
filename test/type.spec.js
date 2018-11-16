@@ -45,13 +45,13 @@ describe("Type", function() {
   it("super property", function() {
     const A = nice.Type({
       proto: {
-        'qwe': function(){ return this._value + 3 }
+        qwe(){ return this._value + 3 }
       }
     }).extends(nice.Value)();
 
     const B = nice.Type({
       proto: {
-        'qwe': function(){ return this._value + 5 }
+        qwe(){ return this._value + 5 }
       }
     }).extends(A)();
 
@@ -65,13 +65,13 @@ describe("Type", function() {
   it("super constructor", function() {
     const A = nice.Type({
       proto: {
-        'qwe': function(){ return this._value + 3 }
+        qwe (){ return this._value + 3 }
       }
     }).by((z, a) => z.a = a).extends(nice.Value)();
 
     const B = nice.Type({
       proto: {
-        'qwe': function(){ return this._value + 5 }
+         qwe (){ return this._value + 5 }
       }
     }).by(z => z.super('B')).extends(A)();
 

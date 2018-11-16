@@ -91,14 +91,14 @@ reflect.on('Type', function defineReducer(type) {
 
 
 const switchProto = create(nice.checkers, {
-  valueOf: function () { return this.res; },
-  check: function (f) {
+  valueOf () { return this.res; },
+  check (f) {
     this._check = f;
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
   },
-  equal: function (v) {
+  equal (v) {
     this._check = (...a) => nice.isEqual(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
@@ -124,13 +124,13 @@ reflect.on('function', f => {
 
 
 const delayedProto = create(nice.checkers, {
-  check: function (f) {
+  check (f) {
     this._check = f;
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
   },
-  equal: function (f) {
+  equal (f) {
     this._check = (...a) => nice.isEqual(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);

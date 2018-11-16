@@ -1,5 +1,5 @@
 def(nice, 'expectPrototype', {
-  toBe: function(value){
+  toBe (value){
     if(!value) {
       if(!this.value)
         throw this.message || 'Value expected';
@@ -9,7 +9,7 @@ def(nice, 'expectPrototype', {
     }
   },
 
-  notToBe: function(value){
+  notToBe (value){
     if(!value) {
       if(this.value)
         throw this.message || 'No value expected';
@@ -19,7 +19,7 @@ def(nice, 'expectPrototype', {
     }
   },
 
-  toMatch: function(f){
+  toMatch (f){
     if(!f(this.value))
       throw this.message || ('Value does not match function ' + f);
   }

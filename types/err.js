@@ -13,7 +13,7 @@ nice.Type({
   creator: () => ({}),
 
   proto: {
-    valueOf: function() { return new Err(this.message); },
-    toString: function() { return `Error: ${this.message}`; }
+    valueOf () { return new Err(this.message); },
+    toString () { return `Error: ${this.message}`; }
   }
 }).about('Represents error.');

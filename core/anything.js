@@ -28,7 +28,7 @@ nice.registerType({
 
   description: 'Parent type for all types.',
 
-  extend: function (...a){
+  extend (...a){
     return nice.Type(...a).extends(this);
   },
 
@@ -40,7 +40,7 @@ nice.registerType({
 
   initChildren: () => 0,
 
-  fromValue: function(_value){
+  fromValue (_value){
     return Object.assign(this(), { _value });
   },
 
@@ -49,21 +49,21 @@ nice.registerType({
   proto: {
     _isAnything: true,
 
-    valueOf: function() {
+    valueOf () {
       return this.hasOwnProperty('_value') ? this._value : undefined;
     },
 
-    super: function (...as){
+    super (...as){
       this._type.super.initBy(this, ...as);
       return this;
     },
 
-    apply: function(f){
+    apply(f){
       f(this);
       return this;
     },
 
-    Switch: function (...vs) {
+    Switch (...vs) {
       const s = Switch(this, ...vs);
       return defGet(s, 'up', () => {
         s();
@@ -71,7 +71,7 @@ nice.registerType({
       });
     },
 
-    SwitchArg: function (...vs) {
+    SwitchArg (...vs) {
       const s = Switch(this, ...vs);
       s.checkArgs = vs;
       return defGet(s, 'up', () => {
@@ -80,7 +80,7 @@ nice.registerType({
       });
     },
 
-    _setValue: function (v){
+    _setValue (v){
       if(v === this._value)
         return;
       this.transaction(() => {
