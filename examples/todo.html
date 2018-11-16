@@ -12,7 +12,7 @@ const Task = Type('Task').str('text').bool('status')
   .by((z,s) => s && z.text(s))();
 
 const tasks = Switch(localStorage.getItem(KEY))
-  .null.use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
+  .isNull.use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
   .default.use(s => nice.fromJson(JSON.parse(s)));
 
 tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.jsValue)));
@@ -29,7 +29,7 @@ const search = Input("search").placeholder('Type to search or add tasks')
   .focus();
 
 const deleteButton = (state, k) => Box.by(state, Switch
-  .true(A(() => tasks.removeAt(k), 'x')
+  .isTrue(A(() => tasks.removeAt(k), 'x')
       .textDecoration('none').color('#E33').marginLeft('.5em')));
 
 const TaskView = (task, k) => {

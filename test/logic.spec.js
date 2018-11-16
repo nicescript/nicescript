@@ -1,12 +1,11 @@
 const nice = require('../index.js')();
 const chai = require('chai');
 const expect = chai.expect;
-const { is } = nice;
 
 describe("utils", function() {
   it("or", () => {
-    expect(is.NotFound(nice.NotFound().or(1))).to.equal(false);
-    expect(is.Num(nice.NotFound().or(1))).to.equal(true);
+    expect(nice.isNotFound(nice.NotFound().or(1))).to.equal(false);
+    expect(nice.isNum(nice.NotFound().or(1))).to.equal(true);
     expect(nice(1).or(2)()).to.equal(1);
     expect(nice.or(nice.NotFound(), null, 2)()).to.equal(2);
   });
@@ -23,9 +22,9 @@ describe("utils", function() {
 
 
   it("and", () => {
-    expect(is.NotFound(nice.NotFound().and(1))).to.equal(true);
+    expect(nice.isNotFound(nice.NotFound().and(1))).to.equal(true);
     expect(nice(1).and(2)()).to.equal(2);
-    expect(is.Undefined(nice.and(nice.Undefined(), null, 2))).to.equal(true);
+    expect(nice.isUndefined(nice.and(nice.Undefined(), null, 2))).to.equal(true);
   });
 });
 

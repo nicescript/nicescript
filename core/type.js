@@ -13,20 +13,20 @@ def(nice, function extend(child, parent){
 
 defAll(nice, {
   type: t => {
-    is.String(t) && (t = nice[t]);
+    nice.isString(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
       '' + t + ' is not a type').toBe();
     return t;
   },
 
   Type: (config = {}) => {
-    if(is.String(config)){
+    if(nice.isString(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
       config = {name: config};
     }
 
-    is.Object(config)
+    nice.isObject(config)
       || nice.error("Need object for type's prototype");
 
     config.name = config.name || 'Type_' + (nice._counter++);
@@ -56,7 +56,7 @@ defAll(nice, {
   },
 });
 
-nice.Check('Type', v => nice.Anything.isPrototypeOf(v));
+nice.Check('isType', v => nice.Anything.isPrototypeOf(v));
 
 
 nice.typeOf = v => {

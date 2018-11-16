@@ -21,7 +21,7 @@ _each({
   endsWith: (s, p, l) => s.endsWith(p, l),
   startsWith: (s, p, i) => s.startsWith(p, i),
   includes: (s, p, i) => s.includes(p, i),
-  match: (s, r) => r && r.test && r.test(s),
+  test: (s, r) => r.test(s),
 }, (f, name) => Check.String(name, f));
 
 
@@ -67,10 +67,11 @@ substr
 substring
 slice
 split
-match
 search
 replace
+match
 localeCompare`.split('\n').forEach(k => M(k, (s, ...a) => s[k](...a)));
+  
 
 nice.Mapping.Number(String.fromCharCode);
 nice.Mapping.Number(String.fromCodePoint);

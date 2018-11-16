@@ -1,50 +1,54 @@
-const isProto = def(nice, 'isProto', {}), { Check } = nice;
-reflect.on('Check', f =>
-  isProto[f.name] = function(...a) {
-    try {
-      return f(this.value, ...a);
-    } catch (e) {
-      return false;
-    }
-  });
+//const isProto = def(nice, 'isProto', {}), { Check } = nice;
+//reflect.on('Check', f =>
+//  isProto[f.name] = function(...a) {
+//    try {
+//      return f(this.value, ...a);
+//    } catch (e) {
+//      return false;
+//    }
+//  });
 
 
-is = def(nice, 'is', value => create(isProto, { value }));
-reflect.on('Check', f => {
-  is[f.name] = (...a) => {
-    try {
-      return f(...a);
-    } catch (e) {
-      return false;
-    }
-  };
-});
+//is = def(nice, 'is', value => create(isProto, { value }));
+//reflect.on('Check', f => {
+//  is[f.name] = (...a) => {
+//    try {
+//      return f(...a);
+//    } catch (e) {
+//      return false;
+//    }
+//  };
+//});
 
-['Check', 'Action', 'Mapping'].forEach(t => Check(t, v => v.functionType === t));
+['Check', 'Action', 'Mapping'].forEach(t => Check('is' + t, v => v.functionType === t));
 
-Check.about('Checks if two values are equal.')
-  ('equal', nice.isEqual);
+//Check.about('Checks if two values are equal.')
+//  ('equal', nice.isEqual);
 
 const basicChecks = {
-  true: v => v === true,
-  false: v => v === false,
-  any: (v, ...vs) => vs.includes(v),
-  Array: a => Array.isArray(a),
-  "NaN": n => Number.isNaN(n),
-  Object: i => i !== null && typeof i === 'object' && !i._isSingleton,
-  null: i => i === null,
-  undefined: i => i === undefined,
-  nice: v => nice.Anything.proto.isPrototypeOf(v),
-  primitive: i => {
-    const type = typeof i;
-    return i === null || (type !== "object" && type !== "function");
+  isEqual (a, b) {
+    if(a === b)
+      return true;
+
+    if(a && a._isAnything && '_value' in a)
+      a = a._value;
+
+    if(b && b._isAnything  && '_value' in b)
+      b = b._value;
+
+    return a === b;
   },
-  truly: v => v._isAnything
-    ? is.Nothing(v) ? false : !!v()
-    : !!v,
-  falsy: v => !is.truly(v),
-  empty: v => {
-    if(is.Nothing(v) || v === null)
+  isTrue: v => v === true,
+  isFalse: v => v === false,
+  isAnyOf: (v, ...vs) => vs.includes(v),
+  isTruly: v => v
+    ? v._isAnything
+      ? v.isNothing() ? false : !!v()
+      : true
+    : false,
+  isFalsy: v => !nice.isTruly(v),
+  isEmpty: v => {
+    if(nice.isNothing(v) || v === null)
       return true;
 
     if(v === 0 || v === '' || v === false)
@@ -58,12 +62,13 @@ const basicChecks = {
 
     return !v;
   },
-  subType: (a, b) => {
-    is.String(a) && (a = nice.Type(a));
-    is.String(b) && (b = nice.Type(b));
+  isSubType: (a, b) => {
+    nice.isString(a) && (a = nice.Type(a));
+    nice.isString(b) && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
-  browser: () => nice.isEnvBrowser
+
+  isEnvBrowser: () => typeof window !== 'undefined'
 };
 
 for(let i in basicChecks)
@@ -73,14 +78,14 @@ for(let i in basicChecks)
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   const low = i.toLowerCase();
-  nice.is[i] || Check(i, basicJS.includes(low)
+  Check('is' + i, basicJS.includes(low)
     ? v => typeof v === low
     : v => v && v.constructor ? v.constructor.name === i : false);
 };
 
 
 reflect.on('Type', function defineReducer(type) {
-  type.name && Check(type.name, v =>
+  type.name && Check('is' + type.name, v =>
     v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 
@@ -94,7 +99,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal: function (v) {
-    this._check = (...a) => is.equal(v, a[0]);
+    this._check = (...a) => nice.isEqual(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -126,7 +131,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal: function (f) {
-    this._check = (...a) => is.equal(a[0], f);
+    this._check = (...a) => nice.isEqual(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;

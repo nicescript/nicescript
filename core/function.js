@@ -92,8 +92,7 @@ function Configurator(name){
     return z.returnValue || res;
   });
 
-  nice.eraseProperty(z, 'name');
-  def(z, 'name', name || '');
+  nice.rewriteProperty(z, 'name', name || '');
 
   return z;
 }
@@ -107,14 +106,11 @@ function configurator(...a){
 
 //optimization: create function that don't check fist argument for type.proto
 function createFunction({ existing, name, body, source, signature, type, description }){
-  const target = type === 'Check' ? nice.checkFunctions : nice;
-
-  if(type !== 'Check' && name && typeof name === 'string'
-          && name[0] !== name[0].toLowerCase())
+  if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
 
-  existing = existing || (name && target[name]);
+  existing = existing || (name && nice[name]);
   const f = existing || createFunctionBody(type);
 
   if(existing && existing.functionType !== type)
@@ -125,29 +121,29 @@ function createFunction({ existing, name, body, source, signature, type, descrip
   f.maxLength >= signature.length || (f.maxLength = signature.length);
   if(name){
     if(!existing){
-      if(f.name !== name){
-        nice.eraseProperty(f, 'name');
-        def(f, 'name', name);
-      }
-      existing || def(target, name, f);
-    }
-    let firstType = signature[0] && signature[0].type;
-    if(firstType){
-      if(firstType._isJsType)
-        firstType = nice[firstType.niceType];
-      firstType && !firstType.proto.hasOwnProperty(name) && type !== 'Check'
-          && def(firstType.proto, name, function(...a) { return f(this, ...a); });
-    }
-    if(!existing){
+      f.name !== name && nice.rewriteProperty(f, 'name', name);
+      def(nice, name, f);
       reflect.emitAndSave('function', f);
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, source });
+      { name, body, signature, type, description, source, f });
   }
 
   return f;
 };
+
+
+nice.reflect.on('signature', ({ name, signature, f }) => {
+  Anything && !Anything.proto.hasOwnProperty(name) &&
+      def(Anything.proto, name, function(...a) { return f(this, ...a); });
+
+  const type = signature[0] && signature[0].type;
+  if(type && !type._isJsType){
+    type && !type.proto.hasOwnProperty(name)
+        && def(type.proto, name, function(...a) { return f(this, ...a); });
+  }
+});
 
 
 function createFunctionBody(functionType){
@@ -307,7 +303,7 @@ const ro = def(nice, 'ReadOnly', {});
 reflect.on('Type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
-    expect(f).function();
+    expect(f).isFunction();
     defGet(type.proto, name, function() { return f(this); } );
     return this;
   };

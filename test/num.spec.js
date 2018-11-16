@@ -9,7 +9,7 @@ describe("Num", function() {
     expect(nice.Num.isSubType(nice.Single)).to.equal(true);
     const n = nice.Num();
     expect(n._type.name).to.equal('Num');
-    expect(n.is.Num()).to.equal(true);
+    expect(n.isNum()).to.equal(true);
   });
 
 

@@ -100,7 +100,7 @@ defAll(nice, {
       return Number.isNaN(v) ? nice.NumberError : nice.Num;
 
     if(t === 'function')
-      return nice.function;
+      return nice.Function;
 
     if(t === 'string')
       return nice.Str;
@@ -158,7 +158,7 @@ defAll(nice, {
     if(o)
       for(let i in o)
         if(i !== nice.TYPE_KEY)
-          if(is.Stop(f(o[i], i)))
+          if(nice.isStop(f(o[i], i)))
             break;
     return o;
   },
@@ -176,8 +176,6 @@ defAll(nice, {
     }
     return o;
   },
-
-  isEnvBrowser: typeof window !== 'undefined',
 
   unwrap: v => is.nice(v) ? v() : v
 });

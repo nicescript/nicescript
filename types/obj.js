@@ -67,7 +67,7 @@ nice.Type({
         i = z.checkKey(i);
         z.transactionStart();
         let res;
-        if(!is.equal(v, z._items[i])){
+        if(!nice.isEqual(v, z._items[i])){
           z._oldValue = z._oldValue || {};
           z._oldValue[i] = z._items[i];
         }
@@ -125,7 +125,7 @@ nice.Type({
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
     _each(z._items, (v, k) => o[k] = v._isAnything ? v.jsValue : v);
-    Switch(z._type.name).String.use(s =>
+    Switch(z._type.name).isString.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
@@ -196,13 +196,13 @@ Object.assign(nice.Obj.proto, {
 
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
-Func.Nothing.function('each', () => 0);
+Func.Nothing('each', () => 0);
 
 C('has', (o, k) => o._items.hasOwnProperty(k));
 
 F(function each(o, f){
   for(let k in o._items)
-    if(is.Stop(f(o._items[k], k)))
+    if(nice.isStop(f(o._items[k], k)))
       break;
   return o;
 });
@@ -266,7 +266,7 @@ M(function mapToArray(c, f){
 });
 
 
-Mapping.Nothing.function('map', () => nice.Nothing);
+Mapping.Nothing('map', () => nice.Nothing);
 M(function map(c, f){
   const res = c._type();
   for(let i in c())
@@ -303,12 +303,13 @@ M(function sum(c, f){
 });
 
 
-C(function some(c, f){
+C.Function(function some(c, f){
   for(let i in c._items)
     if(f(c._items[i], i))
       return true;
   return false;
 });
+
 
 
 C(function every(c, f){
@@ -345,7 +346,7 @@ M(function findKey(c, f){
 });
 
 
-M.function(function count(o, f) {
+M.Function(function count(o, f) {
   let n = 0;
   o.each((v, k) => f(v, k) && n++);
   return nice.Num(n);
@@ -375,7 +376,7 @@ M.function(function count(o, f) {
 //});
 //
 //
-//M.function('mapAndFilter', (o, f) => nice.with({}, res => {
+//M.Function('mapAndFilter', (o, f) => nice.with({}, res => {
 //  for(let i in o){
 //    let v = f(o[i], i);
 //    v && (res[i] = v);
@@ -406,7 +407,7 @@ reflect.on('Type', type => {
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
 
-      if(!is.subType(res._type, type))
+      if(!nice.isSubType(res._type, type))
         throw `Can't create ${type.name} property. Value is ${res._type.name}`;
 
       return res;

@@ -12,7 +12,7 @@ describe("Obj", function() {
   it("constructor", function() {
     const a = Obj({asd: 3});
     expect(a.get('asd')()).to.equal(3);
-    expect(a.get('qwe').is.NotFound()).to.equal(true);
+    expect(a.get('qwe').isNotFound()).to.equal(true);
   });
 
 
@@ -48,7 +48,7 @@ describe("Obj", function() {
 //    expect(asd).to.equal(a.getDeep(['qwe', 'asd']));
 //    expect(asd).to.equal(a.get('qwe').get('asd'));
 //    expect(asd._parent).to.equal(a.get('qwe'));
-//    expect(asd.is.NotFound()).to.equal(true);
+//    expect(asd.isNotFound()).to.equal(true);
 //  });
 
 
@@ -96,8 +96,8 @@ describe("Obj", function() {
 
     const ball = Cat().name('Ball');
     expect(ball.name()).to.equal('Ball');
-    expect(ball.name.is('Ball')).to.equal(true);
-    expect(ball.name.is('Flat')).to.equal(false);
+    expect(ball.name.isEqual('Ball')).to.equal(true);
+    expect(ball.name.isEqual('Flat')).to.equal(false);
   });
 
 
@@ -242,7 +242,7 @@ describe("Obj", function() {
   it("reduceTo.Type", function() {
     const c = Obj({qwe: 1, ads: 3});
     const a = c.reduceTo.Num((z, v) => z.inc(v));
-    expect(a.is.Num()).to.equal(true);
+    expect(a.isNum()).to.equal(true);
     expect(a()).to.equal(4);
   });
 
@@ -255,8 +255,8 @@ describe("Obj", function() {
 
   it("some", function() {
     const o = Obj({qwe: 1, ads: 3});
-    expect(o.is.some(n => n > 5)).to.equal(false);
-    expect(o.is.some(n => n > 2)).to.equal(true);
+    expect(o.some(n => n > 5)).to.equal(false);
+    expect(o.some(n => n > 2)).to.equal(true);
   });
 
 
@@ -274,8 +274,8 @@ describe("Obj", function() {
 
   it("every", function() {
     const a = Obj({qwe: 1, ads: 3});
-    expect(a.is.every(n => n > 2)).to.equal(false);
-    expect(a.is.every(n => n > 0)).to.equal(true);
+    expect(a.every(n => n > 2)).to.equal(false);
+    expect(a.every(n => n > 0)).to.equal(true);
   });
 
 
@@ -362,8 +362,8 @@ describe("Obj", function() {
 
 //  it("includes", function() {
 //    const a = Obj({qwe: 1, ads: 3});
-//    expect(a.is.includes(7)).to.equal(false);
-//    expect(a.is.includes(1)).to.equal(true);
+//    expect(a.includes(7)).to.equal(false);
+//    expect(a.includes(1)).to.equal(true);
 //  });
 
 });

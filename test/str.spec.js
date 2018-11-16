@@ -74,24 +74,22 @@ describe("Str", function() {
   });
 
   it("endsWith", () => {
-    expect(is.endsWith('qwe!@#', '@#')).to.equal(true);
-    expect(is.endsWith('qwe!@#', '!', 4)).to.equal(true);
+    expect(nice.endsWith('qwe!@#', '@#')).to.equal(true);
+    expect(nice.endsWith('qwe!@#', '!', 4)).to.equal(true);
   });
 
 
   it("startsWith", () => {
-    expect(is.startsWith('qwe!@#', 'qwe!')).to.equal(true);
-    expect(is.startsWith('qwe!@#', '!', 3)).to.equal(true);
+    expect(nice.startsWith('qwe!@#', 'qwe!')).to.equal(true);
+    expect(nice.startsWith('qwe!@#', '!', 3)).to.equal(true);
   });
 
   it("includes", () => {
-    expect(is.includes('qwe!@#', 'qwe!')).to.equal(true);
-    expect(is.includes('qwe!@#', 'qwe', 3)).to.equal(false);
+    expect(nice.includes('qwe!@#', 'qwe!')).to.equal(true);
+    expect(nice.includes('qwe!@#', 'qwe', 3)).to.equal(false);
   });
 
-  it("match", () => {
-    expect(is.match('qwe!@#', /q/)).to.equal(true);
-    expect(is.match('qwe!@#', /a/)).to.equal(false);
+  it("test", () => {
     expect(nice.match('qwe!@#', /q/)()[0]()).to.equal('q');
   });
 

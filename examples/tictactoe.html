@@ -45,7 +45,7 @@ const sellView = (v, i) => Div(v)
   .width('4rem').height('4rem')
   .border('1px #000 solid')
   .margin('-1px')
-  .on('click', () => gameOver() || state.get(i).is.Str() || handleClick(i));
+  .on('click', () => gameOver() || state.get(i).isStr() || handleClick(i));
   
 const historyButton = (s, i) => 
   Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.jsValue); step(i); }));

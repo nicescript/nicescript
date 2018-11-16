@@ -1,3 +1,4 @@
+//TODO: rewrite
 Checks
 ========
 
@@ -7,17 +8,17 @@ Checks are functions that check if some condition is true.
 const { Check, is, Switch, expect } = nice;
  
 // creation using named function
-Check(function red(c) { return c === 'red'; });
+Check(function isRed(c) { return c === 'red'; });
 
 // creation using given name
-Check('green', c => c === 'green');
+Check('isGreen', c => c === 'green');
 
 // using with is
 is.red('red');      //true
 is.green(4);        //false
 
-//nice values has .is. in prototype
-nice(42).is.red();  //false
+// using with nice
+nice(42).isRed();  //false
 
 // using with Switch
 const f = Switch
@@ -57,10 +58,10 @@ Check.Str('big', s => s.is('big')); // use Nice type
 is.big(10);             //false
 is.big(12);             //true
 is.big(nice(12));       //true
-nice(12).is.big();      //true
-nice('big').is.big();   //true
-nice('small').is.big(); //false
-nice.Div().is.big();    //false
+nice(12).isBig();       //true
+nice('big').isBig();    //true
+nice('small').isBig();  //false
+nice.Div().isBig();     //false
 ```
 
 ## Type checks
@@ -70,15 +71,15 @@ There is check for every defined type.
 ```javascript
 const { is, Type } = nice;
 
-is.String('qwe');     //true
-is.Number('qwe');     //false
-is.Html(nice.Div());  //true
+nice.isString('qwe');     //true
+nice.isNumber('qwe');     //false
+nice.isHtml(nice.Div());  //true
 
 Type('Mouse');
 const mouse = nice.Mouse();
 is(mouse).Mouse();    //true
-mouse.is.Mouse();     //true
-mouse.is.String();    //false
+mouse.isMouse();     //true
+mouse.isString();    //false
 
 ```
 

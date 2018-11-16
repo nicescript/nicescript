@@ -145,7 +145,7 @@ d.name();       // Jim
 d.weight();     // 5
 
 // by default created type extends nice.Obj
-d.is.Obj()   // true
+d.isObj()   // true
 
 ```
 Type name should start with capital letter.
@@ -214,9 +214,9 @@ Delayed argumet
 ```javascript
 const f = nice.Switch
   .equal(1)(11)
-  .Number(22)
-  .String.use(s => s + '!')
-  .Nothing(':(')
+  .isNumber(22)
+  .isString.use(s => s + '!')
+  .isNothing(':(')
   .default(42);
 f(1);           // 11
 f(3);           // 22
@@ -228,11 +228,11 @@ f(null);        // :(
 ```
 Instant argument
 ```javascript
-nice.Check('meat', v => ['pork', 'beef'].includes(v));
+nice.Check('isMeat', v => ['pork', 'beef'].includes(v));
 const tiger = { say: console.log };
 function feedTiger(tiger, food){
   tiger.hungry = nice.Switch(food)
-    .meat(false)
+    .isMeat(false)
     .default.use(name => tiger.say('I do not like ' + name) || true);
 }
 
@@ -245,7 +245,7 @@ feedTiger(tiger, 'beef');    // tiger.hungry === false
 Overloaded Function will search for best match while Switch will use first match.
 ```javascript
 nice.Func.Nothing(() => 1).Null(() => 2)(null);         // 2
-nice.Switch.Nothing.use(() => 1).Null.use(() => 2)(null);   // 1
+nice.Switch.isNothing.use(() => 1).isNull.use(() => 2)(null);   // 1
 ```
 Besides current implementation of Switch use only first argument.
 
@@ -316,7 +316,7 @@ const { Box, Div, Switch, Nothing } = nice;
 const data = Box(Nothing);
 
 const div = Box.by(data, Switch
-      .String.use(s => Div('Data: ', s))
+      .isString.use(s => Div('Data: ', s))
       .default(Div('Loading...')));
 
 div.listen(d => console.log(d.html));

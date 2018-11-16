@@ -9,8 +9,8 @@ describe("Box", function() {
   it("simple", function(){
     let s = Box();
 
-    expect(is.Box(s)).to.equal(true);
-    expect(s().is.Pending()).to.equal(true);
+    expect(nice.isBox(s)).to.equal(true);
+    expect(s().isPending()).to.equal(true);
 
     expect(s(15)).to.equal(s);
     expect(s()).to.equal(15);
@@ -20,7 +20,7 @@ describe("Box", function() {
   it("default value", function(){
     let s = Box(13);
 
-    expect(is.Box(s)).to.equal(true);
+    expect(nice.isBox(s)).to.equal(true);
     expect(s()).to.equal(13);
     expect(s(15)).to.equal(s);
     expect(s()).to.equal(15);
@@ -63,7 +63,7 @@ describe("Box", function() {
     a.listen((v, old) => res = old);
     expect(res).to.equal(undefined);
     a(6);
-    expect(res.is.Pending()).to.equal(true);
+    expect(res.isPending()).to.equal(true);
 
     a(7);
     expect(res).to.equal(6);

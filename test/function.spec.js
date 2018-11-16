@@ -9,8 +9,8 @@ describe("Func", function() {
 
   it("type", () => {
     const f = nice.Func(() => 2);
-    expect(nice.is(f).Something()).to.equal(true);
-    expect(nice.is(f).Value()).to.equal(false);
+    expect(nice.isSomething(f)).to.equal(true);
+    expect(nice.isValue(f)).to.equal(false);
   });
 
   it("simple", () => {

@@ -4,7 +4,7 @@ nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
 const jsHierarchy = {
   js: 'primitive,Object',
   primitive: 'String,Boolean,Number,undefined,null,Symbol',
-  Object: 'function,Date,RegExp,Array,Error,ArrayBuffer,DataView,Map,WeakMap,Set,WeakSet,Promise',
+  Object: 'Function,Date,RegExp,Array,Error,ArrayBuffer,DataView,Map,WeakMap,Set,WeakSet,Promise',
   Error: 'EvalError,RangeError,ReferenceError,SyntaxError,TSypeError,UriError'
 };
 
@@ -34,8 +34,8 @@ nice.typesToJsTypesMap = {
   Obj: 'Object',
   Arr: 'Array',
   Bool: 'Boolean',
-  Single: 'primitive'
-//  Func: 'Function', TODO: ??
+  Single: 'primitive',
+  Func: 'Function',
 //  'undefined': 'Undefined',
 //  'null': 'Null'
 }
@@ -57,5 +57,5 @@ nice.jsBasicTypes = {
   number: nice.jsTypes.Number,
   boolean: nice.jsTypes.Boolean,
   string: nice.jsTypes.String,
-  function: nice.jsTypes.function
+  function: nice.jsTypes.Function
 };

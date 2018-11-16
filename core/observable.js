@@ -15,7 +15,7 @@ def(nice, 'observableProto', {
         this.compute();
       } else {
         const val = this._notificationValue ? this._notificationValue() : this;
-        is(val).Pending() || f(val);
+        nice.isPending(val) || f(val);
       }
     }
 

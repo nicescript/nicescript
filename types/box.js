@@ -93,7 +93,7 @@ nice.Type({
 
       if(ss.some(s => !s._isResolved())){
         _value = PENDING;
-      } else if(_results.find(is.Err)){
+      } else if(_results.find(nice.isErr)){
         _value = nice.Err(`Dependency error`);
       }
 
@@ -123,7 +123,7 @@ nice.Type({
     },
 
     compute: function() {
-      return !is(this._value).NeedComputing() || this._transactionDepth
+      return !nice.isNeedComputing(this._value) || this._transactionDepth
         ? this._value : this.doCompute();
     },
 
@@ -178,7 +178,7 @@ nice.Type({
       while(v && v._up_)
         v = v._up_;
 
-//      if(nice.is.Box(v))
+//      if(nice.isBox(v))
 //        return this.follow(v)();
 
       if(this._value !== v) {
@@ -202,7 +202,7 @@ nice.Type({
     },
 
     _isResolved (){
-      return !is(this._value).Pending() && !is(this._value).NeedComputing();
+      return !nice.isPending(this._value) && !nice.isNeedComputing(this._value);
     },
 
     lock: function(){
@@ -245,10 +245,10 @@ def(nice, 'resolveChildren', (v, f) => {
   if(!v)
     return f(v);
 
-  if(is.Box(v))
+  if(nice.isBox(v))
     return v.listenOnce(_v => nice.resolveChildren(_v, f));
 
-  if(is.Obj(v)){
+  if(nice.isObj(v)){
     let count = v.size;
     const next = () => {
       count--;

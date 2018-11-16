@@ -7,7 +7,7 @@ const { is } = nice;
 describe("Bool", function() {
 
   it("type", function(){
-    expect(is.subType(nice.Bool, nice.Single)).to.equal(true);
+    expect(nice.isSubType(nice.Bool, nice.Single)).to.equal(true);
     const n = nice.Bool();
     expect(n._type.name).to.equal('Bool');
   });

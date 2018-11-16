@@ -92,12 +92,12 @@ nice.Obj.extend({
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 
-M.function('reduce', (a, f, res) => {
+M.Function('reduce', (a, f, res) => {
   each(a, (v, k) => res = f(res, v, k));
   return res;
 });
 
-M.function('reduceRight', (a, f, res) => {
+M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
@@ -114,11 +114,11 @@ M.function('reduceRight', (a, f, res) => {
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
 //
-////F.function('each', (a, f) => a.forEach(f));
-//f.function('each', (a, f) => {
+////F.Function('each', (a, f) => a.forEach(f));
+//f.Function('each', (a, f) => {
 //  const l = a.length;
 //  for (let i = 0; i < l; i++)
-//    if(is.Stop(f(a[i], i)))
+//    if(nice.isStop(f(a[i], i)))
 //      break;
 //  return a;
 //});
@@ -132,7 +132,7 @@ M.function('reduceRight', (a, f, res) => {
 //});
 //
 //
-//M.function('mapAndFilter', (o, f) => nice.with([], a => {
+//M.Function('mapAndFilter', (o, f) => nice.with([], a => {
 //  for(let i in o){
 //    let v = f(o[i], i);
 //    v && a.push(v);
@@ -147,12 +147,12 @@ M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0)
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
 A('add', (z, ...a) => {
-  a.forEach(v => z.is.includes(v) || z.push(v));
+  a.forEach(v => z.includes(v) || z.push(v));
 });
 
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(is.equal(i, v))
+    if(nice.isEqual(i, v))
       return true;
   return false;
 });
@@ -208,20 +208,20 @@ function each(z, f){
   const a = z._items;
   const l = a.length;
   for (let i = 0; i < l; i++)
-    if(is.Stop(f(z.get(i), i)))
+    if(nice.isStop(f(z.get(i), i)))
       break;
 
   return z;
 }
 
-F.function(each);
-F.function('forEach', each);
+F.Function(each);
+F.Function('forEach', each);
 
-F.function(function eachRight(z, f){
+F.Function(function eachRight(z, f){
   const a = z._items;
   let i = a.length;
   while (i-- > 0)
-    if(is.Stop(f(z.get(i), i)))
+    if(nice.isStop(f(z.get(i), i)))
       break;
 
   return z;
@@ -239,7 +239,7 @@ A(function fill(z, v, start = 0, end){
 });
 
 
-M.function(function map(a, f){
+M.Function(function map(a, f){
   return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
 });
 
@@ -252,7 +252,7 @@ M(function rMap(a, f){
   return res;
 });
 
-M.function(function filter(a, f){
+M.Function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
 });
 

@@ -9,9 +9,9 @@ const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 
 function attachValue(target, setValue = defaultSetValue){
   let node, mute;
-  target.value = Box("");
+  def(target, 'value', Box(""));
 
-  if(nice.isEnvBrowser){
+  if(nice.isEnvBrowser()){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
       target.value((e.target || e.srcElement).value);
@@ -63,7 +63,7 @@ Input.extend('Checkbox')
   .by((z, status) => {
     let node;
     z.super('checkbox').attributes({ checked: status || false });
-    z.checked = Box(status || false);
+    def(z, 'checked', Box(status || false));
 
     let mute;
     z.on('change', e => {
@@ -73,7 +73,7 @@ Input.extend('Checkbox')
       return true;
     });
 
-    if(nice.isEnvBrowser){
+    if(nice.isEnvBrowser()){
       z._autoId();
       z.on('domNode', n => node = n);
     }

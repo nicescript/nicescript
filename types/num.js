@@ -87,7 +87,7 @@ M('clamp', (n, min, max) => {
       : n;
 });
 
-M.function('times', (n, f) => {
+M.Function('times', (n, f) => {
   let i = 0;
   const res = [];
   while(i < n) res.push(f(i++));

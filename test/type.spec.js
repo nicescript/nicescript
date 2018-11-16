@@ -11,7 +11,7 @@ describe("Type", function() {
     const type = nice.Type({})();
     expect(nice.type(type)).to.equal(type);
     const item = type();
-    expect(is.function(item)).to.equal(true);
+    expect(nice.isFunction(item)).to.equal(true);
     expect(item._type).to.equal(type);
     expect(item._type).to.equal(type);
   });

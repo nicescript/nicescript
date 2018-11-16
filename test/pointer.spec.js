@@ -10,8 +10,8 @@ describe("Pointer", function() {
     const o = nice.Obj({qwe:1});
     const p = nice.Pointer(o);
     expect(p._type.name).to.equal('Pointer');
-    expect(p.is.Pointer()).to.equal(true);
-    expect(p().is.Null()).to.equal(true);
+    expect(p.isPointer()).to.equal(true);
+    expect(p().isNull()).to.equal(true);
     expect(p('qwe')).to.equal(p);
     expect(p()()).to.equal(1);
   });
@@ -20,7 +20,7 @@ describe("Pointer", function() {
   it("set value", function(){
     const o = nice.Obj({qwe:1});
     const p = nice.Pointer(o);
-    expect(p().is.Null()).to.equal(true);
+    expect(p().isNull()).to.equal(true);
     expect(p(o.get('qwe'))).to.equal(p);
     expect(p()()).to.equal(1);
   });

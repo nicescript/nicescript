@@ -6,7 +6,7 @@ const Html = nice.Html;
 
 Html.extend('A').by((z, url, ...children) => {
   z.tag('a').add(...children);
-  is.function(url) && !url._isAnything
+  nice.isFunction(url) && !url._isAnything
     ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
     : z.href(url || '#');
 }).about('Represents HTML <a> element.');

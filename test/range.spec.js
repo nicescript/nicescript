@@ -7,8 +7,8 @@ describe("Range", function() {
   it("includes", function() {
     const r = nice.Range(1, 6);
 
-    expect(r.is.includes(5)).to.equal(true);
-    expect(r.is.includes(15)).to.equal(false);
+    expect(r.includes(5)).to.equal(true);
+    expect(r.includes(15)).to.equal(false);
   });
 
 

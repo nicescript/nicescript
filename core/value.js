@@ -10,13 +10,10 @@ nice.Type({
   creator: () => { throw 'Use Single or Object.' },
 
   proto: create(nice.Anything.proto, {
-    _isSingleton: false,
-
     valueOf: function (){ return this._value; }
   }),
 
   configProto: {
-
 
     by: function(...a){
       if(typeof a[0] === 'function')
@@ -47,7 +44,7 @@ nice.Type({
 }).about('Parent type for all values.');
 
 
-defGet(nice.Value.configProto, 'Method', function () {
+defGet(nice.Value.configProto, function Method() {
   const type = this.target;
   return Func.next({ returnValue: this, signature: [{type}] });
 });
@@ -63,7 +60,7 @@ defGet(nice.Value.configProto, 'Method', function () {
 
 
 function isSubType(t){
-  is.String(t) && (t = nice.Type(t));
+  nice.isString(t) && (t = nice.Type(t));
   return t === this || t.isPrototypeOf(this);
 };
 nice.jsTypes.isSubType = isSubType;

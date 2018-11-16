@@ -2,32 +2,32 @@ nice.Single.extend({
   name: 'Pointer',
 
   initBy: (z, o, key) => {
-    expect(o).Obj();
+    expect(o).isObj();
     z._object = o;
     z(key === undefined ? null : key);
   },
 
   itemArgs0: z => {
-    return z._value !== null && z._object.is.has(z._value)
+    return z._value !== null && z._object.has(z._value)
       ? z._object.get(z._value)
       : nice.Null();
   },
 
   itemArgs1: (z, k) => {
-    if(k === null || is(k).Null())
+    if(k === null || nice.isNull(k))
       return z._setValue(null);
 
-    if(is.Str(k))
+    if(nice.isStr(k))
       k = k();
 
-    if(z._object.is.has(k)) {
+    if(z._object.has(k)) {
       return z._setValue(k);
     } else if(k && k._isAnything) {
-      if(z._object.is.has(k())) {
+      if(z._object.has(k())) {
         return z._setValue(k());
       } else {
-        k = z._object.findKey(v => k.is.equal(v));
-        if(!k.is.NotFound())
+        k = z._object.findKey(v => nice.isEqual(k, v));
+        if(!k.isNotFound())
           return z._setValue(k());
       }
     }

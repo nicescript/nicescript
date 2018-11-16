@@ -93,8 +93,8 @@ nice.registerType({
   configProto: {
     extends (parent){
       const type = this.target;
-      is.String(parent) && (parent = nice[parent]);
-      expect(parent).Type();
+      nice.isString(parent) && (parent = nice[parent]);
+      expect(parent).isType();
       nice.extend(type, parent);
       return this;
     },
@@ -106,49 +106,23 @@ nice.registerType({
 
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
-      expect(f).function();
+      expect(f).isFunction();
       defGet(this.target.proto, name, function() {
         return f(this);
       });
       return this;
     }
 
-//    key: function (name, o) {
-//      if(name[0] !== name[0].toLowerCase())
-//        throw "Property name should start with lowercase letter. ";
-//      def(this.target.proto, name, function (...a) {
-//        const r = this._getResult();
-//        if(a.length){
-//          if(is.Object(a[0]))
-//            throw "Key must be a primitive value.";
-//
-//          this.set(name, a[0])
-//          return this;
-//        } else {
-//          return is.Anything(o) ? o.get(r[name]) : o[r[name]];
-//        }
-//      });
-//      return this;
-//    }
   },
 
   types: {}
 })
 
-const Anything = nice.Anything;
+Anything = nice.Anything;
 
 
-defGet(Anything.proto, 'jsValue', function jsValue() { return this._value; });
-
-Object.defineProperties(Anything.proto, {
-  switch: { get: function() { return Switch(this); } },
-
-  is: { get: function() {
-    const f = v => is(this).equal(v);
-    f.value = this;
-    return create(nice.isProto, f);
-  } }
-});
+defGet(Anything.proto, function jsValue() { return this._value; });
+defGet(Anything.proto, 'switch', function () { return Switch(this); });
 
 
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));

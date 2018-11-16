@@ -28,7 +28,7 @@ describe("Arr", function() {
     a(9);
     expect(a.get(1)()).to.equal(5);
     expect(a.get(3)()).to.equal(9);
-    expect(a.get(4).is.NotFound()).to.equal(true);
+    expect(a.get(4).isNotFound()).to.equal(true);
   });
 
 

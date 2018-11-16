@@ -12,7 +12,7 @@ describe("Single", function() {
 
 
   it("not an object", function(){
-    expect(nice.is.Obj(nice.Single(2))).to.equal(false);
+    expect(nice.isObj(nice.Single(2))).to.equal(false);
   });
 
 

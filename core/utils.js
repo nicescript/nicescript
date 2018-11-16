@@ -23,7 +23,7 @@ defAll(nice, {
     return res;
   },
 
-  orderedStringify: o => !is.Object(o)
+  orderedStringify: o => !nice.isObject(o)
     ? JSON.stringify(o)
     : Array.isArray(o)
       ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
@@ -79,6 +79,11 @@ defAll(nice, {
 //    delete o[k];
   },
 
+  rewriteProperty: (o, k, v) => {
+    nice.eraseProperty(o, k);
+    def(o, 'name', v);
+  },
+
   stripFunction: f => {
     nice.eraseProperty(f, 'length');
     nice.eraseProperty(f, 'name');
@@ -100,18 +105,7 @@ defAll(nice, {
     return res;
   },
 
-  isEqual (a, b) {
-    if(a === b)
-      return true;
 
-    if(a && a._isAnything && '_value' in a)
-      a = a._value;
-
-    if(b && b._isAnything  && '_value' in b)
-      b = b._value;
-
-    return a === b;
-  }
 });
 
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
@@ -153,7 +147,7 @@ defAll(nice, {
 //      return res;
 //    } else if(Array.isArray(o)) {
 //      res = [];
-//    } else if(is.Object(o)) {
+//    } else if(nice.isObject(o)) {
 //      res = {};
 //    } else {
 //      return o;
@@ -173,7 +167,7 @@ defAll(nice, {
 //      return res;
 //    } else if(Array.isArray(o)) {
 //      res = [];
-//    } else if(is.Object(o)) {
+//    } else if(nice.isObject(o)) {
 //      res = {};
 //    } else {
 //      return o;
@@ -189,10 +183,10 @@ defAll(nice, {
 
     let del, add;
     const ab = calculateChanges(a, b);
-    (!is.Nothing(ab) && is.empty(ab)) || (add = ab);
+    (!nice.isNothing(ab) && nice.isEmpty(ab)) || (add = ab);
 
     const ba = calculateChanges(b, a);
-    (!is.Nothing(ba) && is.empty(ba)) || (del = ba);
+    (!nice.isNothing(ba) && nice.isEmpty(ba)) || (del = ba);
 
     return (add || del) ? { del, add } : false;
   },
@@ -318,8 +312,8 @@ function calculateChanges(a, b){
     return b;
   if(Array.isArray(b)){
     return Array.isArray(a) ? compareObjects(a, b) : b;
-  } else if(is.Object(b)) {
-    return is.Object(a) ? compareObjects(a, b) : b;
+  } else if(nice.isObject(b)) {
+    return nice.isObject(a) ? compareObjects(a, b) : b;
   } else {
     if(a !== b)
       return b;

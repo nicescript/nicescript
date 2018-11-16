@@ -6,7 +6,6 @@ function s(name, parent, description, ){
     onCreate: z => z._value = value,
     description,
     proto: {
-      _isSingleton: true,
     }
   })();
 }

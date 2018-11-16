@@ -9,14 +9,14 @@ nice.Type('Html')
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(z, name, f){
-    if(name === 'domNode' && nice.isEnvBrowser){
+    if(name === 'domNode' && nice.isEnvBrowser()){
       if(!z.id())
         throw `Give element an id to use domNode event.`;
       const el = document.getElementById(z.id());
       el && f(el);
     }
     nice.Switch(z.eventHandlers.get(name))
-      .Nothing.use(() => z.eventHandlers.set(name, [f]))
+      .isNothing.use(() => z.eventHandlers.set(name, [f]))
       .default.use(a => a.push(f));
     return z;
   })
@@ -60,7 +60,7 @@ nice.Type('Html')
         o.listen({
             onRemove: (v, k) => z.children.remove(positions[k]),
             onAdd: (v, k) => {
-              const i = o.is.Arr() ? k : Object.keys(o()).indexOf(k);
+              const i = o.isArr() ? k : Object.keys(o()).indexOf(k);
               positions[k] = i;
               z.children.insertAt(i, f(v, k));
             }
@@ -86,25 +86,25 @@ nice.Type('Html')
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     children.forEach(c => {
-      if(is.Array(c))
+      if(nice.isArray(c))
         return _each(c, _c => z.add(_c));
 
-      if(is.Arr(c))
+      if(nice.isArr(c))
         return c.each(_c => z.add(_c));
 
       if(c === undefined || c === null)
         return;
 
-      if(is.String(c) || is.Str(c))
+      if(nice.isString(c) || nice.isStr(c))
         return z.children(c);
 
-      if(is.Number(c) || is.Num(c))
+      if(nice.isNumber(c) || nice.isNum(c))
         return z.children(c);
 
       if(c === z)
         return z.children(`Errro: Can't add element to itself.`);
 
-      if(!c || !is.Anything(c))
+      if(!c || !nice.isAnything(c))
         return z.children('Bad child: ' + c);
 
       c.up = z;
@@ -120,7 +120,7 @@ nice.Type('Style')
 
 const Style = nice.Style;
 
-defGet(Html.proto, 'hover', function(){
+defGet(Html.proto, function hover(){
   const style = Style();
   this._autoClass();
   this.cssSelectors.set(':hover', style);
@@ -131,7 +131,7 @@ defGet(Html.proto, 'hover', function(){
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
   const existing = this.cssSelectors.get(s);
-  if(!existing.is.Nothing())
+  if(!existing.isNothing())
     return existing;
   this._autoClass();
   const style = Style();
@@ -167,13 +167,13 @@ Html.proto.Box = function(...a) {
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
-      is.Object(a[0])
+      nice.isObject(a[0])
         ? _each(a[0], (v, k) => this.style.set(property + nice.capitalize(k), v))
         : this.style.set(property, a.length > 1 ? nice.format(...a) : a[0]);
       return this;
     });
     def(Style.proto, property, function(...a) {
-      is.Object(a[0])
+      nice.isObject(a[0])
         ? _each(a[0], (v, k) => this.set(property + nice.capitalize(k), v))
         : this.set(property, a.length > 1 ? nice.format(...a) : a[0]);
       return this;
@@ -182,9 +182,9 @@ Html.proto.Box = function(...a) {
 
 
 //'span' removed to avoid conflict with creating 'span' child
-'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
+'checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
-    Html.proto[property] = function(...a){
+    def(Html.proto, property, function(...a){
       if(a.length){
         this.attributes.set(property, a.length > 1 ? nice.format(...a) : a[0]);
         return this;
@@ -192,7 +192,7 @@ Html.proto.Box = function(...a) {
 //        return nice.Switch(this.attributes.get(property)).Value.use(v => v()).default('');
         return this.attributes.get(property);
       }
-    };
+    });
   });
 
 
@@ -200,7 +200,7 @@ function text(z){
   return z.children
       .map(v => v.text
         ? v.text
-        : nice.htmlEscape(is.function(v) ? v() : v))
+        : nice.htmlEscape(nice.isFunction(v) ? v() : v))
       .jsValue.join('');
 };
 
@@ -253,7 +253,7 @@ defAll(nice, {
 const getAutoClass = s => s.match(/(_nn_\d+)/)[0];
 
 
-if(nice.isEnvBrowser){
+if(nice.isEnvBrowser()){
   const styleEl = document.createElement('style');
   document.head.appendChild(styleEl);
   const styleSheet = styleEl.sheet;
