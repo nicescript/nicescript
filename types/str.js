@@ -70,8 +70,10 @@ split
 search
 replace
 match
-localeCompare`.split('\n').forEach(k => M(k, (s, ...a) => s[k](...a)));
-  
+localeCompare`.split('\n').forEach(k => M
+    .about(`Delegates to String.prototype.${k}().`)
+    (k, (s, ...a) => s[k](...a)));
+
 
 nice.Mapping.Number(String.fromCharCode);
 nice.Mapping.Number(String.fromCodePoint);

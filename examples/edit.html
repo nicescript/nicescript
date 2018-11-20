@@ -1,0 +1,83 @@
+<html>
+  <head>
+    <title>Live block edit</title>
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0;overflow: hidden;">
+<script>
+const { Type, Html, Div, Input, P, Textarea, H1, Box, Str, A } = nice;  
+
+const initData = {
+  types: {
+    UserBlock: {
+      exampleInputs: [
+        ['qwe'],
+        ['asds']
+      ],
+      inputNames: 'name',
+      code: `z.H1(name).up`
+    },
+    UserList: {
+      code: `z.UserBlock('zzzzzzzzzzz').up`
+    },
+  }
+}
+
+let n = 0;
+const nextName = () => 'Block' + n++; 
+
+const menu = Div().b('Types:').backgroundColor('#eee').padding('1rem .5rem')
+    .mapChildren(initData.types, (v, k) => A(() => '', k).display('block'));
+
+const exampleInputs = nice.Arr("Hello");
+const currentInput = Str(exampleInputs.get(0));
+
+const codeInput = Textarea().width('80%').height('20rem');
+const argsInput = Input().value('text');
+const exampleInput = Input().value('Hello!');
+
+const editPane = Div().margin('1rem')
+  .H3('Input names:').title('Blocks input names.').up.add(argsInput)
+  .h3('Example input:')
+    .Div().mapChildren(exampleInputs, s => {
+        const input = Input().value(s);
+        input.value.listen(v => currentInput(v));
+        return P(input)
+          .padding('0 1rem')
+          .on('click', () => currentInput(input.value()));
+      }).up
+    .P().a(() => exampleInputs.push(''), 'Add').up
+  .h3('Code:').add(codeInput);
+
+const result = Box.by(currentInput, argsInput.value, codeInput.value, (curr, args, code) => {
+  const name = nextName();
+  args && (args = ',' + args);
+  try {
+    eval(`Html.extend('${name}')
+      .by((z${args}) => {
+        ${code}
+      });
+      `);
+    return nice[name](curr);
+  } catch (e) {
+    return '' + e;
+  }
+});
+
+const resultPane = Div()
+    .h3('Result:').add(result);
+
+
+Div(
+  menu.width('10%'), 
+  editPane.width('45%'), 
+  resultPane.width('45%')
+).display('flex').height('100%').show();
+
+codeInput.value(`z.backgroundColor('#fed').padding('.5rem')
+  .H1(text).margin(0).color("green").up
+  .P(text, ' ', text,' ', text, ' ', text)`);
+
+</script>
+  </body>
+</html>

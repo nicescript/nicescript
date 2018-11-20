@@ -20,7 +20,9 @@
 //  };
 //});
 
-['Check', 'Action', 'Mapping'].forEach(t => Check('is' + t, v => v.functionType === t));
+['Check', 'Action', 'Mapping'].forEach(t => Check
+  .about(`Checks if value is function and it's type is ${t}.`)
+  ('is' + t, v => v.functionType === t));
 
 const basicChecks = {
   equal (a, b) {
@@ -75,15 +77,17 @@ for(let i in basicChecks)
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   const low = i.toLowerCase();
-  Check('is' + i, basicJS.includes(low)
+  Check.about(`Checks if value is ${i}.`)
+    ('is' + i, basicJS.includes(low)
     ? v => typeof v === low
     : v => v && v.constructor ? v.constructor.name === i : false);
 };
 
 
 reflect.on('Type', function defineReducer(type) {
-  type.name && Check('is' + type.name, v =>
-    v && v._type ? type.proto.isPrototypeOf(v) : false);
+  type.name && Check
+    .about('Checks if value has type ' + type.name)
+    ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 
 

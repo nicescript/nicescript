@@ -868,7 +868,9 @@ nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 Anything.proto._type = Anything;
 })();
 (function(){"use strict";
-['Check', 'Action', 'Mapping'].forEach(t => Check('is' + t, v => v.functionType === t));
+['Check', 'Action', 'Mapping'].forEach(t => Check
+  .about(`Checks if value is function and it's type is ${t}.`)
+  ('is' + t, v => v.functionType === t));
 const basicChecks = {
   equal (a, b) {
     if(a === b)
@@ -911,13 +913,15 @@ for(let i in basicChecks)
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   const low = i.toLowerCase();
-  Check('is' + i, basicJS.includes(low)
+  Check.about(`Checks if value is ${i}.`)
+    ('is' + i, basicJS.includes(low)
     ? v => typeof v === low
     : v => v && v.constructor ? v.constructor.name === i : false);
 };
 reflect.on('Type', function defineReducer(type) {
-  type.name && Check('is' + type.name, v =>
-    v && v._type ? type.proto.isPrototypeOf(v) : false);
+  type.name && Check
+    .about('Checks if value has type ' + type.name)
+    ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 const switchProto = create(nice.checkers, {
   valueOf () { return this.res; },
@@ -2255,8 +2259,9 @@ split
 search
 replace
 match
-localeCompare`.split('\n').forEach(k => M(k, (s, ...a) => s[k](...a)));
-  
+localeCompare`.split('\n').forEach(k => M
+    .about(`Delegates to String.prototype.${k}().`)
+    (k, (s, ...a) => s[k](...a)));
 nice.Mapping.Number(String.fromCharCode);
 nice.Mapping.Number(String.fromCodePoint);
 typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
@@ -2516,16 +2521,18 @@ Html.proto.Box = function(...a) {
       return this;
     });
   });
-'checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contenteditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
+'checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contentEditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
-    def(Html.proto, property, function(...a){
+    const f = function(...a){
       if(a.length){
         this.attributes.set(property, a.length > 1 ? nice.format(...a) : a[0]);
         return this;
       } else {
         return this.attributes.get(property);
       }
-    });
+    };
+    def(Html.proto, property, f);
+    def(Html.proto, property.toLowerCase(), f);
   });
 function text(z){
   return z.children
