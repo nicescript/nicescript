@@ -181,8 +181,8 @@ function createFunctionBody(functionType){
 
     const res = target.action(...args);
 
-    if(functionType === 'Mapping')
-      return nice(res);
+//    if(functionType === 'Mapping')
+//      return nice(res);
 
     if(functionType === 'Action'){
       args[0].transactionEnd();

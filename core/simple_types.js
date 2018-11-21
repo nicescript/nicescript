@@ -13,7 +13,7 @@ function s(name, parent, description, ){
 s('Nothing', 'Anything', 'Parent type for all falsy values.');
 s('Undefined', 'Nothing', 'Wrapper for JS undefined.');
 s('Null', 'Nothing', 'Wrapper for JS null.');
-s('NotFound', 'Nothing', 'Value returned by lookup functions in case nothing is found.');
+//s('NotFound', 'Nothing', 'Value returned by lookup functions in case nothing is found.');
 s('Fail', 'Nothing', 'Empty negative signal.');
 s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.');
 s('Pending', 'Nothing', 'State of the Box when it awaits input.');

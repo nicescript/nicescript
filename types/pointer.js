@@ -23,13 +23,9 @@ nice.Single.extend({
     if(z._object.has(k)) {
       return z._setValue(k);
     } else if(k && k._isAnything) {
-      if(z._object.has(k())) {
-        return z._setValue(k());
-      } else {
-        k = z._object.findKey(v => nice.equal(k, v));
-        if(!k.isNotFound())
-          return z._setValue(k());
-      }
+      k = nice.findKey(z._object, v => nice.equal(k, v));
+      if(k)
+        return z._setValue(k);
     }
     throw `Key ${k} not found.`;
   },

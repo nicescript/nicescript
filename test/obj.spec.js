@@ -11,22 +11,22 @@ describe("Obj", function() {
 
   it("constructor", function() {
     const a = Obj({asd: 3});
-    expect(a.get('asd')()).to.equal(3);
-    expect(a.get('qwe').isNotFound()).to.equal(true);
+    expect(a.get('asd')).to.equal(3);
+    expect(a.get('qwe')).to.equal(undefined);
   });
 
 
   it("set / get primitive", function() {
     const a = Obj();
     a.set('qwe', 1);
-    expect(a.get('qwe')()).to.equal(1);
+    expect(a.get('qwe')).to.equal(1);
   });
 
 
   it("set / get with nice.Str as key", function() {
     const a = Obj();
     a.set('qwe', 1);
-    expect(a.get(nice('qwe'))()).to.equal(1);
+    expect(a.get(nice('qwe'))).to.equal(1);
   });
 
   it("set tha same and notify", function() {
@@ -48,7 +48,6 @@ describe("Obj", function() {
 //    expect(asd).to.equal(a.getDeep(['qwe', 'asd']));
 //    expect(asd).to.equal(a.get('qwe').get('asd'));
 //    expect(asd._parent).to.equal(a.get('qwe'));
-//    expect(asd.isNotFound()).to.equal(true);
 //  });
 
 
@@ -211,7 +210,7 @@ describe("Obj", function() {
       .obj('streets')();
     const city = City();
     city.streets.set('Main', 1);
-    expect(city.streets.get('Main')()).to.equal(1);
+    expect(city.streets.get('Main')).to.equal(1);
   });
 
 
@@ -317,7 +316,7 @@ describe("Obj", function() {
 
   it("count", () => {
     const a = nice.Arr(1, 2, 3, 4, 5);
-    expect(a.count(n => n() % 2)()).to.equal(3);
+    expect(a.count(n => n % 2)()).to.equal(3);
   });
 
 
@@ -333,7 +332,7 @@ describe("Obj", function() {
 
   it("filter", () => {
     const a = Obj({qwe: 1, asd: 2});
-    expect(a.filter(n => n() % 2).jsValue).to.deep.equal({qwe:1});
+    expect(a.filter(n => n % 2).jsValue).to.deep.equal({qwe:1});
   });
 
 
@@ -355,9 +354,9 @@ describe("Obj", function() {
       .arr('pages', 'qwe', 'asd')
       ();
     expect(T().size()).to.equal(1);
-    expect(T().urls.get('qwe')()).to.equal(1);
-    expect(T().pages.get(0)()).to.equal('qwe');
-    expect(T().pages.get(1)()).to.equal('asd');
+    expect(T().urls.get('qwe')).to.equal(1);
+    expect(T().pages.get(0)).to.equal('qwe');
+    expect(T().pages.get(1)).to.equal('asd');
   });
 
 //  it("includes", function() {

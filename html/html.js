@@ -15,9 +15,8 @@ nice.Type('Html')
       const el = document.getElementById(z.id());
       el && f(el);
     }
-    nice.Switch(z.eventHandlers.get(name))
-      .isNothing.use(() => z.eventHandlers.set(name, [f]))
-      .default.use(a => a.push(f));
+    const handlers = z.eventHandlers.get(name);
+    handlers ? handlers.push(f) : z.eventHandlers.set(name, [f]);
     return z;
   })
   .obj('style')
@@ -28,7 +27,7 @@ nice.Type('Html')
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className').or('')();
+    const s = z.attributes.get('className') || '';
     if(s.indexOf(AUTO_PREFIX) < 0){
       const c = AUTO_PREFIX + autoId++;
       z.attributes.set('className', s + ' ' + c);
@@ -36,7 +35,7 @@ nice.Type('Html')
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className').or('')();
+    const current = z.attributes.get('className') || '';
     if(!vs.length)
       return current;
 
@@ -131,7 +130,7 @@ defGet(Html.proto, function hover(){
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
   const existing = this.cssSelectors.get(s);
-  if(!existing.isNothing())
+  if(existing !== undefined)
     return existing;
   this._autoClass();
   const style = Style();
@@ -209,14 +208,14 @@ function text(z){
 
 function compileStyle (s){
   const a = [];
-  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v()));
+  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
   return a.join(';');
 };
 
 function compileSelectors (h){
   const a = [];
-  h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')()),
-    ' ', k, '{', compileStyle (v), '}'));
+  h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')),
+    ' ', k, '{', compileStyle(v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 
@@ -232,12 +231,12 @@ function html(z){
 
   z.attributes.each((v, k) => {
     k === 'className' && (k = 'class', v = v.trim());
-    a.push(" ", k , '="', v(), '"');
+    a.push(" ", k , '="', v, '"');
   });
 
   a.push('>');
 
-  z.children.each(c => a.push(c.html));
+  z.children.each(c => a.push(c._isAnything ? c.html : c));
 
   a.push('</', z.tag(), '>');
   return a.join('');
@@ -328,7 +327,7 @@ if(nice.isEnvBrowser()){
 //    css.each((v, k) => killRules(v, k, getAutoClass(className)));
 //  };
   function killSelectors(v) {
-    const c = getAutoClass(v.attributes.get('className')());
+    const c = getAutoClass(v.attributes.get('className'));
     v.cssSelectors.each((v, k) => killRules(v, k, c));
   };
 
@@ -340,7 +339,7 @@ if(nice.isEnvBrowser()){
 
 
   const killAllRules = (v) => {
-    const c = getAutoClass(v.attributes.get('className')());
+    const c = getAutoClass(v.attributes.get('className'));
     const a = [];
     [...styleSheet.cssRules].forEach((r, i) =>
         r.selectorText.indexOf(c) === 1 && a.unshift(i));

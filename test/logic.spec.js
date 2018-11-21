@@ -4,10 +4,9 @@ const expect = chai.expect;
 
 describe("utils", function() {
   it("or", () => {
-    expect(nice.isNotFound(nice.NotFound().or(1))).to.equal(false);
-    expect(nice.isNum(nice.NotFound().or(1))).to.equal(true);
+    expect(nice.isNum(nice.Nothing().or(1))).to.equal(true);
     expect(nice(1).or(2)()).to.equal(1);
-    expect(nice.or(nice.NotFound(), null, 2)()).to.equal(2);
+    expect(nice.or(nice.Nothing(), null, 2)()).to.equal(2);
   });
 
 
@@ -22,7 +21,7 @@ describe("utils", function() {
 
 
   it("and", () => {
-    expect(nice.isNotFound(nice.NotFound().and(1))).to.equal(true);
+    expect(nice.isNothing(nice.Nothing().and(1))).to.equal(true);
     expect(nice(1).and(2)()).to.equal(2);
     expect(nice.isUndefined(nice.and(nice.Undefined(), null, 2))).to.equal(true);
   });

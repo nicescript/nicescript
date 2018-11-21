@@ -89,9 +89,16 @@ describe("Str", function() {
     expect(nice.includes('qwe!@#', 'qwe', 3)).to.equal(false);
   });
 
-  it("test", () => {
-    expect(nice.match('qwe!@#', /q/)()[0]()).to.equal('q');
-  });
+//<<<<<<< Updated upstream
+//  it("test", () => {
+//    expect(nice.match('qwe!@#', /q/)()[0]()).to.equal('q');
+//=======
+//  it("match", () => {
+//    expect(is.match('qwe!@#', /q/)).to.equal(true);
+//    expect(is.match('qwe!@#', /a/)).to.equal(false);
+//    expect(nice.match('qwe!@#', /q/)()[0]).to.equal('q');
+//>>>>>>> Stashed changes
+//  });
 
   it("Symbol.iterator", () => {
     const s = nice('qwe');

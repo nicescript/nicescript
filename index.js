@@ -661,8 +661,6 @@ function createFunctionBody(functionType){
     if(functionType === 'Action')
       args[0].transactionStart();
     const res = target.action(...args);
-    if(functionType === 'Mapping')
-      return nice(res);
     if(functionType === 'Action'){
       args[0].transactionEnd();
       return args[0];
@@ -1310,7 +1308,6 @@ nice.getType = v => {
 s('Nothing', 'Anything', 'Parent type for all falsy values.');
 s('Undefined', 'Nothing', 'Wrapper for JS undefined.');
 s('Null', 'Nothing', 'Wrapper for JS null.');
-s('NotFound', 'Nothing', 'Value returned by lookup functions in case nothing is found.');
 s('Fail', 'Nothing', 'Empty negative signal.');
 s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.');
 s('Pending', 'Nothing', 'State of the Box when it awaits input.');
@@ -1448,7 +1445,7 @@ nice.jsTypes.isSubType = isSubType;
         const type = z._type.types[i];
         return type
           ? this._items[i] = type()
-          : nice.NotFound();
+          : undefined;
       },
       checkKey (i) {
         if(i._isAnything === true)
@@ -1474,7 +1471,7 @@ nice.jsTypes.isSubType = isSubType;
             res = type(v, ...tale);
           }
         } else {
-          res = nice(v);
+          res = v;
         }
         z._items[i] = res;
         z._newValue = z._newValue || {};
@@ -1604,7 +1601,7 @@ M(function rFilter(c, f){
   return res;
 });
 M(function sum(c, f){
-  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v()));
+  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
 });
 C.Function(function some(c, f){
   for(let i in c._items)
@@ -1622,18 +1619,23 @@ M(function find(c, f){
   for(let i in c._items)
     if(f(c._items[i], i))
       return c._items[i];
-  return nice.NotFound();
 });
 M(function findKey(c, f){
+  nice.isFunction(f) || (f = nice.equal(f, nice));
   for(let i in c._items)
     if(f(c._items[i], i))
       return i;
-  return nice.NotFound();
 });
 M.Function(function count(o, f) {
   let n = 0;
   o.each((v, k) => f(v, k) && n++);
   return nice.Num(n);
+});
+C('includes', (o, t) => {
+  for(let i in o)
+    if(o[i] === t)
+      return true;
+  return false;
 });
 M(function getProperties(z){
   const res = [];
@@ -2290,13 +2292,9 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
     if(z._object.has(k)) {
       return z._setValue(k);
     } else if(k && k._isAnything) {
-      if(z._object.has(k())) {
-        return z._setValue(k());
-      } else {
-        k = z._object.findKey(v => nice.equal(k, v));
-        if(!k.isNotFound())
-          return z._setValue(k());
-      }
+      k = nice.findKey(z._object, v => nice.equal(k, v));
+      if(k)
+        return z._setValue(k);
     }
     throw `Key ${k} not found.`;
   },
@@ -2377,9 +2375,8 @@ nice.Type('Html')
       const el = document.getElementById(z.id());
       el && f(el);
     }
-    nice.Switch(z.eventHandlers.get(name))
-      .isNothing.use(() => z.eventHandlers.set(name, [f]))
-      .default.use(a => a.push(f));
+    const handlers = z.eventHandlers.get(name);
+    handlers ? handlers.push(f) : z.eventHandlers.set(name, [f]);
     return z;
   })
   .obj('style')
@@ -2390,7 +2387,7 @@ nice.Type('Html')
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className').or('')();
+    const s = z.attributes.get('className') || '';
     if(s.indexOf(AUTO_PREFIX) < 0){
       const c = AUTO_PREFIX + autoId++;
       z.attributes.set('className', s + ' ' + c);
@@ -2398,7 +2395,7 @@ nice.Type('Html')
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className').or('')();
+    const current = z.attributes.get('className') || '';
     if(!vs.length)
       return current;
     const a = current ? current.split(' ') : [];
@@ -2479,7 +2476,7 @@ defGet(Html.proto, function hover(){
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
   const existing = this.cssSelectors.get(s);
-  if(!existing.isNothing())
+  if(existing !== undefined)
     return existing;
   this._autoClass();
   const style = Style();
@@ -2543,13 +2540,13 @@ function text(z){
 };
 function compileStyle (s){
   const a = [];
-  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v()));
+  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
   return a.join(';');
 };
 function compileSelectors (h){
   const a = [];
-  h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')()),
-    ' ', k, '{', compileStyle (v), '}'));
+  h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')),
+    ' ', k, '{', compileStyle(v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 nice.ReadOnly.Box('html', ({_value}) => _value && _value._isAnything
@@ -2562,10 +2559,10 @@ function html(z){
   style && a.push(" ", 'style="', style, '"');
   z.attributes.each((v, k) => {
     k === 'className' && (k = 'class', v = v.trim());
-    a.push(" ", k , '="', v(), '"');
+    a.push(" ", k , '="', v, '"');
   });
   a.push('>');
-  z.children.each(c => a.push(c.html));
+  z.children.each(c => a.push(c._isAnything ? c.html : c));
   a.push('</', z.tag(), '>');
   return a.join('');
 };
@@ -2603,7 +2600,7 @@ if(nice.isEnvBrowser()){
         .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
   };
   function killSelectors(v) {
-    const c = getAutoClass(v.attributes.get('className')());
+    const c = getAutoClass(v.attributes.get('className'));
     v.cssSelectors.each((v, k) => killRules(v, k, c));
   };
   const killRules = (vs, selector, id) => {
@@ -2611,7 +2608,7 @@ if(nice.isEnvBrowser()){
     rule && vs.each((value, prop) => rule.style[prop] = null);
   };
   const killAllRules = (v) => {
-    const c = getAutoClass(v.attributes.get('className')());
+    const c = getAutoClass(v.attributes.get('className'));
     const a = [];
     [...styleSheet.cssRules].forEach((r, i) =>
         r.selectorText.indexOf(c) === 1 && a.unshift(i));

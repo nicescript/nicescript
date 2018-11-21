@@ -47,7 +47,7 @@ nice.Type({
         const type = z._type.types[i];
         return type
           ? this._items[i] = type()
-          : nice.NotFound();
+          : undefined;
       },
 
 //      setDeep(path, v){
@@ -81,7 +81,7 @@ nice.Type({
             res = type(v, ...tale);
           }
         } else {
-          res = nice(v);
+          res = v;
         }
         z._items[i] = res;
         z._newValue = z._newValue || {};
@@ -254,7 +254,7 @@ M(function rFilter(c, f){
 });
 
 M(function sum(c, f){
-  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v()));
+  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
 });
 
 
@@ -274,30 +274,19 @@ C(function every(c, f){
   return true;
 });
 
-//Func.Obj(function includes(c, v){
-//  if(c._items.includes)
-//    return c._items.includes(v);
-//
-//  for(let i in c._items)
-//    if((c._items[i] === v))
-//      return true;
-//
-//  return false;
-//});
 
 M(function find(c, f){
   for(let i in c._items)
     if(f(c._items[i], i))
       return c._items[i];
-  return nice.NotFound();
 });
 
 
 M(function findKey(c, f){
+  nice.isFunction(f) || (f = nice.equal(f, nice));
   for(let i in c._items)
     if(f(c._items[i], i))
       return i;
-  return nice.NotFound();
 });
 
 
@@ -322,11 +311,22 @@ M.Function(function count(o, f) {
 //
 //
 //M.undefined('includes', () => false);
+
+C('includes', (o, t) => {
+  for(let i in o)
+    if(o[i] === t)
+      return true;
+  return false;
+});
+
+////Func.Obj(function includes(c, v){
+//  if(c._items.includes)
+//    return c._items.includes(v);
 //
-//M('includes', (o, t) => {
-//  for(let i in o)
-//    if(o[i] === t)
+//  for(let i in c._items)
+//    if((c._items[i] === v))
 //      return true;
+//
 //  return false;
 //});
 //

@@ -11,6 +11,13 @@
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
+    const b = B('qwe').Css('A').color('red').up;
+    console.log(b.attributes.get('className'));
+    const id = b.attributes.get('className').trim();
+//    expect(b.html)
+//        .to.equal(`<style>.${id} a{color:red}</style><b class="${id}">qwe</b>`);
+console.log(b.html);
+
 </script>
   
   </body>

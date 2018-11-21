@@ -114,7 +114,6 @@ Each value in NiceScript has a type. Here is a root of types hierarchy:
     + Error
     + Undefined
     + Null
-    + NotFound
     + Fail
     + ...
 

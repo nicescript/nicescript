@@ -11,8 +11,8 @@ describe("Arr", function() {
     let a = Arr();
 
     a(2)(3, 4)(5);
-    expect(a.get(1)()).to.equal(3);
-    expect(a.get(3)()).to.equal(5);
+    expect(a.get(1)).to.equal(3);
+    expect(a.get(3)).to.equal(5);
   });
 
   it("nice child", function() {
@@ -26,16 +26,16 @@ describe("Arr", function() {
   it("constructor", function() {
     let a = Arr(1, 5, 8);
     a(9);
-    expect(a.get(1)()).to.equal(5);
-    expect(a.get(3)()).to.equal(9);
-    expect(a.get(4).isNotFound()).to.equal(true);
+    expect(a.get(1)).to.equal(5);
+    expect(a.get(3)).to.equal(9);
+    expect(a.get(4)).to.equal(undefined);
   });
 
 
   it("each", () => {
     let a = Arr(1, 2);
     let spy = chai.spy();
-    a.each(v => spy(v()));
+    a.each(v => spy(v));
     expect(spy).to.have.been.called.twice();
     expect(spy).to.have.been.called.with(1);
     expect(spy).to.have.been.called.with(2);
@@ -45,7 +45,7 @@ describe("Arr", function() {
   it("eachRight", () => {
     let a = Arr(1, 2);
     let b = [];
-    a.eachRight(v => b.push(v()));
+    a.eachRight(v => b.push(v));
     expect(b).to.deep.equal([2, 1]);
   });
 
@@ -110,7 +110,7 @@ describe("Arr", function() {
     const a = Arr(1, 2);
     const b = a.pop();
     const c = a.rMap(x2);
-    expect(b()).to.equal(2);
+    expect(b).to.equal(2);
     expect(a.jsValue).to.deep.equal([1]);
     expect(c.jsValue).to.deep.equal([2]);
   });
@@ -126,7 +126,7 @@ describe("Arr", function() {
     let a = Arr(1, 4);
     let b = a.shift();
     expect(a.jsValue).to.deep.equal([4]);
-    expect(b()).to.equal(1);
+    expect(b).to.equal(1);
   });
 
 

@@ -144,14 +144,14 @@ describe("Type", function() {
   it("by function", function() {
     const type = nice.Type({}).by((z, v) => z.set('q', v))();
 
-    expect(type(1).get('q')()).to.equal(1);
+    expect(type(1).get('q')).to.equal(1);
   });
 
 
   it("by string", function() {
     const type = nice.Type({}).by('q','w')();
     const v = type(1, 2);
-    expect(v.get('q')()).to.equal(1);
-    expect(v.get('w')()).to.equal(2);
+    expect(v.get('q')).to.equal(1);
+    expect(v.get('w')).to.equal(2);
   });
 });

@@ -13,7 +13,7 @@ describe("Pointer", function() {
     expect(p.isPointer()).to.equal(true);
     expect(p().isNull()).to.equal(true);
     expect(p('qwe')).to.equal(p);
-    expect(p()()).to.equal(1);
+    expect(p()).to.equal(1);
   });
 
 
@@ -22,7 +22,7 @@ describe("Pointer", function() {
     const p = nice.Pointer(o);
     expect(p().isNull()).to.equal(true);
     expect(p(o.get('qwe'))).to.equal(p);
-    expect(p()()).to.equal(1);
+//    expect(p()).to.equal(1);
   });
 
 
@@ -34,7 +34,7 @@ describe("Pointer", function() {
     const t = T();
 
     expect(t.user(1)).to.equal(t);
-    expect(t.user().get('name')()).to.equal('Qwe');
+    expect(t.user()['name']).to.equal('Qwe');
   });
 });
 

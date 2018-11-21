@@ -23,7 +23,7 @@ describe("Observable", function() {
     let n = Obj();
     let res;
 
-    n.listen(v => res = v.get('q')());
+    n.listen(v => res = v.get('q'));
 
     n.set('q', 2);
 
@@ -81,7 +81,7 @@ describe("Observable", function() {
     a.set('q', 6);
     expect(res).to.deep.equal({q:undefined});
     a.set('q', 7);
-    expect(res.q()).to.equal(6);
+    expect(res.q).to.equal(6);
   });
 
 

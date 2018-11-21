@@ -60,6 +60,7 @@ describe("Num", function() {
 
 
   it("times", function(){
-    expect(nice(3).times(String).get(2)()).to.equal('2');
+    expect(nice(3).times(nice.Str).get(2)()).to.equal('2');
+    expect(nice(3).times(String).get(2)).to.equal('2');
   });
 });
