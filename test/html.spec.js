@@ -105,7 +105,6 @@ describe("Html", function() {
 
   it("css", function() {
     const b = B('qwe').Css('A').color('red').up;
-    console.log(b.attributes.get('className'));
     const id = b.attributes.get('className').trim();
     expect(b.html)
         .to.equal(`<style>.${id} a{color:red}</style><b class="${id}">qwe</b>`);

@@ -222,6 +222,15 @@ M(function mapToArray(c, f){
 
 
 Mapping.Nothing('map', () => nice.Nothing);
+
+Mapping.Object(function map(o, f){
+  const res = {};
+  for(let i in o)
+    res[i] = f(o[i], i);
+  return res;
+});
+
+
 M(function map(c, f){
   const res = c._type();
   for(let i in c())
@@ -254,7 +263,7 @@ M(function rFilter(c, f){
 });
 
 M(function sum(c, f){
-  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
+  return c.reduce((n, v) => n + (f ? f(v) : v), 0);
 });
 
 

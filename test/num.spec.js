@@ -46,7 +46,7 @@ describe("Num", function() {
 
 
   it("basic operations", function(){
-    expect(nice.Num(7).product(-1)()).to.equal(-7);
+    expect(nice.Num(7).product(-1)).to.equal(-7);
   });
 
 
@@ -54,13 +54,13 @@ describe("Num", function() {
     const n = nice.Num();
     n("7");
 
-    expect(n.min(3)()).to.equal(3);
-    expect(n.max(3)()).to.equal(7);
+    expect(n.min(3)).to.equal(3);
+    expect(n.max(3)).to.equal(7);
   });
 
 
   it("times", function(){
-    expect(nice(3).times(nice.Str).get(2)()).to.equal('2');
-    expect(nice(3).times(String).get(2)).to.equal('2');
+    expect(nice(3).times(() => 7)[2]).to.equal(7);
+    expect(nice(3).times(String)[2]).to.equal('2');
   });
 });

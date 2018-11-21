@@ -296,7 +296,7 @@ if(nice.isEnvBrowser()){
 
   const addRules = (vs, selector, className) => {
     const rule = assertRule(selector, className);
-    vs.each((value, prop) => rule.style[prop] = value());
+    vs.each((value, prop) => rule.style[prop] = value);
   };
 
 
@@ -367,6 +367,17 @@ if(nice.isEnvBrowser()){
   }
 
 
+  Func.primitive('show', (v, parentNode = document.body, position) => {
+    const node = document.createTextNode(v);
+    return insertAt(parentNode, node, position);
+  });
+
+
+  Func.primitive('hide', (v, node) => {
+    killNode(node);
+  });
+
+
   Func.Single('show', (e, parentNode = document.body, position) => {
     const node = document.createTextNode('');
     e._shownNodes = e._shownNodes || new WeakMap();
@@ -434,11 +445,11 @@ if(nice.isEnvBrowser()){
       }),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => node.style[k] = v(),
+        onAdd: (v, k) => node.style[k] = v,
       }),
       e.attributes.listen({
         onRemove: (v, k) => delete node[k],
-        onAdd: (v, k) => node[k] = v(),
+        onAdd: (v, k) => node[k] = v,
       }),
       e.cssSelectors.listen({
         onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
@@ -446,7 +457,7 @@ if(nice.isEnvBrowser()){
       }),
       e.eventHandlers.listen({
         onAdd: (hs, k) => {
-          hs.each(f => {
+          hs.forEach(f => {
             if(k === 'domNode')
               return f(node);
             node.addEventListener(k, f, true);
@@ -467,7 +478,7 @@ if(nice.isEnvBrowser()){
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
     subscriptions.forEach(f => f());
-    e.children.each((c, k) => c.hide(node.childNodes[0]));
+    e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
 

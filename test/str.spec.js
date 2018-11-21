@@ -47,30 +47,30 @@ describe("Str", function() {
 
 
   it("trim", function(){
-    expect(Str(' qwe').trim()()).to.equal('qwe');
+    expect(Str(' qwe').trim()).to.equal('qwe');
   });
 
 
   it("trim with symbols", () => {
-    expect(nice.trim('!!!qwe!@#', '#@!')()).to.equal('qwe');
+    expect(nice.trim('!!!qwe!@#', '#@!')).to.equal('qwe');
   });
 
 
   it("trimLeft", () => {
-    expect(nice.trimLeft('  qwe')()).to.equal('qwe');
-    expect(nice.trimLeft('', 'qwe')()).to.equal('');
-    expect(nice.trimLeft('!@#qwe', '#@!')()).to.equal('qwe');
+    expect(nice.trimLeft('  qwe')).to.equal('qwe');
+    expect(nice.trimLeft('', 'qwe')).to.equal('');
+    expect(nice.trimLeft('!@#qwe', '#@!')).to.equal('qwe');
   });
 
 
   it("trimRight", () => {
-    expect(nice.trimRight('qwe!@#', '#@!')()).to.equal('qwe');
+    expect(nice.trimRight('qwe!@#', '#@!')).to.equal('qwe');
   });
 
 
   it("capitalize", () => {
-    expect(nice.capitalize('qwe!@#')()).to.equal('Qwe!@#');
-    expect(nice.capitalize('Qwe!@#')()).to.equal('Qwe!@#');
+    expect(nice.capitalize('qwe!@#')).to.equal('Qwe!@#');
+    expect(nice.capitalize('Qwe!@#')).to.equal('Qwe!@#');
   });
 
   it("endsWith", () => {

@@ -225,7 +225,7 @@ describe("Obj", function() {
 
   it("reduce", function(){
     const c = Obj({qwe: 1, ads: 3});
-    expect(c.reduce((sum, n) => sum + n, 3)()).to.equal(7);
+    expect(c.reduce((sum, n) => sum + n, 3)).to.equal(7);
   });
 
 
@@ -248,7 +248,7 @@ describe("Obj", function() {
 
   it("sum", function() {
     const a = Obj({qwe: 1, ads: 3});
-    expect(a.sum()()).to.equal(4);
+    expect(a.sum()).to.equal(4);
   });
 
 
@@ -261,13 +261,13 @@ describe("Obj", function() {
 
   it("find", () => {
     const c = Obj({qwe: 1, ads: 4});
-    expect(c.find(n => n % 2 === 0)()).to.equal(4);
+    expect(c.find(n => n % 2 === 0)).to.equal(4);
   });
 
 
   it("findKey", () => {
     const c = Obj({qwe: 1, ads: 4});
-    expect(c.findKey(n => n % 2 === 0)()).to.equal('ads');
+    expect(c.findKey(n => n % 2 === 0)).to.equal('ads');
   });
 
 

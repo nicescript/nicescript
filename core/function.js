@@ -290,10 +290,10 @@ reflect.on('function', ({name}) => {
           for (let i = a.length ; i--;){
             c[i] = a[i] === nice ? b.pop() : a[i];
           }
-          return this(...b)[name](...c);
+          return nice[name](this(...b), ...c);
         }
       : (...b) => {
-            return this(...b)[name](...a);
+            return nice[name](this(...b), ...a);
     });
   });
 });

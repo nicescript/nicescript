@@ -29,7 +29,7 @@ _each({
 const M = Mapping.Number;
 
 _each({
-  sum: (a, b) => a + b,
+  sum: (a, ...bs) => bs.reduce((x, y) => x + y, a),
   difference: (a, b) => a - b,
   product: (a, b) => a * b,
   fraction: (a, b) => a / b,

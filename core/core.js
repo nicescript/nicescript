@@ -177,7 +177,7 @@ defAll(nice, {
     return o;
   },
 
-  unwrap: v => is.nice(v) ? v() : v
+  unwrap: v => v && v._isAnything ? v.jsValue : v
 });
 defGet = nice.defineGetter;
 _each = nice._each;

@@ -22,7 +22,7 @@ describe("Pointer", function() {
     const p = nice.Pointer(o);
     expect(p().isNull()).to.equal(true);
     expect(p(o.get('qwe'))).to.equal(p);
-//    expect(p()).to.equal(1);
+    expect(p()).to.equal(1);
   });
 
 

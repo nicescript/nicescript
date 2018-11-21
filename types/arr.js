@@ -243,6 +243,11 @@ M.Function(function map(a, f){
   return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
 });
 
+Mapping.Array.Function(function map(a, f){
+  return a.reduce((z, v, k) => { z.push(f(v, k)); return z; }, []);
+});
+
+
 M(function rMap(a, f){
   const res = a._type();
   a.listen({

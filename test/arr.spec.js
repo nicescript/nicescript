@@ -167,13 +167,13 @@ describe("Arr", function() {
 
 
   it("concat", () => {
-    expect(nice(1, 2).concat([{qwe:1}]).jsValue).to.deep.equal([1,2,{"qwe":1}]);
+    expect(nice(1, 2).concat([{qwe:1}])).to.deep.equal([1,2,{"qwe":1}]);
   });
 
 
   it("sum", () => {
-    expect(nice(1, 2).sum()()).to.equal(3);
-    expect(nice(1, 2).sum(v => v * 2)()).to.equal(6);
+    expect(nice(1, 2).sum()).to.equal(3);
+    expect(nice(1, 2).sum(v => v * 2)).to.equal(6);
   });
 
   it("intersperse", () => {
@@ -182,18 +182,18 @@ describe("Arr", function() {
 
 
   it("sortedIndex", () => {
-    expect(nice(1, 2, 3).sortedIndex(0)()).to.equal(0);
-    expect(nice(1, 2, 3).sortedIndex(1)()).to.equal(0);
-    expect(nice(1, 2, 3).sortedIndex(1.5)()).to.equal(1);
-    expect(nice(1, 2, 3).sortedIndex(15)()).to.equal(3);
+    expect(nice(1, 2, 3).sortedIndex(0)).to.equal(0);
+    expect(nice(1, 2, 3).sortedIndex(1)).to.equal(0);
+    expect(nice(1, 2, 3).sortedIndex(1.5)).to.equal(1);
+    expect(nice(1, 2, 3).sortedIndex(15)).to.equal(3);
   });
 
 
   it("sortedIndex by", () => {
     const f = (a, b) => a.length - b.length;
-    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('', f)()).to.equal(0);
-    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('asd', f)()).to.equal(1);
-    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('asdqweweq', f)()).to.equal(3);
+    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('', f)).to.equal(0);
+    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('asd', f)).to.equal(1);
+    expect(nice('qw', 'qwe', 'qwerty').sortedIndex('asdqweweq', f)).to.equal(3);
   });
 
 

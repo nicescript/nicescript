@@ -92,7 +92,7 @@ nice.getType = v => {
       const constName = v.constructor.name;
       const res = nice.jsTypes[constName];
       if(!res)
-        throw 'Unsupported object type ' + jsType;
+        throw 'Unsupported object type ' + constName;
       return res;
     }
 

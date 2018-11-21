@@ -111,7 +111,7 @@ defAll(nice, {
     }
     return o;
   },
-  unwrap: v => is.nice(v) ? v() : v
+  unwrap: v => v && v._isAnything ? v.jsValue : v
 });
 defGet = nice.defineGetter;
 _each = nice._each;
@@ -744,10 +744,10 @@ reflect.on('function', ({name}) => {
           for (let i = a.length ; i--;){
             c[i] = a[i] === nice ? b.pop() : a[i];
           }
-          return this(...b)[name](...c);
+          return nice[name](this(...b), ...c);
         }
       : (...b) => {
-            return this(...b)[name](...a);
+            return nice[name](this(...b), ...a);
     });
   });
 });
@@ -1283,7 +1283,7 @@ nice.getType = v => {
       const constName = v.constructor.name;
       const res = nice.jsTypes[constName];
       if(!res)
-        throw 'Unsupported object type ' + jsType;
+        throw 'Unsupported object type ' + constName;
       return res;
     }
     const res = nice.jsBasicTypes[jsType];
@@ -1575,6 +1575,12 @@ M(function mapToArray(c, f){
   return c.reduceTo.Array((a, v, k) => a.push(f(c.get(k), k)));
 });
 Mapping.Nothing('map', () => nice.Nothing);
+Mapping.Object(function map(o, f){
+  const res = {};
+  for(let i in o)
+    res[i] = f(o[i], i);
+  return res;
+});
 M(function map(c, f){
   const res = c._type();
   for(let i in c())
@@ -1601,7 +1607,7 @@ M(function rFilter(c, f){
   return res;
 });
 M(function sum(c, f){
-  return c.reduceTo.Num((sum, v) => sum.inc(f ? f(v) : v));
+  return c.reduce((n, v) => n + (f ? f(v) : v), 0);
 });
 C.Function(function some(c, f){
   for(let i in c._items)
@@ -2051,6 +2057,9 @@ A(function fill(z, v, start = 0, end){
 M.Function(function map(a, f){
   return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
 });
+Mapping.Array.Function(function map(a, f){
+  return a.reduce((z, v, k) => { z.push(f(v, k)); return z; }, []);
+});
 M(function rMap(a, f){
   const res = a._type();
   a.listen({
@@ -2132,7 +2141,7 @@ _each({
 }, (f, name) => Check.Single.Single(name, f));
 const M = Mapping.Number;
 _each({
-  sum: (a, b) => a + b,
+  sum: (a, ...bs) => bs.reduce((x, y) => x + y, a),
   difference: (a, b) => a - b,
   product: (a, b) => a * b,
   fraction: (a, b) => a / b,
@@ -2291,7 +2300,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
       k = k();
     if(z._object.has(k)) {
       return z._setValue(k);
-    } else if(k && k._isAnything) {
+    } else {
       k = nice.findKey(z._object, v => nice.equal(k, v));
       if(k)
         return z._setValue(k);
@@ -2579,7 +2588,7 @@ if(nice.isEnvBrowser()){
   const styleSheet = styleEl.sheet;
   const addRules = (vs, selector, className) => {
     const rule = assertRule(selector, className);
-    vs.each((value, prop) => rule.style[prop] = value());
+    vs.each((value, prop) => rule.style[prop] = value);
   };
   const findRule = (selector, className) => {
     const s = `.${className} ${selector}`.toLowerCase();
@@ -2628,6 +2637,13 @@ if(nice.isEnvBrowser()){
     node.parentNode.insertBefore(newNode, node.nextSibling);
     return newNode;
   }
+  Func.primitive('show', (v, parentNode = document.body, position) => {
+    const node = document.createTextNode(v);
+    return insertAt(parentNode, node, position);
+  });
+  Func.primitive('hide', (v, node) => {
+    killNode(node);
+  });
   Func.Single('show', (e, parentNode = document.body, position) => {
     const node = document.createTextNode('');
     e._shownNodes = e._shownNodes || new WeakMap();
@@ -2682,11 +2698,11 @@ if(nice.isEnvBrowser()){
       }),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => node.style[k] = v(),
+        onAdd: (v, k) => node.style[k] = v,
       }),
       e.attributes.listen({
         onRemove: (v, k) => delete node[k],
-        onAdd: (v, k) => node[k] = v(),
+        onAdd: (v, k) => node[k] = v,
       }),
       e.cssSelectors.listen({
         onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
@@ -2694,7 +2710,7 @@ if(nice.isEnvBrowser()){
       }),
       e.eventHandlers.listen({
         onAdd: (hs, k) => {
-          hs.each(f => {
+          hs.forEach(f => {
             if(k === 'domNode')
               return f(node);
             node.addEventListener(k, f, true);
@@ -2713,7 +2729,7 @@ if(nice.isEnvBrowser()){
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
     subscriptions.forEach(f => f());
-    e.children.each((c, k) => c.hide(node.childNodes[0]));
+    e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
   function removeNode(node, v){

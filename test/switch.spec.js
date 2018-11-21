@@ -215,16 +215,16 @@ describe("Switch", function() {
 
 
   it("switch action & mapping", function() {
-    expect(Switch(5).isNumber.sum(5).isArray.map(x => x * 2)()()).equal(10);
-    expect(Switch([1]).isNumber.sum(5).isArray.map(x => x * 2)().get(0)()).equal(2);
+    expect(Switch(5).isNumber.sum(5).isArray.map(x => x * 2)()).equal(10);
+    expect(Switch([1]).isNumber.sum(5).isArray.map(x => x * 2)()[0]).equal(2);
     expect(Switch('qwe').isNumber.sum(5).isArray.map(x => x * 2)()).equal('qwe');
   });
 
 
   it("delayed switch action & mapping", function() {
     const f = nice.Switch.isNumber.sum(5).isArray.map(x => x * 2);
-    expect(f(5)()).equal(10);
-    expect(f([1]).get(0)()).equal(2);
+    expect(f(5)).equal(10);
+    expect(f([1])[0]).equal(2);
     expect(f('qwe')).equal('qwe');
   });
 

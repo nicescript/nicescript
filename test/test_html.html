@@ -43,7 +43,7 @@ Box.by(counter, c => Div(c % 2
 
 H3('Blink green blue red').show();
 const color = Box.by(counter2, c => c % 2 ? 'red' : 'blue');
-Box.by(counter, color, c => Div('BLINK').color(c % 2 ? color : 'green')).show();
+Box.by(counter, color, (n, c) => Div('BLINK').color(n % 2 ? c : 'green')).show();
 
 
 
