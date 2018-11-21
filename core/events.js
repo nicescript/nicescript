@@ -20,7 +20,7 @@ const EventEmitter = {
     if(!a.includes(f)){
       this.emit('newListener', name, f);
       a.push(f);
-      let es = this._events;
+      const es = this._events;
       es && es[name] && es[name].forEach(v => f(...v));
     }
     return this;

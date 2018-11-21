@@ -403,7 +403,7 @@ const EventEmitter = {
     if(!a.includes(f)){
       this.emit('newListener', name, f);
       a.push(f);
-      let es = this._events;
+      const es = this._events;
       es && es[name] && es[name].forEach(v => f(...v));
     }
     return this;
@@ -517,7 +517,7 @@ nice.jsBasicTypes = {
 })();
 (function(){"use strict";const configProto = {
   next (o) {
-    let c = Configurator(this.name || o.name);
+    const c = Configurator(this.name || o.name);
     c.signature = (this.signature || []).concat(o.signature || []);
     c.existing = o.existing || this.existing;
     c.functionType = o.functionType || this.functionType;
@@ -633,9 +633,11 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
         && def(type.proto, name, function(...a) { return f(this, ...a); });
   }
 });
+const $1 = nice.$1 = Symbol('$1');
+const $2 = nice.$2 = Symbol('$1');
 function createFunctionBody(functionType){
   const z = create(functionProto, (...args) => {
-    if(args.includes(nice))
+    if(args.includes(nice) || args.includes($1) || args.includes($2))
       return skip(args, z);
     let target = z.signatures;
     for(let i in args) {
@@ -680,7 +682,7 @@ function mirrorType (t) {
   throw 'I need type';
 };
 function addCombination (a, type, mirror, transformation) {
-  let res = [];
+  const res = [];
   const position = a[0].signature.length;
   a.forEach((last, k) => {
     res.push({
@@ -740,7 +742,7 @@ reflect.on('function', ({name}) => {
   name && !skippedProto[name] && def(skippedProto, name, function(...a){
     return create(skippedProto, a.includes(nice)
       ? (...b) => {
-          let c = [];
+          const c = [];
           for (let i = a.length ; i--;){
             c[i] = a[i] === nice ? b.pop() : a[i];
           }
@@ -748,7 +750,7 @@ reflect.on('function', ({name}) => {
         }
       : (...b) => {
             return nice[name](this(...b), ...a);
-    });
+        });
   });
 });
 const ro = def(nice, 'ReadOnly', {});
