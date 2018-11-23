@@ -528,6 +528,7 @@ nice.jsBasicTypes = {
   about (s) { return this.next({ description: s}); }
 };
 const skippedProto = {};
+const twistedProto = {};
 const functionProto = {
   addSignature (body, signature, name){
     const ss = this.signatures = this.signatures || new Map();
@@ -633,12 +634,12 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
         && def(type.proto, name, function(...a) { return f(this, ...a); });
   }
 });
-const $1 = nice.$1 = Symbol('$1');
-const $2 = nice.$2 = Symbol('$1');
 function createFunctionBody(functionType){
   const z = create(functionProto, (...args) => {
-    if(args.includes(nice) || args.includes($1) || args.includes($2))
+    if(args.includes(nice))
       return skip(args, z);
+    if(args.some(v => v && v._isTwist))
+      return nice.twist(z, args);
     let target = z.signatures;
     for(let i in args) {
       if(target && target.size){
@@ -661,10 +662,10 @@ function createFunctionBody(functionType){
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
     if(functionType === 'Action')
-      args[0].transactionStart();
+      args[0].transactionStart && args[0].transactionStart();
     const res = target.action(...args);
     if(functionType === 'Action'){
-      args[0].transactionEnd();
+      args[0].transactionStart && args[0].transactionEnd();
       return args[0];
     }
     return res;
@@ -732,6 +733,29 @@ function skip(a, f){
     return f(...c);
   });
 }
+[1,2,3,4].forEach(n => {
+  nice['$' + n] = a => a[n - 1];
+  nice['$' + n]._isTwist = true;
+});
+def(nice, function twist(f1, args1){
+  const f = create(twistedProto, function (...as) {
+    let res;
+    f.queue.forEach(({action, args}, k) => {
+      const a2 = args.map(v => v && v._isTwist ? v(as) : v);
+      res = k ? action(res, ...a2) : action(...a2);
+    });
+    return res;
+  });
+  f.queue = [];
+  f1 && f.queue.push({action: f1, args: args1});
+  return f;
+});
+reflect.on('function', (f) => {
+  f.name && !twistedProto[f.name] && def(twistedProto, f.name, function(...args){
+    this.queue.push({action: f, args});
+    return this;
+  });
+});
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('Type', handleType);
 Func = def(nice, 'Func', configurator());
@@ -1242,6 +1266,8 @@ defAll(nice, {
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
     const type = (...a) => {
+      if(a.some(v => v && v._isTwist))
+        return nice.twist(type, a);
       const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
       type.initChildren(item);
@@ -1454,33 +1480,6 @@ nice.jsTypes.isSubType = isSubType;
           i = i();
         return i;
       },
-      set (i, v, ...tale) {
-        const z = this;
-        i = z.checkKey(i);
-        z.transactionStart();
-        let res;
-        if(!nice.equal(v, z._items[i])){
-          z._oldValue = z._oldValue || {};
-          z._oldValue[i] = z._items[i];
-        }
-        const type = z._itemsType || (z._type.types && z._type.types[i]);
-        if(type){
-          if(v && v._isAnything){
-            if(!v._type.isSubType(type))
-              throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-            res = v;
-          } else {
-            res = type(v, ...tale);
-          }
-        } else {
-          res = v;
-        }
-        z._items[i] = res;
-        z._newValue = z._newValue || {};
-        z._newValue[i] = res;
-        z.transactionEnd();
-        return z;
-      },
       setDefault (i, v, ...tale) {
         const z = this;
         if(i._isAnything === true)
@@ -1544,6 +1543,33 @@ F(function each(o, f){
 });
 F('reverseEach', (o, f) => {
   Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
+});
+Action.Object('set', (o, i, v) => o[i] = v);
+A('set', (z, i, v, ...tale) => {
+  i = z.checkKey(i);
+  z.transactionStart();
+  let res;
+  if(!nice.equal(v, z._items[i])){
+    z._oldValue = z._oldValue || {};
+    z._oldValue[i] = z._items[i];
+  }
+  const type = z._itemsType || (z._type.types && z._type.types[i]);
+  if(type){
+    if(v && v._isAnything){
+      if(!v._type.isSubType(type))
+        throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
+      res = v;
+    } else {
+      res = type(v, ...tale);
+    }
+  } else {
+    res = v;
+  }
+  z._items[i] = res;
+  z._newValue = z._newValue || {};
+  z._newValue[i] = res;
+  z.transactionEnd();
+  return z;
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 A('replaceAll', (z, o) => {
@@ -2001,7 +2027,6 @@ A('pull', (z, item) => {
 });
 A.Number('insertAt', (z, i, v) => {
   i = +i;
-  v = nice(v);
   const old = z._items;
   z._oldValue = z._oldValue || {};
   z._newValue = z._newValue || {};
@@ -2517,9 +2542,11 @@ Html.proto.Box = function(...a) {
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
-      nice.isObject(a[0])
-        ? _each(a[0], (v, k) => this.style.set(property + nice.capitalize(k), v))
-        : this.style.set(property, a.length > 1 ? nice.format(...a) : a[0]);
+      const s = this.style;
+      nice.Switch(a[0])
+        .isBox.use(b => s.set(property, b))
+        .isObject.use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
+        .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
     });
     def(Style.proto, property, function(...a) {
@@ -2693,22 +2720,24 @@ if(nice.isEnvBrowser()){
   });
   Func.Html('attachNode', (e, node) => {
     e._shownNodes = e._shownNodes || new WeakMap();
-    e._shownNodes.set(node, [
-      e.children.listen({
+    const ss = [];
+    ss.push(e.children.listen({
         onRemove: (v, k) => removeNode(node.childNodes[k], v),
-        onAdd: (v, k) => nice.show(v, node, k),
+        onAdd: (v, k) => nice.show(v, node, k)
       }),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => node.style[k] = v,
+        onAdd: (v, k) => nice.isBox(v)
+          ? ss.push(v.listen(_v => node.style[k] = _v))
+          : node.style[k] = v
       }),
       e.attributes.listen({
         onRemove: (v, k) => delete node[k],
-        onAdd: (v, k) => node[k] = v,
+        onAdd: (v, k) => node[k] = v
       }),
       e.cssSelectors.listen({
         onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
-        onAdd: (v, k) => addRules(v, k, getAutoClass(node.className)),
+        onAdd: (v, k) => addRules(v, k, getAutoClass(node.className))
       }),
       e.eventHandlers.listen({
         onAdd: (hs, k) => {
@@ -2725,7 +2754,8 @@ if(nice.isEnvBrowser()){
           console.log('TODO: Remove, ', k);
         }
       })
-    ]);
+    );
+    e._shownNodes.set(node, ss);
   });
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);

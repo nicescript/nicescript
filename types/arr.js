@@ -166,7 +166,6 @@ A('pull', (z, item) => {
 
 A.Number('insertAt', (z, i, v) => {
   i = +i;
-  v = nice(v);
   const old = z._items;
   z._oldValue = z._oldValue || {};
   z._newValue = z._newValue || {};

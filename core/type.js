@@ -36,6 +36,9 @@ defAll(nice, {
     config.defaultArguments = config.defaultArguments || {};
 
     const type = (...a) => {
+      if(a.some(v => v && v._isTwist))
+        return nice.twist(type, a);
+
       const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
       type.initChildren(item);

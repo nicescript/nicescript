@@ -15,6 +15,7 @@ const configProto = {
 };
 
 const skippedProto = {};
+const twistedProto = {};
 
 const functionProto = {
   addSignature (body, signature, name){
@@ -145,13 +146,14 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
   }
 });
 
-const $1 = nice.$1 = Symbol('$1');
-const $2 = nice.$2 = Symbol('$1');
 
 function createFunctionBody(functionType){
   const z = create(functionProto, (...args) => {
-    if(args.includes(nice) || args.includes($1) || args.includes($2))
+    if(args.includes(nice))
       return skip(args, z);
+
+    if(args.some(v => v && v._isTwist))
+      return nice.twist(z, args);
 
     let target = z.signatures;
 
@@ -179,12 +181,12 @@ function createFunctionBody(functionType){
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action')
-      args[0].transactionStart();
+      args[0].transactionStart && args[0].transactionStart();
 
     const res = target.action(...args);
 
     if(functionType === 'Action'){
-      args[0].transactionEnd();
+      args[0].transactionStart && args[0].transactionEnd();
       return args[0];
     }
 
@@ -272,6 +274,31 @@ function skip(a, f){
   });
 }
 
+[1,2,3,4].forEach(n => {
+  nice['$' + n] = a => a[n - 1];
+  nice['$' + n]._isTwist = true;
+});
+
+def(nice, function twist(f1, args1){
+  const f = create(twistedProto, function (...as) {
+    let res;
+    f.queue.forEach(({action, args}, k) => {
+      const a2 = args.map(v => v && v._isTwist ? v(as) : v);
+      res = k ? action(res, ...a2) : action(...a2);
+    });
+    return res;
+  });
+  f.queue = [];
+  f1 && f.queue.push({action: f1, args: args1});
+  return f;
+});
+
+reflect.on('function', (f) => {
+  f.name && !twistedProto[f.name] && def(twistedProto, f.name, function(...args){
+    this.queue.push({action: f, args});
+    return this;
+  });
+});
 
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('Type', handleType);
