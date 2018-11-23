@@ -61,35 +61,6 @@ nice.Type({
         return i;
       },
 
-      set (i, v, ...tale) {
-        const z = this;
-
-        i = z.checkKey(i);
-        z.transactionStart();
-        let res;
-        if(!nice.equal(v, z._items[i])){
-          z._oldValue = z._oldValue || {};
-          z._oldValue[i] = z._items[i];
-        }
-        const type = z._itemsType || (z._type.types && z._type.types[i]);
-        if(type){
-          if(v && v._isAnything){
-            if(!v._type.isSubType(type))
-              throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-            res = v;
-          } else {
-            res = type(v, ...tale);
-          }
-        } else {
-          res = v;
-        }
-        z._items[i] = res;
-        z._newValue = z._newValue || {};
-        z._newValue[i] = res;
-        z.transactionEnd();
-        return z;
-      },
-
       setDefault (i, v, ...tale) {
         const z = this;
 
@@ -165,6 +136,35 @@ F(function each(o, f){
 
 F('reverseEach', (o, f) => {
   Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
+});
+
+Action.Object('set', (o, i, v) => o[i] = v);
+
+A('set', (z, i, v, ...tale) => {
+  i = z.checkKey(i);
+  z.transactionStart();
+  let res;
+  if(!nice.equal(v, z._items[i])){
+    z._oldValue = z._oldValue || {};
+    z._oldValue[i] = z._items[i];
+  }
+  const type = z._itemsType || (z._type.types && z._type.types[i]);
+  if(type){
+    if(v && v._isAnything){
+      if(!v._type.isSubType(type))
+        throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
+      res = v;
+    } else {
+      res = type(v, ...tale);
+    }
+  } else {
+    res = v;
+  }
+  z._items[i] = res;
+  z._newValue = z._newValue || {};
+  z._newValue[i] = res;
+  z.transactionEnd();
+  return z;
 });
 
 
