@@ -34,21 +34,6 @@ nice.Type({
 //        return res;
 //      },
 
-      get(i) {
-        const z = this;
-
-        if(i._isAnything === true)
-          i = i();
-
-        if(z._items.hasOwnProperty(i)){
-          return z._items[i];
-        }
-
-        const type = z._type.types[i];
-        return type
-          ? this._items[i] = type()
-          : undefined;
-      },
 
 //      setDeep(path, v){
 //        return this.getDeep(path)(v);
@@ -138,7 +123,25 @@ F('reverseEach', (o, f) => {
   Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
 });
 
-Action.Object('set', (o, i, v) => o[i] = v);
+
+Mapping.Object('get', (o, i) => o[''+i]);
+
+M('get', (z, i) => {
+  if(i._isAnything === true)
+    i = i();
+
+  if(z._items.hasOwnProperty(i)){
+    return z._items[i];
+  }
+
+  const type = z._type.types[i];
+  return type
+    ? z._items[i] = type()
+    : undefined;
+});
+
+
+Action.Object('set', (o, i, v) => o[''+i] = v);
 
 A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);

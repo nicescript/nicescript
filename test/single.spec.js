@@ -19,11 +19,4 @@ describe("Single", function() {
   it("might not have properties", function(){
     expect(() => nice.Single.extend().str('qwe')).to.throw();
   });
-
-
-  it("does not have objects methods", function(){
-    let s = nice.Single();
-    expect(s.get).to.equal(undefined);
-    expect(() => s.set('qwe')).to.throw();
-  });
 });
