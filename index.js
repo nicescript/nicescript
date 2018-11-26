@@ -2155,6 +2155,10 @@ M.about('Creates new array with separator between elments.')
   a.each((v, k) => res.push(v) && (k < last && res.push(separator)));
   return res;
 });
+M.about('Returns last element of array.')
+(function last(a) {
+  return a._items[a._items.length - 1];
+});
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
   const l = z._items.length;

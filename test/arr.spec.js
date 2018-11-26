@@ -215,4 +215,9 @@ describe("Arr", function() {
     expect(nice.Arr(1,2,4).insertAfter(2,3).jsValue).to.deep.equal([1,2,3,4]);
     expect(nice.Arr(1,2,4).insertAfter(3,5).jsValue).to.deep.equal([1,2,4,5]);
   });
+
+
+  it('lasr', () => {
+    expect(nice.Arr(1,2,4).last()).to.equal(4);
+  });
 });
