@@ -635,19 +635,23 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
   }
 });
 function createFunctionBody(functionType){
+  const {$1,$2,$3,$4} = nice;
   const z = create(functionProto, (...args) => {
-    if(args.includes(nice))
-      return skip(args, z);
-    if(args.some(v => v && v._isTwist))
-      return nice.twist(z, args);
+    for(let a of args){
+      if(a === nice)
+        return skip(args, z);
+      if(a === $1 || a === $2 || a === $3 || a === $4)
+        return nice.twist(z, args);
+    }
     let target = z.signatures;
-    for(let i in args) {
+    const l = args.length;
+    for(let i = 0; i < l; i++) {
       if(target && target.size){
-        let type = nice.getType(args[i++]);
+        let type = nice.getType(args[i]);
         let found = null;
         while(type){
-          if(target.has(type)){
-            found = target.get(type);
+          found = target.get(type);
+          if(found){
             break;
           } else {
             type = Object.getPrototypeOf(type);
@@ -1305,21 +1309,27 @@ nice.typeOf = v => {
   return nice.Obj;
 };
 nice.getType = v => {
-  if(!v || !v._isAnything){
-    const jsType = typeof v;
-    if(jsType === 'object'){
-      const constName = v.constructor.name;
-      const res = nice.jsTypes[constName];
-      if(!res)
-        throw 'Unsupported object type ' + constName;
-      return res;
-    }
-    const res = nice.jsBasicTypes[jsType];
+  if(v && v._isAnything)
+    return v._type;
+  let res = typeof v;
+  if(res === 'object'){
+    const c = v.constructor;
+    
+    res = nice.jsTypes[c === Object
+      ? 'Object'
+      : c === Number
+        ? 'Number'
+        : c === String
+          ? 'String'
+          : c.name];
     if(!res)
-      throw 'Unsupported type ' + jsType;
+      throw 'Unsupported object type ' + v.constructor.name;
     return res;
   }
-  return v._type;
+  res = nice.jsBasicTypes[res];
+  if(!res)
+    throw 'Unsupported type ' + typeof v;
+  return res;
 };
 })();
 (function(){"use strict";function s(name, parent, description, ){
@@ -2038,6 +2048,13 @@ A.Number('insertAt', (z, i, v) => {
   });
   if(old.length <= i)
     return z._items[i] = v;
+});
+A('insertAfter', (z, target, v) => {
+  let i;
+  for(i in z._items)
+    if(nice.equal(target, z._items[i]))
+      break;
+  return z.insertAt(+i+1, v);
 });
 A('removeAt', (z, i) => {
   i = +i;

@@ -179,6 +179,16 @@ A.Number('insertAt', (z, i, v) => {
     return z._items[i] = v;
 });
 
+
+A('insertAfter', (z, target, v) => {
+  let i;
+  for(i in z._items)
+    if(nice.equal(target, z._items[i]))
+      break;
+  return z.insertAt(+i+1, v);
+});
+
+
 A('removeAt', (z, i) => {
   i = +i;
   const old = z._items;

@@ -208,4 +208,11 @@ describe("Arr", function() {
 //    expect(nice.intersection(a, jb).jsValue).to.deep.equal([1,4]);
 //    expect(nice.intersection(ja, jb).jsValue).to.deep.equal([1,4]);
   });
+
+
+  it('insertAfter', () => {
+    expect(nice.Arr(1).insertAfter(1,2).jsValue).to.deep.equal([1,2]);
+    expect(nice.Arr(1,2,4).insertAfter(2,3).jsValue).to.deep.equal([1,2,3,4]);
+    expect(nice.Arr(1,2,4).insertAfter(3,5).jsValue).to.deep.equal([1,2,4,5]);
+  });
 });

@@ -148,22 +148,25 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
 
 
 function createFunctionBody(functionType){
+  const {$1,$2,$3,$4} = nice;
   const z = create(functionProto, (...args) => {
-    if(args.includes(nice))
-      return skip(args, z);
-
-    if(args.some(v => v && v._isTwist))
-      return nice.twist(z, args);
+    for(let a of args){
+      if(a === nice)
+        return skip(args, z);
+      if(a === $1 || a === $2 || a === $3 || a === $4)
+        return nice.twist(z, args);
+    }
 
     let target = z.signatures;
 
-    for(let i in args) {
+    const l = args.length;
+    for(let i = 0; i < l; i++) {
       if(target && target.size){
-        let type = nice.getType(args[i++]);
+        let type = nice.getType(args[i]);
         let found = null;
         while(type){
-          if(target.has(type)){
-            found = target.get(type);
+          found = target.get(type);
+          if(found){
             break;
           } else {
             type = Object.getPrototypeOf(type);
