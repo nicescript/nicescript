@@ -154,4 +154,11 @@ describe("Type", function() {
     expect(v.get('q')).to.equal(1);
     expect(v.get('w')).to.equal(2);
   });
+
+  it("skip arguments", () => {
+    const { $1, $2, $3 } = nice;
+    const f = nice.Arr($2, $1);
+    expect(f(2,1).jsValue).to.deep.equal([1,2]);
+  });
+
 });

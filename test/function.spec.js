@@ -137,28 +137,7 @@ describe("Func", function() {
   });
 
 
-  it("skip", () => {
-    const f = nice.Func((a, b) => a / b);
-    expect(f(6, 2)).to.equal(3);
-    expect(f(6, nice)(3)).to.equal(2);
-    expect(f(nice, 6)(3)).to.equal(0.5);
-    expect(f(nice, nice)(6, 3)).to.equal(2);
-  });
-
-
-  it("skip queue", () => {
-    const f = nice.Func((a, b) => nice.Num(a / b));
-    nice.Func.Num('qwe', (v, n) => nice.Num(v() + n));
-    const f2 = f(10, nice);
-
-    expect(f2.qwe(2)(5)()).to.equal(4);
-    expect(f2.qwe(2).qwe(3)(5)()).to.equal(7);
-    expect(f2.qwe(nice)(5, 2)()).to.equal(4);
-    expect(f2.qwe(nice).qwe(3)(5, 2)()).to.equal(7);
-  });
-
-
-  it("twist arguments", () => {
+  it("skip arguments", () => {
     const { $1, $2, $3 } = nice;
     expect(nice.equal($2, 'q')(1, 'q')).to.equal(true);
     expect(nice.difference(nice.$2, nice.$1).product(nice.$2)(5, 7)).to.equal(14);

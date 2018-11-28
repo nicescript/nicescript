@@ -563,8 +563,6 @@ nice.jsBasicTypes = {
   },
   about (s) { return this.next({ description: s}); }
 };
-const skippedProto = {};
-const twistedProto = {};
 const functionProto = {
   addSignature (body, signature, name){
     const ss = this.signatures = this.signatures || new Map();
@@ -687,7 +685,7 @@ function createFunctionBody(functionType){
   const z = create(functionProto, (...args) => {
     for(let a of args){
       if(a === $1 || a === $2 || a === $3 || a === $4)
-        return nice.twist(z, args);
+        return skip(z, args);
     }
     let target = z.signatures;
     const l = args.length;
@@ -775,23 +773,15 @@ function handleType(type){
     return this.next({signature: [{type}]});
   });
 };
-function skip(a, f){
-  return create(skippedProto, (...b) => {
-    const c = [];
-    let i = 0;
-    a.forEach(v => c.push(v === nice ? b[i++] : v));
-    return f(...c);
-  });
-}
-[1,2,3,4].forEach(n => {
-  nice['$' + n] = a => a[n - 1];
-  nice['$' + n]._isTwist = true;
-});
-def(nice, function twist(f1, args1){
-  const f = create(twistedProto, function (...as) {
+const skipedProto = {};
+[1,2,3,4].forEach(n => nice['$' + n] = a => a[n - 1]);
+function skip(f1, args1){
+  const {$1,$2,$3,$4} = nice;
+  const f = create(skipedProto, function (...as) {
     let res;
     f.queue.forEach(({action, args}, k) => {
-      const a2 = args.map(v => v && v._isTwist ? v(as) : v);
+      const a2 = args.map(v => ( v===$1 || v === $2 || v === $3 || v === $4 )
+        ? v(as) : v);
       res = k ? action(res, ...a2) : action(...a2);
     });
     return res;
@@ -799,9 +789,10 @@ def(nice, function twist(f1, args1){
   f.queue = [];
   f1 && f.queue.push({action: f1, args: args1});
   return f;
-});
+};
+def(nice, skip);
 reflect.on('function', (f) => {
-  f.name && !twistedProto[f.name] && def(twistedProto, f.name, function(...args){
+  f.name && !skipedProto[f.name] && def(skipedProto, f.name, function(...args){
     this.queue.push({action: f, args});
     return this;
   });
@@ -812,21 +803,6 @@ Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
 Check = def(nice, 'Check', configurator({functionType: 'Check'}));
-reflect.on('function', ({name}) => {
-  name && !skippedProto[name] && def(skippedProto, name, function(...a){
-    return create(skippedProto, a.includes(nice)
-      ? (...b) => {
-          const c = [];
-          for (let i = a.length ; i--;){
-            c[i] = a[i] === nice ? b.pop() : a[i];
-          }
-          return nice[name](this(...b), ...c);
-        }
-      : (...b) => {
-            return nice[name](this(...b), ...a);
-        });
-  });
-});
 const ro = def(nice, 'ReadOnly', {});
 reflect.on('Type', type => {
   ro[type.name] = function (...a) {
@@ -1315,9 +1291,12 @@ defAll(nice, {
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
+    const {$1,$2,$3,$4} = nice;
     const type = (...a) => {
-      if(a.some(v => v && v._isTwist))
-        return nice.twist(type, a);
+      for(let v of a){
+        if(v === $1 || v === $2 || v === $3 || v === $4)
+          return nice.skip(type, a);
+      }
       const item = nice._newItem(type);
       type.onCreate && type.onCreate(item);
       type.initChildren(item);
