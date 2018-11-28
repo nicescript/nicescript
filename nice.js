@@ -259,6 +259,38 @@ defAll(nice, {
       return result = f.apply(this);
     };
   },
+  argumentNames (f) {
+    const s = '' + f;
+    const a = s.split('=>');
+    if(a.length > 1 && !a[0].includes('(')){
+      const s = a[0].trim();
+      if(/^[$A-Z_][0-9A-Z_$]*$/i.test(s))
+        return [s];
+    }
+    let depth = 0;
+    let lastEnd = 0;
+    const res = [];
+    for(let k in s) {
+      const v = s[k];
+      k = +k;
+      if(v === '(') {
+        depth++;
+        depth === 1 && (lastEnd = k);
+      } else if (v === ','){
+        if(depth === 1){
+          res.push(s.substring(lastEnd + 1, k).trim());
+          lastEnd = k;
+        }
+      } else if( v === ')' ){
+        depth--;
+        if(depth === 0) {
+          res.push(s.substring(lastEnd + 1, k).trim());
+          break;
+        }
+      }
+    };
+    return res;
+  }
 });
 defAll(nice, {
   super (o, name, v) {
@@ -279,17 +311,21 @@ defAll(nice, {
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
-  doc () {
-    const res = { types: {}, functions: [] };
+  generateDoc () {
+    const res = { types: {}, functions: [], fs: {} };
     reflect.on('signature', s => {
-      if(!s.name || s.name[0] === '_')
+      if(!s.name || s.name[0] === '_' || typeof s.name !== 'string')
         return;
       const o = {};
-      _each(s, (v, k) => nice.Switch(k)
-        .equal('body').use(() => o.source = v.toString())
-        .equal('signature').use(() => o[k] = v.map(t => t.type.name))
-        .default.use(() => o[k] = v));
+      o.source = '' + s.body;
+      const args = nice.argumentNames(o.source || '');
+      const types = s.signature.map(v => v.type.name);
+      types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
+      o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
+      o.description = s.description;
+      o.type = s.type
       res.functions.push(o);
+      (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
     });
     reflect.on('Type', t => {
       if(!t.name || t.name[0] === '_')
@@ -571,8 +607,20 @@ const functionProto = {
   },
   about (s) {
     return configurator({ description: s });
-  }
+  },
 };
+defGet(functionProto, 'help',  function () {
+  if(!nice.doc)
+    nice.doc = nice.generateDoc();
+  const a = [''];
+  _each(nice.doc.fs[this.name], v => {
+    a.push(v.title);
+    v.description && a.push(v.description);
+    a.push(v.source);
+    a.push('');
+  });
+  return a.join('\n');
+});
 const parseParams = (...a) => {
   if(!a[0])
     return {};
@@ -602,7 +650,7 @@ function configurator(...a){
   const cfg = parseParams(...a);
   return Configurator(cfg.name).next(cfg);
 };
-function createFunction({ existing, name, body, source, signature, type, description }){
+function createFunction({ existing, name, body, signature, type, description }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
@@ -621,7 +669,7 @@ function createFunction({ existing, name, body, source, signature, type, descrip
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, source, f });
+      { name, body, signature, type, description, f });
   }
   return f;
 };
@@ -638,8 +686,6 @@ function createFunctionBody(functionType){
   const {$1,$2,$3,$4} = nice;
   const z = create(functionProto, (...args) => {
     for(let a of args){
-      if(a === nice)
-        return skip(args, z);
       if(a === $1 || a === $2 || a === $3 || a === $4)
         return nice.twist(z, args);
     }
@@ -1331,6 +1377,9 @@ nice.getType = v => {
     throw 'Unsupported type ' + typeof v;
   return res;
 };
+defGet(Anything, 'help',  function () {
+  return this.description;
+});
 })();
 (function(){"use strict";function s(name, parent, description, ){
   const value = Object.freeze({ _type: name });
@@ -2155,7 +2204,7 @@ M.about('Creates new array with separator between elments.')
   a.each((v, k) => res.push(v) && (k < last && res.push(separator)));
   return res;
 });
-M.about('Returns last element of array.')
+M.about('Returns last element of `a`.')
 (function last(a) {
   return a._items[a._items.length - 1];
 });

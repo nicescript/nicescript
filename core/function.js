@@ -61,8 +61,22 @@ const functionProto = {
 
   about (s) {
     return configurator({ description: s });
-  }
+  },
 };
+
+defGet(functionProto, 'help',  function () {
+  if(!nice.doc)
+    nice.doc = nice.generateDoc();
+
+  const a = [''];
+  _each(nice.doc.fs[this.name], v => {
+    a.push(v.title);
+    v.description && a.push(v.description);
+    a.push(v.source);
+    a.push('');
+  });
+  return a.join('\n');
+});
 
 const parseParams = (...a) => {
   if(!a[0])
@@ -106,7 +120,7 @@ function configurator(...a){
 
 
 //optimization: create function that don't check fist argument for type.proto
-function createFunction({ existing, name, body, source, signature, type, description }){
+function createFunction({ existing, name, body, signature, type, description }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
@@ -128,7 +142,7 @@ function createFunction({ existing, name, body, source, signature, type, descrip
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, source, f });
+      { name, body, signature, type, description, f });
   }
 
   return f;

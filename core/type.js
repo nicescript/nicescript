@@ -115,6 +115,10 @@ nice.getType = v => {
 };
 
 
+defGet(Anything, 'help',  function () {
+  return this.description;
+});
+
 
 
 

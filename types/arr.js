@@ -323,7 +323,7 @@ M.about('Creates new array with separator between elments.')
   return res;
 });
 
-M.about('Returns last element of array.')
+M.about('Returns last element of `a`.')
 (function last(a) {
   return a._items[a._items.length - 1];
 });

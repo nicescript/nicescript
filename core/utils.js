@@ -212,6 +212,41 @@ defAll(nice, {
       return result = f.apply(this);
     };
   },
+
+  argumentNames (f) {
+    const s = '' + f;
+
+    const a = s.split('=>');
+    if(a.length > 1 && !a[0].includes('(')){
+      const s = a[0].trim();
+      if(/^[$A-Z_][0-9A-Z_$]*$/i.test(s))
+        return [s];
+    }
+
+    let depth = 0;
+    let lastEnd = 0;
+    const res = [];
+    for(let k in s) {
+      const v = s[k];
+      k = +k;
+      if(v === '(') {
+        depth++;
+        depth === 1 && (lastEnd = k);
+      } else if (v === ','){
+        if(depth === 1){
+          res.push(s.substring(lastEnd + 1, k).trim());
+          lastEnd = k;
+        }
+      } else if( v === ')' ){
+        depth--;
+        if(depth === 0) {
+          res.push(s.substring(lastEnd + 1, k).trim());
+          break;
+        }
+      }
+    };
+    return res;
+  }
 });
 
 defAll(nice, {
@@ -238,21 +273,30 @@ defAll(nice, {
 
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
 
-  doc () {
-    const res = { types: {}, functions: [] };
+  generateDoc () {
+    const res = { types: {}, functions: [], fs: {} };
 
     reflect.on('signature', s => {
-      if(!s.name || s.name[0] === '_')
+      if(!s.name || s.name[0] === '_' || typeof s.name !== 'string')
         return;
 
       const o = {};
+      o.source = '' + s.body;
 
-      _each(s, (v, k) => nice.Switch(k)
-        .equal('body').use(() => o.source = v.toString())
+      const args = nice.argumentNames(o.source || '');
+      const types = s.signature.map(v => v.type.name);
+      types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
+      o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
+      o.description = s.description;
+      o.type = s.type
+
+/*      _each(s, (v, k) => nice.Switch(k)
+        //.equal('body').use(() => o.source = v.toString())
 //        .equal('source').use(() => o.source = v.toString())
-        .equal('signature').use(() => o[k] = v.map(t => t.type.name))
-        .default.use(() => o[k] = v));
+        //.equal('signature').use(() => o[k] = v.map(t => t.type.name))
+        .default.use(() => o[k] = ''+v));*/
       res.functions.push(o);
+      (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
     });
 
 

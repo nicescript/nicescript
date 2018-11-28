@@ -55,4 +55,4 @@ fs.writeFileSync(
 );
 
 const nice = require('./index.js')();
-fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.doc()));
+fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.generateDoc()));
