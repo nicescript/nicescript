@@ -1952,8 +1952,7 @@ nice.Type({
 (function(){"use strict";nice.Type({
   name: 'Single',
   extends: nice.Value,
-  proto: {
-  }
+  proto: {}
 }).about('Parent type for all non composite types.');
 reflect.on('Type', type => {
   def(nice.Single.configProto, type.name, () => {
@@ -2827,7 +2826,7 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
       ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol') ? nice.Li(nice.$1) : (v => v)))
       : z.add(a, ...as);
   })
-    .about('Represents HTML <%s> element.', l)
+    .about('Represents HTML <%s> element.', l);
 });
 Html.extend('A').by((z, url, ...children) => {
   z.tag('a').add(...children);

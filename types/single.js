@@ -3,9 +3,8 @@ nice.Type({
 
   extends: nice.Value,
 
-  proto: {
-  }
-}).about('Parent type for all non composite types.');
+  proto: {}
+}).about('Parent type for all single value types.');
 
 
 reflect.on('Type', type => {
