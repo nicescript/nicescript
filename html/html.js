@@ -52,35 +52,6 @@ nice.Type('Html')
     });
     return z;
   })
-  .Action
-    .about('Map provided Obj with provided function and add result as children.')
-      .Obj('mapChildren', (z, o, f) => {
-        const positions = {};
-        o.listen({
-            onRemove: (v, k) => z.children.remove(positions[k]),
-            onAdd: (v, k) => {
-              const i = o.isArr() ? k : Object.keys(o()).indexOf(k);
-              positions[k] = i;
-              z.children.insertAt(i, f(v, k));
-            }
-          }, z.children);
-      })
-  .Action
-    .about('Map provided Object with provided function and add result as children.')
-      .Object('mapChildren', (z, o, f) => {
-        nice._each(o, (v, k) => z.add(f(v, k)));
-      })
-  .Action
-    .about('Map provided array with provided function and add result as children.')
-      .Arr('mapChildren', (z, a, f) => {
-        a.listen({
-          onRemove: (v, k) => z.children.removeAt(k),
-          onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-        }, z.children);
-      })
-  .Action
-    .about('Map provided array with provided function and add result as children.')
-      .Array('mapChildren', (z, a, f) => a.forEach((v, k) => z.add(f(v, k))))
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {

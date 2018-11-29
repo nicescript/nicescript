@@ -56,11 +56,9 @@ describe("Html", function() {
     expect(div.html).to.equal('<li><b>qwe</b></li>');
   });
 
-  it("insert Html mapChildren", function() {
-    const li = Html('li');
+  it("mapChildren", function() {
     const a = Obj({'qwe':1, 'asd':2});
-    li.mapChildren(a, (v, k) => k + v);
-    expect(li.html).to.equal('<li>qwe1asd2</li>');
+    expect(Div(a, (v, k) => k + v).html).to.equal('<div>qwe1asd2</div>');
   });
 
 

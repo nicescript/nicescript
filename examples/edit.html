@@ -27,7 +27,7 @@ let n = 0;
 const nextName = () => 'Block' + n++; 
 
 const menu = Div().b('Types:').backgroundColor('#eee').padding('1rem .5rem')
-    .mapChildren(initData.types, (v, k) => A(() => '', k).display('block'));
+    .div(initData.types, (v, k) => A(() => '', k).display('block'));
 
 const exampleInputs = nice.Arr("Hello");
 const currentInput = Str(exampleInputs.get(0));
@@ -39,13 +39,13 @@ const exampleInput = Input().value('Hello!');
 const editPane = Div().margin('1rem')
   .H3('Input names:').title('Blocks input names.').up.add(argsInput)
   .h3('Example input:')
-    .Div().mapChildren(exampleInputs, s => {
+    .div(exampleInputs, s => {
         const input = Input().value(s);
         input.value.listen(v => currentInput(v));
         return P(input)
           .padding('0 1rem')
           .on('click', () => currentInput(input.value()));
-      }).up
+      })
     .P().a(() => exampleInputs.push(''), 'Add').up
   .h3('Code:').add(codeInput);
 

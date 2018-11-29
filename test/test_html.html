@@ -8,7 +8,7 @@
   <body>
 <script>
 "use strict";
-const { Box, Div, Span, H1, H2, H3, B, I, A, next } = nice;
+const { Box, RBox, Div, Span, H1, H2, H3, B, I, A, Ol, next } = nice;
  
 const counter = Box(0).interval(next, 1000);
 const counter2 = Box(0).interval(next, 500);
@@ -58,13 +58,13 @@ const c = nice.Checkbox(true);
 Div(c, RBox(c.checked, c => Span(c ? 'Yes' : 'No'))).show();
 
 
-
 H3('Textarea').show();
 const text = nice.Textarea('qewqweqwqw');
 text.show();
 RBox(text.value, s => Div().I('Length: ', s.length)).show();
-nice.isStr('');
-nice.isStr('qwe');
+
+H3('Ordered list of a, b').show();
+Ol(['a','b']).show();
 
 </script>
   
