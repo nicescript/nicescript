@@ -23,6 +23,7 @@ const order = [
   'core/value',
   'types/obj',
   'types/box',
+  'types/rbox',
   'types/err',
   'types/single',
   'types/arr',

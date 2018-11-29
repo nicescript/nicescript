@@ -2,7 +2,7 @@ let nice = require('../index.js')();
 let chai = require('chai');
 chai.use(require('chai-spies'));
 let expect = chai.expect;
-const { Num, Obj, is, Box } = nice;
+const { Num, Obj, is, Box, RBox } = nice;
 
 describe("Observable", function() {
 
@@ -85,9 +85,9 @@ describe("Observable", function() {
   });
 
 
-  it("Box.by", function(){
+  it("RBox", function(){
     const n = Num();
-    const n2 = Box.by(n, x => x() * 2);
+    const n2 = RBox(n, x => x() * 2);
     let res;
     n2.listen(v => res = v);
     expect(res).to.equal(0);
@@ -327,7 +327,7 @@ describe("Observable", function() {
 //  it("single time", function(){
 //    let f = z => { spy(); return 15; };
 //    let spy = chai.spy();
-//    let v = Box.by(f);
+//    let v = RBox(f);
 //
 //    expect(v()).to.equal(15);
 //    expect(spy).to.have.been.called.once();

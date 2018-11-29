@@ -50,7 +50,7 @@ const functionsPane = Div(H2('Functions').padding('1rem'));
 const functions = [];
 const functionType = Box('All');
 
-Box.by(functionType, t => Span(
+RBox(functionType, t => Span(
   ['All', 'Check', 'Mapping', 'Action'].map(v => 
       (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
 ).margin('.5rem')).show();
@@ -66,7 +66,7 @@ const functionView = f => Div().padding('1rem')
 
 const start = Date.now();
             
-Box.by(functionType, search.value, (type, q) => Div(functions
+RBox(functionType, search.value, (type, q) => Div(functions
     .filter(f => (type === 'All' || type === f.functionType) 
         && (!q || f.name.toString().includes(q)))
     .map(functionView))).listen(v => {

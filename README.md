@@ -24,7 +24,7 @@ const taskView = t => Div(t)
   .borderRadius('.5em')
   .backgroundColor('#DEF');
 
-Box.by(tasks, ts => Div(ts.map(decorate).map(taskView))).show();
+RBox(tasks, ts => Div(ts.map(decorate).map(taskView))).show();
 
 tasks.push('Walk the dog', 'Watch tv');
 ```
@@ -261,7 +261,7 @@ b();                  // read value
 
 // create Box that follows changes in b
 const b2 = Box.use(b).by(n => n * 2);
-// short version Box.by(b, n => n * 2);
+// short version RBox(b, n => n * 2);
 b(3);                 // b2() === 6
 
 // Named inputs
@@ -314,7 +314,7 @@ const { Box, Div, Switch, Nothing } = nice;
 
 const data = Box(Nothing);
 
-const div = Box.by(data, Switch
+const div = RBox(data, Switch
       .isString.use(s => Div('Data: ', s))
       .default(Div('Loading...')));
 

@@ -1582,6 +1582,11 @@ M('get', (z, i) => {
     ? z._items[i] = type()
     : undefined;
 });
+M('getDefault', (z, i, v) => {
+  if(i._isAnything === true)
+    i = i();
+  return z._items.hasOwnProperty(i) ? z._items[i] : z._items[i] = v;
+});
 Action.Object('set', (o, i, v) => o[''+i] = v);
 A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);
@@ -1745,27 +1750,8 @@ nice.Type({
     z._value = PENDING;
     z._isReactive = false;
   },
-  itemArgs1: (z, v) => {
-    if(z._isReactive)
-      throw `This box uses subscriptions you can't change it's value.`;
-    z._setValue(v);
-  },
+  itemArgs1: (z, v) => z._setValue(v),
   initBy: (z, ...a) => a.length && z(...a),
-  initBy2: (z, ...a) => a.length && z(...a),
-  by (...inputs){
-    const res = Box();
-    res._by = inputs.pop();
-    res._subscriptions = [];
-    res._value = nice.NeedComputing();
-    res._isReactive = true;
-    inputs.forEach(s => {
-      if(s.__proto__ === Promise.prototype)
-        s = Box().follow(s);
-      expect(s.listen, `Bad source`).toBe();
-      res._subscriptions.push(s);
-    });
-    return res;
-  },
   async (f){
     const b = Box();
     b._asyncBy = f;
@@ -1773,7 +1759,57 @@ nice.Type({
     return b;
   },
   proto: {
-    follow (s){
+    interval (f, t = 200) {
+      setInterval(() => this.setState(f(this._value)), t);
+      return this;
+    },
+    timeout (f, t = 200) {
+      setTimeout(() => f(this), t);
+      return this;
+    },
+    setState (v){
+      if(v === undefined)
+        throw `Can't set result of the box to undefined.`;
+      if(v === this)
+        throw `Can't set result of the box to box itself.`;
+      while(v && v._up_)
+        v = v._up_;
+      if(this._value !== v) {
+        this.transactionStart();
+        this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
+        this._value = v;
+        this.transactionEnd();
+      }
+      return this._value;
+    },
+    _notificationValue () {
+      let res = this._value;
+      return res && res._notificationValue ? res._notificationValue() : res;
+    },
+    _isHot (){
+      return this._transactionDepth
+        || (this._subscribers && this._subscribers.size);
+    },
+    _isResolved (){
+      return !nice.isPending(this._value) && !nice.isNeedComputing(this._value);
+    },
+    lock (){
+      this._locked = true;
+      return this;
+    },
+    unlock (){
+      this._locked = false;
+      return this;
+    },
+    error (e) {
+      return this.setState(is.Err(e) ? e : nice.Err(e));
+    },
+    getPromise () {
+      return new Promise((resolve, reject) => {
+        this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
+      });
+    },
+        follow (s){
       if(s.__proto__ === Promise.prototype) {
         this.doCompute = () => {
           this.transactionStart();
@@ -1790,14 +1826,6 @@ nice.Type({
       }
       this._value = NEED_COMPUTING;
       this._isHot() && this.compute();
-      return this;
-    },
-    interval (f, t = 200) {
-      setInterval(() => this.setState(f(this._value)), t);
-      return this;
-    },
-    timeout (f, t = 200) {
-      setTimeout(() => f(this), t);
       return this;
     },
     doCompute (){
@@ -1854,58 +1882,12 @@ nice.Type({
       while(v && v._up_)
         v = v._up_;
       this._value = v;
-    },
-    setState (v){
-      if(v === undefined)
-        throw `Can't set result of the box to undefined.`;
-      if(v === this)
-        throw `Can't set result of the box to box itself.`;
-      while(v && v._up_)
-        v = v._up_;
-      if(this._value !== v) {
-        this.transactionStart();
-        this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
-        this._value = v;
-        this.transactionEnd();
-      }
-      return this._value;
-    },
-    _notificationValue () {
-      let res = this._value;
-      return res && res._notificationValue ? res._notificationValue() : res;
-    },
-    _isHot (){
-      return this._transactionDepth
-        || (this._subscribers && this._subscribers.size);
-    },
-    _isResolved (){
-      return !nice.isPending(this._value) && !nice.isNeedComputing(this._value);
-    },
-    lock (){
-      this._locked = true;
-      return this;
-    },
-    unlock (){
-      this._locked = false;
-      return this;
-    },
-    error (e) {
-      return this.setState(is.Err(e) ? e : nice.Err(e));
-    },
-    getPromise () {
-      return new Promise((resolve, reject) => {
-        this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
-      });
     }
   }
 })
   .ReadOnly('jsValue', ({_value}) => _value._isAnything ? _value.jsValue : _value)
-  .about('Observable component for declarative style programming.');
+  .about('Observable component.');
 Box = nice.Box;
-const F = Func.Box;
-function diffConverter(v){
-  return is.Value(v) ? v._getResult() : v;
-}
 def(nice, 'resolveChildren', (v, f) => {
   if(!v)
     return f(v);
@@ -1926,6 +1908,30 @@ def(nice, 'resolveChildren', (v, f) => {
     f(v);
   }
 });
+})();
+(function(){"use strict";const PENDING = nice.Pending(), NEED_COMPUTING = nice.NeedComputing();
+nice.Type({
+  name: 'RBox',
+  extends: 'Box',
+  itemArgs1: () => {
+    throw `This box uses subscriptions you can't change it's value.`;
+  },
+  initBy: (z, ...inputs) => {
+    z._by = inputs.pop();
+    z._subscriptions = [];
+    z._value = NEED_COMPUTING;
+    z._isReactive = true;
+    inputs.forEach(s => {
+      if(s.__proto__ === Promise.prototype)
+        s = Box().follow(s);
+      expect(s.listen, `Bad source`).toBe();
+      z._subscriptions.push(s);
+    });
+    return z;
+  },
+  proto: {}
+})
+  .about('Reactive observable component.');
 })();
 (function(){"use strict";nice.Type({
   name: 'Err',

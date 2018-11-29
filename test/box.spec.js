@@ -2,7 +2,7 @@ let nice = require('../index.js')();
 let chai = require('chai');
 chai.use(require('chai-spies'));
 let expect = chai.expect;
-const { Box, is, Num, Arr } = nice;
+const { Box, RBox, is, Num, Arr } = nice;
 
 describe("Box", function() {
 
@@ -40,7 +40,7 @@ describe("Box", function() {
   it("listen reactive unique", function(){
     const spy = chai.spy();
     const a = Num();
-    const b = Box.by(a, n => n / 2 | 0);
+    const b = RBox(a, n => n / 2 | 0);
     b.listen(spy);
     a(1);
     expect(spy).to.have.been.called.once();
@@ -50,7 +50,7 @@ describe("Box", function() {
   it("listen reactive unique", function(){
     const spy = chai.spy();
     const a = Num();
-    const b = Box.by(a, n => n / 2 | 0);
+    const b = RBox(a, n => n / 2 | 0);
     b.listen(spy);
     a(1);
     expect(spy).to.have.been.called.once();
@@ -245,7 +245,7 @@ describe("Box", function() {
 
 
   it("resolve children 2", function(done){
-    let a = Box.by(() => 2);
+    let a = RBox(() => 2);
 
     nice.resolveChildren(Arr(1, a), function (v) {
       expect(v.jsValue).to.deep.equal([1, 2]);
@@ -297,7 +297,7 @@ describe("Box", function() {
 //  it("single time", function(){
 //    let f = z => { spy(); return 15; };
 //    let spy = chai.spy();
-//    let v = Box.by(f);
+//    let v = RBox(f);
 //
 //    expect(v()).to.equal(15);
 //    expect(spy).to.have.been.called.once();

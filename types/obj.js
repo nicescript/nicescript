@@ -141,6 +141,14 @@ M('get', (z, i) => {
 });
 
 
+M('getDefault', (z, i, v) => {
+  if(i._isAnything === true)
+    i = i();
+
+  return z._items.hasOwnProperty(i) ? z._items[i] : z._items[i] = v;
+});
+
+
 Action.Object('set', (o, i, v) => o[''+i] = v);
 
 A('set', (z, i, v, ...tale) => {

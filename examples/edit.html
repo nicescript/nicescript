@@ -49,7 +49,7 @@ const editPane = Div().margin('1rem')
     .P().a(() => exampleInputs.push(''), 'Add').up
   .h3('Code:').add(codeInput);
 
-const result = Box.by(currentInput, argsInput.value, codeInput.value, (curr, args, code) => {
+const result = RBox(currentInput, argsInput.value, codeInput.value, (curr, args, code) => {
   const name = nextName();
   args && (args = ',' + args);
   try {

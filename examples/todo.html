@@ -28,7 +28,7 @@ const search = Input("search").placeholder('Type to search or add tasks')
   .on('keyup', e => e.keyCode === 13 && create(e))
   .focus();
 
-const deleteButton = (state, k) => Box.by(state, Switch
+const deleteButton = (state, k) => RBox(state, Switch
   .isTrue(A(() => tasks.removeAt(k), 'x')
       .textDecoration('none').color('#E33').marginLeft('.5em')));
 
@@ -41,7 +41,7 @@ const TaskView = (task, k) => {
     .Checkbox(task.status)
       .on('change', e => tasks.get(k).status(e.target.checked))
       .up
-    .add(Box.by(task.status, s => Span(task.text || '---')
+    .add(RBox(task.status, s => Span(task.text || '---')
         .marginLeft(".5em")
         .textDecoration(s() ? 'line-through' : 'none')))
     .add(deleteButton(isHover, k));
@@ -50,9 +50,9 @@ const TaskView = (task, k) => {
 
 Div(
   search,  
-  Box.by(search.value, tasks, (s, ts) => 
+  RBox(search.value, tasks, (s, ts) => 
     Div(ts.filter(t => RegExp(s, 'i').test(t.text)).map(TaskView))),
-  Box.by(search.value, s => s && Div().padding("1em 0")
+  RBox(search.value, s => s && Div().padding("1em 0")
     .A(create, 'Add: ', s).textDecoration('none').up
     .Span(' [Enter]').color('#999').fontSize('small').up)
 ) .font("20px Arial")
