@@ -28,8 +28,8 @@ nice.registerType({
 
   description: 'Parent type for all types.',
 
-  extend (...a){
-    return nice.Type(...a).extends(this);
+  extend (name, by){
+    return nice.Type(name, by).extends(this);
   },
 
   itemArgs0: z => z._value,

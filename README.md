@@ -253,14 +253,14 @@ Besides current implementation of Switch use only first argument.
 Stateful observable components. 
 
 ```javascript
-const { Box } = nice;
+const { Box, RBox } = nice;
 const b = Box(1);       // create box with 1 in it
 b.listen(console.log) // listen for updates
 b(2);                 // write value
 b();                  // read value
 
 // create Box that follows changes in b
-const b2 = Box.use(b).by(n => n * 2);
+const b2 = RBox(b, n => n * 2);
 // short version RBox(b, n => n * 2);
 b(3);                 // b2() === 6
 

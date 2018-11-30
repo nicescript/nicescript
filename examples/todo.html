@@ -8,8 +8,7 @@
 const { Type, Arr, Div, Span, Box, Input, A, Switch } = nice;
 const KEY = 'ToDoData';
 
-const Task = Type('Task').str('text').bool('status')
-  .by((z,s) => s && z.text(s))();
+const Task = Type('Task', (z,s) => s && z.text(s)).str('text').bool('status')();
 
 const tasks = Switch(localStorage.getItem(KEY))
   .isNull.use(() => Arr(Task('Buy milk'), Task("Walk the dog")))

@@ -217,7 +217,7 @@ function each(z, f){
   const a = z._items;
   const l = a.length;
   for (let i = 0; i < l; i++)
-    if(nice.isStop(f(z.get(i), i)))
+    if(nice.isStop(f(z._items[i], i)))
       break;
 
   return z;
@@ -230,7 +230,7 @@ F.Function(function eachRight(z, f){
   const a = z._items;
   let i = a.length;
   while (i-- > 0)
-    if(nice.isStop(f(z.get(i), i)))
+    if(nice.isStop(f(a[i], i)))
       break;
 
   return z;
@@ -272,7 +272,7 @@ M.Function(function filter(a, f){
 
 
 M(function random(a){
-  return a.get(Math.random() * a.size | 0);
+  return a._items[Math.random() * a.size | 0];
 });
 
 
@@ -332,5 +332,5 @@ M.about('Returns last element of `a`.')
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
   const l = z._items.length;
-  return { next: () => ({ value: z.get(i), done: ++i > l }) };
+  return { next: () => ({ value: z._items[i], done: ++i > l }) };
 });

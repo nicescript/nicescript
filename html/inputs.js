@@ -26,41 +26,35 @@ function attachValue(target, setValue = defaultSetValue){
   return target;
 }
 
-Html.extend('Input')
-  .about('Represents HTML <input> element.')
-  .by((z, type) => {
+Html.extend('Input', (z, type) => {
     z.tag('input').attributes.set('type', type || 'text');
     attachValue(z);
-  });
+  })
+  .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
-Input.extend('Button')
-  .about('Represents HTML <input type="button"> element.')
-  .by((z, text, action) => {
+Input.extend('Button', (z, text, action) => {
     z.super('button').attributes({ value: text }).on('click', action);
-  });
+  })
+  .about('Represents HTML <input type="button"> element.');
 
 
-Input.extend('Textarea')
-  .about('Represents HTML <textarea> element.')
-  .by((z, value) => {
+Input.extend('Textarea', (z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
     z.value(value ? '' + value : "");
-  });
+  })
+  .about('Represents HTML <textarea> element.');
 
 
-Input.extend('Submit')
-  .about('Represents HTML <input type="submit"> element.')
-  .by((z, text, action) => {
+Input.extend('Submit', (z, text, action) => {
     z.super('submit').attributes({ value: text });
     action && z.on('click', action);
-  });
+  })
+  .about('Represents HTML <input type="submit"> element.');
 
 
-Input.extend('Checkbox')
-  .about('Represents HTML <input type="checkbox"> element.')
-  .by((z, status) => {
+Input.extend('Checkbox', (z, status) => {
     let node;
     z.super('checkbox').attributes({ checked: status || false });
     def(z, 'checked', Box(status || false));
@@ -79,4 +73,5 @@ Input.extend('Checkbox')
     }
 
     z.checked.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
-  });
+  })
+  .about('Represents HTML <input type="checkbox"> element.');

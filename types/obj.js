@@ -90,7 +90,7 @@ nice.Type({
 
     const f = (item, f, init) => {
       init && init(item);
-      c.each((v, k) => f(item, c.get(k), k));
+      c.each((v, k) => f(item, v, k));
       return item;
     };
 
@@ -228,7 +228,7 @@ M(function reduce(o, f, res){
 
 
 M(function mapToArray(c, f){
-  return c.reduceTo.Array((a, v, k) => a.push(f(c.get(k), k)));
+  return c.reduceTo.Array((a, v, k) => a.push(f(v, k)));
 });
 
 
@@ -244,8 +244,9 @@ Mapping.Object(function map(o, f){
 
 M(function map(c, f){
   const res = c._type();
-  for(let i in c())
-    res.set(i, f(c.get(i), i));
+  const o = c._items;
+  for(let i in o)
+    res.set(i, f(o[i], i));
   return res;
 });
 

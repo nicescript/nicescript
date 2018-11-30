@@ -2,9 +2,8 @@
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
 
-nice.Type('Html')
+nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
-  .by((z, tag) => tag && z.tag(tag))
   .str('tag', 'div')
   .obj('eventHandlers')
   .obj('cssSelectors')

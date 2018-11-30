@@ -838,8 +838,8 @@ reflect.on('Type', type => {
 nice.registerType({
   name: 'Anything',
   description: 'Parent type for all types.',
-  extend (...a){
-    return nice.Type(...a).extends(this);
+  extend (name, by){
+    return nice.Type(name, by).extends(this);
   },
   itemArgs0: z => z._value,
   itemArgs1: (z, v) => z._setValue(v),
@@ -1278,7 +1278,7 @@ defAll(nice, {
       '' + t + ' is not a type').toBe();
     return t;
   },
-  Type: (config = {}) => {
+  Type: (config = {}, by) => {
     if(nice.isString(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
@@ -1291,6 +1291,7 @@ defAll(nice, {
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
+    by === undefined || (config.initBy = by);
     const {$1,$2,$3,$4} = nice;
     const type = (...a) => {
       for(let v of a){
@@ -1546,7 +1547,7 @@ nice.jsTypes.isSubType = isSubType;
     const c = this;
     const f = (item, f, init) => {
       init && init(item);
-      c.each((v, k) => f(item, c.get(k), k));
+      c.each((v, k) => f(item, v, k));
       return item;
     };
     f.collection = c;
@@ -1643,7 +1644,7 @@ M(function reduce(o, f, res){
   return res;
 });
 M(function mapToArray(c, f){
-  return c.reduceTo.Array((a, v, k) => a.push(f(c.get(k), k)));
+  return c.reduceTo.Array((a, v, k) => a.push(f(v, k)));
 });
 Mapping.Nothing('map', () => nice.Nothing);
 Mapping.Object(function map(o, f){
@@ -1654,8 +1655,9 @@ Mapping.Object(function map(o, f){
 });
 M(function map(c, f){
   const res = c._type();
-  for(let i in c())
-    res.set(i, f(c.get(i), i));
+  const o = c._items;
+  for(let i in o)
+    res.set(i, f(o[i], i));
   return res;
 });
 M(function rMap(c, f){
@@ -1953,7 +1955,7 @@ nice.Type({
   name: 'Single',
   extends: nice.Value,
   proto: {}
-}).about('Parent type for all non composite types.');
+}).about('Parent type for all single value types.');
 reflect.on('Type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
@@ -2108,7 +2110,7 @@ function each(z, f){
   const a = z._items;
   const l = a.length;
   for (let i = 0; i < l; i++)
-    if(nice.isStop(f(z.get(i), i)))
+    if(nice.isStop(f(z._items[i], i)))
       break;
   return z;
 }
@@ -2118,7 +2120,7 @@ F.Function(function eachRight(z, f){
   const a = z._items;
   let i = a.length;
   while (i-- > 0)
-    if(nice.isStop(f(z.get(i), i)))
+    if(nice.isStop(f(a[i], i)))
       break;
   return z;
 });
@@ -2149,7 +2151,7 @@ M.Function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
 });
 M(function random(a){
-  return a.get(Math.random() * a.size | 0);
+  return a._items[Math.random() * a.size | 0];
 });
 M(function sortBy(a, f){
   f = nice.mapper(f);
@@ -2195,7 +2197,7 @@ M.about('Returns last element of `a`.')
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
   const l = z._items.length;
-  return { next: () => ({ value: z.get(i), done: ++i > l }) };
+  return { next: () => ({ value: z._items[i], done: ++i > l }) };
 });
 })();
 (function(){"use strict";nice.Single.extend({
@@ -2452,9 +2454,8 @@ Func.Num.Range(function within(v, r){
 (function(){"use strict";
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
-nice.Type('Html')
+nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
-  .by((z, tag) => tag && z.tag(tag))
   .str('tag', 'div')
   .obj('eventHandlers')
   .obj('cssSelectors')
@@ -2881,34 +2882,28 @@ function attachValue(target, setValue = defaultSetValue){
   target.value.listen(v => node ? node.value = v : setValue(target, v));
   return target;
 }
-Html.extend('Input')
-  .about('Represents HTML <input> element.')
-  .by((z, type) => {
+Html.extend('Input', (z, type) => {
     z.tag('input').attributes.set('type', type || 'text');
     attachValue(z);
-  });
+  })
+  .about('Represents HTML <input> element.');
 const Input = nice.Input;
-Input.extend('Button')
-  .about('Represents HTML <input type="button"> element.')
-  .by((z, text, action) => {
+Input.extend('Button', (z, text, action) => {
     z.super('button').attributes({ value: text }).on('click', action);
-  });
-Input.extend('Textarea')
-  .about('Represents HTML <textarea> element.')
-  .by((z, value) => {
+  })
+  .about('Represents HTML <input type="button"> element.');
+Input.extend('Textarea', (z, value) => {
     z.tag('textarea');
     attachValue(z, (t, v) => t.children.removeAll().push(v));
     z.value(value ? '' + value : "");
-  });
-Input.extend('Submit')
-  .about('Represents HTML <input type="submit"> element.')
-  .by((z, text, action) => {
+  })
+  .about('Represents HTML <textarea> element.');
+Input.extend('Submit', (z, text, action) => {
     z.super('submit').attributes({ value: text });
     action && z.on('click', action);
-  });
-Input.extend('Checkbox')
-  .about('Represents HTML <input type="checkbox"> element.')
-  .by((z, status) => {
+  })
+  .about('Represents HTML <input type="submit"> element.');
+Input.extend('Checkbox', (z, status) => {
     let node;
     z.super('checkbox').attributes({ checked: status || false });
     def(z, 'checked', Box(status || false));
@@ -2924,5 +2919,6 @@ Input.extend('Checkbox')
       z.on('domNode', n => node = n);
     }
     z.checked.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
-  });
+  })
+  .about('Represents HTML <input type="checkbox"> element.');
 })();;})();; return nice;}

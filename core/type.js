@@ -19,7 +19,7 @@ defAll(nice, {
     return t;
   },
 
-  Type: (config = {}) => {
+  Type: (config = {}, by) => {
     if(nice.isString(config)){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
@@ -34,6 +34,7 @@ defAll(nice, {
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
+    by === undefined || (config.initBy = by);
 
     const {$1,$2,$3,$4} = nice;
     const type = (...a) => {
