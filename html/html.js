@@ -191,10 +191,10 @@ function compileSelectors (h){
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 
-nice.ReadOnly.Box('html', ({_value}) => _value && _value._isAnything
-    ? _value.html : '' + _value);
-nice.ReadOnly.Single('html', z => '' + z._value);
-nice.ReadOnly.Arr('html', z => z._items.map(v => v.html));
+const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
+nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
+nice.ReadOnly.Single('html', z => _html(z._value));
+nice.ReadOnly.Arr('html', z => z._items.map(_html).join(''));
 
 function html(z){
   const a = [compileSelectors(z), '<', z.tag() ];
