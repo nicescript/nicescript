@@ -3,15 +3,20 @@ const configProto = {
     const c = Configurator(this.name || o.name);
 
     c.signature = (this.signature || []).concat(o.signature || []);
-    c.existing = o.existing || this.existing;
-    c.functionType = o.functionType || this.functionType;
-    c.returnValue = o.returnValue || this.returnValue;
-    c.description = o.description || this.description;
+    ['existing', 'functionType', 'returnValue', 'description', 'tests']
+      .forEach(k => c[k] = o[k] || this[k]);
 
     return c;
   },
 
-  about (s) { return this.next({ description: s}); }
+  about (s) { return this.next({ description: s}); },
+
+  test (s, f) {
+    return this.next({ tests: this.tests.concat([{
+      body: f || s,
+      description: f ? s : ''
+    }])});
+  },
 };
 
 const functionProto = {
@@ -59,6 +64,13 @@ const functionProto = {
   about (s) {
     return configurator({ description: s });
   },
+
+  test (s, f) {
+    return configurator({ tests: this.tests.concat([{
+      body: f || s,
+      description: f ? s : ''
+    }])});
+  },
 };
 
 defGet(functionProto, 'help',  function () {
@@ -99,12 +111,15 @@ function Configurator(name){
       existing: z.existing,
       name: z.name || name,
       body: body || z.body,
-      signature: (z.signature || []).concat(signature || [])
+      signature: (z.signature || []).concat(signature || []),
+      tests : z.tests
     });
     return z.returnValue || res;
   });
 
   nice.rewriteProperty(z, 'name', name || '');
+
+  z.tests = [];
 
   return z;
 }
@@ -117,7 +132,7 @@ function configurator(...a){
 
 
 //optimization: create function that don't check fist argument for type.proto
-function createFunction({ existing, name, body, signature, type, description }){
+function createFunction({ existing, name, body, signature, type, description, tests }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
@@ -139,7 +154,7 @@ function createFunction({ existing, name, body, signature, type, description }){
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, f });
+      { name, body, signature, type, description, f, tests });
   }
 
   return f;
@@ -322,4 +337,28 @@ reflect.on('Type', type => {
     defGet(type.proto, name, function() { return f(this); } );
     return this;
   };
+});
+
+
+def(nice, 'runTests', () => {
+  console.log('');
+  console.log(' \x1b[34mRunning tests\x1b[0m');
+  console.log('');
+  let good = 0, bad = 0, start = Date.now();;
+  nice.reflect.on('signature', s => {
+    s.tests.forEach(t => {
+      try {
+        t.body(s.body);
+        good++;
+      } catch (e) {
+        bad ++;
+        console.log(' ', s.name, t.description);
+        console.error('  ', e);
+      }
+    });
+  });
+  console.log(' ');
+  console.log(bad ? '\x1b[31m' : '\x1b[32m',
+    `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
+  console.log('');
 });

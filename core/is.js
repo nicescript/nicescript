@@ -37,6 +37,9 @@ const basicChecks = {
 
     return a === b;
   },
+  deepEqual (a, b) {
+    return nice.diff(a, b) === false;
+  },
   isTrue: v => v === true,
   isFalse: v => v === false,
   isAnyOf: (v, ...vs) => vs.includes(v),

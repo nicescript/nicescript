@@ -201,7 +201,7 @@ defAll(nice, {
     let i = 0;
     while(i++ < times) f();
     const res = Date.now() - start
-    console.log('Test took ', res);
+    console.log('Test took', res, 'ms');
     return res;
   },
 });
@@ -555,13 +555,17 @@ nice.jsBasicTypes = {
   next (o) {
     const c = Configurator(this.name || o.name);
     c.signature = (this.signature || []).concat(o.signature || []);
-    c.existing = o.existing || this.existing;
-    c.functionType = o.functionType || this.functionType;
-    c.returnValue = o.returnValue || this.returnValue;
-    c.description = o.description || this.description;
+    ['existing', 'functionType', 'returnValue', 'description', 'tests']
+      .forEach(k => c[k] = o[k] || this[k]);
     return c;
   },
-  about (s) { return this.next({ description: s}); }
+  about (s) { return this.next({ description: s}); },
+  test (s, f) {
+    return this.next({ tests: this.tests.concat([{
+      body: f || s,
+      description: f ? s : ''
+    }])});
+  },
 };
 const functionProto = {
   addSignature (body, signature, name){
@@ -606,6 +610,12 @@ const functionProto = {
   about (s) {
     return configurator({ description: s });
   },
+  test (s, f) {
+    return configurator({ tests: this.tests.concat([{
+      body: f || s,
+      description: f ? s : ''
+    }])});
+  },
 };
 defGet(functionProto, 'help',  function () {
   if(!nice.doc)
@@ -637,18 +647,20 @@ function Configurator(name){
       existing: z.existing,
       name: z.name || name,
       body: body || z.body,
-      signature: (z.signature || []).concat(signature || [])
+      signature: (z.signature || []).concat(signature || []),
+      tests : z.tests
     });
     return z.returnValue || res;
   });
   nice.rewriteProperty(z, 'name', name || '');
+  z.tests = [];
   return z;
 }
 function configurator(...a){
   const cfg = parseParams(...a);
   return Configurator(cfg.name).next(cfg);
 };
-function createFunction({ existing, name, body, signature, type, description }){
+function createFunction({ existing, name, body, signature, type, description, tests }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
@@ -667,7 +679,7 @@ function createFunction({ existing, name, body, signature, type, description }){
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, f });
+      { name, body, signature, type, description, f, tests });
   }
   return f;
 };
@@ -812,6 +824,28 @@ reflect.on('Type', type => {
     return this;
   };
 });
+def(nice, 'runTests', () => {
+  console.log('');
+  console.log(' \x1b[34mRunning tests\x1b[0m');
+  console.log('');
+  let good = 0, bad = 0, start = Date.now();;
+  nice.reflect.on('signature', s => {
+    s.tests.forEach(t => {
+      try {
+        t.body(s.body);
+        good++;
+      } catch (e) {
+        bad ++;
+        console.log(' ', s.name, t.description);
+        console.error('  ', e);
+      }
+    });
+  });
+  console.log(' ');
+  console.log(bad ? '\x1b[31m' : '\x1b[32m',
+    `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
+  console.log('');
+});
 })();
 (function(){"use strict";defAll(nice, {
   _newItem: (type) => {
@@ -930,6 +964,9 @@ const basicChecks = {
     if(b && b._isAnything  && '_value' in b)
       b = b._value;
     return a === b;
+  },
+  deepEqual (a, b) {
+    return nice.diff(a, b) === false;
   },
   isTrue: v => v === true,
   isFalse: v => v === false,
@@ -1153,7 +1190,7 @@ function DealyedSwitch(...a) {
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
-      throw this.message || (f.name + ' expected');
+      throw this.message || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
     return nice.Ok();
   });
 });
@@ -2266,7 +2303,12 @@ log10
 log2
 log1pexpm1`.split('\n').forEach(k =>
   M.about('Delegates to Math.' + k)(k, (n, ...a) => Math[k](n, ...a)));
-M('clamp', (n, min, max) => {
+M.test(clamp => {
+  expect(clamp(0, 1, 3)).equal(1);
+  expect(clamp(2, 1, 3)).equal(2);
+  expect(clamp(10, 1, 3)).equal(3);
+})
+('clamp', (n, min, max) => {
   if(max === undefined){
     max = min;
     min = 0;
@@ -2277,7 +2319,10 @@ M('clamp', (n, min, max) => {
       ? max
       : n;
 });
-M.Function('times', (n, f) => {
+M.test(times => {
+  expect(times(2, () => 1)).deepEqual([1,1]);
+})
+.Function('times', (n, f) => {
   let i = 0;
   const res = [];
   while(i < n) res.push(f(i++));

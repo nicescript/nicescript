@@ -29,7 +29,7 @@ def(nice, 'expectPrototype', {
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
-      throw this.message || (f.name + ' expected');
+      throw this.message || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
     return nice.Ok();
   });
 });

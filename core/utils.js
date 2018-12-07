@@ -101,7 +101,7 @@ defAll(nice, {
     let i = 0;
     while(i++ < times) f();
     const res = Date.now() - start
-    console.log('Test took ', res);
+    console.log('Test took', res, 'ms');
     return res;
   },
 

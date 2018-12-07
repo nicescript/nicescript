@@ -75,7 +75,12 @@ log1pexpm1`.split('\n').forEach(k =>
   M.about('Delegates to Math.' + k)(k, (n, ...a) => Math[k](n, ...a)));
 
 
-M('clamp', (n, min, max) => {
+M.test(clamp => {
+  expect(clamp(0, 1, 3)).equal(1);
+  expect(clamp(2, 1, 3)).equal(2);
+  expect(clamp(10, 1, 3)).equal(3);
+})
+('clamp', (n, min, max) => {
   if(max === undefined){
     max = min;
     min = 0;
@@ -87,7 +92,10 @@ M('clamp', (n, min, max) => {
       : n;
 });
 
-M.Function('times', (n, f) => {
+M.test(times => {
+  expect(times(2, () => 1)).deepEqual([1,1]);
+})
+.Function('times', (n, f) => {
   let i = 0;
   const res = [];
   while(i < n) res.push(f(i++));

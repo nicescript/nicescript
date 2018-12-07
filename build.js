@@ -56,4 +56,7 @@ fs.writeFileSync(
 );
 
 const nice = require('./index.js')();
+
+nice.runTests();
+
 fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.generateDoc()));
