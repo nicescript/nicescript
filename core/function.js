@@ -172,10 +172,13 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
   }
 });
 
+//nice.callLog = {};
 
 function createFunctionBody(functionType){
   const {$1,$2,$3,$4} = nice;
   const z = create(functionProto, (...args) => {
+//    nice.callLog[z.name] = nice.callLog[z.name] || 0;
+//    nice.callLog[z.name]++;
     for(let a of args){
       if(a === $1 || a === $2 || a === $3 || a === $4)
         return skip(z, args);

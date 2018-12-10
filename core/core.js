@@ -151,6 +151,7 @@ defAll(nice, {
 
     nice.types[name] = type;
     def(nice, name, type);
+    def(type.proto, '_is' + name, true);
     reflect.emitAndSave('Type', type);
   },
 

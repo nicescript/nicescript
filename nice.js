@@ -89,6 +89,7 @@ defAll(nice, {
       nice.error('Please start type name with a upper case letter');
     nice.types[name] = type;
     def(nice, name, type);
+    def(type.proto, '_is' + name, true);
     reflect.emitAndSave('Type', type);
   },
   _each: (o, f) => {
@@ -989,8 +990,8 @@ const basicChecks = {
     return !v;
   },
   isSubType: (a, b) => {
-    nice.isString(a) && (a = nice.Type(a));
-    nice.isString(b) && (b = nice.Type(b));
+    typeof a === 'string' && (a = nice.Type(a));
+    typeof b === 'string' && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
   isEnvBrowser: () => typeof window !== 'undefined'
@@ -1511,7 +1512,7 @@ defGet(nice.Value.configProto, function Method() {
   })
 );
 function isSubType(t){
-  nice.isString(t) && (t = nice.Type(t));
+  typeof t === 'string' && (t = nice.Type(t));
   return t === this || t.isPrototypeOf(this);
 };
 nice.jsTypes.isSubType = isSubType;
@@ -1769,8 +1770,6 @@ reflect.on('Type', type => {
     as.length && (targetType.defaultArguments[name] = as);
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
-      if(!nice.isSubType(res._type, type))
-        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
       return res;
     });
     reflect.emitAndSave('Property', { type, name, targetType });
@@ -2557,7 +2556,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return c.each(_c => z.add(_c));
       if(c === undefined || c === null)
         return;
-      if(nice.isString(c) || nice.isStr(c))
+      if(typeof c === 'string' || nice.isStr(c))
         return z.children(c);
       if(nice.isNumber(c) || nice.isNum(c))
         return z.children(c);
@@ -2648,8 +2647,9 @@ function text(z){
       .jsValue.join('');
 };
 function compileStyle (s){
-  const a = [];
-  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
+  let a = [];
+  for(let k in s._items)
+    a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + s._items[k]);
   return a.join(';');
 };
 function compileSelectors (h){
@@ -2663,17 +2663,19 @@ nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
 nice.ReadOnly.Single('html', z => _html(z._value));
 nice.ReadOnly.Arr('html', z => z._items.map(_html).join(''));
 function html(z){
-  const a = [compileSelectors(z), '<', z.tag() ];
-  const style = compileStyle(z.style);
-  style && a.push(" ", 'style="', style, '"');
+  const tag = z.tag();
+  const selectors = compileSelectors(z) || '';
+  let as = '';
+  let style = compileStyle(z.style);
+  style && (as = ' style="' + style + '"');
   z.attributes.each((v, k) => {
     k === 'className' && (k = 'class', v = v.trim());
-    a.push(" ", k , '="', v, '"');
+    as += ` ${k}="${v}"`;
   });
-  a.push('>');
-  z.children.each(c => a.push(c._isAnything ? c.html : c));
-  a.push('</', z.tag(), '>');
-  return a.join('');
+  let body = '';
+  for(let c of z.children._items)
+    body += c._isAnything ? c.html : c;
+  return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 defAll(nice, {
   htmlEscape: s => (''+s).replace(/&/g, '&amp;')

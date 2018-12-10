@@ -64,7 +64,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(c === undefined || c === null)
         return;
 
-      if(nice.isString(c) || nice.isStr(c))
+      if(typeof c === 'string' || nice.isStr(c))
         return z.children(c);
 
       if(nice.isNumber(c) || nice.isNum(c))
@@ -179,8 +179,9 @@ function text(z){
 
 
 function compileStyle (s){
-  const a = [];
-  s.each((v, k) => a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
+  let a = [];
+  for(let k in s._items)
+    a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + s._items[k]);
   return a.join(';');
 };
 
@@ -197,21 +198,22 @@ nice.ReadOnly.Single('html', z => _html(z._value));
 nice.ReadOnly.Arr('html', z => z._items.map(_html).join(''));
 
 function html(z){
-  const a = [compileSelectors(z), '<', z.tag() ];
-  const style = compileStyle(z.style);
-  style && a.push(" ", 'style="', style, '"');
+  const tag = z.tag();
+  const selectors = compileSelectors(z) || '';
+  let as = '';
+  let style = compileStyle(z.style);
+  style && (as = ' style="' + style + '"');
 
   z.attributes.each((v, k) => {
     k === 'className' && (k = 'class', v = v.trim());
-    a.push(" ", k , '="', v, '"');
+    as += ` ${k}="${v}"`;
   });
 
-  a.push('>');
+  let body = '';
+  for(let c of z.children._items)
+    body += c._isAnything ? c.html : c;
 
-  z.children.each(c => a.push(c._isAnything ? c.html : c));
-
-  a.push('</', z.tag(), '>');
-  return a.join('');
+  return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 
 

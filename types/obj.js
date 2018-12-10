@@ -383,8 +383,10 @@ reflect.on('Type', type => {
     defGet(targetType.proto, name, function(){
       const res = this.get(name);
 
-      if(!nice.isSubType(res._type, type))
-        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
+//  slows everything but only actual when data was set externaly
+//  could be enabled with debug option
+//      if(!nice.isSubType(res._type, type))
+//        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
 
       return res;
     });

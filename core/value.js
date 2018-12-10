@@ -60,7 +60,7 @@ defGet(nice.Value.configProto, function Method() {
 
 
 function isSubType(t){
-  nice.isString(t) && (t = nice.Type(t));
+  typeof t === 'string' && (t = nice.Type(t));
   return t === this || t.isPrototypeOf(this);
 };
 nice.jsTypes.isSubType = isSubType;

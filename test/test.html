@@ -14,24 +14,14 @@ const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
 var o = {qwe:1,asd:2};
 
-//var a = nice.get(o, nice).sum(33);
-var b = nice.get(o, nice.$1).sum(33);
-
-const f = (o, k) => o[k] + 33;   
-//nice.speedTest(() => {
-//  var res = a('asd');
-//}, 1000000);
+var b = Div().color('red')
+  .A('qwe', 'azxccc').textDecoration('underline').fontSize('44px').up
+  .div('qw;qej wefjw g org');
 
 nice.speedTest(() => {
-  var res = b('asd');
-}, 1000000);
+  var res = b.html;
+}, 100000);
 
-//nice.speedTest(() => {
-//  var res = nice.getType({});
-//}, 10000000);
-//
-Html.extend('User').by((z, name) => z.add('User: ', name));
-  console.log(B());
 
 </script>
   

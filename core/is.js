@@ -65,8 +65,8 @@ const basicChecks = {
     return !v;
   },
   isSubType: (a, b) => {
-    nice.isString(a) && (a = nice.Type(a));
-    nice.isString(b) && (b = nice.Type(b));
+    typeof a === 'string' && (a = nice.Type(a));
+    typeof b === 'string' && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
 
