@@ -2590,19 +2590,23 @@ def(Html.proto, 'Css', function(s = ''){
   this.cssSelectors.set(s, style);
   return style;
 });
+function addCreator(type){
+  def(Html.proto, type.name, function (...a){
+    const res = type(...a);
+    this.add(res);
+    return res;
+  });
+  const _t = nice._decapitalize(type.name);
+  Html.proto[_t] || def(Html.proto, _t, function (...a){
+    return this.add(type(...a));
+  });
+}
 reflect.on('Extension', ({child, parent}) => {
   if(parent === Html || Html.isPrototypeOf(parent)){
-    def(Html.proto, child.name, function (...a){
-      const res = child(...a);
-      this.add(res);
-      return res;
-    });
-    const _t = nice._decapitalize(child.name);
-    Html.proto[_t] || def(Html.proto, _t, function (...a){
-      return this.add(child(...a));
-    });
+    addCreator(child);
   }
 });
+addCreator(nice.RBox);
 Html.proto.Box = function(...a) {
   const res = Box(...a);
   res.up = this;
