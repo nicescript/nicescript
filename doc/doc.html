@@ -92,11 +92,7 @@ const functionView = f => Div().padding('1rem')
     .I(f.functionType).color('#666').marginLeft('1rem').up
     .up
   .p(...highlightText(f.description || '', /`.*?`/g, inlineJS))
-  .apply(addTests(f.tests))
-//  .Div(f.action && f.action.toString()).whiteSpace('pre').up
-//  .div(f.signature && f.signature.length
-//      && (name += ' (' + f.signature.join(', ') + ')'));
-  ;
+  .apply(addTests(f.tests));
 
 const start = Date.now();
             
@@ -105,15 +101,6 @@ RBox(functionType, search.value, (type, q) => {
   return Div(doc.functions.filter(f => (type === 'All' || type === f.type) 
         && (!q || f.title.toString().toLowerCase().includes(q))), functionView)
 }).show();
-//    .filter(f => (type === 'All' || type === f.functionType) 
-//        && (!q || f.name.toString().includes(q)))
-//    .map(functionView)))
-//    .listen(v => {
-//      console.log('TOOK: ', (Date.now() - start));
-//      v.html;
-//      console.log('TOOK2: ', (Date.now() - start));
-//    });
-
 
 </script>
   </body>

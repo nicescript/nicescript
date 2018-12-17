@@ -19,9 +19,9 @@ nice.generateDoc = () => {
     o.type = s.type
 
 /*      _each(s, (v, k) => nice.Switch(k)
-      //.equal('body').use(() => o.source = v.toString())
-//        .equal('source').use(() => o.source = v.toString())
-      //.equal('signature').use(() => o[k] = v.map(t => t.type.name))
+      //.is('body').use(() => o.source = v.toString())
+//        .is('source').use(() => o.source = v.toString())
+      //.is('signature').use(() => o[k] = v.map(t => t.type.name))
       .default.use(() => o[k] = ''+v));*/
     res.functions.push(o);
     (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;

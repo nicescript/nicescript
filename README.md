@@ -15,8 +15,8 @@ const { Box, Div, B, Switch } = nice;
 const tasks = Box(['Feed the fish', 'Buy milk']);
 
 const decorate = Switch
-  .equal('Watch tv')('Read book')
-  .match(/buy/i).use(s => [s, B(' $').color('#3A3')]);
+  .is('Watch tv')('Read book')
+  .is(/buy/i).use(s => [s, B(' $').color('#3A3')]);
 
 const taskView = t => Div(t)
   .margin('1em 0')

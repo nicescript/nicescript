@@ -76,9 +76,9 @@ log1pexpm1`.split('\n').forEach(k =>
 
 
 M.test(clamp => {
-  expect(clamp(0, 1, 3)).equal(1);
-  expect(clamp(2, 1, 3)).equal(2);
-  expect(clamp(10, 1, 3)).equal(3);
+  expect(clamp(0, 1, 3)).is(1);
+  expect(clamp(2, 1, 3)).is(2);
+  expect(clamp(10, 1, 3)).is(3);
 })
 ('clamp', (n, min, max) => {
   if(max === undefined){

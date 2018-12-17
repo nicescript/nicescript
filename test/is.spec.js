@@ -5,9 +5,9 @@ const expect = chai.expect;
 
 describe("is", function() {
   it("equal", function(){
-    expect(nice(2).equal(2)).to.equal(true);
-    expect(nice.equal(2, 2)).to.equal(true);
-    expect(nice.equal(2, 3)).to.equal(false);
+    expect(nice(2).is(2)).to.equal(true);
+    expect(nice.is(2, 2)).to.equal(true);
+    expect(nice.is(2, 3)).to.equal(false);
   });
 
 

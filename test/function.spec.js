@@ -139,7 +139,7 @@ describe("Func", function() {
 
   it("skip arguments", () => {
     const { $1, $2, $3 } = nice;
-    expect(nice.equal($2, 'q')(1, 'q')).to.equal(true);
+    expect(nice.is($2, 'q')(1, 'q')).to.equal(true);
     expect(nice.difference(nice.$2, nice.$1).product(nice.$2)(5, 7)).to.equal(14);
   });
 

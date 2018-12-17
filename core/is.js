@@ -25,7 +25,7 @@
   ('is' + t, v => v.functionType === t));
 
 const basicChecks = {
-  equal (a, b) {
+  is (a, b) {
     if(a === b)
       return true;
 
@@ -73,7 +73,7 @@ const basicChecks = {
 
 for(let i in basicChecks)
   Check(i, basicChecks[i]);
-equal = nice.equal;
+is = nice.is;
 
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
@@ -100,8 +100,8 @@ const switchProto = create(nice.checkers, {
     res.use = switchUse.bind(this);
     return res;
   },
-  equal (v) {
-    this._check = (...a) => equal(v, a[0]);
+  is (v) {
+    this._check = (a) => is(v, a);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -132,8 +132,8 @@ const delayedProto = create(nice.checkers, {
     res.use = delayedUse.bind(this);
     return res;
   },
-  equal (f) {
-    this._check = (...a) => equal(a[0], f);
+  is (f) {
+    this._check = (v) => is(v, f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
@@ -206,7 +206,7 @@ const S = Switch = nice.Switch = (...args) => {
 };
 
 
-S.equal = v => DealyedSwitch().equal(v);
+S.is = v => DealyedSwitch().is(v);
 S.check = f => DealyedSwitch().check(f);
 
 

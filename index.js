@@ -1,4 +1,4 @@
-module.exports = function(){;let nice;(function(){let create,Div,Func,Switch,expect,equal,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect;
+module.exports = function(){;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect;
 (function(){"use strict";
 nice = (...a) => {
   if(a.length === 0)
@@ -971,7 +971,7 @@ Anything.proto._type = Anything;
   .about(`Checks if value is function and it's type is ${t}.`)
   ('is' + t, v => v.functionType === t));
 const basicChecks = {
-  equal (a, b) {
+  is (a, b) {
     if(a === b)
       return true;
     if(a && a._isAnything && '_value' in a)
@@ -1010,7 +1010,7 @@ const basicChecks = {
 };
 for(let i in basicChecks)
   Check(i, basicChecks[i]);
-equal = nice.equal;
+is = nice.is;
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   const low = i.toLowerCase();
@@ -1032,8 +1032,8 @@ const switchProto = create(nice.checkers, {
     res.use = switchUse.bind(this);
     return res;
   },
-  equal (v) {
-    this._check = (...a) => equal(v, a[0]);
+  is (v) {
+    this._check = (a) => is(v, a);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -1058,8 +1058,8 @@ const delayedProto = create(nice.checkers, {
     res.use = delayedUse.bind(this);
     return res;
   },
-  equal (f) {
-    this._check = (...a) => equal(a[0], f);
+  is (f) {
+    this._check = (v) => is(v, f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
@@ -1114,7 +1114,7 @@ const S = Switch = nice.Switch = (...args) => {
   };
   return create(switchProto, f);
 };
-S.equal = v => DealyedSwitch().equal(v);
+S.is = v => DealyedSwitch().is(v);
 S.check = f => DealyedSwitch().check(f);
 defGet(S, 'not', () => {
   const res = DealyedSwitch();
@@ -1644,7 +1644,7 @@ A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);
   z.transactionStart();
   let res;
-  if(!equal(v, z._items[i])){
+  if(!is(v, z._items[i])){
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = z._items[i];
   }
@@ -1684,11 +1684,11 @@ A.test((remove, Obj) => {
 });
 A('removeValue', (o, v) => {
   for(let i in o._items)
-    equal(v, o._items[i]) && o.remove(i);
+    is(v, o._items[i]) && o.remove(i);
 });
 Action.Object('removeValue', (o, v) => {
   for(let i in o)
-    if(equal(v, o[i]))
+    if(is(v, o[i]))
       delete o[i];
 });
 A('removeAll', z => {
@@ -1765,7 +1765,7 @@ M(function find(c, f){
       return c._items[i];
 });
 M(function findKey(c, f){
-  nice.isFunction(f) || (f = equal(f, nice));
+  nice.isFunction(f) || (f = is(f, nice));
   for(let i in c._items)
     if(f(c._items[i], i))
       return i;
@@ -2123,7 +2123,7 @@ A('add', (z, ...a) => {
 });
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(equal(i, v))
+    if(is(i, v))
       return true;
   return false;
 });
@@ -2150,7 +2150,7 @@ A.Number('insertAt', (z, i, v) => {
 A('insertAfter', (z, target, v) => {
   let i;
   for(i in z._items)
-    if(equal(target, z._items[i]))
+    if(is(target, z._items[i]))
       break;
   return z.insertAt(+i+1, v);
 });
@@ -2171,7 +2171,7 @@ A.test((removeValue, Arr) => {
   })
   .about('Remove all values equal to `v` from `a`.')('removeValue', (a, v) => {
   for(let i in a._items)
-    equal(v, a._items[i]) && a.removeAt(i);
+    is(v, a._items[i]) && a.removeAt(i);
 });
 Action.Array
   .test(removeValue => {
@@ -2179,7 +2179,7 @@ Action.Array
   })
   .about('Remove all values equal to `v` from `a`.')
   ('removeValue', (a, v) => {
-    nice.eachRight(a, (_v, k) => equal(_v, v) && a.splice(k,1));
+    nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
 'splice'.split(',').forEach(name => {
  A(name, (a, ...bs) => a._items[name](...bs));
@@ -2268,6 +2268,9 @@ M.about('Creates new array with aboutseparator between elments.')
   return res;
 });
 M.about('Returns last element of `a`.')
+  .test((last, Arr) => {
+    expect(Arr(1,2,4).last()).is(4);
+  })
 (function last(a) {
   return a._items[a._items.length - 1];
 });
@@ -2344,9 +2347,9 @@ log2
 log1pexpm1`.split('\n').forEach(k =>
   M.about('Wrapper for `Math.' + k + '`')(k, (n, ...a) => Math[k](n, ...a)));
 M.test(clamp => {
-  expect(clamp(0, 1, 3)).equal(1);
-  expect(clamp(2, 1, 3)).equal(2);
-  expect(clamp(10, 1, 3)).equal(3);
+  expect(clamp(0, 1, 3)).is(1);
+  expect(clamp(2, 1, 3)).is(2);
+  expect(clamp(10, 1, 3)).is(3);
 })
 ('clamp', (n, min, max) => {
   if(max === undefined){
@@ -2469,7 +2472,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
     if(z._object.has(k)) {
       return z._setValue(k);
     } else {
-      k = nice.findKey(z._object, v => equal(k, v));
+      k = nice.findKey(z._object, v => is(k, v));
       if(k)
         return z._setValue(k);
     }

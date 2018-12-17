@@ -17,7 +17,7 @@ describe("Switch", function() {
         spy2(...a);
         return 13;
       })
-      .equal(3)(4)
+      .is(3)(4)
       .default.use(spy3);
 
     expect(s).to.equal(13);
@@ -33,7 +33,7 @@ describe("Switch", function() {
 
     const s = Switch('qwe')
       .isNumber.use(spy1)
-      .equal('qwe')(4)
+      .is('qwe')(4)
       .default.use(spy3);
 
     expect(spy1).not.to.have.been.called();
@@ -44,7 +44,7 @@ describe("Switch", function() {
 
   it("delayed equal", function() {
     const s = Switch
-      .equal('qwe')(4)
+      .is('qwe')(4)
 
     expect(s('qwe')).to.equal(4);
     expect(s('asd')).to.equal('asd');
@@ -53,7 +53,7 @@ describe("Switch", function() {
 
   it("delayed equal with default", function() {
     let s = Switch
-      .equal(true)(2)
+      .is(true)(2)
       .default(nice.Nothing());
 
     expect(s(true)).to.equal(2);
@@ -199,9 +199,9 @@ describe("Switch", function() {
 
   it("switch delayed", function() {
     const s = Switch
-      .equal(7).use(() => 77)
+      .is(7).use(() => 77)
       .isNumber.use(n => n + 1)
-      .equal('boo')('foo')
+      .is('boo')('foo')
       .isString.use(s => s + '!')
       .default.use(() => 'Yo!');
 

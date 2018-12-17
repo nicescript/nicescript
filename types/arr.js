@@ -152,7 +152,7 @@ A('add', (z, ...a) => {
 
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(equal(i, v))
+    if(is(i, v))
       return true;
   return false;
 });
@@ -183,7 +183,7 @@ A.Number('insertAt', (z, i, v) => {
 A('insertAfter', (z, target, v) => {
   let i;
   for(i in z._items)
-    if(equal(target, z._items[i]))
+    if(is(target, z._items[i]))
       break;
   return z.insertAt(+i+1, v);
 });
@@ -208,7 +208,7 @@ A.test((removeValue, Arr) => {
   })
   .about('Remove all values equal to `v` from `a`.')('removeValue', (a, v) => {
   for(let i in a._items)
-    equal(v, a._items[i]) && a.removeAt(i);
+    is(v, a._items[i]) && a.removeAt(i);
 });
 
 Action.Array
@@ -217,7 +217,7 @@ Action.Array
   })
   .about('Remove all values equal to `v` from `a`.')
   ('removeValue', (a, v) => {
-    nice.eachRight(a, (_v, k) => equal(_v, v) && a.splice(k,1));
+    nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
 
 //findIndex
@@ -339,6 +339,9 @@ M.about('Creates new array with aboutseparator between elments.')
 });
 
 M.about('Returns last element of `a`.')
+  .test((last, Arr) => {
+    expect(Arr(1,2,4).last()).is(4);
+  })
 (function last(a) {
   return a._items[a._items.length - 1];
 });
