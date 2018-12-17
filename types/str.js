@@ -71,7 +71,7 @@ search
 replace
 match
 localeCompare`.split('\n').forEach(k => M
-    .about(`Delegates to String.prototype.${k}().`)
+    .about(`Calls \`String.prototype.${k}\`.`)
     (k, (s, ...a) => s[k](...a)));
 
 

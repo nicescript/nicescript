@@ -37,9 +37,7 @@ const basicChecks = {
 
     return a === b;
   },
-  deepEqual (a, b) {
-    return nice.diff(a, b) === false;
-  },
+  deepEqual: (a, b) => nice.diff(a, b) === false,
   isTrue: v => v === true,
   isFalse: v => v === false,
   isAnyOf: (v, ...vs) => vs.includes(v),
@@ -75,12 +73,12 @@ const basicChecks = {
 
 for(let i in basicChecks)
   Check(i, basicChecks[i]);
-
+equal = nice.equal;
 
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   const low = i.toLowerCase();
-  Check.about(`Checks if value is ${i}.`)
+  Check.about(`Checks if \`v\` is \`${i}\`.`)
     ('is' + i, basicJS.includes(low)
     ? v => typeof v === low
     : v => v && v.constructor ? v.constructor.name === i : false);
@@ -89,7 +87,7 @@ for(let i in nice.jsTypes){
 
 reflect.on('Type', function defineReducer(type) {
   type.name && Check
-    .about('Checks if value has type ' + type.name)
+    .about('Checks if `v` has type `' + type.name + '`')
     ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 
@@ -103,7 +101,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal (v) {
-    this._check = (...a) => nice.equal(v, a[0]);
+    this._check = (...a) => equal(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -135,7 +133,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal (f) {
-    this._check = (...a) => nice.equal(a[0], f);
+    this._check = (...a) => equal(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;

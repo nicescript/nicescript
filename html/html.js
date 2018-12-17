@@ -7,16 +7,21 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .str('tag', 'div')
   .obj('eventHandlers')
   .obj('cssSelectors')
-  .Action.about('Adds event handler to an element.')(function on(z, name, f){
+  .Action.about('Adds event handler to an element.')(function on(e, name, f){
     if(name === 'domNode' && nice.isEnvBrowser()){
-      if(!z.id())
+      if(!e.id())
         throw `Give element an id to use domNode event.`;
-      const el = document.getElementById(z.id());
+      const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = z.eventHandlers.get(name);
-    handlers ? handlers.push(f) : z.eventHandlers.set(name, [f]);
-    return z;
+    const handlers = e.eventHandlers.get(name);
+    handlers ? handlers.push(f) : e.eventHandlers.set(name, [f]);
+    return e;
+  })
+  .Action.about('Removes event handler from an element.')(function off(e, name, f){
+    const handlers = e.eventHandlers.get(name);
+    handlers && e.eventHandlers.removeValue(name, f);
+    return e;
   })
   .obj('style')
   .obj('attributes')

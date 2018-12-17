@@ -155,7 +155,7 @@ A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);
   z.transactionStart();
   let res;
-  if(!nice.equal(v, z._items[i])){
+  if(!equal(v, z._items[i])){
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = z._items[i];
   }
@@ -187,10 +187,26 @@ A('replaceAll', (z, o) => {
   z._items = o._items;
 });
 
-A('remove', (z, i) => {
+A.test((remove, Obj) => {
+  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue )
+      .deepEqual({ a:2 });
+})
+.about('Remove element at `i`.')
+('remove', (z, i) => {
   z._oldValue = z._oldValue || {};
   z._oldValue[i] = z._items[i];
   delete z._items[i];
+});
+
+A('removeValue', (o, v) => {
+  for(let i in o._items)
+    equal(v, o._items[i]) && o.remove(i);
+});
+
+Action.Object('removeValue', (o, v) => {
+  for(let i in o)
+    if(equal(v, o[i]))
+      delete o[i];
 });
 
 A('removeAll', z => {
@@ -304,7 +320,7 @@ M(function find(c, f){
 
 
 M(function findKey(c, f){
-  nice.isFunction(f) || (f = nice.equal(f, nice));
+  nice.isFunction(f) || (f = equal(f, nice));
   for(let i in c._items)
     if(f(c._items[i], i))
       return i;

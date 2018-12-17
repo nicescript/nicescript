@@ -351,7 +351,7 @@ def(nice, 'runTests', () => {
   nice.reflect.on('signature', s => {
     s.tests.forEach(t => {
       try {
-        t.body(s.body);
+        t.body(...nice.argumentNames(t.body).map(n => nice[n]));
         good++;
       } catch (e) {
         bad ++;

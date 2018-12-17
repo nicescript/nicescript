@@ -2,10 +2,15 @@
   <head>
     <title>NiceScript documentation</title>
     <script src="../nice.js"></script>
+    <style>
+      Body {margin:0; font:14px Arial;}
+      A {text-decoration: none;}
+      A:hover {text-decoration: underline;}
+    </style>
   </head>
   <body style="margin:0;">
 <script>
-const { Div, Span, H1, H2, Box, B, A, Input } = nice;
+const { Div, Span, H1, H2, Box, B, A, Input, RBox } = nice;
 
 //const typeView = nice.memoize(title => Div(title).margin('.3em 1em'));
 //const typesPane = Div();
@@ -16,28 +21,56 @@ const { Div, Span, H1, H2, Box, B, A, Input } = nice;
 //});
 //
 //typesPane.show();
+Div.extend('Code')
+  .by((z, ...a) => z.super(...a)
+    .backgroundColor('#ddd')
+    .borderRadius('.5rem')
+    .padding('.5rem')
+    .whiteSpace('pre')
+    .overflow('auto')
+    .fontFamily('mono')
+  );
 
-const highlightText = (s, q, f = B) => {
-  if(!q)
-    return s;
-  
-  const regex = RegExp(q, 'gi');
-  const res = Span();
+const functionsPane = Div(H2('Functions').padding('1rem'));
+
+const foundText = s => Span(s).color('#1fb300');
+
+const inlineJS = s => Span(s.slice(1,-1))
+    .backgroundColor('#ddd').padding('0 .2rem').borderRadius('.2rem');
+
+function addTests(ts){
+  return div => {
+    ts.forEach(t => {
+      div.Code(t).up
+    })
+  }
+}
+        
+
+const doc = nice.generateDoc();
+
+const highlightText = (s, re, f = B) => {
+  if(!re)
+    return [s];
+  typeof re === 'string' && (re = RegExp(re.toLowerCase(), 'gi'));
+  const res = [];
   let lastIndex = 0;
   let a = [];
-
-  while ((a = regex.exec(s)) !== null) {
+  let max = 100;
+  
+  while ((a = re.exec(s)) !== null && max--) {
     const slice = s.slice(lastIndex, a.index);
     lastIndex = a.index + a[0].length;
     
-    slice && res.add(slice);
-    res.add(f(a[0]));
+    slice && res.push(slice);
+    res.push(f(a[0]));
   }
-  return res.add(s.substr(lastIndex));
+  res.push(s.substr(lastIndex));
+  return res;
 };
 
 
-H1('NiceScript Documentation').margin('1rem').show();
+H1('NiceScript v', nice.version).margin('1rem').show();
 
 const search = Input("search").placeholder('Search')
   .margin('1rem').padding('.2rem .5rem')
@@ -46,8 +79,6 @@ const search = Input("search").placeholder('Search')
 search.show();
 
 
-const functionsPane = Div(H2('Functions').padding('1rem'));
-const functions = [];
 const functionType = Box('All');
 
 RBox(functionType, t => Span(
@@ -55,25 +86,33 @@ RBox(functionType, t => Span(
       (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
 ).margin('.5rem')).show();
 
-reflect.on('function', f => functions.push(f));
 
 const functionView = f => Div().padding('1rem')
-  .H3(highlightText(f.name.toString(), search.value(), s => Span(s).color('red')))
+  .H3(...highlightText(f.title.toString(), search.value(), foundText))
     .I(f.functionType).color('#666').marginLeft('1rem').up
     .up
-  .Div(f.action && f.action.toString()).whiteSpace('pre').up
-  .Div(f.signatures && [...f.signatures.keys()]).up;
+  .p(...highlightText(f.description || '', /`.*?`/g, inlineJS))
+  .apply(addTests(f.tests))
+//  .Div(f.action && f.action.toString()).whiteSpace('pre').up
+//  .div(f.signature && f.signature.length
+//      && (name += ' (' + f.signature.join(', ') + ')'));
+  ;
 
 const start = Date.now();
             
-RBox(functionType, search.value, (type, q) => Div(functions
-    .filter(f => (type === 'All' || type === f.functionType) 
-        && (!q || f.name.toString().includes(q)))
-    .map(functionView))).listen(v => {
-      console.log('TOOK: ', (Date.now() - start));
-      v.html;
-      console.log('TOOK2: ', (Date.now() - start));
-    });
+RBox(functionType, search.value, (type, q) => {
+  q = q.toLowerCase();
+  return Div(doc.functions.filter(f => (type === 'All' || type === f.type) 
+        && (!q || f.title.toString().toLowerCase().includes(q))), functionView)
+}).show();
+//    .filter(f => (type === 'All' || type === f.functionType) 
+//        && (!q || f.name.toString().includes(q)))
+//    .map(functionView)))
+//    .listen(v => {
+//      console.log('TOOK: ', (Date.now() - start));
+//      v.html;
+//      console.log('TOOK2: ', (Date.now() - start));
+//    });
 
 
 </script>

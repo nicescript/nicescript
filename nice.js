@@ -1,4 +1,4 @@
-;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect;
+;let nice;(function(){let create,Div,Func,Switch,expect,equal,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect;
 (function(){"use strict";
 nice = (...a) => {
   if(a.length === 0)
@@ -312,35 +312,6 @@ defAll(nice, {
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
-  generateDoc () {
-    const res = { types: {}, functions: [], fs: {} };
-    reflect.on('signature', s => {
-      if(!s.name || s.name[0] === '_' || typeof s.name !== 'string')
-        return;
-      const o = {};
-      o.source = '' + s.body;
-      const args = nice.argumentNames(o.source || '');
-      const types = s.signature.map(v => v.type.name);
-      types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
-      o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
-      o.description = s.description;
-      o.type = s.type
-      res.functions.push(o);
-      (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
-    });
-    reflect.on('Type', t => {
-      if(!t.name || t.name[0] === '_')
-        return;
-      const o = { name: t.name, properties: [] };
-      t.hasOwnProperty('description') && (o.description = t.description);
-      t.extends && (o.extends = t.super.name);
-      res.types[t.name] = o;
-    });
-    reflect.on('Property', ({ type, name, targetType }) => {
-      res.types[targetType.name].properties.push({ name, type: type.name });
-    });
-    return res;
-  },
   fromJson (v) {
     return nice.valueType(v).fromValue(v);
   }
@@ -388,6 +359,49 @@ nice.Configurator = (o, ...a) => {
   a.forEach(k => def(f, k, v => { o[k] = v; return f; }));
   return f;
 };
+})();
+(function(){"use strict";nice.generateDoc = () => {
+  if(nice.doc)
+    return nice.doc;
+  const res = { types: {}, functions: [], fs: {} };
+  reflect.on('signature', s => {
+    if(!s.name || s.name[0] === '_' || typeof s.name !== 'string')
+      return;
+    const o = {};
+    o.source = '' + s.body;
+    const args = nice.argumentNames(o.source || '');
+    const types = s.signature.map(v => v.type.name);
+    types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
+    o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
+    o.description = s.description;
+    o.tests = s.tests.map(wrapTest(s));
+    o.type = s.type
+    res.functions.push(o);
+    (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
+  });
+  reflect.on('Type', t => {
+    if(!t.name || t.name[0] === '_')
+      return;
+    const o = { name: t.name, properties: [] };
+    t.hasOwnProperty('description') && (o.description = t.description);
+    t.extends && (o.extends = t.super.name);
+    res.types[t.name] = o;
+  });
+  reflect.on('Property', ({ type, name, targetType }) => {
+    res.types[targetType.name].properties.push({ name, type: type.name });
+  });
+  return nice.doc = res;
+};
+function wrapTest(s) {
+  const { intersperse, argumentNames } = nice;
+  return t => {
+    let a = t.body.toString().split('\n').slice(1,-1);
+    const minOffset = a.reduce((last, s) => Math.min(last, s.match(/^([\s]+)/g)[0].length), 100);
+    a = a.map(s => s.slice(minOffset));
+    a.unshift(`const { expect, ${argumentNames(t.body).join(', ')} } = nice;`);
+    return a.join('\n');
+  };
+}
 })();
 (function(){"use strict";def(nice, '_set', (o, ks, v) => {
   const res = o;
@@ -504,7 +518,7 @@ const jsHierarchy = {
   js: 'primitive,Object',
   primitive: 'String,Boolean,Number,undefined,null,Symbol',
   Object: 'Function,Date,RegExp,Array,Error,ArrayBuffer,DataView,Map,WeakMap,Set,WeakSet,Promise',
-  Error: 'EvalError,RangeError,ReferenceError,SyntaxError,TSypeError,UriError'
+  Error: 'EvalError,RangeError,ReferenceError,SyntaxError,TypeError,UriError'
 };
 const jsTypesMap = {
   Object: 'Obj',
@@ -833,7 +847,7 @@ def(nice, 'runTests', () => {
   nice.reflect.on('signature', s => {
     s.tests.forEach(t => {
       try {
-        t.body(s.body);
+        t.body(...nice.argumentNames(t.body).map(n => nice[n]));
         good++;
       } catch (e) {
         bad ++;
@@ -966,9 +980,7 @@ const basicChecks = {
       b = b._value;
     return a === b;
   },
-  deepEqual (a, b) {
-    return nice.diff(a, b) === false;
-  },
+  deepEqual: (a, b) => nice.diff(a, b) === false,
   isTrue: v => v === true,
   isFalse: v => v === false,
   isAnyOf: (v, ...vs) => vs.includes(v),
@@ -998,17 +1010,18 @@ const basicChecks = {
 };
 for(let i in basicChecks)
   Check(i, basicChecks[i]);
+equal = nice.equal;
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   const low = i.toLowerCase();
-  Check.about(`Checks if value is ${i}.`)
+  Check.about(`Checks if \`v\` is \`${i}\`.`)
     ('is' + i, basicJS.includes(low)
     ? v => typeof v === low
     : v => v && v.constructor ? v.constructor.name === i : false);
 };
 reflect.on('Type', function defineReducer(type) {
   type.name && Check
-    .about('Checks if value has type ' + type.name)
+    .about('Checks if `v` has type `' + type.name + '`')
     ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);
 });
 const switchProto = create(nice.checkers, {
@@ -1020,7 +1033,7 @@ const switchProto = create(nice.checkers, {
     return res;
   },
   equal (v) {
-    this._check = (...a) => nice.equal(v, a[0]);
+    this._check = (...a) => equal(v, a[0]);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
@@ -1046,7 +1059,7 @@ const delayedProto = create(nice.checkers, {
     return res;
   },
   equal (f) {
-    this._check = (...a) => nice.equal(a[0], f);
+    this._check = (...a) => equal(a[0], f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
@@ -1631,7 +1644,7 @@ A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);
   z.transactionStart();
   let res;
-  if(!nice.equal(v, z._items[i])){
+  if(!equal(v, z._items[i])){
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = z._items[i];
   }
@@ -1659,10 +1672,24 @@ A('replaceAll', (z, o) => {
   z._oldValue = z._items;
   z._items = o._items;
 });
-A('remove', (z, i) => {
+A.test((remove, Obj) => {
+  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue )
+      .deepEqual({ a:2 });
+})
+.about('Remove element at `i`.')
+('remove', (z, i) => {
   z._oldValue = z._oldValue || {};
   z._oldValue[i] = z._items[i];
   delete z._items[i];
+});
+A('removeValue', (o, v) => {
+  for(let i in o._items)
+    equal(v, o._items[i]) && o.remove(i);
+});
+Action.Object('removeValue', (o, v) => {
+  for(let i in o)
+    if(equal(v, o[i]))
+      delete o[i];
 });
 A('removeAll', z => {
   z._oldValue = z._items;
@@ -1738,7 +1765,7 @@ M(function find(c, f){
       return c._items[i];
 });
 M(function findKey(c, f){
-  nice.isFunction(f) || (f = nice.equal(f, nice));
+  nice.isFunction(f) || (f = equal(f, nice));
   for(let i in c._items)
     if(f(c._items[i], i))
       return i;
@@ -1840,11 +1867,11 @@ nice.Type({
       return this;
     },
     error (e) {
-      return this.setState(is.Err(e) ? e : nice.Err(e));
+      return this.setState(nice.isErr(e) ? e : nice.Err(e));
     },
     getPromise () {
       return new Promise((resolve, reject) => {
-        this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
+        this.listenOnce(v => (nice.isErr(v) ? reject : resolve)(v));
       });
     },
         follow (s){
@@ -2096,7 +2123,7 @@ A('add', (z, ...a) => {
 });
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(nice.equal(i, v))
+    if(equal(i, v))
       return true;
   return false;
 });
@@ -2123,7 +2150,7 @@ A.Number('insertAt', (z, i, v) => {
 A('insertAfter', (z, target, v) => {
   let i;
   for(i in z._items)
-    if(nice.equal(target, z._items[i]))
+    if(equal(target, z._items[i]))
       break;
   return z.insertAt(+i+1, v);
 });
@@ -2139,6 +2166,21 @@ F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
   return z;
 });
+A.test((removeValue, Arr) => {
+    expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
+  })
+  .about('Remove all values equal to `v` from `a`.')('removeValue', (a, v) => {
+  for(let i in a._items)
+    equal(v, a._items[i]) && a.removeAt(i);
+});
+Action.Array
+  .test(removeValue => {
+    expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
+  })
+  .about('Remove all values equal to `v` from `a`.')
+  ('removeValue', (a, v) => {
+    nice.eachRight(a, (_v, k) => equal(_v, v) && a.splice(k,1));
+  });
 'splice'.split(',').forEach(name => {
  A(name, (a, ...bs) => a._items[name](...bs));
 });
@@ -2152,13 +2194,12 @@ function each(z, f){
 }
 F.Function(each);
 F.Function('forEach', each);
-F.Function(function eachRight(z, f){
-  const a = z._items;
+Func.Array.Function(function eachRight(a, f){
   let i = a.length;
   while (i-- > 0)
     if(nice.isStop(f(a[i], i)))
       break;
-  return z;
+  return a;
 });
 A(function fill(z, v, start = 0, end){
   const l = z._items.length;
@@ -2219,7 +2260,7 @@ Mapping.Array.Array('intersection', (a, b) => {
   a.forEach(v => is.includes(b, v) && res.push(v));
   return res;
 });
-M.about('Creates new array with separator between elments.')
+M.about('Creates new array with aboutseparator between elments.')
 (function intersperse(a, separator) {
   const res = Arr();
   const last = a.size - 1;
@@ -2301,7 +2342,7 @@ tanh
 log10
 log2
 log1pexpm1`.split('\n').forEach(k =>
-  M.about('Delegates to Math.' + k)(k, (n, ...a) => Math[k](n, ...a)));
+  M.about('Wrapper for `Math.' + k + '`')(k, (n, ...a) => Math[k](n, ...a)));
 M.test(clamp => {
   expect(clamp(0, 1, 3)).equal(1);
   expect(clamp(2, 1, 3)).equal(2);
@@ -2398,7 +2439,7 @@ search
 replace
 match
 localeCompare`.split('\n').forEach(k => M
-    .about(`Delegates to String.prototype.${k}().`)
+    .about(`Calls \`String.prototype.${k}\`.`)
     (k, (s, ...a) => s[k](...a)));
 nice.Mapping.Number(String.fromCharCode);
 nice.Mapping.Number(String.fromCodePoint);
@@ -2428,7 +2469,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
     if(z._object.has(k)) {
       return z._setValue(k);
     } else {
-      k = nice.findKey(z._object, v => nice.equal(k, v));
+      k = nice.findKey(z._object, v => equal(k, v));
       if(k)
         return z._setValue(k);
     }
@@ -2503,16 +2544,21 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .str('tag', 'div')
   .obj('eventHandlers')
   .obj('cssSelectors')
-  .Action.about('Adds event handler to an element.')(function on(z, name, f){
+  .Action.about('Adds event handler to an element.')(function on(e, name, f){
     if(name === 'domNode' && nice.isEnvBrowser()){
-      if(!z.id())
+      if(!e.id())
         throw `Give element an id to use domNode event.`;
-      const el = document.getElementById(z.id());
+      const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = z.eventHandlers.get(name);
-    handlers ? handlers.push(f) : z.eventHandlers.set(name, [f]);
-    return z;
+    const handlers = e.eventHandlers.get(name);
+    handlers ? handlers.push(f) : e.eventHandlers.set(name, [f]);
+    return e;
+  })
+  .Action.about('Removes event handler from an element.')(function off(e, name, f){
+    const handlers = e.eventHandlers.get(name);
+    handlers && e.eventHandlers.removeValue(name, f);
+    return e;
   })
   .obj('style')
   .obj('attributes')
@@ -2972,4 +3018,4 @@ Input.extend('Checkbox', (z, status) => {
     z.checked.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
-})();;})();
+})();;nice.version = "0.3.3";})();

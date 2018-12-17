@@ -6,7 +6,10 @@
     "framework",
     "server",
     "client",
-    "reactive"
+    "reactive",
+    "css",
+    "html",
+    "dom"
   ],
   "author": "Sergey Kashulin",
   "main": "index.js",

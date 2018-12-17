@@ -152,7 +152,7 @@ A('add', (z, ...a) => {
 
 Check.Arr('includes', (a, v) => {
   for(let i of a._items)
-    if(nice.equal(i, v))
+    if(equal(i, v))
       return true;
   return false;
 });
@@ -183,7 +183,7 @@ A.Number('insertAt', (z, i, v) => {
 A('insertAfter', (z, target, v) => {
   let i;
   for(i in z._items)
-    if(nice.equal(target, z._items[i]))
+    if(equal(target, z._items[i]))
       break;
   return z.insertAt(+i+1, v);
 });
@@ -202,6 +202,23 @@ F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
   return z;
 });
+
+A.test((removeValue, Arr) => {
+    expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
+  })
+  .about('Remove all values equal to `v` from `a`.')('removeValue', (a, v) => {
+  for(let i in a._items)
+    equal(v, a._items[i]) && a.removeAt(i);
+});
+
+Action.Array
+  .test(removeValue => {
+    expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
+  })
+  .about('Remove all values equal to `v` from `a`.')
+  ('removeValue', (a, v) => {
+    nice.eachRight(a, (_v, k) => equal(_v, v) && a.splice(k,1));
+  });
 
 //findIndex
 
@@ -226,14 +243,12 @@ function each(z, f){
 F.Function(each);
 F.Function('forEach', each);
 
-F.Function(function eachRight(z, f){
-  const a = z._items;
+Func.Array.Function(function eachRight(a, f){
   let i = a.length;
   while (i-- > 0)
     if(nice.isStop(f(a[i], i)))
       break;
-
-  return z;
+  return a;
 });
 
 
@@ -315,7 +330,7 @@ Mapping.Array.Array('intersection', (a, b) => {
 });
 
 
-M.about('Creates new array with separator between elments.')
+M.about('Creates new array with aboutseparator between elments.')
 (function intersperse(a, separator) {
   const res = Arr();
   const last = a.size - 1;

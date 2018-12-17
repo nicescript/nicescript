@@ -273,49 +273,6 @@ defAll(nice, {
 
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
 
-  generateDoc () {
-    const res = { types: {}, functions: [], fs: {} };
-
-    reflect.on('signature', s => {
-      if(!s.name || s.name[0] === '_' || typeof s.name !== 'string')
-        return;
-
-      const o = {};
-      o.source = '' + s.body;
-
-      const args = nice.argumentNames(o.source || '');
-      const types = s.signature.map(v => v.type.name);
-      types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
-      o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
-      o.description = s.description;
-      o.type = s.type
-
-/*      _each(s, (v, k) => nice.Switch(k)
-        //.equal('body').use(() => o.source = v.toString())
-//        .equal('source').use(() => o.source = v.toString())
-        //.equal('signature').use(() => o[k] = v.map(t => t.type.name))
-        .default.use(() => o[k] = ''+v));*/
-      res.functions.push(o);
-      (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
-    });
-
-
-    reflect.on('Type', t => {
-      if(!t.name || t.name[0] === '_')
-        return;
-      const o = { name: t.name, properties: [] };
-      t.hasOwnProperty('description') && (o.description = t.description);
-      t.extends && (o.extends = t.super.name);
-      res.types[t.name] = o;
-    });
-
-    reflect.on('Property', ({ type, name, targetType }) => {
-      res.types[targetType.name].properties.push({ name, type: type.name });
-    });
-
-    return res;
-  },
-
   fromJson (v) {
     return nice.valueType(v).fromValue(v);
   }

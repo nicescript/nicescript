@@ -76,12 +76,12 @@ nice.Type({
     },
 
     error (e) {
-      return this.setState(is.Err(e) ? e : nice.Err(e));
+      return this.setState(nice.isErr(e) ? e : nice.Err(e));
     },
 
     getPromise () {
       return new Promise((resolve, reject) => {
-        this.listenOnce(v => (is.Err(v) ? reject : resolve)(v));
+        this.listenOnce(v => (nice.isErr(v) ? reject : resolve)(v));
       });
     },
         follow (s){

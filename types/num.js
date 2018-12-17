@@ -72,7 +72,7 @@ tanh
 log10
 log2
 log1pexpm1`.split('\n').forEach(k =>
-  M.about('Delegates to Math.' + k)(k, (n, ...a) => Math[k](n, ...a)));
+  M.about('Wrapper for `Math.' + k + '`')(k, (n, ...a) => Math[k](n, ...a)));
 
 
 M.test(clamp => {

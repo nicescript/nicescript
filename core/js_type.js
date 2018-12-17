@@ -5,7 +5,7 @@ const jsHierarchy = {
   js: 'primitive,Object',
   primitive: 'String,Boolean,Number,undefined,null,Symbol',
   Object: 'Function,Date,RegExp,Array,Error,ArrayBuffer,DataView,Map,WeakMap,Set,WeakSet,Promise',
-  Error: 'EvalError,RangeError,ReferenceError,SyntaxError,TSypeError,UriError'
+  Error: 'EvalError,RangeError,ReferenceError,SyntaxError,TypeError,UriError'
 };
 
 const jsTypesMap = {

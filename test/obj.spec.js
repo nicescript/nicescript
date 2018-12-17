@@ -76,13 +76,6 @@ describe("Obj", function() {
 //  });
 
 
-  it("remove", function() {
-    const a = Obj({qwe: 1, asd: 3});
-    a.remove('qwe');
-    expect(a.jsValue).to.deep.equal({asd:3});
-  });
-
-
   it("removeAll", () => {
     const a = Obj({qwe: 1, asd: 3});
     a.removeAll();
