@@ -29,14 +29,12 @@ describe("Obj", function() {
     expect(a.get(nice('qwe'))).to.equal(1);
   });
 
-  it("set tha same and notify", function() {
+  it("set the same and notify", function() {
     const o = Obj({'qwe': 2});
     const spy = chai.spy();
     o.listen({onAdd:spy});
 
-    o.transaction(() => {
-      o.set('qwe', 2);
-    });
+    o.set('qwe', 2);
 
     expect(spy).to.have.been.called.once();
   });

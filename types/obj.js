@@ -58,14 +58,16 @@ nice.Type({
       },
 
       _itemsListener (o) {
-        const { onRemove, onAdd } = o;
+        const { onRemove, onAdd, onChange } = o;
         return (v, old) => {
           if(old === undefined){
             onAdd && v.each(onAdd);
+            onChange && v.each((_v, k) => onChange(k, _v));
           } else {
             _each(old, (c, k) => {
               onRemove && c !== undefined && onRemove(c, k);
               onAdd && v._items[k] && onAdd(v._items[k], k);
+              onChange && onChange(k, v._items[k], c);
             });
           }
         };
@@ -80,7 +82,7 @@ nice.Type({
   })
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = v._isAnything ? v.jsValue : v);
+    _each(z._items, (v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
     Switch(z._type.name).isString.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;

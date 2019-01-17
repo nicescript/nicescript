@@ -112,7 +112,13 @@ defAll(nice, {
     }
     return o;
   },
-  unwrap: v => v && v._isAnything ? v.jsValue : v
+  serialize: v => {
+    return v = v && v._isAnything ? v.jsValue : v;
+  },
+  deserialize: js => {
+    const niceType = js && js[nice.TYPE_KEY];
+    return niceType ? nice[niceType].fromValue(js) : js;
+  }
 });
 defGet = nice.defineGetter;
 _each = nice._each;
@@ -382,7 +388,7 @@ nice.Configurator = (o, ...a) => {
   reflect.on('Type', t => {
     if(!t.name || t.name[0] === '_')
       return;
-    const o = { name: t.name, properties: [] };
+    const o = { title: t.name, properties: [] };
     t.hasOwnProperty('description') && (o.description = t.description);
     t.extends && (o.extends = t.super.name);
     res.types[t.name] = o;
@@ -1237,6 +1243,13 @@ def(nice, 'observableProto', {
     }
     return () => this.unsubscribe(key);
   },
+  listenChanges(f, target) {
+    let counter = 0;
+    if(typeof f === 'object'){
+      f = this._itemsListener(f);
+    }
+    this.listen((...a) => counter++ && f(...a), target || f);
+  },
   transactionStart (){
     if(this._locked)
       throw nice.LOCKED_ERROR;
@@ -1567,14 +1580,16 @@ nice.jsTypes.isSubType = isSubType;
         return z;
       },
       _itemsListener (o) {
-        const { onRemove, onAdd } = o;
+        const { onRemove, onAdd, onChange } = o;
         return (v, old) => {
           if(old === undefined){
             onAdd && v.each(onAdd);
+            onChange && v.each((_v, k) => onChange(k, _v));
           } else {
             _each(old, (c, k) => {
               onRemove && c !== undefined && onRemove(c, k);
               onAdd && v._items[k] && onAdd(v._items[k], k);
+              onChange && onChange(k, v._items[k], c);
             });
           }
         };
@@ -1589,7 +1604,7 @@ nice.jsTypes.isSubType = isSubType;
   })
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = v._isAnything ? v.jsValue : v);
+    _each(z._items, (v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
     Switch(z._type.name).isString.use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
@@ -2076,10 +2091,11 @@ nice.Obj.extend({
       return i;
     },
     _itemsListener (o) {
-      const { onRemove, onAdd } = o;
+      const { onRemove, onAdd, onChange } = o;
       return (v, old) => {
         if(old === undefined){
           onAdd && v.each(onAdd);
+          onChange && v.each((_v, k) => onChange(k, _v));
         } else {
           const l = Math.max(...Object.keys(old || {}), ...Object.keys(v._newValue || {}));
           let i = 0;
@@ -2916,7 +2932,7 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
 });
 })();
 (function(){"use strict";const Html = nice.Html;
-'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre'.split(',').forEach(t => {
+'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
   const l = t.toLowerCase();
   Html.extend(t).by((z, a, ...as) => {
     z.tag(l);

@@ -11,17 +11,8 @@
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 
-
-var o = {qwe:1,asd:2};
-
-var b = Div().color('red')
-  .A('qwe', 'azxccc').textDecoration('underline').fontSize('44px').up
-  .div('qw;qej wefjw g org');
-
-nice.speedTest(() => {
-  var res = b.html;
-}, 100000);
-
+    const turn = v => nice.deserialize(nice.serialize(v));
+    turn(nice.Div('a'));
 
 </script>
   

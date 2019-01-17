@@ -188,4 +188,11 @@ describe("utils", function() {
 //    expect(b()).to.deep.equal([1,2]);
 //  });
 
+  it('serialze', () => {
+    const turn = v => nice.deserialize(nice.serialize(v));
+    expect(turn(2)).to.equal(2);
+    expect(turn([])).to.deep.equal([]);
+    expect(turn(nice.Div('a')).children.get(0)()).to.equal('a');
+  });
+
 });

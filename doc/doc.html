@@ -3,12 +3,14 @@
     <title>NiceScript documentation</title>
     <script src="../nice.js"></script>
     <style>
-      Body {margin:0; font:14px Arial;}
+      Body {margin: 1rem; font: 14px Arial;}
       A {text-decoration: none;}
       A:hover {text-decoration: underline;}
+      H3 {margin: 2rem 0 .5rem 0;}
+      P {margin: .5rem 0;}
     </style>
   </head>
-  <body style="margin:0;">
+  <body>
 <script>
 const { Div, Span, H1, H2, Box, B, A, Input, RBox } = nice;
 
@@ -23,7 +25,7 @@ const { Div, Span, H1, H2, Box, B, A, Input, RBox } = nice;
 //typesPane.show();
 Div.extend('Code')
   .by((z, ...a) => z.super(...a)
-    .backgroundColor('#ddd')
+    .backgroundColor('#eee')
     .borderRadius('.5rem')
     .padding('.5rem')
     .whiteSpace('pre')
@@ -31,12 +33,10 @@ Div.extend('Code')
     .fontFamily('mono')
   );
 
-const functionsPane = Div(H2('Functions').padding('1rem'));
-
 const foundText = s => Span(s).color('#1fb300');
 
 const inlineJS = s => Span(s.slice(1,-1))
-    .backgroundColor('#ddd').padding('0 .2rem').borderRadius('.2rem');
+    .backgroundColor('#eee').padding('0 .2rem').borderRadius('.2rem');
 
 function addTests(ts){
   return div => {
@@ -70,10 +70,10 @@ const highlightText = (s, re, f = B) => {
 };
 
 
-H1('NiceScript v', nice.version).margin('1rem').show();
+H1('NiceScript v', nice.version).show();
 
 const search = Input("search").placeholder('Search')
-  .margin('1rem').padding('.2rem .5rem')
+  .padding('.2rem .5rem')
   .focus();
 
 search.show();
@@ -86,21 +86,32 @@ RBox(functionType, t => Span(
       (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
 ).margin('.5rem')).show();
 
-
-const functionView = f => Div().padding('1rem')
+const functionView = f => Div()
   .H3(...highlightText(f.title.toString(), search.value(), foundText))
     .I(f.functionType).color('#666').marginLeft('1rem').up
     .up
   .p(...highlightText(f.description || '', /`.*?`/g, inlineJS))
   .apply(addTests(f.tests));
 
-const start = Date.now();
-            
-RBox(functionType, search.value, (type, q) => {
-  q = q.toLowerCase();
-  return Div(doc.functions.filter(f => (type === 'All' || type === f.type) 
-        && (!q || f.title.toString().toLowerCase().includes(q))), functionView)
-}).show();
+const typeView = t => Div()
+  .h3(...highlightText(t.title, search.value(), foundText))
+  .p(...highlightText(t.description || '', /`.*?`/g, inlineJS));
+
+Div()
+  .h2('Types')
+  .rBox(search.value, (q) => {
+    q = q.toLowerCase();
+    const f = t => !q || t.title.toString().toLowerCase().includes(q);
+    return Div(nice.filter(doc.types, f), typeView);
+  })
+  .h2('Functions')
+  .rBox(functionType, search.value, (type, q) => {
+    q = q.toLowerCase();
+    const f = f => (type === 'All' || type === f.type) 
+        && (!q || f.title.toString().toLowerCase().includes(q));
+    return Div(doc.functions.filter(f), functionView);
+  })
+  .show();
 
 </script>
   </body>

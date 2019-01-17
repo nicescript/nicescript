@@ -27,6 +27,14 @@ def(nice, 'observableProto', {
     return () => this.unsubscribe(key);
   },
 
+  listenChanges(f, target) {
+    let counter = 0;
+    if(typeof f === 'object'){
+      f = this._itemsListener(f);
+    }
+    this.listen((...a) => counter++ && f(...a), target || f);
+  },
+
   transactionStart (){
     if(this._locked)
       throw nice.LOCKED_ERROR;

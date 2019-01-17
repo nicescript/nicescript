@@ -52,10 +52,11 @@ nice.Obj.extend({
     },
 
     _itemsListener (o) {
-      const { onRemove, onAdd } = o;
+      const { onRemove, onAdd, onChange } = o;
       return (v, old) => {
         if(old === undefined){
           onAdd && v.each(onAdd);
+          onChange && v.each((_v, k) => onChange(k, _v));
         } else {
           const l = Math.max(...Object.keys(old || {}), ...Object.keys(v._newValue || {}));
           let i = 0;
@@ -67,15 +68,9 @@ nice.Obj.extend({
               if(v._newValue && v._newValue.hasOwnProperty(i)){
                 onAdd(v._newValue[i], i);
               }
-//              else {
-//                old.hasOwnProperty(i) && onAdd(v._items[i], i);
-//              }
             }
             i++;
           }
-//          onRemove && _each(old, (v, k) => {
-//            k >= l && onRemove(v, k);
-//          });
         }
       };
     }

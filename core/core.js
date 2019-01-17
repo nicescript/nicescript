@@ -178,7 +178,14 @@ defAll(nice, {
     return o;
   },
 
-  unwrap: v => v && v._isAnything ? v.jsValue : v
+  serialize: v => {
+    return v = v && v._isAnything ? v.jsValue : v;
+  },
+
+  deserialize: js => {
+    const niceType = js && js[nice.TYPE_KEY];
+    return niceType ? nice[niceType].fromValue(js) : js;
+  }
 });
 defGet = nice.defineGetter;
 _each = nice._each;

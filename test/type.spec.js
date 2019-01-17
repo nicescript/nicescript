@@ -38,7 +38,7 @@ describe("Type", function() {
   it("extends", function() {
     const T = nice.Type('T14').num('size')();
 
-    expect(T().size(5).jsValue).to.deep.equal({ _nt_: "T14", size:5 });
+    expect(T().size(5).jsValue).to.deep.equal({[nice.TYPE_KEY]: "T14", size:5 });
   });
 
 
@@ -155,10 +155,10 @@ describe("Type", function() {
     expect(v.get('w')).to.equal(2);
   });
 
+
   it("skip arguments", () => {
     const { $1, $2, $3 } = nice;
     const f = nice.Arr($2, $1);
     expect(f(2,1).jsValue).to.deep.equal([1,2]);
   });
-
 });

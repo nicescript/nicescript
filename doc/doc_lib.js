@@ -31,7 +31,7 @@ nice.generateDoc = () => {
   reflect.on('Type', t => {
     if(!t.name || t.name[0] === '_')
       return;
-    const o = { name: t.name, properties: [] };
+    const o = { title: t.name, properties: [] };
     t.hasOwnProperty('description') && (o.description = t.description);
     t.extends && (o.extends = t.super.name);
     res.types[t.name] = o;

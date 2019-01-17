@@ -2,7 +2,7 @@ let nice = require('../index.js')();
 let chai = require('chai');
 chai.use(require('chai-spies'));
 let expect = chai.expect;
-const { Num, Obj, is, Box, RBox } = nice;
+const { Num, Obj, Arr, is, Box, RBox } = nice;
 
 describe("Observable", function() {
 
@@ -13,6 +13,18 @@ describe("Observable", function() {
     n.listen(v => res = v());
 
     expect(res).to.equal(1);
+    n(2);
+
+    expect(res).to.equal(2);
+  });
+
+  it("listenChanges single", function(){
+    let n = Num(1);
+    let res;
+
+    n.listenChanges(v => res = v());
+
+    expect(res).to.equal(undefined);
     n(2);
 
     expect(res).to.equal(2);
@@ -56,6 +68,36 @@ describe("Observable", function() {
     expect(spy).to.not.have.been.called();
     o.set('a', b);
     expect(spy).to.have.been.called.with(a, 'a');
+  });
+
+
+  it("Obj onChange", function() {
+    const o = Obj({'qwe': 2});
+    const spy = chai.spy();
+    o.listen({onChange: spy});
+
+    o.set('qwe', 2);
+    o.set('qwe', 3);
+    o.remove('qwe');
+
+    expect(spy).to.have.been.called.with('qwe', 2);
+    expect(spy).to.have.been.called.with('qwe', undefined, 3);
+  });
+
+
+  it("Arr onChange", function() {
+    const o = Arr(1, 2);
+    const spy = chai.spy();
+    o.listen({onChange:(...a) => {
+        console.log(a);
+        spy(...a);
+    }});
+
+    o.set(0, 2);
+    o.insertAt(1, 3);
+
+    expect(spy).to.have.been.called.with(0, 2, 1);
+    expect(spy).to.have.been.called.with(1, 3);
   });
 
 
