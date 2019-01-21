@@ -1,17 +1,17 @@
 const nice = require('../index.js')();
 const chai = require('chai');
 const expect = chai.expect;
-const { fromJson } = nice;
+const { fromJson, Obj, Arr, serialize, deserialize, Num } = nice;
 
 
 describe("utils", function() {
   it('nice', function () {
-    expect(nice(true, 1, '')._type).to.equal(nice.Arr);
+    expect(nice(true, 1, '')._type).to.equal(Arr);
     expect(nice([1]).jsValue).to.deep.equal([1]);
     expect(nice(true)._type).to.equal(nice.Bool);
     expect(nice(1)._type).to.equal(nice.Num);
     expect(nice('Hi')._type).to.equal(nice.Str);
-    expect(nice({})._type).to.equal(nice.Obj);
+    expect(nice({})._type).to.equal(Obj);
   });
 
 
@@ -40,13 +40,13 @@ describe("utils", function() {
 
   it('Object fromJson', () => {
     const res = fromJson({});
-    expect(res._type).to.equal(nice.Obj);
+    expect(res._type).to.equal(Obj);
     expect(res._items).to.deep.equal({});
   });
 
   it('Object fromJson', () => {
     const res = fromJson({ q: 5 });
-    expect(res._type).to.equal(nice.Obj);
+    expect(res._type).to.equal(Obj);
     expect(res._items.q._type).to.equal(nice.Num);
     expect(res._items.q()).to.equal(5);
   });
@@ -168,7 +168,7 @@ describe("utils", function() {
 
 
 //  it("clone", function() {
-//    let a = nice.Arr(1,2);
+//    let a = Arr(1,2);
 //    let b = nice.clone(a);
 //
 //    expect(b()).to.deep.equal([1,2]);
@@ -179,7 +179,7 @@ describe("utils", function() {
 //
 //
 //  it("cloneDeep", function() {
-//    let a = nice.Arr(1,2);
+//    let a = Arr(1,2);
 //    let b = nice.cloneDeep(a);
 //
 //    expect(b()).to.deep.equal([1,2]);
@@ -188,11 +188,48 @@ describe("utils", function() {
 //    expect(b()).to.deep.equal([1,2]);
 //  });
 
+  const jsTable = [
+    [2,2],
+    [[],[]],
+    [[1,2],[1,2]],
+  ];
+  const niceTable = [
+    [Num(2), {[nice.TYPE_KEY]: 'Num', value: 2}],
+    [Arr(1,2), {[nice.TYPE_KEY]: 'Arr', value: [1,2]}]
+  ];
+
   it('serialze', () => {
+    jsTable.forEach(pair => {
+      expect(serialize(pair[0])).to.deep.equal(pair[1]);
+    });
+    niceTable.forEach(pair => {
+      expect(serialize(pair[0])).to.deep.equal(pair[1]);
+    });
+  });
+
+
+  it('deserialize', () => {
+    jsTable.forEach(pair => {
+      expect(deserialize(pair[1])).to.deep.equal(pair[1]);
+    });
+    niceTable.forEach(pair => {
+      expect(deserialize(pair[1])._type).to.equal(nice[pair[1][nice.TYPE_KEY]]);
+    });
+  });
+
+
+  it('serialze/deserialize', () => {
     const turn = v => nice.deserialize(nice.serialize(v));
     expect(turn(2)).to.equal(2);
     expect(turn([])).to.deep.equal([]);
-    expect(turn(nice.Div('a')).children.get(0)()).to.equal('a');
+
+    const a = {[nice.TYPE_KEY]:'Arr',value:[1,2]};
+    expect(nice.serialize(Arr(1,2))).to.deep.equal(a);
+    expect(nice.deserialize(a)._items).to.deep.equal([1,2]);
+    expect(nice.deserialize(a)._type).to.equal(Arr);
+
+    expect(turn(Obj())._type.name).to.equal('Obj');
+    expect(turn(nice.Div('a')).children.get(0)).to.equal('a');
   });
 
 });

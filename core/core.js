@@ -179,12 +179,27 @@ defAll(nice, {
   },
 
   serialize: v => {
-    return v = v && v._isAnything ? v.jsValue : v;
+    if(v && v._isAnything) {
+      const type = v._type.name;
+      v = { [nice.TYPE_KEY]: type, value: nice.serialize(v()) };
+    } else {
+      if(v && typeof v === 'object'){
+        _each(v, (_v, k) => v[k] = nice.serialize(_v));
+      }
+    }
+    return v;
   },
 
   deserialize: js => {
     const niceType = js && js[nice.TYPE_KEY];
-    return niceType ? nice[niceType].fromValue(js) : js;
+    if(niceType){
+      return nice[niceType].deserialize(js.value);
+    } else if (js && typeof js === 'object'){
+      _each(js, (v, k) => {
+        js[k] = nice.deserialize(v);
+      });
+    }
+    return js;
   }
 });
 defGet = nice.defineGetter;

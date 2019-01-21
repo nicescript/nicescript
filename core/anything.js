@@ -44,6 +44,12 @@ nice.registerType({
     return Object.assign(this(), { _value });
   },
 
+  deserialize (v){
+    const res = this();
+    res._value = nice.deserialize(v);
+    return res;
+  },
+
   _isNiceType: true,
 
   proto: {

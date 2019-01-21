@@ -229,6 +229,27 @@ describe("Observable", function() {
   });
 
 
+  it("listenChildren", function(){
+    let spy = chai.spy();
+    let a = nice.Obj();
+    a.listenChildren(spy);
+
+    expect(spy).not.to.have.been.called();
+
+    a.set('qwe', 1);
+    expect(spy).to.have.been.called.with(1, ['qwe']);
+
+    const num = Num(2);
+    a.set('qwe', num);
+    expect(spy).to.have.been.called.with(num, ['qwe']);
+    num(3);
+    expect(spy).to.have.been.called.with(num, ['qwe']);
+
+    a.set('asd', Obj());
+    a.get('asd').set('zxc', 2);
+    expect(spy).to.have.been.called.with(2, ['asd', 'zxc']);
+  });
+
 //  it("unsubscribe chain", function(){
 //    let spy = chai.spy();
 //    let a = Box();

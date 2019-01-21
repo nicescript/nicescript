@@ -20,7 +20,13 @@ nice.Type({
       return res;
     },
 
-    initChildren(item){
+    deserialize (js) {
+      const res = this();
+      _each(js, (v, k) => res._items[k] = nice.deserialize(v));
+      return res;
+    },
+
+    initChildren (item){
       _each(this.defaultArguments, (as, k) => {
         item._items[k] = this.types[k](...as);
       });

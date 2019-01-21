@@ -10,9 +10,12 @@
 "use strict";
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
+const spy = (...a) => console.log('Spy:', ...a);
 
-    const turn = v => nice.deserialize(nice.serialize(v));
-    turn(nice.Div('a'));
+const a = {[nice.TYPE_KEY]:'Arr',value:[1,2]};
+console.log(nice.serialize(Arr(1,2)));
+console.log(nice.deserialize(a));
+
 
 </script>
   

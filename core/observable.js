@@ -35,6 +35,22 @@ def(nice, 'observableProto', {
     this.listen((...a) => counter++ && f(...a), target || f);
   },
 
+  listenChildren (f, path = []) {
+    this.listenChanges(this.isObj()
+      ? {
+          onRemove: (v, k) => {
+            //unsubscribe
+          },
+          onAdd: (v, k) => {
+            const _path = path.concat(k);
+            f(v, _path);
+            v && v._isAnything&& v.listenChildren(f, _path);
+          }
+        }
+      : v => f(v, path),
+    f);
+  },
+
   transactionStart (){
     if(this._locked)
       throw nice.LOCKED_ERROR;

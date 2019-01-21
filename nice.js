@@ -113,11 +113,26 @@ defAll(nice, {
     return o;
   },
   serialize: v => {
-    return v = v && v._isAnything ? v.jsValue : v;
+    if(v && v._isAnything) {
+      const type = v._type.name;
+      v = { [nice.TYPE_KEY]: type, value: nice.serialize(v()) };
+    } else {
+      if(v && typeof v === 'object'){
+        _each(v, (_v, k) => v[k] = nice.serialize(_v));
+      }
+    }
+    return v;
   },
   deserialize: js => {
     const niceType = js && js[nice.TYPE_KEY];
-    return niceType ? nice[niceType].fromValue(js) : js;
+    if(niceType){
+      return nice[niceType].deserialize(js.value);
+    } else if (js && typeof js === 'object'){
+      _each(js, (v, k) => {
+        js[k] = nice.deserialize(v);
+      });
+    }
+    return js;
   }
 });
 defGet = nice.defineGetter;
@@ -905,6 +920,11 @@ nice.registerType({
   fromValue (_value){
     return Object.assign(this(), { _value });
   },
+  deserialize (v){
+    const res = this();
+    res._value = nice.deserialize(v);
+    return res;
+  },
   _isNiceType: true,
   proto: {
     _isAnything: true,
@@ -1250,6 +1270,21 @@ def(nice, 'observableProto', {
     }
     this.listen((...a) => counter++ && f(...a), target || f);
   },
+  listenChildren (f, path = []) {
+    this.listenChanges(this.isObj()
+      ? {
+          onRemove: (v, k) => {
+            
+          },
+          onAdd: (v, k) => {
+            const _path = path.concat(k);
+            f(v, _path);
+            v && v._isAnything&& v.listenChildren(f, _path);
+          }
+        }
+      : v => f(v, path),
+    f);
+  },
   transactionStart (){
     if(this._locked)
       throw nice.LOCKED_ERROR;
@@ -1560,7 +1595,12 @@ nice.jsTypes.isSubType = isSubType;
       Object.assign(res._items, nice._map(v, nice.fromJson));
       return res;
     },
-    initChildren(item){
+    deserialize (js) {
+      const res = this();
+      _each(js, (v, k) => res._items[k] = nice.deserialize(v));
+      return res;
+    },
+    initChildren (item){
       _each(this.defaultArguments, (as, k) => {
         item._items[k] = this.types[k](...as);
       });
