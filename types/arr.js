@@ -159,6 +159,7 @@ A('pull', (z, item) => {
   (k === -1 || k === undefined) || z.removeAt(k);
 });
 
+//TODO: its very slow
 A.Number('insertAt', (z, i, v) => {
   i = +i;
   const old = z._items;

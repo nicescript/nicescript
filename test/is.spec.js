@@ -91,5 +91,8 @@ describe("is", function() {
     expect(nice.isFalsy(nice('ww'))).to.equal(false);
   });
 
+  it('handle undefined', () => {
+    expect(() => nice.expect(undefined).gt(0)).not.to.throw();
+  });
 
 });

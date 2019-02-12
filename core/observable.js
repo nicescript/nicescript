@@ -36,10 +36,10 @@ def(nice, 'observableProto', {
   },
 
   listenChildren (f, path = []) {
-    this.listenChanges(this.isObj()
+    this.listen(this.isObj()
       ? {
           onRemove: (v, k) => {
-            //unsubscribe
+            //TODO: unsubscribe
           },
           onAdd: (v, k) => {
             const _path = path.concat(k);

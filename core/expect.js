@@ -2,26 +2,26 @@ def(nice, 'expectPrototype', {
   toBe (value){
     if(!value) {
       if(!this.value)
-        throw this.message || 'Value expected';
+        throw this.text || 'Value expected';
     } else {
       if(this.value != value)
-        throw this.message || value + ' expected';
+        throw this.text || value + ' expected';
     }
   },
 
   notToBe (value){
     if(!value) {
       if(this.value)
-        throw this.message || 'No value expected';
+        throw this.text || 'No value expected';
     } else {
       if(this.value == value)
-        throw this.message || value + ' not expected';
+        throw this.text || value + ' not expected';
     }
   },
 
   toMatch (f){
     if(!f(this.value))
-      throw this.message || ('Value does not match function ' + f);
+      throw this.text || ('Value does not match function ' + f);
   }
 });
 
@@ -29,14 +29,23 @@ def(nice, 'expectPrototype', {
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     if(!f(this.value, ...a))
-      throw this.message || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
+      throw this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
     return nice.Ok();
   });
 });
 
 
-def(nice, function expect(value, message){
-  return create(nice.expectPrototype, { value, message, item: this});
+def(nice, function expect(value, ...texts){
+  return create(nice.expectPrototype, { value, texts, item: this});
+});
+
+defGet(nice.expectPrototype, function text(){
+  return nice.format(...this.texts);
+});
+
+def(nice.expectPrototype, function message(...a){
+  this.texts = a;
+  return this;
 });
 
 expect = nice.expect;

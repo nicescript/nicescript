@@ -52,14 +52,14 @@ nice.Type({
         return i;
       },
 
-      setDefault (i, v, ...tale) {
+      setDefault (i, f, ...tale) {
         const z = this;
 
         if(i._isAnything === true)
           i = i();
 
         if(!z._items.hasOwnProperty(i))
-          z.set(i, v, ...tale);
+          z.set(i, f(), ...tale);
         return z;
       },
 
