@@ -704,7 +704,7 @@ function createFunction({ existing, name, body, signature, type, description, te
   const f = existing || createFunctionBody(type);
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
-  
+
   body && f.addSignature(body, signature.map(v => v.type), name);
   f.maxLength >= signature.length || (f.maxLength = signature.length);
   if(name){
@@ -1283,7 +1283,7 @@ def(nice, 'observableProto', {
     this.listen(this.isObj()
       ? {
           onRemove: (v, k) => {
-            
+
           },
           onAdd: (v, k) => {
             const _path = path.concat(k);
@@ -1448,7 +1448,7 @@ nice.getType = v => {
   let res = typeof v;
   if(res === 'object'){
     const c = v.constructor;
-    
+
     res = nice.jsTypes[c === Object
       ? 'Object'
       : c === Number
@@ -1732,7 +1732,7 @@ A('set', (z, i, v, ...tale) => {
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 A('replaceAll', (z, o) => {
-  
+
   z._oldValue = z._items;
   z._items = o._items;
 });
@@ -1983,7 +1983,7 @@ nice.Type({
         } else if(this._by){
           this._simpleSetState(this._by(..._results));
         } else if(this._asyncBy){
-          
+
           this._isReactive = false;
           this._asyncBy(this, ..._results);
           return;
@@ -2097,29 +2097,29 @@ nice.Obj.extend({
   itemArgs1: (z, v) => z.set(z._items.length, v),
   itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
   proto: {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     pop () {
       const i = this._items.length - 1;
       let e;
@@ -2904,7 +2904,7 @@ if(nice.isEnvBrowser()){
   });
   Func.Html('show', (e, parentNode = document.body, position) => {
     const node = document.createElement(e.tag());
-    
+
     insertAt(parentNode, node, position);
     e.attachNode(node);
     return node;
@@ -2962,15 +2962,15 @@ if(nice.isEnvBrowser()){
   function removeAt(parent, position){
     const c = parent.childNodes[position];
     parent.removeChild(parent.childNodes[position]);
-    
+
   }
   function insertAt(parent, node, position){
     parent.insertBefore(node, parent.childNodes[position]);
     return node;
   }
-  
-  
-  
+
+
+
 };
 def(nice, 'iterateNodesTree', (f, node = document.body) => {
   f(node);

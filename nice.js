@@ -2029,6 +2029,7 @@ def(nice, 'resolveChildren', (v, f) => {
       count === 0 && f(v);
     };
     !count ? f(v) : _each(v._items, (vv, kk) => {
+      console.log(kk);
       nice.resolveChildren(vv, _v => {
         next();
       });

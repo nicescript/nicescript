@@ -15,22 +15,10 @@ const spy = (...a) => console.log('Spy:', ...a);
 const a = [];
 const o = Obj();
 
-
-nice.speedTest(() => {
-  nice.times(1000000, n => {
-    let v = { id: n, time: Date.now(), text: 'slij 4ofjlrjg4j lrijv r' + n };
-//    o.set('k' + n, v);
-    a.push(v);
-  });
-});
-
-nice.speedTest(() => {
-//  console.log('Sum o', o.reduce((sum, v) => sum + v.id, 0));
-});
-nice.speedTest(() => {
-  console.log('Sum a', a.reduce((sum, v) => sum + v.id, 0));
-});
-
+nice.resolveChildren(Div().rBox(Str(''), uId => uId()
+    ? B(uId)
+    : I('User: /')), v => console.log(v.jsValue));
+    
 </script>
   
   </body>
