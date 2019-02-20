@@ -14,10 +14,13 @@ const spy = (...a) => console.log('Spy:', ...a);
 
 const a = [];
 const o = Obj();
+const n = Num(1);
 
-nice.resolveChildren(Div().rBox(Str(''), uId => uId()
-    ? B(uId)
-    : I('User: /')), v => console.log(v.jsValue));
+n.listenChildren((...as) => {
+  console.log(as);
+});
+
+n(2)
     
 </script>
   

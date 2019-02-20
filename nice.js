@@ -1258,13 +1258,10 @@ def(nice, 'observableProto', {
     const key = target || f;
     const ss = this._subscribers = this._subscribers || new Map();
     if(!ss.has(key)){
+      this.compute && this.compute();
       ss.set(key, f);
-      if(this.compute){
-        this.compute();
-      } else {
-        const val = this._notificationValue ? this._notificationValue() : this;
-        nice.isPending(val) || f(val);
-      }
+      const val = this._notificationValue ? this._notificationValue() : this;
+      nice.isPending(val) || f(val);
     }
     if(target) {
       target._subscriptions = target._subscriptions || [];
@@ -2029,7 +2026,6 @@ def(nice, 'resolveChildren', (v, f) => {
       count === 0 && f(v);
     };
     !count ? f(v) : _each(v._items, (vv, kk) => {
-      console.log(kk);
       nice.resolveChildren(vv, _v => {
         next();
       });

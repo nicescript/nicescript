@@ -37,23 +37,16 @@ describe("Box", function() {
     expect(a()).to.equal(6);
   });
 
-  it("listen reactive unique", function(){
-    const spy = chai.spy();
-    const a = Num();
-    const b = RBox(a, n => n / 2 | 0);
-    b.listen(spy);
-    a(1);
-    expect(spy).to.have.been.called.once();
-  });
-
 
   it("listen reactive unique", function(){
     const spy = chai.spy();
     const a = Num();
     const b = RBox(a, n => n / 2 | 0);
     b.listen(spy);
-    a(1);
+    expect(spy).to.have.been.called.with(0);
     expect(spy).to.have.been.called.once();
+    a(4);
+    expect(spy).to.have.been.called.with(2);
   });
 
 
@@ -67,6 +60,14 @@ describe("Box", function() {
 
     a(7);
     expect(res).to.equal(6);
+  });
+
+
+  it("listen resolved", function(){
+    const a = Box(1);
+    let res;
+    a.listen(v => res = v);
+    expect(res).to.equal(1);
   });
 
 

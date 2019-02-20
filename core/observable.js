@@ -10,13 +10,10 @@ def(nice, 'observableProto', {
     const ss = this._subscribers = this._subscribers || new Map();
 
     if(!ss.has(key)){
+      this.compute && this.compute();
       ss.set(key, f);
-      if(this.compute){
-        this.compute();
-      } else {
-        const val = this._notificationValue ? this._notificationValue() : this;
-        nice.isPending(val) || f(val);
-      }
+      const val = this._notificationValue ? this._notificationValue() : this;
+      nice.isPending(val) || f(val);
     }
 
     if(target) {
