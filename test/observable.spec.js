@@ -89,7 +89,7 @@ describe("Observable", function() {
     const o = Arr(1, 2);
     const spy = chai.spy();
     o.listen({onChange:(...a) => {
-        console.log(a);
+//        console.log(a);
         spy(...a);
     }});
 

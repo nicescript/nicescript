@@ -16,11 +16,14 @@ const a = [];
 const o = Obj();
 const n = Num(1);
 
-n.listenChildren((...as) => {
-  console.log(as);
-});
 
-n(2)
+const counter = nice.Num();
+
+setInterval(() => counter.inc(), 1000);
+
+
+const obj = Obj();
+counter.listen(v => obj.set(v() % 3, v()));
     
 </script>
   

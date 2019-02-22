@@ -62,7 +62,8 @@ nice.Obj.extend({
           let i = 0;
           while(i <= l){
             if (onRemove) {
-              old[i] !== undefined && onRemove(old[i], i);
+              old.hasOwnProperty(i) && onRemove(old[i], i);
+//              old[i] !== undefined && onRemove(old[i], i);
             }
             if(onAdd) {
               if(v._newValue && v._newValue.hasOwnProperty(i)){

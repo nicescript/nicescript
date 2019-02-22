@@ -1362,7 +1362,6 @@ function notify(z){
     });
     z._notifing = false;
   }
-  return needNotification ? oldValue : NO_NEED;
 };
 })();
 (function(){"use strict";def(nice, function extend(child, parent){
@@ -2147,7 +2146,7 @@ nice.Obj.extend({
           let i = 0;
           while(i <= l){
             if (onRemove) {
-              old[i] !== undefined && onRemove(old[i], i);
+              old.hasOwnProperty(i) && onRemove(old[i], i);
             }
             if(onAdd) {
               if(v._newValue && v._newValue.hasOwnProperty(i)){
@@ -3007,9 +3006,9 @@ const constructors = {
   Obj: (z, o, f) => {
     const positions = {};
     o.listen({
-      onRemove: (v, k) => z.children.remove(positions[k]),
+      onRemove: (v, k) => z.children.removeAt(positions[k]),
       onAdd: (v, k) => {
-        const i = o.isArr() ? k : Object.keys(o()).indexOf(k);
+        const i = Object.keys(o()).indexOf(k);
         positions[k] = i;
         z.children.insertAt(i, f(v, k));
       }

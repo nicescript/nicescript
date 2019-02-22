@@ -135,5 +135,5 @@ function notify(z){
     });
     z._notifing = false;
   }
-  return needNotification ? oldValue : NO_NEED;
+//  return needNotification ? oldValue : NO_NEED;
 };
