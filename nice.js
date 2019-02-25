@@ -1281,6 +1281,8 @@ def(nice, 'observableProto', {
       ? {
           onRemove: (v, k) => {
             
+            v.unsubscribe && v.unsubscribe(f);
+            f(null, path.concat(k));
           },
           onAdd: (v, k) => {
             const _path = path.concat(k);
