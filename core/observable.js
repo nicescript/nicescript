@@ -32,7 +32,7 @@ def(nice, 'observableProto', {
     this.listen((...a) => counter++ && f(...a), target || f);
   },
 
-  listenChildren (f, path = []) {
+  listenChildren (f, path = [], skip = true) {
     this.listen(this.isObj()
       ? {
           onRemove: (v, k) => {
@@ -42,12 +42,13 @@ def(nice, 'observableProto', {
           },
           onAdd: (v, k) => {
             const _path = path.concat(k);
-            f(v, _path);
-            v && v._isAnything&& v.listenChildren(f, _path);
+            skip || f(v, _path);
+            v && v._isAnything&& v.listenChildren(f, _path, skip);
           }
         }
-      : v => f(v, path),
+      : v => skip || f(v, path),
     f);
+    skip = false;
   },
 
   transactionStart (){

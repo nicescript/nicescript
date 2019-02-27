@@ -1276,7 +1276,7 @@ def(nice, 'observableProto', {
     }
     this.listen((...a) => counter++ && f(...a), target || f);
   },
-  listenChildren (f, path = []) {
+  listenChildren (f, path = [], skip = true) {
     this.listen(this.isObj()
       ? {
           onRemove: (v, k) => {
@@ -1286,12 +1286,13 @@ def(nice, 'observableProto', {
           },
           onAdd: (v, k) => {
             const _path = path.concat(k);
-            f(v, _path);
-            v && v._isAnything&& v.listenChildren(f, _path);
+            skip || f(v, _path);
+            v && v._isAnything&& v.listenChildren(f, _path, skip);
           }
         }
-      : v => f(v, path),
+      : v => skip || f(v, path),
     f);
+    skip = false;
   },
   transactionStart (){
     if(this._locked)
@@ -1684,7 +1685,19 @@ F(function each(o, f){
 F('reverseEach', (o, f) => {
   Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
 });
-Mapping.Object('get', (o, i) => o[''+i]);
+Mapping.Object('get', (o, path) => {
+  if(path.pop){
+    let k = 0;
+    while(k < path.length) {
+      o = o[path[k++]];
+      if(!o)
+        return o;
+    }
+    return o;
+  } else {
+    return o[''+path];
+  }
+});
 M('get', (z, i) => {
   if(i._isAnything === true)
     i = i();

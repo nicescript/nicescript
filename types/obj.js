@@ -132,7 +132,21 @@ F('reverseEach', (o, f) => {
 });
 
 
-Mapping.Object('get', (o, i) => o[''+i]);
+//Mapping.Object.('get', (o, i) => o[''+i]);
+Mapping.Object('get', (o, path) => {
+  if(path.pop){
+    let k = 0;
+    while(k < path.length) {
+      o = o[path[k++]];
+      if(!o)
+        return o;
+    }
+    return o;
+  } else {
+    return o[''+path];
+  }
+});
+
 
 M('get', (z, i) => {
   if(i._isAnything === true)
