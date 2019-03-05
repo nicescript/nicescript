@@ -2892,8 +2892,12 @@ if(nice.isEnvBrowser()){
     const f = (v, oldValue) => {
       const oldNode = node;
       node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
-      node = nice.show(v, parentNode, position);
-      e._shownNodes.set(node, f);
+      if(v !== null){
+        node = nice.show(v, parentNode, position);
+        e._shownNodes.set(node, f);
+      } else {
+        node = undefined;
+      }
       if(oldNode){
         oldValue && oldValue.hide ? oldValue.hide(oldNode) : killNode(oldNode);
       }

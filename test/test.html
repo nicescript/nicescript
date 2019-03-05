@@ -21,9 +21,14 @@ const counter = nice.Num();
 
 setInterval(() => counter.inc(), 1000);
 
+const f = n => {
+    let x = n;
+    console.log(x);
+  }
 
-const obj = Obj();
-counter.listen(v => obj.set(v() % 3, v()));
+nice.times(1000000, n => {
+  a.push(f, n, 45, undefined);
+});
     
 </script>
   
