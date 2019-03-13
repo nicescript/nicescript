@@ -17,17 +17,32 @@ const o = Obj();
 const n = Num(1);
 
 
-const counter = nice.Num();
+//const counter = nice.Num();
+//
+//setInterval(() => counter.inc(), 1000);
+//
+//const f = n => {
+//    let x = n;
+//    console.log(x);
+//  }
 
-setInterval(() => counter.inc(), 1000);
-
-const f = n => {
-    let x = n;
-    console.log(x);
-  }
-
-nice.times(1000000, n => {
-  a.push(f, n, 45, undefined);
+nice.times(100000, n => {
+  a.push(Obj({
+    facts: Obj(),
+    votes: Obj(),
+    reputation: Obj()
+  }));
+//  a.push({
+//    facts: {
+//      field: [],
+//      type: [],
+//      value: [],
+//      author: [],
+//      rating: []
+//    },
+//    votes: {},
+//    reputation: {}
+//  });
 });
     
 </script>
