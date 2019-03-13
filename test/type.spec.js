@@ -161,4 +161,11 @@ describe("Type", function() {
     const f = nice.Arr($2, $1);
     expect(f(2,1).jsValue).to.deep.equal([1,2]);
   });
+
+
+  it("skip arguments and modify", () => {
+    const { $1, $2, $3 } = nice;
+    const f = nice.Arr($2, $1).push(3);
+    expect(f(2,1).jsValue).to.deep.equal([1,2,3]);
+  });
 });
