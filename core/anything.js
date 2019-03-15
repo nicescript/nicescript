@@ -96,6 +96,14 @@ nice.registerType({
     },
   },
 
+  checkInvariants (v) {
+    this.super && this.super.checkInvariants(v);
+    this.invariants && this.invariants.forEach(f => {
+      if(!f(v))
+        throw 'Badd';
+    });
+  },
+
   configProto: {
     extends (parent){
       const type = this.target;
@@ -117,8 +125,14 @@ nice.registerType({
         return f(this);
       });
       return this;
-    }
+    },
 
+    invariant (f) {
+      this.target.hasOwnProperty('invariants')
+        ? this.target.invariants.push(f)
+        : def(this.target, 'invariants', [f]);
+      return this;
+    }
   },
 
   types: {}

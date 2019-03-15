@@ -26,24 +26,14 @@ const n = Num(1);
 //    console.log(x);
 //  }
 
-nice.times(100000, n => {
-  a.push(Obj({
-    facts: Obj(),
-    votes: Obj(),
-    reputation: Obj()
-  }));
-//  a.push({
-//    facts: {
-//      field: [],
-//      type: [],
-//      value: [],
-//      author: [],
-//      rating: []
-//    },
-//    votes: {},
-//    reputation: {}
-//  });
-});
+nice.Type('Size')
+      .num('x')
+      .num('y')
+      .invariant(z => z.x.gte(0) && z.y.gte(0));
+
+    const s = nice.Size().x(1).y(2);
+    
+    s.x(-1);
     
 </script>
   
