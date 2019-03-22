@@ -9,7 +9,7 @@ nice.Single.extend({
     if(s && s._isAnything)
        s = s();
     if(!allowedSources[typeof s])
-      throw `Can't create Str from ${typeof n}`;
+      throw `Can't create Str from ${typeof s}`;
     z._setValue('' + s);
   },
   itemArgsN: (z, a) => z._setValue(nice.format(...a)),

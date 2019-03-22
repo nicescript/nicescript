@@ -932,7 +932,11 @@ nice.registerType({
       return this.hasOwnProperty('_value') ? this._value : undefined;
     },
     super (...as){
-      this._type.super.initBy(this, ...as);
+      const type = this._type;
+      const superType = type.super;
+      this._type = superType;
+      superType.initBy(this, ...as);
+      this._type = type;
       return this;
     },
     apply(f){
@@ -2479,7 +2483,7 @@ nice.Single.extend({
     if(s && s._isAnything)
        s = s();
     if(!allowedSources[typeof s])
-      throw `Can't create Str from ${typeof n}`;
+      throw `Can't create Str from ${typeof s}`;
     z._setValue('' + s);
   },
   itemArgsN: (z, a) => z._setValue(nice.format(...a)),

@@ -60,7 +60,11 @@ nice.registerType({
     },
 
     super (...as){
-      this._type.super.initBy(this, ...as);
+      const type = this._type;
+      const superType = type.super;
+      this._type = superType;
+      superType.initBy(this, ...as);
+      this._type = type;
       return this;
     },
 

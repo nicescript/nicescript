@@ -82,6 +82,31 @@ describe("Type", function() {
   });
 
 
+  it("super super constructor", function() {
+    const A = nice.Type({
+      proto: {
+        qwe (){ return this._value + 3 }
+      }
+    }).by((z, a) => z.a = a).extends(nice.Value)();
+
+    const B = nice.Type({
+      proto: {
+         qwe (){ return this._value + 5 }
+      }
+    }).by((z, x) => z.super(x || 'B')).extends(A)();
+
+    const C = nice.Type({
+      proto: {
+         qwe (){ return this._value + 7 }
+      }
+    }).by(z => z.super('C')).extends(B)();
+
+    const c = C(1);
+
+    expect(c.a).to.equal('C');
+  });
+
+
   it("isSubType", function() {
     const a = nice.Type()();
     const b = nice.Type().extends(a)();
