@@ -143,6 +143,11 @@ describe("Func", function() {
     expect(nice.difference(nice.$2, nice.$1).product(nice.$2)(5, 7)).to.equal(14);
   });
 
+  it("skip all arguments", () => {
+    const { $$ } = nice;
+    expect(nice.sum($$)(5, 7)).to.equal(12);
+  });
+
 
   it("ary", () => {
     const f = nice.Func((a = 1, b = 2, c = 3) => '' + a + b + c);

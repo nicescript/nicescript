@@ -194,6 +194,14 @@ describe("Type", function() {
     expect(f(2,1).jsValue).to.deep.equal([1,2,3]);
   });
 
+
+  it("skip all arguments", () => {
+    const { $$ } = nice;
+    const f = nice.Arr(0, $$, 3);
+    expect(f(2,1).jsValue).to.deep.equal([0,2,1,3]);
+  });
+
+
   it("invariant", () => {
     nice.Type('Size')
       .num('x')

@@ -12,35 +12,9 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-const a = [];
-const o = Obj();
-const n = Num(1);
-
-
-//const counter = nice.Num();
-//
-//setInterval(() => counter.inc(), 1000);
-//
-//const f = n => {
-//    let x = n;
-//    console.log(x);
-//  }
-
-function checksum(s){
-  var chk = 0x12345678;
-  for (let i = s.length - 1; i >= 0; i--) {
-    chk += (s.charCodeAt(i) * (i + 1));
-  }
-  return (chk & 0x0000000f).toString(16);
-}
-
-console.log(checksum('welfir goe84'));
-console.log(checksum('welfir goe85'));
-console.log(checksum('welfir go85'));
-console.log(checksum('welfir go4e85'));
-console.log(checksum('welfir goevwre85'));
-console.log(checksum('welfir goe8er5'));
-console.log(checksum('welfir goe8bre5'));
+const { $$ } = nice;
+const f = nice.Arr($$);
+f(1,2);
     
 </script>
   

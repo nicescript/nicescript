@@ -729,10 +729,10 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
   }
 });
 function createFunctionBody(functionType){
-  const {$1,$2,$3,$4} = nice;
+  const {$1,$2,$3,$4,$$} = nice;
   const z = create(functionProto, (...args) => {
     for(let a of args){
-      if(a === $1 || a === $2 || a === $3 || a === $4)
+      if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
         return skip(z, args);
     }
     let target = z.signatures;
@@ -823,13 +823,16 @@ function handleType(type){
 };
 const skipedProto = {};
 [1,2,3,4].forEach(n => nice['$' + n] = a => a[n - 1]);
+nice.$$ = a => a;
 function skip(f1, args1){
-  const {$1,$2,$3,$4} = nice;
+  const {$1,$2,$3,$4,$$} = nice;
   const f = create(skipedProto, function (...as) {
     let res;
     f.queue.forEach(({action, args}, k) => {
-      const a2 = args.map(v => ( v===$1 || v === $2 || v === $3 || v === $4 )
-        ? v(as) : v);
+      const a2 = [];
+      args.forEach(v => v === $$
+        ? a2.push(...as)
+        : a2.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(as) : v))
       res = k ? action(res, ...a2) : action(...a2);
     });
     return res;
@@ -1422,10 +1425,10 @@ defAll(nice, {
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
     by === undefined || (config.initBy = by);
-    const {$1,$2,$3,$4} = nice;
+    const {$1,$2,$3,$4,$$} = nice;
     const type = (...a) => {
       for(let v of a){
-        if(v === $1 || v === $2 || v === $3 || v === $4)
+        if(v === $1 || v === $2 || v === $3 || v === $4 || v === $$)
           return nice.skip(type, a);
       }
       const item = nice._newItem(type);
@@ -2762,19 +2765,16 @@ Html.proto.Box = function(...a) {
   this.add(res);
   return res;
 };
-const styleProto = {
-  BG: function () {this('red')}
-};
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
-    def(Html.proto, property, create(styleProto, function(...a) {
+    def(Html.proto, property, function(...a) {
       const s = this.style;
       nice.Switch(a[0])
         .isBox.use(b => s.set(property, b))
         .isObject.use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
-    }));
+    });
     def(Style.proto, property, function(...a) {
       nice.isObject(a[0])
         ? _each(a[0], (v, k) => this.set(property + nice.capitalize(k), v))
