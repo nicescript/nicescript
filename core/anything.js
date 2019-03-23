@@ -139,7 +139,13 @@ nice.registerType({
     }
   },
 
-  types: {}
+  types: {},
+
+  static (...a) {
+    const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];
+    def(this, name, v);
+    return this;
+  }
 })
 
 Anything = nice.Anything;
