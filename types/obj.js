@@ -372,8 +372,8 @@ M.Function(function count(o, f) {
 //M.undefined('includes', () => false);
 
 C('includes', (o, t) => {
-  for(let i in o)
-    if(o[i] === t)
+  for(let i in o._items)
+    if(o._items[i] === t)
       return true;
   return false;
 });

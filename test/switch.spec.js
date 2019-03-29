@@ -197,6 +197,15 @@ describe("Switch", function() {
   });
 
 
+  it("switch curry", function() {
+    const s = Switch(5)
+      .$2.gt(10)('OK')
+      .default('');
+
+    expect(s).to.equal('OK');
+  });
+
+
   it("switch delayed", function() {
     const s = Switch
       .is(7).use(() => 77)

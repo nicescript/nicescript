@@ -194,4 +194,6 @@ describe("Func", function() {
       nice.brt53 === _f && done();
     });
   });
+
+  //TODO: check Func.Single.Arr match(Num, Arr)
 });

@@ -1088,7 +1088,7 @@ const switchProto = create(nice.checkers, {
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
-  }
+  },
 });
 defGet(switchProto, 'default', function () {
   const z = this;
@@ -1877,8 +1877,8 @@ M.Function(function count(o, f) {
   return nice.Num(n);
 });
 C('includes', (o, t) => {
-  for(let i in o)
-    if(o[i] === t)
+  for(let i in o._items)
+    if(o._items[i] === t)
       return true;
   return false;
 });

@@ -105,7 +105,7 @@ const switchProto = create(nice.checkers, {
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
     return res;
-  }
+  },
 });
 
 
