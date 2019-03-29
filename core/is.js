@@ -92,18 +92,27 @@ reflect.on('Type', function defineReducer(type) {
 });
 
 
+const throwF = function(...as) {
+  this.use(function(){
+    throw nice.format(...as);
+  });
+};
+
+
 const switchProto = create(nice.checkers, {
   valueOf () { return this.res; },
   check (f) {
     this._check = f;
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
+    res.throw = throwF;
     return res;
   },
   is (v) {
     this._check = (a) => is(v, a);
     const res = switchResult.bind(this);
     res.use = switchUse.bind(this);
+    res.throw = throwF;
     return res;
   },
 });
@@ -113,6 +122,7 @@ defGet(switchProto, 'default', function () {
   const z = this;
   const res = v => z.done ? z.res : v;
   res.use = f => z.done ? z.res : f(...z.actionArgs);
+  res.throw = throwF;
   return res;
 });
 
@@ -130,12 +140,14 @@ const delayedProto = create(nice.checkers, {
     this._check = f;
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
+    res.throw = throwF;
     return res;
   },
   is (f) {
     this._check = (v) => is(v, f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
+    res.throw = throwF;
     return res;
   },
 });
@@ -144,6 +156,7 @@ const delayedProto = create(nice.checkers, {
 defGet(delayedProto, 'default', function () {
   const z = this, res = v => { z._default = () => v; return z; };
   res.use = f => { z._default = f; return z; };
+  res.throw = throwF;
   return res;
 });
 
@@ -199,6 +212,7 @@ const S = Switch = nice.Switch = (...args) => {
     f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
     const res = create(actionProto, switchResult.bind(f));
     res.use = switchUse.bind(f);
+    res.throw = throwF;
     return res;
   };
 
@@ -282,6 +296,7 @@ function DealyedSwitch(...a) {
 
     const res = create(actionProto, delayedResult.bind(f));
     res.use = delayedUse.bind(f);
+    res.throw = throwF;
     return res;
   };
 

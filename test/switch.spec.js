@@ -254,4 +254,17 @@ describe("Switch", function() {
         .up;
     expect(n()).equal(6);
   });
+
+
+  it("throw", function() {
+    expect(() => Switch(5)
+      .gt(10).use((z, a) => z.inc(a))
+      .default.throw('q')).to.throw();
+
+    const n = Switch
+      .gt(10).use((z, a) => z.inc(a))
+      .default.throw('q');
+
+    expect(() => n(5)).to.throw();
+  });
 });
