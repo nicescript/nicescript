@@ -1,5 +1,6 @@
 const formatRe = /(%([jds%]))/g;
 const formatMap = { s: String, d: Number, j: JSON.stringify };
+const ID_SYMBOLS = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';//Crockford's base 32
 
 defAll(nice, {
   _map (o, f) {
@@ -105,7 +106,14 @@ defAll(nice, {
     return res;
   },
 
-
+  generateId () {
+    let left = 25;
+    let a = [Math.random() * 8 | 0];
+    while(left--){
+      a.push(ID_SYMBOLS[(Math.random() * 32 | 0)]);
+    }
+    return a.join('');
+  }
 });
 
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);

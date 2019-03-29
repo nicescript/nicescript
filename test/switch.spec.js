@@ -266,5 +266,6 @@ describe("Switch", function() {
       .default.throw('q');
 
     expect(() => n(5)).to.throw();
+    expect(n(51)).to.equal(52);
   });
 });
