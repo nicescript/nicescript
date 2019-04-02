@@ -38,8 +38,6 @@ defAll(nice, {
 
     const {$1,$2,$3,$4,$$} = nice;
     const type = (...a) => {
-//      if(a.some(v => v && v._isTwist))
-//        return nice.twist(type, a);
       for(let v of a){
         if(v === $1 || v === $2 || v === $3 || v === $4 || v === $$)
           return nice.skip(type, a);
