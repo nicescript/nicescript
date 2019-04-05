@@ -221,7 +221,7 @@ function html(z){
 
   let body = '';
   for(let c of z.children._items)
-    body += c._isAnything ? c.html : c;
+    body += c._isAnything ? c.html : nice.htmlEscape(c);
 
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };

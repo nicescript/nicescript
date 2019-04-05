@@ -72,7 +72,7 @@ nice.Type({
           } else {
             _each(old, (c, k) => {
               onRemove && c !== undefined && onRemove(c, k);
-              onAdd && v._items[k] && onAdd(v._items[k], k);
+              onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
               onChange && onChange(k, v._items[k], c);
             });
           }
@@ -437,3 +437,7 @@ reflect.on('Type', type => {
     return this;
   });
 });
+
+//TODO: BUG:
+//nice.mapToArray({})
+//nice.js:1835 Uncaught TypeError: c.reduceTo.Array is not a function

@@ -1684,7 +1684,7 @@ nice.jsTypes.isSubType = isSubType;
           } else {
             _each(old, (c, k) => {
               onRemove && c !== undefined && onRemove(c, k);
-              onAdd && v._items[k] && onAdd(v._items[k], k);
+              onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
               onChange && onChange(k, v._items[k], c);
             });
           }
@@ -2852,7 +2852,7 @@ function html(z){
   });
   let body = '';
   for(let c of z.children._items)
-    body += c._isAnything ? c.html : c;
+    body += c._isAnything ? c.html : nice.htmlEscape(c);
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 defAll(nice, {
