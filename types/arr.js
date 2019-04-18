@@ -261,7 +261,7 @@ A(function fill(z, v, start = 0, end){
 
 
 M.Function(function map(a, f){
-  return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
+  return a.reduceTo(Arr(), (z, v, k) => z.push(f(v, k)));
 });
 
 Mapping.Array.Function(function map(a, f){

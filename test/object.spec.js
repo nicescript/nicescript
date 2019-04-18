@@ -64,14 +64,6 @@ describe("Obj", function() {
 //  });
 //
 //
-//  it("reduceTo.Type", function() {
-//    const c = Obj({qwe: 1, ads: 3});
-//    const a = c.reduceTo.Num((z, v) => z.inc(v));
-//    expect(a.isNum()).to.equal(true);
-//    expect(a()).to.equal(4);
-//  });
-//
-//
 //  it("sum", function() {
 //    const a = Obj({qwe: 1, ads: 3});
 //    expect(a.sum()).to.equal(4);

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="../nice.js"></script>
+    <script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>
+
   </head>
   <body>
 <script>
@@ -12,25 +14,10 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-var folderNames = [
-  'Main',
-  'Trash',
-  'Users',
-];
-function checkFolder(v) {
-  const fs = folderNames;
-  return Switch(v)
-    .isNumber(v)
-    .isString.use(s => {
-      if(fs.includes(s)){
-        return fs.indexOf(s);
-      } else {
-        throw 'No folder ' + s;
-      }
-    })
-    .default.throw('Bad folder id');
-}
-    
+var a = Arr();
+nice.add(a, 1);
+console.log(a);
+
 </script>
   
   </body>

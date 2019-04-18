@@ -400,7 +400,7 @@ if(nice.isEnvBrowser()){
   Func.Box('hide', (e, node) => {
     e.unsubscribe(e._shownNodes.get(node));
     e._shownNodes.delete(node);
-    e._value && e._value.hide(node);
+    e._value && e._value.hide && e._value.hide(node);
   });
 
 
@@ -468,8 +468,8 @@ if(nice.isEnvBrowser()){
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
-    subscriptions.forEach(f => f());
-    e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
+    subscriptions && subscriptions.forEach(f => f());
+    node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
 

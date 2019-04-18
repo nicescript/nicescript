@@ -1705,16 +1705,6 @@ nice.jsTypes.isSubType = isSubType;
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .addProperty('reduceTo', { get () {
-    const c = this;
-    const f = (item, f, init) => {
-      init && init(item);
-      c.each((v, k) => f(item, v, k));
-      return item;
-    };
-    f.collection = c;
-    return create(nice.collectionReducers, f);
-  }})
   .addProperty('size', { get () {
     return Object.keys(this._items).reduce(n => n + 1, 0);
   }})
@@ -1832,7 +1822,7 @@ M(function reduce(o, f, res){
   return res;
 });
 M(function mapToArray(c, f){
-  return c.reduceTo.Array((a, v, k) => a.push(f(v, k)));
+  return c.reduceTo([], (a, v, k) => a.push(f(v, k)));
 });
 Mapping.Nothing('map', () => nice.Nothing);
 Mapping.Object(function map(o, f){
@@ -1907,6 +1897,10 @@ C('includes', (o, t) => {
 M(function getProperties(z){
   const res = [];
   for(let i in z) z[i]._isProperty && res.push(z[i]);
+  return res;
+});
+M('reduceTo', (o, res, f) => {
+  o.each((v, k) => f(res, v, k));
   return res;
 });
 reflect.on('Type', type => {
@@ -2335,7 +2329,7 @@ A(function fill(z, v, start = 0, end){
   }
 });
 M.Function(function map(a, f){
-  return a.reduceTo.Arr((z, v, k) => z.push(f(v, k)));
+  return a.reduceTo(Arr(), (z, v, k) => z.push(f(v, k)));
 });
 Mapping.Array.Function(function map(a, f){
   return a.reduce((z, v, k) => { z.push(f(v, k)); return z; }, []);
@@ -2956,7 +2950,7 @@ if(nice.isEnvBrowser()){
   Func.Box('hide', (e, node) => {
     e.unsubscribe(e._shownNodes.get(node));
     e._shownNodes.delete(node);
-    e._value && e._value.hide(node);
+    e._value && e._value.hide && e._value.hide(node);
   });
   Func.Nothing('show', (e, parentNode = document.body, position) => {
     return insertAt(parentNode, document.createTextNode(''), position);
@@ -3015,8 +3009,8 @@ if(nice.isEnvBrowser()){
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
-    subscriptions.forEach(f => f());
-    e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
+    subscriptions && subscriptions.forEach(f => f());
+    node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
   function removeNode(node, v){

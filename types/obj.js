@@ -93,19 +93,6 @@ nice.Type({
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .addProperty('reduceTo', { get () {
-    const c = this;
-
-    const f = (item, f, init) => {
-      init && init(item);
-      c.each((v, k) => f(item, v, k));
-      return item;
-    };
-
-    f.collection = c;
-
-    return create(nice.collectionReducers, f);
-  }})
   .addProperty('size', { get () {
     return Object.keys(this._items).reduce(n => n + 1, 0);
   }})
@@ -266,7 +253,7 @@ M(function reduce(o, f, res){
 
 
 M(function mapToArray(c, f){
-  return c.reduceTo.Array((a, v, k) => a.push(f(v, k)));
+  return c.reduceTo([], (a, v, k) => a.push(f(v, k)));
 });
 
 
@@ -404,6 +391,12 @@ M(function getProperties(z){
 });
 
 
+M('reduceTo', (o, res, f) => {
+  o.each((v, k) => f(res, v, k));
+  return res;
+});
+
+
 reflect.on('Type', type => {
   const smallName = nice._decapitalize(type.name);
 
@@ -437,7 +430,3 @@ reflect.on('Type', type => {
     return this;
   });
 });
-
-//TODO: BUG:
-//nice.mapToArray({})
-//nice.js:1835 Uncaught TypeError: c.reduceTo.Array is not a function
