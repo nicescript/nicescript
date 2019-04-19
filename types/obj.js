@@ -1,38 +1,38 @@
 nice.Type({
-    name: 'Obj',
-    extends: nice.Value,
-    onCreate: z => z._items = {},
+  name: 'Obj',
+  extends: nice.Value,
+  onCreate: z => z._items = {},
 
-    itemArgs0: z => z._items,
+  itemArgs0: z => z._items,
 
-    itemArgs1: (z, o) => {
-      const t = typeof o;
-      if( t !== 'object' )
-        throw z._type.name + ` doesn't know what to do with ` + t;
-      _each(o, (v, k) => z.set(k, v));
-    },
+  itemArgs1: (z, o) => {
+    const t = typeof o;
+    if( t !== 'object' )
+      throw z._type.name + ` doesn't know what to do with ` + t;
+    _each(o, (v, k) => z.set(k, v));
+  },
 
-    itemArgsN: (z, os) => _each(os, o => z(o)),
+  itemArgsN: (z, os) => _each(os, o => z(o)),
 
-    fromValue (v) {
-      const res = this();
-      Object.assign(res._items, nice._map(v, nice.fromJson));
-      return res;
-    },
+  fromValue (v) {
+    const res = this();
+    Object.assign(res._items, nice._map(v, nice.fromJson));
+    return res;
+  },
 
-    deserialize (js) {
-      const res = this();
-      _each(js, (v, k) => res._items[k] = nice.deserialize(v));
-      return res;
-    },
+  deserialize (js) {
+    const res = this();
+    _each(js, (v, k) => res._items[k] = nice.deserialize(v));
+    return res;
+  },
 
-    initChildren (item){
-      _each(this.defaultArguments, (as, k) => {
-        item._items[k] = this.types[k](...as);
-      });
-    },
+  initChildren (item){
+    _each(this.defaultArguments, (as, k) => {
+      item._items[k] = this.types[k](...as);
+    });
+  },
 
-    proto: {
+  proto: {
 //      getDeep(path) {
 //        let k = 0;
 //        let res = this;
@@ -45,41 +45,41 @@ nice.Type({
 //        return this.getDeep(path)(v);
 //      },
 
-      checkKey (i) {
-        if(i._isAnything === true)
-          i = i();
+    checkKey (i) {
+      if(i._isAnything === true)
+        i = i();
 
-        return i;
-      },
+      return i;
+    },
 
-      setDefault (i, f, ...tale) {
-        const z = this;
+    setDefault (i, f, ...tale) {
+      const z = this;
 
-        if(i._isAnything === true)
-          i = i();
+      if(i._isAnything === true)
+        i = i();
 
-        if(!z._items.hasOwnProperty(i))
-          z.set(i, f(), ...tale);
-        return z;
-      },
+      if(!z._items.hasOwnProperty(i))
+        z.set(i, f(), ...tale);
+      return z;
+    },
 
-      _itemsListener (o) {
-        const { onRemove, onAdd, onChange } = o;
-        return (v, old) => {
-          if(old === undefined){
-            onAdd && v.each(onAdd);
-            onChange && v.each((_v, k) => onChange(k, _v));
-          } else {
-            _each(old, (c, k) => {
-              onRemove && c !== undefined && onRemove(c, k);
-              onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
-              onChange && onChange(k, v._items[k], c);
-            });
-          }
-        };
-      }
+    _itemsListener (o) {
+      const { onRemove, onAdd, onChange } = o;
+      return (v, old) => {
+        if(old === undefined){
+          onAdd && v.each(onAdd);
+          onChange && v.each((_v, k) => onChange(k, _v));
+        } else {
+          _each(old, (c, k) => {
+            onRemove && c !== undefined && onRemove(c, k);
+            onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
+            onChange && onChange(k, v._items[k], c);
+          });
+        }
+      };
     }
-  })
+  }
+})
   .about('Parent type for all composite types.')
   .ReadOnly(function values(z){
     let a = nice.Arr();
@@ -259,12 +259,10 @@ M(function mapToArray(c, f){
 
 Mapping.Nothing('map', () => nice.Nothing);
 
-Mapping.Object(function map(o, f){
-  const res = {};
+Mapping.Object('map', (o, f) => nice.apply({}, res => {
   for(let i in o)
     res[i] = f(o[i], i);
-  return res;
-});
+}));
 
 
 M(function map(c, f){
@@ -276,32 +274,22 @@ M(function map(c, f){
 });
 
 
-M(function rMap(c, f){
-  const res = c._type();
-  c.listen({
-    onAdd: (v, k) => res.set(k, f(v, k)),
-    onRemove: (v, k) => res.remove(k)
-  });
-  return res;
-});
+M('rMap', (c, f) => c._type().apply(res => c.listen({
+  onAdd: (v, k) => res.set(k, f(v, k)),
+  onRemove: (v, k) => res.remove(k)
+})));
 
 
-M(function filter(c, f){
-  return c._type().apply(z => c.each((v, k) => f(v,k) && z.set(k, v)));
-});
+M('filter', (c, f) => c.reduceTo(c._type(), (z, v, k) => f(v,k) && z.set(k, v)));
 
-M(function rFilter(c, f){
-  const res = c._type();
-  c.listen({
-    onAdd: (v, k) => f(v, k) && res.set(k, v),
-    onRemove: (v, k) => res.remove(k)
-  });
-  return res;
-});
 
-M(function sum(c, f){
-  return c.reduce((n, v) => n + (f ? f(v) : v), 0);
-});
+M('rFilter', (c, f) => c._type().apply(z => c.listen({
+  onAdd: (v, k) => f(v, k) && z.set(k, v),
+  onRemove: (v, k) => z.remove(k)
+})));
+
+
+M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
 
 
 C.Function(function some(c, f){
@@ -384,11 +372,9 @@ C('includes', (o, t) => {
 //  }
 //}));
 
-M(function getProperties(z){
-  const res = [];
+M('getProperties',  z => apply([], res => {
   for(let i in z) z[i]._isProperty && res.push(z[i]);
-  return res;
-});
+}));
 
 
 M('reduceTo', (o, res, f) => {
