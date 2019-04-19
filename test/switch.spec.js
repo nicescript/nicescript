@@ -42,26 +42,6 @@ describe("Switch", function() {
   });
 
 
-  it("delayed equal", function() {
-    const s = Switch
-      .is('qwe')(4)
-
-    expect(s('qwe')).to.equal(4);
-    expect(s('asd')).to.equal('asd');
-  });
-
-
-  it("delayed equal with default", function() {
-    let s = Switch
-      .is(true)(2)
-      .default(nice.Nothing());
-
-    expect(s(true)).to.equal(2);
-    expect(s('asd').isNothing()).to.equal(true);
-  });
-
-
-
   it("switch check", function() {
     const spy1 = chai.spy();
     const spy3 = chai.spy();
@@ -77,15 +57,6 @@ describe("Switch", function() {
   });
 
 
-  it("delayed check", function() {
-    const s = Switch
-      .check(s => s === 'qwe')(4);
-
-    expect(s('qwe')).to.equal(4);
-    expect(s('asd')).to.equal('asd');
-  });
-
-
   it("not", function() {
     const s = Switch(5)
       .isString(1)
@@ -93,35 +64,6 @@ describe("Switch", function() {
       .default(3);
 
     expect(s).to.equal(2);
-  });
-
-
-  it("not delayed", function() {
-    const s = Switch
-      .not.isString(1)
-      .default(2);
-
-    expect(s('qwe')).to.equal(2);
-    expect(s(0)).to.equal(1);
-  });
-
-
-  it("not delayed 2", function() {
-    const s = Switch
-      .isString(1)
-      .not.isString(2)
-      .default(3);
-
-    expect(s('qwe')).to.equal(1);
-    expect(s(0)).to.equal(2);
-  });
-
-
-  it("delayed default", function() {
-    const s = Switch.isString(1);
-
-    expect(s('qwe')).to.equal(1);
-    expect(s(12)).to.equal(12);
   });
 
 
@@ -139,27 +81,6 @@ describe("Switch", function() {
       .default('nok');
 
     expect(s).to.equal('ok');
-  });
-
-
-  it("between delayed", function() {
-    const s = Switch
-      .isString(1)
-      .between(3, 6)('ok')
-      .default('nok');
-
-    expect(s(5)).to.equal('ok');
-    expect(s(0)).to.equal('nok');
-  });
-
-
-  it("between delayed 2", function() {
-    const s = Switch
-      .between(3, 6)('ok')
-      .default('nok');
-
-    expect(s(5)).to.equal('ok');
-    expect(s(0)).to.equal('nok');
   });
 
 
@@ -206,23 +127,6 @@ describe("Switch", function() {
   });
 
 
-  it("switch delayed", function() {
-    const s = Switch
-      .is(7).use(() => 77)
-      .isNumber.use(n => n + 1)
-      .is('boo')('foo')
-      .isString.use(s => s + '!')
-      .default.use(() => 'Yo!');
-
-    expect(s()).to.equal('Yo!');
-    expect(s([])).to.equal('Yo!');
-    expect(s(5)).to.equal(6);
-    expect(s(7)).to.equal(77);
-    expect(s('boo')).to.equal('foo');
-    expect(s('qwe')).to.equal('qwe!');
-  });
-
-
   it("switch action & mapping", function() {
     expect(Switch(5).isNumber.sum(5).isArray.map(x => x * 2)()).equal(10);
     expect(Switch([1]).isNumber.sum(5).isArray.map(x => x * 2)()[0]).equal(2);
@@ -231,8 +135,11 @@ describe("Switch", function() {
 
 
   it("delayed switch action & mapping", function() {
-    const f = nice.Switch.isNumber.sum(5).isArray.map(x => x * 2);
+    const f = nice.Switch(nice.$1)
+      .isNumber.sum(5)
+      .isArray.map(x => x * 2);
     expect(f(5)).equal(10);
+    expect(f(5, 3)).equal(10);
     expect(f([1])[0]).equal(2);
     expect(f('qwe')).equal('qwe');
   });

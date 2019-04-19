@@ -837,15 +837,20 @@ function handleType(type){
 const skipedProto = {};
 [1,2,3,4].forEach(n => nice['$' + n] = a => a[n - 1]);
 nice.$$ = a => a;
-function skip(f1, args1){
+function _skipArgs(init, called) {
   const {$1,$2,$3,$4,$$} = nice;
+  const res = [];
+  init.forEach(v => v === $$
+    ? res.push(...called)
+    : res.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(called) : v));
+  return res;
+};
+def(nice, _skipArgs);
+function skip(f1, args1){
   const f = create(skipedProto, function (...as) {
     let res;
     f.queue.forEach(({action, args}, k) => {
-      const a2 = [];
-      args.forEach(v => v === $$
-        ? a2.push(...as)
-        : a2.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(as) : v))
+      const a2 = _skipArgs(args, as);
       res = k ? action(res, ...a2) : action(...a2);
     });
     return res;
@@ -1030,7 +1035,7 @@ defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 Anything.proto._type = Anything;
 })();
-(function(){"use strict";
+(function(){"use strict";const { $1, $2, $3, $4, $$ } = nice;
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
   ('is' + t, v => v.functionType === t));
@@ -1176,6 +1181,10 @@ function delayedUse(f){
   return z;
 }
 const S = Switch = nice.Switch = (...args) => {
+  for(let a of args){
+    if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
+      return DelayedSwitch(args);
+  }
   const f = () => f.done ? f.res : args[0];
   f.checkArgs = args;
   f.actionArgs = args;
@@ -1190,13 +1199,6 @@ const S = Switch = nice.Switch = (...args) => {
   };
   return create(switchProto, f);
 };
-S.is = v => DealyedSwitch().is(v);
-S.check = f => DealyedSwitch().check(f);
-defGet(S, 'not', () => {
-  const res = DealyedSwitch();
-  res._check = r => !r;
-  return res;
-});
 defGet(switchProto, 'not', function (){
   this._check = r => !r;
   return this;
@@ -1226,23 +1228,20 @@ reflect.on('Check', f => {
   };
 });
 create(nice.checkers, S);
-S.addCheck = function (check) {
-  const res = DealyedSwitch();
-  return res.addCheck(check);
-};
-function DealyedSwitch(...a) {
+function DelayedSwitch(initArgs) {
   const f = (...a) => {
     const l = f.cases.length;
     let action = f._default;
+    const args = nice._skipArgs(initArgs, a);
     for(let i = 0 ;  i < l; i += 2){
-      if(f.cases[i](...a)){
+      if(f.cases[i](...args)){
         action = f.cases[i + 1];
         break;
       }
     }
-    return action ? action(...a) : a[0];
+    return action ? action(...args) : args[0];
   };
-  f.cases = a;
+  f.cases = [];
   f.addCheck = check => {
     const preCheck = f._check;
     f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
@@ -1639,63 +1638,63 @@ function isSubType(t){
 nice.jsTypes.isSubType = isSubType;
 })();
 (function(){"use strict";nice.Type({
-    name: 'Obj',
-    extends: nice.Value,
-    onCreate: z => z._items = {},
-    itemArgs0: z => z._items,
-    itemArgs1: (z, o) => {
-      const t = typeof o;
-      if( t !== 'object' )
-        throw z._type.name + ` doesn't know what to do with ` + t;
-      _each(o, (v, k) => z.set(k, v));
+  name: 'Obj',
+  extends: nice.Value,
+  onCreate: z => z._items = {},
+  itemArgs0: z => z._items,
+  itemArgs1: (z, o) => {
+    const t = typeof o;
+    if( t !== 'object' )
+      throw z._type.name + ` doesn't know what to do with ` + t;
+    _each(o, (v, k) => z.set(k, v));
+  },
+  itemArgsN: (z, os) => _each(os, o => z(o)),
+  fromValue (v) {
+    const res = this();
+    Object.assign(res._items, nice._map(v, nice.fromJson));
+    return res;
+  },
+  deserialize (js) {
+    const res = this();
+    _each(js, (v, k) => res._items[k] = nice.deserialize(v));
+    return res;
+  },
+  initChildren (item){
+    _each(this.defaultArguments, (as, k) => {
+      item._items[k] = this.types[k](...as);
+    });
+  },
+  proto: {
+    checkKey (i) {
+      if(i._isAnything === true)
+        i = i();
+      return i;
     },
-    itemArgsN: (z, os) => _each(os, o => z(o)),
-    fromValue (v) {
-      const res = this();
-      Object.assign(res._items, nice._map(v, nice.fromJson));
-      return res;
+    setDefault (i, f, ...tale) {
+      const z = this;
+      if(i._isAnything === true)
+        i = i();
+      if(!z._items.hasOwnProperty(i))
+        z.set(i, f(), ...tale);
+      return z;
     },
-    deserialize (js) {
-      const res = this();
-      _each(js, (v, k) => res._items[k] = nice.deserialize(v));
-      return res;
-    },
-    initChildren (item){
-      _each(this.defaultArguments, (as, k) => {
-        item._items[k] = this.types[k](...as);
-      });
-    },
-    proto: {
-      checkKey (i) {
-        if(i._isAnything === true)
-          i = i();
-        return i;
-      },
-      setDefault (i, f, ...tale) {
-        const z = this;
-        if(i._isAnything === true)
-          i = i();
-        if(!z._items.hasOwnProperty(i))
-          z.set(i, f(), ...tale);
-        return z;
-      },
-      _itemsListener (o) {
-        const { onRemove, onAdd, onChange } = o;
-        return (v, old) => {
-          if(old === undefined){
-            onAdd && v.each(onAdd);
-            onChange && v.each((_v, k) => onChange(k, _v));
-          } else {
-            _each(old, (c, k) => {
-              onRemove && c !== undefined && onRemove(c, k);
-              onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
-              onChange && onChange(k, v._items[k], c);
-            });
-          }
-        };
-      }
+    _itemsListener (o) {
+      const { onRemove, onAdd, onChange } = o;
+      return (v, old) => {
+        if(old === undefined){
+          onAdd && v.each(onAdd);
+          onChange && v.each((_v, k) => onChange(k, _v));
+        } else {
+          _each(old, (c, k) => {
+            onRemove && c !== undefined && onRemove(c, k);
+            onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
+            onChange && onChange(k, v._items[k], c);
+          });
+        }
+      };
     }
-  })
+  }
+})
   .about('Parent type for all composite types.')
   .ReadOnly(function values(z){
     let a = nice.Arr();
@@ -1829,12 +1828,10 @@ M(function mapToArray(c, f){
   return c.reduceTo([], (a, v, k) => a.push(f(v, k)));
 });
 Mapping.Nothing('map', () => nice.Nothing);
-Mapping.Object(function map(o, f){
-  const res = {};
+Mapping.Object('map', (o, f) => nice.apply({}, res => {
   for(let i in o)
     res[i] = f(o[i], i);
-  return res;
-});
+}));
 M(function map(c, f){
   const res = c._type();
   const o = c._items;
@@ -1842,28 +1839,16 @@ M(function map(c, f){
     res.set(i, f(o[i], i));
   return res;
 });
-M(function rMap(c, f){
-  const res = c._type();
-  c.listen({
-    onAdd: (v, k) => res.set(k, f(v, k)),
-    onRemove: (v, k) => res.remove(k)
-  });
-  return res;
-});
-M(function filter(c, f){
-  return c._type().apply(z => c.each((v, k) => f(v,k) && z.set(k, v)));
-});
-M(function rFilter(c, f){
-  const res = c._type();
-  c.listen({
-    onAdd: (v, k) => f(v, k) && res.set(k, v),
-    onRemove: (v, k) => res.remove(k)
-  });
-  return res;
-});
-M(function sum(c, f){
-  return c.reduce((n, v) => n + (f ? f(v) : v), 0);
-});
+M('rMap', (c, f) => c._type().apply(res => c.listen({
+  onAdd: (v, k) => res.set(k, f(v, k)),
+  onRemove: (v, k) => res.remove(k)
+})));
+M('filter', (c, f) => c.reduceTo(c._type(), (z, v, k) => f(v,k) && z.set(k, v)));
+M('rFilter', (c, f) => c._type().apply(z => c.listen({
+  onAdd: (v, k) => f(v, k) && z.set(k, v),
+  onRemove: (v, k) => z.remove(k)
+})));
+M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
 C.Function(function some(c, f){
   for(let i in c._items)
     if(f(c._items[i], i))
@@ -1898,11 +1883,9 @@ C('includes', (o, t) => {
       return true;
   return false;
 });
-M(function getProperties(z){
-  const res = [];
+M('getProperties',  z => apply([], res => {
   for(let i in z) z[i]._isProperty && res.push(z[i]);
-  return res;
-});
+}));
 M('reduceTo', (o, res, f) => {
   o.each((v, k) => f(res, v, k));
   return res;

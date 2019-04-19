@@ -1,4 +1,5 @@
-//const isProto = def(nice, 'isProto', {}), { Check } = nice;
+const { $1, $2, $3, $4, $$ } = nice;
+////const isProto = def(nice, 'isProto', {}), { Check } = nice;
 //reflect.on('Check', f =>
 //  isProto[f.name] = function(...a) {
 //    try {
@@ -202,6 +203,11 @@ function delayedUse(f){
 
 
 const S = Switch = nice.Switch = (...args) => {
+  for(let a of args){
+    if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
+      return DelayedSwitch(args);
+  }
+
   const f = () => f.done ? f.res : args[0];
   f.checkArgs = args;
   f.actionArgs = args;
@@ -218,17 +224,6 @@ const S = Switch = nice.Switch = (...args) => {
 
   return create(switchProto, f);
 };
-
-
-S.is = v => DealyedSwitch().is(v);
-S.check = f => DealyedSwitch().check(f);
-
-
-defGet(S, 'not', () => {
-  const res = DealyedSwitch();
-  res._check = r => !r;
-  return res;
-});
 
 
 defGet(switchProto, 'not', function (){
@@ -269,26 +264,23 @@ reflect.on('Check', f => {
 create(nice.checkers, S);
 
 
-S.addCheck = function (check) {
-  const res = DealyedSwitch();
-  return res.addCheck(check);
-};
-
-
-function DealyedSwitch(...a) {
+function DelayedSwitch(initArgs) {
   const f = (...a) => {
     const l = f.cases.length;
     let action = f._default;
 
+    const args = nice._skipArgs(initArgs, a);
+
     for(let i = 0 ;  i < l; i += 2){
-      if(f.cases[i](...a)){
+      if(f.cases[i](...args)){
         action = f.cases[i + 1];
         break;
       }
     }
-    return action ? action(...a) : a[0];
+    return action ? action(...args) : args[0];
   };
-  f.cases = a;
+
+  f.cases = [];
 
   f.addCheck = check => {
     const preCheck = f._check;

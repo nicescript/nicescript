@@ -14,9 +14,11 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-var a = Arr();
-nice.add(a, 1);
-console.log(a);
+
+    const f = nice.Switch(nice.$2)
+      .isNumber.sum(5)
+      .isArray.map(x => x * 2);
+    expect(f(1, 5)).equal(10);
 
 </script>
   

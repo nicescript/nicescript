@@ -244,7 +244,7 @@ feedTiger(tiger, 'beef');    // tiger.hungry === false
 Overloaded Function will search for best match while Switch will use first match.
 ```javascript
 nice.Func.Nothing(() => 1).Null(() => 2)(null);         // 2
-nice.Switch.isNothing.use(() => 1).isNull.use(() => 2)(null);   // 1
+nice.Switch(null).isNothing.use(() => 1).isNull.use(() => 2);   // 1
 ```
 Besides current implementation of Switch use only first argument.
 

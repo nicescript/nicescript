@@ -299,15 +299,22 @@ const skipedProto = {};
 [1,2,3,4].forEach(n => nice['$' + n] = a => a[n - 1]);
 nice.$$ = a => a;
 
-function skip(f1, args1){
+function _skipArgs(init, called) {
   const {$1,$2,$3,$4,$$} = nice;
+  const res = [];
+  init.forEach(v => v === $$
+    ? res.push(...called)
+    : res.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(called) : v));
+  return res;
+};
+def(nice, _skipArgs);
+
+
+function skip(f1, args1){
   const f = create(skipedProto, function (...as) {
     let res;
     f.queue.forEach(({action, args}, k) => {
-      const a2 = [];
-      args.forEach(v => v === $$
-        ? a2.push(...as)
-        : a2.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(as) : v))
+      const a2 = _skipArgs(args, as);
       res = k ? action(res, ...a2) : action(...a2);
     });
     return res;
