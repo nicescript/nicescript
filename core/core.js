@@ -200,6 +200,11 @@ defAll(nice, {
       });
     }
     return js;
+  },
+
+  apply: (o, f) => {
+    f(o);
+    return o;
   }
 });
 defGet = nice.defineGetter;

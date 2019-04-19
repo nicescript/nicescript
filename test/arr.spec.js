@@ -215,4 +215,21 @@ describe("Arr", function() {
     expect(nice.Arr(1,2,4).insertAfter(2,3).jsValue).to.deep.equal([1,2,3,4]);
     expect(nice.Arr(1,2,4).insertAfter(3,5).jsValue).to.deep.equal([1,2,4,5]);
   });
+
+  it('rFilter', () => {
+    var a = Arr(1,2);
+    var b = a.rFilter(x => x % 2);
+
+    expect(b()).to.deep.equal([1]);
+    a.push(3);
+    expect(b()).to.deep.equal([1,3]);
+    a.removeAt(0);
+    expect(b()).to.deep.equal([3]);
+    a.push(4);
+    expect(b()).to.deep.equal([3]);
+    a.push(5);
+    expect(b()).to.deep.equal([3,5]);
+    a.push(1);
+    expect(b()).to.deep.equal([3,5,1]);
+  });
 });

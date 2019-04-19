@@ -133,6 +133,10 @@ defAll(nice, {
       });
     }
     return js;
+  },
+  apply: (o, f) => {
+    f(o);
+    return o;
   }
 });
 defGet = nice.defineGetter;
@@ -2201,6 +2205,7 @@ nice.Obj.extend({
         } else {
           const l = Math.max(...Object.keys(old || {}), ...Object.keys(v._newValue || {}));
           let i = 0;
+          
           while(i <= l){
             if (onRemove) {
               old.hasOwnProperty(i) && onRemove(old[i], i);
@@ -2378,6 +2383,29 @@ Mapping.Array.Array('intersection', (a, b) => {
   a.forEach(v => is.includes(b, v) && res.push(v));
   return res;
 });
+M('rFilter', (a, f) => a._type().apply(res => {
+  const mapping = [];
+  a.listen({
+    onAdd: (v, k) => {
+      if(!f(v, k))
+        return;
+      let pos;
+      for(let i = 0; i++; i < mapping.length){
+        if(mapping[i] >= i)
+          pos = i;
+      }
+      pos = pos || mapping.length;
+      res.insertAt(pos, v);
+      mapping[pos] = k;
+    },
+    onRemove: (v, k) => {
+      res.removeAt(k);
+      const i = mapping.indexOf(k);
+      expect(i !== -1).isTrue();
+      mapping.splice(i, 1);
+    }
+  });
+}));
 M.about('Creates new array with aboutseparator between elments.')
 (function intersperse(a, separator) {
   const res = Arr();
