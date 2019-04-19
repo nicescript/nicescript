@@ -3156,12 +3156,14 @@ Input.extend('Submit', (z, text, action) => {
   .about('Represents HTML <input type="submit"> element.');
 Input.extend('Checkbox', (z, status) => {
     let node;
-    z.super('checkbox').attributes({ checked: status || false });
-    def(z, 'checked', Box(status || false));
+    z.tag('input').attributes.set('type', 'checkbox');
+    const value = Box(status || false);
+    def(z, 'checked', value);
+    def(z, 'value', value);
     let mute;
     z.on('change', e => {
       mute = true;
-      z.checked((e.target || e.srcElement).checked);
+      value((e.target || e.srcElement).checked);
       mute = false;
       return true;
     });
@@ -3169,7 +3171,7 @@ Input.extend('Checkbox', (z, status) => {
       z._autoId();
       z.on('domNode', n => node = n);
     }
-    z.checked.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
+    value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
 })();;nice.version = "0.3.3";})();
