@@ -1,5 +1,3 @@
-//REMOVE:
-// constructor => initBy
 nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -67,31 +65,6 @@ defAll(nice, {
       return nice.Err(e);
     }
   },
-//  createItem: ({ type, assign }) => {
-//    type = nice.type(type);
-//    const item = create(type.proto, type.creator());
-//    'name' in type.proto && nice.eraseProperty(item, 'name');
-//    'length' in type.proto && nice.eraseProperty(item, 'length');
-//
-//    assign && Object.assign(item, assign);
-//    return item;
-//  },
-
-
-//  toItem: v => {
-//    if(v === undefined)
-//      return nice.Undefined();
-//
-//    if(v === null)
-//      return nice.Null();
-//
-//    const type = nice.valueType(v);
-//
-//    if(type === nice.Box || type === nice.function)
-//      return v;
-//
-//    return nice._newItem(type)._setResult(v);
-//  },
 
   valueType: v => {
     const t = typeof v;
