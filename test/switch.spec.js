@@ -12,8 +12,8 @@ describe("Switch", function() {
     const spy3 = chai.spy();
 
     const s = Switch('qwe')
-      .isNumber.use(spy1)
-      .isString.use((...a) => {
+      .isNumber().use(spy1)
+      .isString().use((...a) => {
         spy2(...a);
         return 13;
       })
@@ -32,7 +32,7 @@ describe("Switch", function() {
     const spy3 = chai.spy();
 
     const s = Switch('qwe')
-      .isNumber.use(spy1)
+      .isNumber().use(spy1)
       .is('qwe')(4)
       .default.use(spy3);
 
@@ -47,7 +47,7 @@ describe("Switch", function() {
     const spy3 = chai.spy();
 
     const s = Switch('qwe')
-      .isNumber.use(spy1)
+      .isNumber().use(spy1)
       .check(s => s === 'qwe')(15)
       .default.use(spy3);
 
@@ -59,8 +59,8 @@ describe("Switch", function() {
 
   it("not", function() {
     const s = Switch(5)
-      .isString(1)
-      .not.isString(2)
+      .isString()(1)
+      .not.isString()(2)
       .default(3);
 
     expect(s).to.equal(2);
@@ -68,7 +68,7 @@ describe("Switch", function() {
 
 
   it("default", function() {
-    const s = Switch(5).isString(1)();
+    const s = Switch(5).isString()(1)();
 
     expect(s).to.equal(5);
   });
@@ -76,7 +76,7 @@ describe("Switch", function() {
 
   it("between", function() {
     const s = Switch(4)
-      .isString(1)
+      .isString()(1)
       .between(3, 6)('ok')
       .default('nok');
 
@@ -90,8 +90,8 @@ describe("Switch", function() {
     const spy3 = chai.spy();
 
     const s = Switch([])
-      .isNumber.use(spy1)
-      .isString.use(spy2)
+      .isNumber().use(spy1)
+      .isString().use(spy2)
       .default.use(spy3);
 
     expect(spy1).not.to.have.been.called();
@@ -102,8 +102,8 @@ describe("Switch", function() {
 
   it("switch value", function() {
     const s = Switch(5)
-      .isNumber.use(n => n + 1)
-      .isString.use(s => s + '!');
+      .isNumber().use(n => n + 1)
+      .isString().use(s => s + '!');
 
     expect(s()).to.equal(6);
   });
@@ -130,16 +130,16 @@ describe("Switch", function() {
 
 
   it("switch action & mapping", function() {
-    expect(Switch(5).isNumber.sum(5).isArray.map(x => x * 2)()).equal(10);
-    expect(Switch([1]).isNumber.sum(5).isArray.map(x => x * 2)()[0]).equal(2);
-    expect(Switch('qwe').isNumber.sum(5).isArray.map(x => x * 2)()).equal('qwe');
+    expect(Switch(5).isNumber().sum(5).isArray().map(x => x * 2)()).equal(10);
+    expect(Switch([1]).isNumber().sum(5).isArray().map(x => x * 2)()[0]).equal(2);
+    expect(Switch('qwe').isNumber().sum(5).isArray().map(x => x * 2)()).equal('qwe');
   });
 
 
   it("delayed switch action & mapping", function() {
     const f = nice.Switch(nice.$1)
-      .isNumber.sum(5)
-      .isArray.map(x => x * 2);
+      .isNumber().sum(5)
+      .isArray().map(x => x * 2);
     expect(f(5)).equal(10);
     expect(f(5, 3)).equal(10);
     expect(f([1])[0]).equal(2);

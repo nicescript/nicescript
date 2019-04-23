@@ -89,7 +89,7 @@ nice.Type({
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
     _each(z._items, (v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
-    Switch(z._type.name).isString.use(s =>
+    Switch(z._type.name).isString().use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
@@ -222,18 +222,6 @@ A('removeAll', z => {
   z._oldValue = z._items;
   z._type.onCreate(z);
 });
-
-
-reflect.on('Type', function defineReducer(type) {
-  const name = type.name;
-  if(!name)
-    return;
-
-  nice.collectionReducers[name] = function(f, init){
-    return this.collection.reduceTo(nice[name](), f, init);
-  };
-});
-
 
 
 //['max','min','hypot'].forEach(name => {

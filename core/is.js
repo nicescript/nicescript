@@ -1,25 +1,4 @@
 const { $1, $2, $3, $4, $$ } = nice;
-////const isProto = def(nice, 'isProto', {}), { Check } = nice;
-//reflect.on('Check', f =>
-//  isProto[f.name] = function(...a) {
-//    try {
-//      return f(this.value, ...a);
-//    } catch (e) {
-//      return false;
-//    }
-//  });
-
-
-//is = def(nice, 'is', value => create(isProto, { value }));
-//reflect.on('Check', f => {
-//  is[f.name] = (...a) => {
-//    try {
-//      return f(...a);
-//    } catch (e) {
-//      return false;
-//    }
-//  };
-//});
 
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
@@ -120,7 +99,7 @@ const switchProto = create(nice.checkers, {
 
 const $proto = {};
 
-[2,3,4].forEach(n => defGet(nice.checkers, '$' + n, function () {
+[1,2,3,4].forEach(n => defGet(nice.checkers, '$' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
 
@@ -241,35 +220,23 @@ defGet(delayedProto, 'not', function (){
 });
 
 
-reflect.on('Check', f => {
-  if(!f.name || nice.checkers[f.name])
-    return;
-
-  const tryF = (...a) => {
-    try {
-      return f(...a);
-    } catch (e) {
-      return false;
-    }
-  };
-
-  if(f.maxLength > 1){
-    def(nice.checkers, f.name, function (...a) {
-      return this.addCheck(v => tryF(v, ...a));
+reflect.on('Check', f => f.name && !nice.checkers[f.name]
+  && def(nice.checkers, f.name, function (...a) {
+    return this.addCheck((...v) => {
+      try {
+        return f(...v, ...a);
+      } catch (e) {
+        return false;
+      }
     });
-  } else {
-    defGet(nice.checkers, f.name, function(){
-      return this.addCheck(tryF);
-    });
-  };
-});
+  })
+);
 
 
-reflect.on('Check', f => {
-  if(!f.name || $proto[f.name])
-    return;
-
-  def($proto, f.name, function (...a) {
+//TODO: $$
+//TODO: nice.try
+reflect.on('Check', f => f.name && !$proto[f.name]
+  && def($proto, f.name, function (...a) {
     return this.parent.addCheck((...v) => {
       try {
         return f(v[this.pos], ...a);
@@ -277,8 +244,8 @@ reflect.on('Check', f => {
         return false;
       }
     });
-  });
-});
+  })
+);
 
 
 function DelayedSwitch(initArgs) {

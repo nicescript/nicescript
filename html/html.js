@@ -148,8 +148,8 @@ Html.proto.Box = function(...a) {
     def(Html.proto, property, function(...a) {
       const s = this.style;
       nice.Switch(a[0])
-        .isBox.use(b => s.set(property, b))
-        .isObject.use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
+        .isBox().use(b => s.set(property, b))
+        .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
     });

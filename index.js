@@ -41,8 +41,13 @@ defAll(nice, {
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),
   checkers: {},
-  checkFunctions: {},
-  collectionReducers: {},
+  'try': (f, ...as) => {
+    try {
+        return f(...as);
+    } catch (e) {
+      return nice.Err(e);
+    }
+  },
   valueType: v => {
     const t = typeof v;
     if(v === undefined)
@@ -1103,7 +1108,7 @@ const switchProto = create(nice.checkers, {
   },
 });
 const $proto = {};
-[2,3,4].forEach(n => defGet(nice.checkers, '$' + n, function () {
+[1,2,3,4].forEach(n => defGet(nice.checkers, '$' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
 defGet(switchProto, 'default', function () {
@@ -1195,39 +1200,28 @@ defGet(delayedProto, 'not', function (){
   this._check = r => !r;
   return this;
 });
-reflect.on('Check', f => {
-  if(!f.name || nice.checkers[f.name])
-    return;
-  const tryF = (...a) => {
-    try {
-      return f(...a);
-    } catch (e) {
-      return false;
-    }
-  };
-  if(f.maxLength > 1){
-    def(nice.checkers, f.name, function (...a) {
-      return this.addCheck(v => tryF(v, ...a));
+reflect.on('Check', f => f.name && !nice.checkers[f.name]
+  && def(nice.checkers, f.name, function (...a) {
+    return this.addCheck((...v) => {
+      try {
+        return f(...v, ...a);
+      } catch (e) {
+        return false;
+      }
     });
-  } else {
-    defGet(nice.checkers, f.name, function(){
-      return this.addCheck(tryF);
+  })
+);
+reflect.on('Check', f => f.name && !$proto[f.name]
+  && def($proto, f.name, function (...a) {
+    return this.parent.addCheck((...v) => {
+      try {
+        return f(v[this.pos], ...a);
+      } catch (e) {
+        return false;
+      }
     });
-  };
-});
-reflect.on('Check', f => {
-  if(!f.name || $proto[f.name])
-    return;
-    def($proto, f.name, function (...a) {
-      return this.parent.addCheck((...v) => {
-        try {
-          return f(v[this.pos], ...a);
-        } catch (e) {
-          return false;
-        }
-      });
-    });
-});
+  })
+);
 function DelayedSwitch(initArgs) {
   const f = (...a) => {
     const l = f.cases.length;
@@ -1705,7 +1699,7 @@ nice.jsTypes.isSubType = isSubType;
   .ReadOnly(function jsValue(z){
     const o = Array.isArray(z._items) ? [] : {};
     _each(z._items, (v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
-    Switch(z._type.name).isString.use(s =>
+    Switch(z._type.name).isString().use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
@@ -1811,14 +1805,6 @@ Action.Object('removeValue', (o, v) => {
 A('removeAll', z => {
   z._oldValue = z._items;
   z._type.onCreate(z);
-});
-reflect.on('Type', function defineReducer(type) {
-  const name = type.name;
-  if(!name)
-    return;
-  nice.collectionReducers[name] = function(f, init){
-    return this.collection.reduceTo(nice[name](), f, init);
-  };
 });
 M(function reduce(o, f, res){
   for(let k in o._items)
@@ -2798,8 +2784,8 @@ Html.proto.Box = function(...a) {
     def(Html.proto, property, function(...a) {
       const s = this.style;
       nice.Switch(a[0])
-        .isBox.use(b => s.set(property, b))
-        .isObject.use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
+        .isBox().use(b => s.set(property, b))
+        .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
     });

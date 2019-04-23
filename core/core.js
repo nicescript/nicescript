@@ -60,8 +60,6 @@ defAll(nice, {
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),
   checkers: {},
-  checkFunctions: {},
-  collectionReducers: {},
 //  createItem: ({ type, assign }) => {
 //    type = nice.type(type);
 //    const item = create(type.proto, type.creator());
