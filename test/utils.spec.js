@@ -1,11 +1,17 @@
 const nice = require('../index.js')();
 const chai = require('chai');
 const expect = chai.expect;
+const x2 = n => n * 2;
 const { fromJson, Obj, Arr, serialize, deserialize, Num } = nice;
 
 
 describe("utils", function() {
   it('nice', function () {
+    expect(nice.try(x2, 1)).to.equal(2);
+    expect(nice.try(() => xx)._type).to.equal(nice.Err);
+  });
+
+  it('try', function () {
     expect(nice(true, 1, '')._type).to.equal(Arr);
     expect(nice([1]).jsValue).to.deep.equal([1]);
     expect(nice(true)._type).to.equal(nice.Bool);

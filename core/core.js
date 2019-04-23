@@ -60,6 +60,13 @@ defAll(nice, {
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),
   checkers: {},
+  'try': (f, ...as) => {
+    try {
+        return f(...as);
+    } catch (e) {
+      return nice.Err(e);
+    }
+  },
 //  createItem: ({ type, assign }) => {
 //    type = nice.type(type);
 //    const item = create(type.proto, type.creator());

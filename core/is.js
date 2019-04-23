@@ -232,9 +232,7 @@ reflect.on('Check', f => f.name && !nice.checkers[f.name]
   })
 );
 
-
 //TODO: $$
-//TODO: nice.try
 reflect.on('Check', f => f.name && !$proto[f.name]
   && def($proto, f.name, function (...a) {
     return this.parent.addCheck((...v) => {
