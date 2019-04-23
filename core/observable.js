@@ -65,8 +65,6 @@ def(nice, 'observableProto', {
     if(--this._transactionDepth > 0)
       return false;
 
-    this._type.checkInvariants(this);
-
     this._transactionDepth = 0;
 
     this._oldValue === this._value || notify(this);

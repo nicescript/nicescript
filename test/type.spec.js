@@ -201,17 +201,4 @@ describe("Type", function() {
     expect(f(2,1).jsValue).to.deep.equal([0,2,1,3]);
   });
 
-
-  it("invariant", () => {
-    nice.Type('Size')
-      .num('x')
-      .num('y')
-      .invariant(z => z.x.gte(0) && z.y.gte(0));
-
-    const s = nice.Size().x(1).y(2);
-
-    //problem is .x does not triggers s
-    expect(() => s.x(-2)).to.throw();
-    //TODO: test constructor
-  });
 });

@@ -92,6 +92,9 @@ nice.typeOf = v => {
 
 
 nice.getType = v => {
+  if(v === undefined)
+    return nice.Undefined;
+
   if(v && v._isAnything)
     return v._type;
 

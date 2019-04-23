@@ -988,13 +988,6 @@ nice.registerType({
       });
     },
   },
-  checkInvariants (v) {
-    this.super && this.super.checkInvariants(v);
-    this.invariants && this.invariants.forEach(f => {
-      if(!f(v))
-        throw 'Badd';
-    });
-  },
   configProto: {
     extends (parent){
       const type = this.target;
@@ -1015,12 +1008,6 @@ nice.registerType({
       });
       return this;
     },
-    invariant (f) {
-      this.target.hasOwnProperty('invariants')
-        ? this.target.invariants.push(f)
-        : def(this.target, 'invariants', [f]);
-      return this;
-    }
   },
   types: {},
   static (...a) {
@@ -1356,7 +1343,6 @@ def(nice, 'observableProto', {
   transactionEnd (){
     if(--this._transactionDepth > 0)
       return false;
-    this._type.checkInvariants(this);
     this._transactionDepth = 0;
     this._oldValue === this._value || notify(this);
     delete this._newValue;
@@ -1493,6 +1479,8 @@ nice.typeOf = v => {
   return nice.Obj;
 };
 nice.getType = v => {
+  if(v === undefined)
+    return nice.Undefined;
   if(v && v._isAnything)
     return v._type;
   let res = typeof v;
