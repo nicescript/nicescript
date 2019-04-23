@@ -73,36 +73,37 @@ reflect.on('Type', function defineReducer(type) {
 
 
 const throwF = function(...as) {
-  return this.use(function(){
+  return this.use(() => {
     throw nice.format(...as);
   });
 };
 
-const checkers = {
+const common = {
   pushCheck (f){
     const postCheck = this._check;
     this._check = postCheck ? (...a) => postCheck(f(...a)) : f;
     return this;
-  }
+  },
+  is (v) {
+    return this.check(a => is(a, v));
+  },
+  'throw': throwF
 };
 
 
-defGet(checkers, 'not', function (){
+defGet(common, 'not', function (){
   this.pushCheck(r => !r);
   return this;
 });
 
 
-const switchProto = create(checkers, {
+const switchProto = create(common, {
   valueOf () { return this.res; },
   check (f) {
     this.pushCheck(f)
     const res = create(actionProto, switchResult.bind(this));
     res.use = switchUse.bind(this);
     return res;
-  },
-  is (v) {
-    return this.check(a => is(v, a));
   },
 });
 
@@ -120,22 +121,22 @@ defGet($proto, 'not', function (){
   return this;
 });
 
-[1,2,3,4].forEach(n => defGet(checkers, '$' + n, function () {
+[1,2,3,4].forEach(n => defGet(common, '$' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
 
-const $$proto = {
+const $$proto = create(common, {
   check (f) {
     return this.parent.check((...v) => f(v));
   },
-};
-defGet($$proto, 'not', function (){
-  this.parent.pushCheck(r => !r);
-  return this;
+  pushCheck (f) {
+    this.parent.pushCheck(f);
+    return this;
+  }
 });
 
 
-defGet(checkers, '$$', function () {
+defGet(common, '$$', function () {
   return create($$proto, {parent: this});
 });
 
@@ -143,7 +144,7 @@ defGet(checkers, '$$', function () {
 defGet(switchProto, 'default', function () {
   const z = this;
   const res = v => z.done ? z.res : v;
-  res.use = f => z.done ? z.res : f(...z.actionArgs);
+  res.use = f => z.done ? z.res : f(...z.args);
   res.throw = throwF;
   return res;
 });
@@ -157,17 +158,13 @@ reflect.on('function', f => {
 });
 
 
-const delayedProto = create(checkers, {
+const delayedProto = create(common, {
   check (f) {
     this.pushCheck(f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
-  },
-  is (f) {
-    return this.check(v => is(v, f));
-  },
-  'throw': throwF
+  }
 });
 
 
@@ -182,7 +179,7 @@ defGet(delayedProto, 'default', function () {
 function switchResult(v){
   const z = this;
 
-  if(!z.done && z._check(...z.checkArgs)){
+  if(!z.done && z._check(...z.args)){
     z.res = v;
     z.done = true;
   }
@@ -194,8 +191,8 @@ function switchResult(v){
 function switchUse(f){
   const z = this;
 
-  if(!z.done && z._check(...z.checkArgs)){
-    z.res = f(...z.actionArgs);
+  if(!z.done && z._check(...z.args)){
+    z.res = f(...z.args);
     z.done = true;
   }
   z._check = null;
@@ -226,15 +223,14 @@ const S = Switch = nice.Switch = (...args) => {
   }
 
   const f = () => f.done ? f.res : args[0];
-  f.checkArgs = args;
-  f.actionArgs = args;
+  f.args = args;
   f.done = false;
   return create(switchProto, f);
 };
 
 
-reflect.on('Check', f => f.name && !checkers[f.name]
-  && def(checkers, f.name, function (...a) {
+reflect.on('Check', f => f.name && !common[f.name]
+  && def(common, f.name, function (...a) {
     return this.check((...v) => {
       try {
         return f(...v, ...a);
