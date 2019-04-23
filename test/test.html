@@ -14,10 +14,11 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj, $1, $2, $3 } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-console.log(Switch(5, 15)
-//      .check(nice.gt($2, 10)).and.lt(7)('OK')
-      .$2.not.is(9)('OK')
-      .default(''));
+const n = Switch($1)
+      .gt(10).use((z, a) => z + 1)
+      .default.throw('q');
+      
+      n(5)
       
       
 

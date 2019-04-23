@@ -198,10 +198,23 @@ describe("Switch", function() {
   });
 
 
-
   it("$$", function() {
     expect(Switch(5, 15)
       .$$.check(a => a.length > 1).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
+
+
+  it("and", function() {
+    expect(Switch(5)
+      .isNumber().and.gt(3).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
+
+
+  it("or", function() {
+    expect(Switch(5)
+      .isString().or.gt(3).use(n => n + 1)
       .default.throw('q')).to.equal(6);
   });
 });

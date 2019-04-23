@@ -87,7 +87,7 @@ const common = {
   is (v) {
     return this.check(a => is(a, v));
   },
-  'throw': throwF
+  'throw': throwF,
 };
 
 
@@ -101,8 +101,17 @@ const switchProto = create(common, {
   valueOf () { return this.res; },
   check (f) {
     this.pushCheck(f)
-    const res = create(actionProto, switchResult.bind(this));
-    res.use = switchUse.bind(this);
+    const res = create(actionProto, v => {
+      const z = this;
+
+      if(!z.done && z._check(...z.args)){
+        z.res = v;
+        z.done = true;
+      }
+      z._check = null;
+      return z;
+    });
+    res.target = this;
     return res;
   },
 });
@@ -149,11 +158,51 @@ defGet(switchProto, 'default', function () {
   return res;
 });
 
-const actionProto = { 'throw': throwF };
+const actionProto = {
+  'throw': throwF,
+  use (f) {
+    const z = this.target;
+
+    if(!z.done && z._check(...z.args)){
+      z.res = f(...z.args);
+      z.done = true;
+    }
+    z._check = null;
+    return z;
+  }
+};
+
+const delayedActionProto = create(actionProto, {
+  use (f){
+    const z = this.target;
+    z.cases.push(z._check, f);
+    z._check = null;
+    return z;
+  }
+});
+
+
+defGet(actionProto, 'and', function (){
+  const s = this.target;
+  const f = s._check;
+  s._check = r => r && f(...s.args);
+  return s;
+});
+
+
+defGet(actionProto, 'or', function (){
+  const s = this.target;
+  const f = s._check;
+  s._check = r => r || f(...s.args);
+  return s;
+});
+
 
 reflect.on('function', f => {
   if(f.functionType !== 'Check'){
-    actionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
+    actionProto.hasOwnProperty(f.name) || def(actionProto, f.name, function(...a){
+      return this.use(v => f(v, ...a));
+    });
   }
 });
 
@@ -161,8 +210,13 @@ reflect.on('function', f => {
 const delayedProto = create(common, {
   check (f) {
     this.pushCheck(f);
-    const res = create(actionProto, delayedResult.bind(this));
-    res.use = delayedUse.bind(this);
+    const res = create(delayedActionProto, v => {
+      const z = this.target;
+      z.cases.push(z._check, () => v);
+      z._check = null;
+      return z;
+    });
+    res.target = this;
     return res;
   }
 });
@@ -174,46 +228,6 @@ defGet(delayedProto, 'default', function () {
   res.throw = throwF;
   return res;
 });
-
-
-function switchResult(v){
-  const z = this;
-
-  if(!z.done && z._check(...z.args)){
-    z.res = v;
-    z.done = true;
-  }
-  z._check = null;
-  return z;
-}
-
-
-function switchUse(f){
-  const z = this;
-
-  if(!z.done && z._check(...z.args)){
-    z.res = f(...z.args);
-    z.done = true;
-  }
-  z._check = null;
-  return z;
-};
-
-
-function delayedResult(v){
-  const z = this;
-  z.cases.push(z._check, () => v);
-  z._check = null;
-  return z;
-}
-
-
-function delayedUse(f){
-  const z = this;
-  z.cases.push(z._check, f);
-  z._check = null;
-  return z;
-}
 
 
 const S = Switch = nice.Switch = (...args) => {
