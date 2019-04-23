@@ -177,4 +177,31 @@ describe("Switch", function() {
     expect(() => n(5)).to.throw();
     expect(n(51)).to.equal(52);
   });
+
+  it("$2 check", function() {
+    expect(Switch(5, 15)
+      .$2.check(n => n > 10).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
+
+  it("$2 is", function() {
+    expect(Switch(5, 15)
+      .$2.is(15).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
+
+
+  it("$2 not", function() {
+    expect(Switch(5, 15)
+      .$2.not.is(9).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
+
+
+
+  it("$$", function() {
+    expect(Switch(5, 15)
+      .$$.check(a => a.length > 1).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
 });

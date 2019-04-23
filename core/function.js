@@ -327,12 +327,12 @@ function skip(f1, args1){
 def(nice, skip);
 
 
-reflect.on('function', (f) => {
-  f.name && !skipedProto[f.name] && def(skipedProto, f.name, function(...args){
-    this.queue.push({action: f, args});
-    return this;
-  });
-});
+reflect.on('function', f => f.name && !skipedProto[f.name]
+  && def(skipedProto, f.name, function(...args){
+      this.queue.push({action: f, args});
+      return this;
+    })
+);
 
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('Type', handleType);

@@ -322,7 +322,7 @@ if(nice.isEnvBrowser()){
   };
 
 
-  const killAllRules = (v) => {
+  const killAllRules = v => {
     const c = getAutoClass(v.attributes.get('className'));
     const a = [];
     [...styleSheet.cssRules].forEach((r, i) =>

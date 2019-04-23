@@ -99,7 +99,7 @@ const typeView = t => Div()
 
 Div()
   .h2('Types')
-  .rBox(search.value, (q) => {
+  .rBox(search.value, q => {
     q = q.toLowerCase();
     const f = t => !q || t.title.toString().toLowerCase().includes(q);
     return Div(nice.filter(doc.types, f), typeView);

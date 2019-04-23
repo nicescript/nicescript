@@ -1,6 +1,5 @@
 module.exports = function(){;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect;
-(function(){"use strict";
-nice = (...a) => {
+(function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
   if(a.length > 1)
@@ -40,7 +39,6 @@ defAll(nice, {
   curry: (f, arity = f.length) =>(...a) => a.length >= arity
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),
-  checkers: {},
   'try': (f, ...as) => {
     try {
         return f(...as);
@@ -865,12 +863,12 @@ function skip(f1, args1){
   return f;
 };
 def(nice, skip);
-reflect.on('function', (f) => {
-  f.name && !skipedProto[f.name] && def(skipedProto, f.name, function(...args){
-    this.queue.push({action: f, args});
-    return this;
-  });
-});
+reflect.on('function', f => f.name && !skipedProto[f.name]
+  && def(skipedProto, f.name, function(...args){
+      this.queue.push({action: f, args});
+      return this;
+    })
+);
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('Type', handleType);
 Func = def(nice, 'Func', configurator());
@@ -1090,27 +1088,56 @@ const throwF = function(...as) {
     throw nice.format(...as);
   });
 };
-const switchProto = create(nice.checkers, {
+const checkers = {
+  pushCheck (f){
+    const postCheck = this._check;
+    this._check = postCheck ? (...a) => postCheck(f(...a)) : f;
+    return this;
+  }
+};
+defGet(checkers, 'not', function (){
+  this.pushCheck(r => !r);
+  return this;
+});
+const switchProto = create(checkers, {
   valueOf () { return this.res; },
   check (f) {
-    this._check = f;
-    const res = switchResult.bind(this);
+    this.pushCheck(f)
+    const res = create(actionProto, switchResult.bind(this));
     res.use = switchUse.bind(this);
-    res.throw = throwF;
     return res;
   },
   is (v) {
-    this._check = (a) => is(v, a);
-    const res = switchResult.bind(this);
-    res.use = switchUse.bind(this);
-    res.throw = throwF;
-    return res;
+    return this.check(a => is(v, a));
   },
 });
-const $proto = {};
-[1,2,3,4].forEach(n => defGet(nice.checkers, '$' + n, function () {
+const $proto = {
+  check (f) {
+    return this.parent.check((...v) => f(v[this.pos]));
+  },
+  is (v) {
+    return this.parent.check((...as) => as[this.pos] === v);
+  },
+};
+defGet($proto, 'not', function (){
+  this.parent.pushCheck(r => !r);
+  return this;
+});
+[1,2,3,4].forEach(n => defGet(checkers, '$' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
+const $$proto = {
+  check (f) {
+    return this.parent.check((...v) => f(v));
+  },
+};
+defGet($$proto, 'not', function (){
+  this.parent.pushCheck(r => !r);
+  return this;
+});
+defGet(checkers, '$$', function () {
+  return create($$proto, {parent: this});
+});
 defGet(switchProto, 'default', function () {
   const z = this;
   const res = v => z.done ? z.res : v;
@@ -1124,19 +1151,17 @@ reflect.on('function', f => {
     actionProto[f.name] = function(...a){ return this.use(v => f(v, ...a)); };
   }
 });
-const delayedProto = create(nice.checkers, {
+const delayedProto = create(checkers, {
   check (f) {
-    this._check = f;
+    this.pushCheck(f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
     return res;
   },
   is (f) {
-    this._check = (v) => is(v, f);
-    const res = create(actionProto, delayedResult.bind(this));
-    res.use = delayedUse.bind(this);
-    return res;
+    return this.check(v => is(v, f));
   },
+  'throw': throwF
 });
 defGet(delayedProto, 'default', function () {
   const z = this, res = v => { z._default = () => v; return z; };
@@ -1183,26 +1208,11 @@ const S = Switch = nice.Switch = (...args) => {
   f.checkArgs = args;
   f.actionArgs = args;
   f.done = false;
-  f.addCheck = check => {
-    const preCheck = f._check;
-    f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
-    const res = create(actionProto, switchResult.bind(f));
-    res.use = switchUse.bind(f);
-    return res;
-  };
   return create(switchProto, f);
 };
-defGet(switchProto, 'not', function (){
-  this._check = r => !r;
-  return this;
-});
-defGet(delayedProto, 'not', function (){
-  this._check = r => !r;
-  return this;
-});
-reflect.on('Check', f => f.name && !nice.checkers[f.name]
-  && def(nice.checkers, f.name, function (...a) {
-    return this.addCheck((...v) => {
+reflect.on('Check', f => f.name && !checkers[f.name]
+  && def(checkers, f.name, function (...a) {
+    return this.check((...v) => {
       try {
         return f(...v, ...a);
       } catch (e) {
@@ -1213,9 +1223,20 @@ reflect.on('Check', f => f.name && !nice.checkers[f.name]
 );
 reflect.on('Check', f => f.name && !$proto[f.name]
   && def($proto, f.name, function (...a) {
-    return this.parent.addCheck((...v) => {
+    return this.parent.check((...v) => {
       try {
         return f(v[this.pos], ...a);
+      } catch (e) {
+        return false;
+      }
+    });
+  })
+);
+reflect.on('Check', f => f.name && !$$proto[f.name]
+  && def($$proto, f.name, function (...a) {
+    return this.parent.check((...v) => {
+      try {
+        return f(v, ...a);
       } catch (e) {
         return false;
       }
@@ -1236,14 +1257,6 @@ function DelayedSwitch(initArgs) {
     return action ? action(...args) : args[0];
   };
   f.cases = [];
-  f.addCheck = check => {
-    const preCheck = f._check;
-    f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
-    const res = create(actionProto, delayedResult.bind(f));
-    res.use = delayedUse.bind(f);
-    res.throw = throwF;
-    return res;
-  };
   return create(delayedProto, f);
 };
 })();
@@ -2888,7 +2901,7 @@ if(nice.isEnvBrowser()){
     const rule = findRule(selector, id);
     rule && vs.each((value, prop) => rule.style[prop] = null);
   };
-  const killAllRules = (v) => {
+  const killAllRules = v => {
     const c = getAutoClass(v.attributes.get('className'));
     const a = [];
     [...styleSheet.cssRules].forEach((r, i) =>

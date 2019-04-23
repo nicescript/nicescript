@@ -16,7 +16,7 @@ const spy = (...a) => console.log('Spy:', ...a);
 
 console.log(Switch(5, 15)
 //      .check(nice.gt($2, 10)).and.lt(7)('OK')
-      .$2.gt(10)('OK')
+      .$2.not.is(9)('OK')
       .default(''));
       
       
