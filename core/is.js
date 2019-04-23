@@ -94,7 +94,7 @@ reflect.on('Type', function defineReducer(type) {
 
 
 const throwF = function(...as) {
-  this.use(function(){
+  return this.use(function(){
     throw nice.format(...as);
   });
 };
@@ -118,6 +118,12 @@ const switchProto = create(nice.checkers, {
   },
 });
 
+const $proto = {};
+
+[2,3,4].forEach(n => defGet(nice.checkers, '$' + n, function () {
+  return create($proto, {parent: this, pos: n - 1});
+}));
+
 
 defGet(switchProto, 'default', function () {
   const z = this;
@@ -127,7 +133,7 @@ defGet(switchProto, 'default', function () {
   return res;
 });
 
-const actionProto = {};
+const actionProto = { 'throw': throwF };
 
 reflect.on('function', f => {
   if(f.functionType !== 'Check'){
@@ -141,14 +147,12 @@ const delayedProto = create(nice.checkers, {
     this._check = f;
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
-    res.throw = throwF;
     return res;
   },
   is (f) {
     this._check = (v) => is(v, f);
     const res = create(actionProto, delayedResult.bind(this));
     res.use = delayedUse.bind(this);
-    res.throw = throwF;
     return res;
   },
 });
@@ -218,7 +222,6 @@ const S = Switch = nice.Switch = (...args) => {
     f._check = preCheck ? (...a) => preCheck(check(...a)) : check;
     const res = create(actionProto, switchResult.bind(f));
     res.use = switchUse.bind(f);
-    res.throw = throwF;
     return res;
   };
 
@@ -261,7 +264,21 @@ reflect.on('Check', f => {
   };
 });
 
-create(nice.checkers, S);
+
+reflect.on('Check', f => {
+  if(!f.name || $proto[f.name])
+    return;
+
+  def($proto, f.name, function (...a) {
+    return this.parent.addCheck((...v) => {
+      try {
+        return f(v[this.pos], ...a);
+      } catch (e) {
+        return false;
+      }
+    });
+  });
+});
 
 
 function DelayedSwitch(initArgs) {

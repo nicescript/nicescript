@@ -11,14 +11,15 @@
 <script>
 "use strict";
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
-const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj } = nice;
+const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj, $1, $2, $3 } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-
-    const f = nice.Switch(nice.$2)
-      .isNumber.sum(5)
-      .isArray.map(x => x * 2);
-    expect(f(1, 5)).equal(10);
+console.log(Switch(5, 15)
+//      .check(nice.gt($2, 10)).and.lt(7)('OK')
+      .$2.gt(10)('OK')
+      .default(''));
+      
+      
 
 </script>
   

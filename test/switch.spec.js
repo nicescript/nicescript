@@ -2,7 +2,7 @@ const nice = require('../index.js')();
 const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
-const { Switch } = nice;
+const { Switch, $1, $2 } = nice;
 
 describe("Switch", function() {
 
@@ -119,11 +119,13 @@ describe("Switch", function() {
 
 
   it("switch curry", function() {
-    const s = Switch(5)
+    expect(Switch(5, 15)
       .$2.gt(10)('OK')
-      .default('');
+      .default('')).to.equal('OK');
 
-    expect(s).to.equal('OK');
+    expect(Switch(5, 15, 25)
+      .$3.gt(20)('OK')
+      .default('')).to.equal('OK');
   });
 
 
@@ -165,11 +167,11 @@ describe("Switch", function() {
 
   it("throw", function() {
     expect(() => Switch(5)
-      .gt(10).use((z, a) => z.inc(a))
+      .gt(10).use((z, a) => z + 1)
       .default.throw('q')).to.throw();
 
-    const n = Switch
-      .gt(10).use((z, a) => z.inc(a))
+    const n = Switch($1)
+      .gt(10).use((z, a) => z + 1)
       .default.throw('q');
 
     expect(() => n(5)).to.throw();
