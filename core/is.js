@@ -48,7 +48,16 @@ const basicChecks = {
     return a === b || b.isPrototypeOf(a);
   },
 
-  isEnvBrowser: () => typeof window !== 'undefined'
+  isEnvBrowser: () => typeof window !== 'undefined',
+
+  throws: (...as) => {
+    try{
+      as[0]();
+    } catch(e) {
+      return as.length === 1 ? true : as[1] === e;
+    }
+    return false;
+  }
 };
 
 for(let i in basicChecks)

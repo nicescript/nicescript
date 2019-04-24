@@ -1065,7 +1065,15 @@ const basicChecks = {
     typeof b === 'string' && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
-  isEnvBrowser: () => typeof window !== 'undefined'
+  isEnvBrowser: () => typeof window !== 'undefined',
+  throws: (...as) => {
+    try{
+      as[0]();
+    } catch(e) {
+      return as.length === 1 ? true : as[1] === e;
+    }
+    return false;
+  }
 };
 for(let i in basicChecks)
   Check(i, basicChecks[i]);
@@ -1802,14 +1810,17 @@ A('set', (z, i, v, ...tale) => {
   return z;
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
-A('replaceAll', (z, o) => {
-  
+A.Obj.test((replaceAll, Obj) => {
+  expect( replaceAll(Obj({ q:1, a:2 }), Obj({a:1}))() ).deepEqual({ a:1 });
+})('replaceAll', (z, o) => z.replaceAll(o._items));
+A.Object.test((replaceAll, Obj) => {
+  expect( replaceAll(Obj({ q:1, a:2 }), {z:3})() ).deepEqual({ z:3 });
+})('replaceAll', (z, o) => {
   z._oldValue = z._items;
-  z._items = o._items;
+  z._items = o;
 });
 A.test((remove, Obj) => {
-  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue )
-      .deepEqual({ a:2 });
+  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue ).deepEqual({ a:2 });
 })
 .about('Remove element at `i`.')
 ('remove', (z, i) => {
@@ -2199,7 +2210,6 @@ nice.Obj.extend({
         } else {
           const l = Math.max(...Object.keys(old || {}), ...Object.keys(v._newValue || {}));
           let i = 0;
-          
           while(i <= l){
             let change = true;
             if (onRemove) {

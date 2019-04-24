@@ -190,15 +190,19 @@ A('set', (z, i, v, ...tale) => {
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
-A('replaceAll', (z, o) => {
-  //TODO: check type
+A.Obj.test((replaceAll, Obj) => {
+  expect( replaceAll(Obj({ q:1, a:2 }), Obj({a:1}))() ).deepEqual({ a:1 });
+})('replaceAll', (z, o) => z.replaceAll(o._items));
+
+A.Object.test((replaceAll, Obj) => {
+  expect( replaceAll(Obj({ q:1, a:2 }), {z:3})() ).deepEqual({ z:3 });
+})('replaceAll', (z, o) => {
   z._oldValue = z._items;
-  z._items = o._items;
+  z._items = o;
 });
 
 A.test((remove, Obj) => {
-  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue )
-      .deepEqual({ a:2 });
+  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue ).deepEqual({ a:2 });
 })
 .about('Remove element at `i`.')
 ('remove', (z, i) => {
