@@ -182,22 +182,22 @@ describe("Type", function() {
 
 
   it("skip arguments", () => {
-    const { $1, $2, $3 } = nice;
-    const f = nice.Arr($2, $1);
+    const { _1, _2, _3 } = nice;
+    const f = nice.Arr(_2, _1);
     expect(f(2,1).jsValue).to.deep.equal([1,2]);
   });
 
 
   it("skip arguments and modify", () => {
-    const { $1, $2, $3 } = nice;
-    const f = nice.Arr($2, $1).push(3);
+    const { _1, _2, _3 } = nice;
+    const f = nice.Arr(_2, _1).push(3);
     expect(f(2,1).jsValue).to.deep.equal([1,2,3]);
   });
 
 
   it("skip all arguments", () => {
-    const { $$ } = nice;
-    const f = nice.Arr(0, $$, 3);
+    const { _$ } = nice;
+    const f = nice.Arr(0, _$, 3);
     expect(f(2,1).jsValue).to.deep.equal([0,2,1,3]);
   });
 

@@ -138,14 +138,14 @@ describe("Func", function() {
 
 
   it("skip arguments", () => {
-    const { $1, $2, $3 } = nice;
-    expect(nice.is($2, 'q')(1, 'q')).to.equal(true);
-    expect(nice.difference(nice.$2, nice.$1).product(nice.$2)(5, 7)).to.equal(14);
+    const { _1, _2, _3 } = nice;
+    expect(nice.is(_2, 'q')(1, 'q')).to.equal(true);
+    expect(nice.difference(nice._2, nice._1).product(nice._2)(5, 7)).to.equal(14);
   });
 
   it("skip all arguments", () => {
-    const { $$ } = nice;
-    expect(nice.sum($$)(5, 7)).to.equal(12);
+    const { _$ } = nice;
+    expect(nice.sum(_$)(5, 7)).to.equal(12);
   });
 
 

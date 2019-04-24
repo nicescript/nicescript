@@ -1,4 +1,4 @@
-const { $1, $2, $3, $4, $$ } = nice;
+const { _1, _2, _3, _$ } = nice;
 
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
@@ -130,11 +130,11 @@ defGet($proto, 'not', function (){
   return this;
 });
 
-[1,2,3,4].forEach(n => defGet(common, '$' + n, function () {
+[1,2,3,4].forEach(n => defGet(common, '_' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
 
-const $$proto = create(common, {
+const _$proto = create(common, {
   check (f) {
     return this.parent.check((...v) => f(v));
   },
@@ -145,8 +145,8 @@ const $$proto = create(common, {
 });
 
 
-defGet(common, '$$', function () {
-  return create($$proto, {parent: this});
+defGet(common, '_$', function () {
+  return create(_$proto, {parent: this});
 });
 
 
@@ -231,7 +231,7 @@ defGet(delayedProto, 'default', function () {
 
 const S = Switch = nice.Switch = (...args) => {
   for(let a of args){
-    if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
+    if(a === _1 || a === _2 || a === _3 || a === _$)
       return DelayedSwitch(args);
   }
 
@@ -267,8 +267,8 @@ reflect.on('Check', f => f.name && !$proto[f.name]
 );
 
 
-reflect.on('Check', f => f.name && !$$proto[f.name]
-  && def($$proto, f.name, function (...a) {
+reflect.on('Check', f => f.name && !_$proto[f.name]
+  && def(_$proto, f.name, function (...a) {
     return this.parent.check((...v) => {
       try {
         return f(v, ...a);

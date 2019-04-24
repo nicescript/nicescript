@@ -36,10 +36,10 @@ defAll(nice, {
     config.defaultArguments = config.defaultArguments || {};
     by === undefined || (config.initBy = by);
 
-    const {$1,$2,$3,$4,$$} = nice;
+    const {_1,_2,_3,_$} = nice;
     const type = (...a) => {
       for(let v of a){
-        if(v === $1 || v === $2 || v === $3 || v === $4 || v === $$)
+        if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
 

@@ -9,7 +9,7 @@ const Html = nice.Html;
       return;
     const type = nice.getType(a).name;
     constructors[type]
-      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol') ? nice.Li(nice.$1) : (v => v)))
+      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol') ? nice.Li(nice._1) : (v => v)))
       : z.add(a, ...as);
   })
     .about('Represents HTML <%s> element.', l);

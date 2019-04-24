@@ -4,7 +4,7 @@ nice.Switch is powerful alternative to native JS switch operator.
 
 
 ```javascript
-const { Switch, $1, $2 } = nice;
+const { Switch, _1, _2 } = nice;
 
 const f = v => Switch(v)
   .is(1)(11)
@@ -26,14 +26,14 @@ To use nice.Switch
 
 ## Creation
 
-Create Switch with nice.Switch(value) or nice.Switch(nice.$1)
+Create Switch with nice.Switch(value) or nice.Switch(nice._1)
 
 ## Condition statement
 Condition could be:
 * Any Check function registered in nice e.g. `isNumber()`, `gt(5)`, `includes(e)`
 * `is(value)` - check if fist parameter equal to `value`
 * `check(fun)` - check if function `fun` returns truly value
-* `$1.`,`$2.`,`$3.` + Condition: `$2.isNumber()` will check if second argument is Number 
+* `_1.`,`_2.`,`_3.` + Condition: `_2.isNumber()` will check if second argument is Number 
 
 ### Arguments order
 All checks are called with arguments provided to Switch followed by arguments provided to check itself. 
@@ -53,7 +53,7 @@ Switch(1)
 If you write `Switch(1, 2).gt(3)` 3 will be ignored as gt takes only 2 arguments.
 
 ### Check explicit argument
-You can add `$1.`,`$2.`,`$3.` before check to use only one explicit argument.
+You can add `_1.`,`_2.`,`_3.` before check to use only one explicit argument.
 ```javascript
 Switch(1,10)
   ._2.gt(5)('Big')

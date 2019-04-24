@@ -175,12 +175,12 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
 //nice.callLog = {};
 
 function createFunctionBody(functionType){
-  const {$1,$2,$3,$4,$$} = nice;
+  const {_1,_2,_3,_$} = nice;
   const z = create(functionProto, (...args) => {
 //    nice.callLog[z.name] = nice.callLog[z.name] || 0;
 //    nice.callLog[z.name]++;
     for(let a of args){
-      if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
+      if(a === _1 || a === _2 || a === _3 || a === _$)
         return skip(z, args);
     }
 
@@ -296,15 +296,15 @@ function handleType(type){
 
 const skipedProto = {};
 
-[1,2,3,4].forEach(n => nice['$' + n] = a => a[n - 1]);
-nice.$$ = a => a;
+[1,2,3,4].forEach(n => nice['_' + n] = a => a[n - 1]);
+nice._$ = a => a;
 
 function _skipArgs(init, called) {
-  const {$1,$2,$3,$4,$$} = nice;
+  const {_1,_2,_3,_$} = nice;
   const res = [];
-  init.forEach(v => v === $$
+  init.forEach(v => v === _$
     ? res.push(...called)
-    : res.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(called) : v));
+    : res.push(( v===_1 || v === _2 || v === _3) ? v(called) : v));
   return res;
 };
 def(nice, _skipArgs);

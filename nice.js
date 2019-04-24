@@ -745,10 +745,10 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
   }
 });
 function createFunctionBody(functionType){
-  const {$1,$2,$3,$4,$$} = nice;
+  const {_1,_2,_3,_$} = nice;
   const z = create(functionProto, (...args) => {
     for(let a of args){
-      if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
+      if(a === _1 || a === _2 || a === _3 || a === _$)
         return skip(z, args);
     }
     let target = z.signatures;
@@ -838,14 +838,14 @@ function handleType(type){
   });
 };
 const skipedProto = {};
-[1,2,3,4].forEach(n => nice['$' + n] = a => a[n - 1]);
-nice.$$ = a => a;
+[1,2,3,4].forEach(n => nice['_' + n] = a => a[n - 1]);
+nice._$ = a => a;
 function _skipArgs(init, called) {
-  const {$1,$2,$3,$4,$$} = nice;
+  const {_1,_2,_3,_$} = nice;
   const res = [];
-  init.forEach(v => v === $$
+  init.forEach(v => v === _$
     ? res.push(...called)
-    : res.push(( v===$1 || v === $2 || v === $3 || v === $4) ? v(called) : v));
+    : res.push(( v===_1 || v === _2 || v === _3) ? v(called) : v));
   return res;
 };
 def(nice, _skipArgs);
@@ -1025,7 +1025,7 @@ defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 Anything.proto._type = Anything;
 })();
-(function(){"use strict";const { $1, $2, $3, $4, $$ } = nice;
+(function(){"use strict";const { _1, _2, _3, _$ } = nice;
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
   ('is' + t, v => v.functionType === t));
@@ -1132,10 +1132,10 @@ defGet($proto, 'not', function (){
   this.parent.pushCheck(r => !r);
   return this;
 });
-[1,2,3,4].forEach(n => defGet(common, '$' + n, function () {
+[1,2,3,4].forEach(n => defGet(common, '_' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
-const $$proto = create(common, {
+const _$proto = create(common, {
   check (f) {
     return this.parent.check((...v) => f(v));
   },
@@ -1144,8 +1144,8 @@ const $$proto = create(common, {
     return this;
   }
 });
-defGet(common, '$$', function () {
-  return create($$proto, {parent: this});
+defGet(common, '_$', function () {
+  return create(_$proto, {parent: this});
 });
 defGet(switchProto, 'default', function () {
   const z = this;
@@ -1213,7 +1213,7 @@ defGet(delayedProto, 'default', function () {
 });
 const S = Switch = nice.Switch = (...args) => {
   for(let a of args){
-    if(a === $1 || a === $2 || a === $3 || a === $4 || a === $$)
+    if(a === _1 || a === _2 || a === _3 || a === _$)
       return DelayedSwitch(args);
   }
   const f = () => f.done ? f.res : args[0];
@@ -1243,8 +1243,8 @@ reflect.on('Check', f => f.name && !$proto[f.name]
     });
   })
 );
-reflect.on('Check', f => f.name && !$$proto[f.name]
-  && def($$proto, f.name, function (...a) {
+reflect.on('Check', f => f.name && !_$proto[f.name]
+  && def(_$proto, f.name, function (...a) {
     return this.parent.check((...v) => {
       try {
         return f(v, ...a);
@@ -1467,10 +1467,10 @@ defAll(nice, {
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
     by === undefined || (config.initBy = by);
-    const {$1,$2,$3,$4,$$} = nice;
+    const {_1,_2,_3,_$} = nice;
     const type = (...a) => {
       for(let v of a){
-        if(v === $1 || v === $2 || v === $3 || v === $4 || v === $$)
+        if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
       const item = nice._newItem(type);
@@ -3069,7 +3069,7 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
       return;
     const type = nice.getType(a).name;
     constructors[type]
-      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol') ? nice.Li(nice.$1) : (v => v)))
+      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol') ? nice.Li(nice._1) : (v => v)))
       : z.add(a, ...as);
   })
     .about('Represents HTML <%s> element.', l);

@@ -2,7 +2,7 @@ const nice = require('../index.js')();
 const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
-const { Switch, $1, $2 } = nice;
+const { Switch, _1, _2 } = nice;
 
 describe("Switch", function() {
 
@@ -120,11 +120,11 @@ describe("Switch", function() {
 
   it("switch curry", function() {
     expect(Switch(5, 15)
-      .$2.gt(10)('OK')
+      ._2.gt(10)('OK')
       .default('')).to.equal('OK');
 
     expect(Switch(5, 15, 25)
-      .$3.gt(20)('OK')
+      ._3.gt(20)('OK')
       .default('')).to.equal('OK');
   });
 
@@ -137,7 +137,7 @@ describe("Switch", function() {
 
 
   it("delayed switch action & mapping", function() {
-    const f = nice.Switch(nice.$1)
+    const f = nice.Switch(nice._1)
       .isNumber().sum(5)
       .isArray().map(x => x * 2);
     expect(f(5)).equal(10);
@@ -170,7 +170,7 @@ describe("Switch", function() {
       .gt(10).use((z, a) => z + 1)
       .default.throw('q')).to.throw();
 
-    const n = Switch($1)
+    const n = Switch(_1)
       .gt(10).use((z, a) => z + 1)
       .default.throw('q');
 
@@ -178,29 +178,29 @@ describe("Switch", function() {
     expect(n(51)).to.equal(52);
   });
 
-  it("$2 check", function() {
+  it("_2 check", function() {
     expect(Switch(5, 15)
-      .$2.check(n => n > 10).use(n => n + 1)
+      ._2.check(n => n > 10).use(n => n + 1)
       .default.throw('q')).to.equal(6);
   });
 
-  it("$2 is", function() {
+  it("_2 is", function() {
     expect(Switch(5, 15)
-      .$2.is(15).use(n => n + 1)
-      .default.throw('q')).to.equal(6);
-  });
-
-
-  it("$2 not", function() {
-    expect(Switch(5, 15)
-      .$2.not.is(9).use(n => n + 1)
+      ._2.is(15).use(n => n + 1)
       .default.throw('q')).to.equal(6);
   });
 
 
-  it("$$", function() {
+  it("_2 not", function() {
     expect(Switch(5, 15)
-      .$$.check(a => a.length > 1).use(n => n + 1)
+      ._2.not.is(9).use(n => n + 1)
+      .default.throw('q')).to.equal(6);
+  });
+
+
+  it("_$", function() {
+    expect(Switch(5, 15)
+      ._$.check(a => a.length > 1).use(n => n + 1)
       .default.throw('q')).to.equal(6);
   });
 
