@@ -2201,13 +2201,17 @@ nice.Obj.extend({
           let i = 0;
           
           while(i <= l){
+            let change = true;
             if (onRemove) {
-              old.hasOwnProperty(i) && onRemove(old[i], i);
+              old.hasOwnProperty(i) && onRemove(old[i], i), change &= true;
             }
             if(onAdd) {
               if(v._newValue && v._newValue.hasOwnProperty(i)){
-                onAdd(v._newValue[i], i);
+                onAdd(v._newValue[i], i), change &= true;
               }
+            }
+            if(onChange && change) {
+              onChange(v._newValue[i], old[i], i);
             }
             i++;
           }
