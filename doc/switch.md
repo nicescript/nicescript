@@ -1,4 +1,5 @@
-### Switch
+Switch
+=======
 
 nice.Switch is powerful alternative to native JS switch operator. 
 
