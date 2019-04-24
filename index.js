@@ -1838,9 +1838,16 @@ A('removeValue', (o, v) => {
 });
 Action.Object('removeValue', (o, v) => {
   for(let i in o)
-    if(is(v, o[i]))
-      delete o[i];
+    is(v, o[i]) && delete o[i];
 });
+A('removeValues', (o, vs) => _each(vs, v => {
+  for(let i in o._items)
+    is(v, o._items[i]) && o.remove(i);
+}));
+Action.Object('removeValues', (o, vs) => _each(vs, v => {
+  for(let i in o)
+    is(v, o[i]) && delete o[i];
+}));
 A('removeAll', z => {
   z._oldValue = z._items;
   z._type.onCreate(z);
@@ -1920,8 +1927,8 @@ Check.Object
 M('getProperties',  z => apply([], res => {
   for(let i in z) z[i]._isProperty && res.push(z[i]);
 }));
-M('reduceTo', (o, res, f) => {
-  o.each((v, k) => f(res, v, k));
+Mapping.Object('reduceTo', (o, res, f) => {
+  _each(o, (v, k) => f(res, v, k));
   return res;
 });
 reflect.on('Type', type => {
@@ -2260,6 +2267,10 @@ M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
+function apply(type, names){
+  names.split(',').forEach(name => type(name, (z, ...a) => z[name](...a)));
+}
+apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));

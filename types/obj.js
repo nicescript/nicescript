@@ -119,7 +119,6 @@ F('reverseEach', (o, f) => {
 });
 
 
-//Mapping.Object.('get', (o, i) => o[''+i]);
 Mapping.Object('get', (o, path) => {
   if(path.pop){
     let k = 0;
@@ -222,9 +221,18 @@ A('removeValue', (o, v) => {
 
 Action.Object('removeValue', (o, v) => {
   for(let i in o)
-    if(is(v, o[i]))
-      delete o[i];
+    is(v, o[i]) && delete o[i];
 });
+
+A('removeValues', (o, vs) => _each(vs, v => {
+  for(let i in o._items)
+    is(v, o._items[i]) && o.remove(i);
+}));
+
+Action.Object('removeValues', (o, vs) => _each(vs, v => {
+  for(let i in o)
+    is(v, o[i]) && delete o[i];
+}));
 
 A('removeAll', z => {
   z._oldValue = z._items;
@@ -326,19 +334,6 @@ M.Function(function count(o, f) {
   return nice.Num(n);
 });
 
-//A('removeValue', (o, item) => {
-//  for(let i in o){
-//    if(o[i] === item) delete o[i];
-//  }
-//  return o;
-//});
-//
-//
-//Action.undefined('removeValue', () => undefined);
-//Action.undefined('removeValues', () => undefined);
-//
-//A('removeValues', (o, items) => _each(items, nice.removeValue(o, nice)));
-
 
 Check.Object
   .test((includes, Obj) => {
@@ -367,8 +362,8 @@ M('getProperties',  z => apply([], res => {
 }));
 
 
-M('reduceTo', (o, res, f) => {
-  o.each((v, k) => f(res, v, k));
+Mapping.Object('reduceTo', (o, res, f) => {
+  _each(o, (v, k) => f(res, v, k));
   return res;
 });
 

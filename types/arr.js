@@ -102,15 +102,12 @@ M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
-//findIndex
 
-//checks -> every
-
-//future: copyWithin,entries
+//future: copyWithin,entries,findIndex
 
 //mappings: indexOf, join, keys, lastIndexOf, flat,flatMap,slice
 
-//,reverse,  some,sort,'.split(',').forEach(name => {
+//,reverse,  ,sort,'.split(',').forEach(name => {
 // F.Array(name, (a, ...bs) => a[name](...bs));
 //});
 //'splice'.split(',').forEach(name => {
@@ -118,44 +115,23 @@ M.Function('reduceRight', (a, f, res) => {
 //});
 
 
-//function apply(type, names){
-//  names.split(',').forEach(name => type(name, (z, ...a) => z[name](...a)));
-//}
-//
-//apply(M, findIndex,indexOf,join,keys,lastIndexOf,values,slice');
-//
-//apply(M, 'every,some');
-////apply(nice.Check.Array, 'every,some');
-//
+function apply(type, names){
+  names.split(',').forEach(name => type(name, (z, ...a) => z[name](...a)));
+}
+apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
 //
-////F.Function('each', (a, f) => a.forEach(f));
-//f.Function('each', (a, f) => {
-//  const l = a.length;
-//  for (let i = 0; i < l; i++)
-//    if(nice.isStop(f(a[i], i)))
-//      break;
-//  return a;
-//});
-//
-//
-//A('removeValue', (a, item) => {
-//  for(let i = a.length; i--; ){
-//    a[i] === item && a.splice(i, 1);
-//  }
-//  return a;
-//});
-//
-//
+
+
 //M.Function('mapAndFilter', (o, f) => nice.with([], a => {
 //  for(let i in o){
 //    let v = f(o[i], i);
 //    v && a.push(v);
 //  }
 //}));
-//
-//
+
+
 M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 
