@@ -14,12 +14,11 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj, $1, $2, $3 } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-const n = Switch($1)
-      .gt(10).use((z, a) => z + 1)
-      .default.throw('q');
-      
-      n(5)
-      
+const f = v => Switch(v)
+  .is(1)(11)
+  .isNumber()(22)
+  .isString().use(s => s + '!')
+  .default(42);
       
 
 </script>

@@ -1197,10 +1197,9 @@ const delayedProto = create(common, {
   check (f) {
     this.pushCheck(f);
     const res = create(delayedActionProto, v => {
-      const z = this.target;
-      z.cases.push(z._check, () => v);
-      z._check = null;
-      return z;
+      this.cases.push(this._check, () => v);
+      this._check = null;
+      return this;
     });
     res.target = this;
     return res;
