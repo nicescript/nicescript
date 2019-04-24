@@ -338,29 +338,23 @@ M.Function(function count(o, f) {
 //Action.undefined('removeValues', () => undefined);
 //
 //A('removeValues', (o, items) => _each(items, nice.removeValue(o, nice)));
-//
-//
-//M.undefined('includes', () => false);
 
-C('includes', (o, t) => {
-  for(let i in o._items)
-    if(o._items[i] === t)
-      return true;
-  return false;
-});
 
-////Func.Obj(function includes(c, v){
-//  if(c._items.includes)
-//    return c._items.includes(v);
-//
-//  for(let i in c._items)
-//    if((c._items[i] === v))
-//      return true;
-//
-//  return false;
-//});
-//
-//
+Check.Object
+  .test((includes, Obj) => {
+    const o = {q:1,z:3};
+    expect(Obj(o).includes(2)).is(false);
+    expect(Obj(o).includes(3)).is(true);
+    expect(includes(o, 2)).is(false);
+    expect(includes(o, 3)).is(true);
+  })
+  ('includes', (o, t) => {
+    for(let i in o)
+      if(is(o[i], t))
+        return true;
+    return false;
+  });
+
 //M.Function('mapAndFilter', (o, f) => nice.with({}, res => {
 //  for(let i in o){
 //    let v = f(o[i], i);

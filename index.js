@@ -1815,10 +1815,10 @@ A.Obj.test((replaceAll, Obj) => {
 })('replaceAll', (z, o) => z.replaceAll(o._items));
 A.Object.test((replaceAll, Obj) => {
   const o1 = Obj({ q:1, a:2 });
-  const replacement = {z:3};
+  const replacement = { z:3 };
   const o2 = o1.replaceAll(replacement);
   replacement.a = 1;
-  expect( o2() ).deepEqual({ z:3 });
+  expect(o2()).deepEqual({ z:3 });
 })('replaceAll', (z, o) => {
   z._oldValue = z._items;
   z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
@@ -1903,12 +1903,20 @@ M.Function(function count(o, f) {
   o.each((v, k) => f(v, k) && n++);
   return nice.Num(n);
 });
-C('includes', (o, t) => {
-  for(let i in o._items)
-    if(o._items[i] === t)
-      return true;
-  return false;
-});
+Check.Object
+  .test((includes, Obj) => {
+    const o = {q:1,z:3};
+    expect(Obj(o).includes(2)).is(false);
+    expect(Obj(o).includes(3)).is(true);
+    expect(includes(o, 2)).is(false);
+    expect(includes(o, 3)).is(true);
+  })
+  ('includes', (o, t) => {
+    for(let i in o)
+      if(is(o[i], t))
+        return true;
+    return false;
+  });
 M('getProperties',  z => apply([], res => {
   for(let i in z) z[i]._isProperty && res.push(z[i]);
 }));
@@ -2186,6 +2194,7 @@ nice.Obj.extend({
   
   
   
+    
     pop () {
       const i = this._items.length - 1;
       let e;
@@ -2195,6 +2204,7 @@ nice.Obj.extend({
       }
       return e;
     },
+    
     shift () {
       return this._items.shift();
     },
@@ -2253,15 +2263,13 @@ M.Function('reduceRight', (a, f, res) => {
 M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
-A('add', (z, ...a) => {
-  a.forEach(v => z.includes(v) || z.push(v));
-});
-Check.Arr('includes', (a, v) => {
-  for(let i of a._items)
-    if(is(i, v))
-      return true;
-  return false;
-});
+A.test((add, Arr) => {
+    expect(Arr(1,2).add(2)()).deepEqual([1,2]);
+    expect(Arr(1,2).add(3)()).deepEqual([1,2,3]);
+  })
+  ('add', (z, ...a) => {
+    a.forEach(v => z.includes(v) || z.push(v));
+  });
 A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
@@ -2316,9 +2324,6 @@ Action.Array
   ('removeValue', (a, v) => {
     nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
-'splice'.split(',').forEach(name => {
- A(name, (a, ...bs) => a._items[name](...bs));
-});
 function each(z, f){
   const a = z._items;
   const l = a.length;

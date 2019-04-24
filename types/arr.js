@@ -29,6 +29,7 @@ nice.Obj.extend({
   //    }
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
+    //TODO: remove??
     pop () {
       const i = this._items.length - 1;
       let e;
@@ -39,6 +40,7 @@ nice.Obj.extend({
       return e;
     },
 
+    //TODO: remove??
     shift () {
       return this._items.shift();
     },
@@ -100,6 +102,21 @@ M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
+//findIndex
+
+//checks -> every
+
+//future: copyWithin,entries
+
+//mappings: indexOf, join, keys, lastIndexOf, flat,flatMap,slice
+
+//,reverse,  some,sort,'.split(',').forEach(name => {
+// F.Array(name, (a, ...bs) => a[name](...bs));
+//});
+//'splice'.split(',').forEach(name => {
+// A(name, (a, ...bs) => a._items[name](...bs));
+//});
+
 
 //function apply(type, names){
 //  names.split(',').forEach(name => type(name, (z, ...a) => z[name](...a)));
@@ -107,8 +124,8 @@ M.Function('reduceRight', (a, f, res) => {
 //
 //apply(M, findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 //
-//apply(M, 'every,some,includes');
-////apply(nice.Check.Array, 'every,some,includes');
+//apply(M, 'every,some');
+////apply(nice.Check.Array, 'every,some');
 //
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
@@ -145,16 +162,13 @@ M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0)
 
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
-A('add', (z, ...a) => {
-  a.forEach(v => z.includes(v) || z.push(v));
-});
-
-Check.Arr('includes', (a, v) => {
-  for(let i of a._items)
-    if(is(i, v))
-      return true;
-  return false;
-});
+A.test((add, Arr) => {
+    expect(Arr(1,2).add(2)()).deepEqual([1,2]);
+    expect(Arr(1,2).add(3)()).deepEqual([1,2,3]);
+  })
+  ('add', (z, ...a) => {
+    a.forEach(v => z.includes(v) || z.push(v));
+  });
 
 A('pull', (z, item) => {
   const k = is.Value(item)
@@ -219,15 +233,6 @@ Action.Array
   ('removeValue', (a, v) => {
     nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
-
-//findIndex
-
-//'includes,copyWithin,entries,every,indexOf,join,keys,lastIndexOf,reverse,slice,some,sort,'.split(',').forEach(name => {
-// F.Array(name, (a, ...bs) => a[name](...bs));
-//});
-'splice'.split(',').forEach(name => {
- A(name, (a, ...bs) => a._items[name](...bs));
-});
 
 
 function each(z, f){

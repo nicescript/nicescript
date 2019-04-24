@@ -176,11 +176,5 @@ describe("Obj", function() {
 //    expect(T().pages.get(0)).to.equal('qwe');
 //    expect(T().pages.get(1)).to.equal('asd');
 //  });
-//
-////  it("includes", function() {
-////    const a = Obj({qwe: 1, ads: 3});
-////    expect(a.includes(7)).to.equal(false);
-////    expect(a.includes(1)).to.equal(true);
-////  });
 
 });
