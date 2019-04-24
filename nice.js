@@ -1814,10 +1814,14 @@ A.Obj.test((replaceAll, Obj) => {
   expect( replaceAll(Obj({ q:1, a:2 }), Obj({a:1}))() ).deepEqual({ a:1 });
 })('replaceAll', (z, o) => z.replaceAll(o._items));
 A.Object.test((replaceAll, Obj) => {
-  expect( replaceAll(Obj({ q:1, a:2 }), {z:3})() ).deepEqual({ z:3 });
+  const o1 = Obj({ q:1, a:2 });
+  const replacement = {z:3};
+  const o2 = o1.replaceAll(replacement);
+  replacement.a = 1;
+  expect( o2() ).deepEqual({ z:3 });
 })('replaceAll', (z, o) => {
   z._oldValue = z._items;
-  z._items = o;
+  z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
 });
 A.test((remove, Obj) => {
   expect( remove(Obj({ q:1, a:2 }), 'q').jsValue ).deepEqual({ a:2 });
