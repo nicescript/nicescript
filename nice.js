@@ -721,7 +721,9 @@ function createFunction({ existing, name, body, signature, type, description, te
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
   
-  body && f.addSignature(body, signature.map(v => v.type), name);
+  const types = signature.map(v => v.type);
+  body && f.addSignature(body, types, name);
+  createMethodBody(types[0], f);
   f.maxLength >= signature.length || (f.maxLength = signature.length);
   if(name){
     if(!existing){
@@ -738,12 +740,56 @@ function createFunction({ existing, name, body, signature, type, description, te
 nice.reflect.on('signature', ({ name, signature, f }) => {
   Anything && !Anything.proto.hasOwnProperty(name) &&
       def(Anything.proto, name, function(...a) { return f(this, ...a); });
-  const type = signature[0] && signature[0].type;
-  if(type && !type._isJsType){
-    type && !type.proto.hasOwnProperty(name)
-        && def(type.proto, name, function(...a) { return f(this, ...a); });
-  }
 });
+function createMethodBody(type, body) {
+  if(!type || !type._isNiceType || type.proto.hasOwnProperty(body.name))
+    return;
+  const functionType = body.functionType;
+  const fistTarget = body.signatures.get(type);
+  const {_1,_2,_3,_$} = nice;
+  def(type.proto, body.name, function(...args) {
+    const fistArg = this;
+    for(let a of args){
+      if(a === _1 || a === _2 || a === _3 || a === _$)
+        return skip(z, [fistArg].concat(args));
+    }
+    let target = fistTarget;
+    const l = args.length;
+    for(let i = 0; i < l; i++) {
+      if(target && target.size){
+        let type = nice.getType(args[i]);
+        let found = null;
+        while(type){
+          found = target.get(type);
+          if(found){
+            break;
+          } else {
+            type = Object.getPrototypeOf(type);
+          }
+        }
+        target = found;
+      }
+    }
+    if(!target)
+      throw signatureError(body.name, [fistArg].concat(args));
+    if(target.transformations)
+      for(let i in target.transformations)
+        args[i] = target.transformations[i](args[i]);
+    if(functionType === 'Action'){
+      if(fistArg.transactionStart && fistArg._isHot()){
+        fistArg.transactionStart();
+        target.action(fistArg, ...args);
+        fistArg.transactionEnd();
+        return fistArg;
+      } else {
+        target.action(fistArg, ...args);
+        return fistArg;
+      }
+    } else {
+      return target.action(fistArg, ...args);
+    }
+  });
+}
 function createFunctionBody(functionType){
   const {_1,_2,_3,_$} = nice;
   const z = create(functionProto, (...args) => {
@@ -773,14 +819,19 @@ function createFunctionBody(functionType){
     if(target.transformations)
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
-    if(functionType === 'Action')
-      args[0].transactionStart && args[0].transactionStart();
-    const res = target.action(...args);
     if(functionType === 'Action'){
-      args[0].transactionStart && args[0].transactionEnd();
-      return args[0];
+      if(args[0].transactionStart && args[0]._isHot()){
+        args[0].transactionStart();
+        target.action(...args);
+        args[0].transactionEnd();
+        return args[0];
+      } else {
+        target.action(...args);
+        return args[0];
+      }
+    } else {
+      return target.action(...args);
     }
-    return res;
   });
   z.functionType = functionType;
   return z;
@@ -825,7 +876,7 @@ function allSignatureCombinations (ts) {
   });
   return res;
 }
-function signatureError(name, a, s){
+function signatureError(name, a){
   return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).name).join(',')})`;
 }
 function handleType(type){
@@ -1394,8 +1445,7 @@ def(nice, 'observableProto', {
     return this;
   },
   _isHot (){
-    return this._hotChildCount ||
-      (this._subscribers && this._subscribers.size);
+    return this._subscribers && this._subscribers.size;
   },
   transaction (f) {
     this.transactionStart();
@@ -1750,9 +1800,6 @@ F(function each(o, f){
       break;
   return o;
 });
-F('reverseEach', (o, f) => {
-  Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
-});
 Mapping.Object('get', (o, path) => {
   if(path.pop){
     let k = 0;
@@ -1785,28 +1832,24 @@ M('getDefault', (z, i, v) => {
 Action.Object('set', (o, i, v) => o[''+i] = v);
 A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);
-  z.transactionStart();
-  let res;
-  if(!is(v, z._items[i])){
-    z._oldValue = z._oldValue || {};
-    z._oldValue[i] = z._items[i];
-  }
   const type = z._itemsType || (z._type.types && z._type.types[i]);
   if(type){
     if(v && v._isAnything){
       if(!v._type.isSubType(type))
         throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-      res = v;
     } else {
-      res = type(v, ...tale);
+      v = type(v, ...tale);
     }
-  } else {
-    res = v;
   }
-  z._items[i] = res;
-  z._newValue = z._newValue || {};
-  z._newValue[i] = res;
-  z.transactionEnd();
+  if(!is(v, z._items[i])){
+    if(z._isHot()){
+      z._oldValue = z._oldValue || {};
+      z._oldValue[i] = z._items[i];
+      z._newValue = z._newValue || {};
+      z._newValue[i] = v;
+    }
+    z._items[i] = v;
+  }
   return z;
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
@@ -1820,7 +1863,7 @@ A.Object.test((replaceAll, Obj) => {
   replacement.a = 1;
   expect(o2()).deepEqual({ z:3 });
 })('replaceAll', (z, o) => {
-  z._oldValue = z._items;
+  z._isHot() && (z._oldValue = z._items);
   z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
 });
 A.test((remove, Obj) => {
@@ -1828,8 +1871,10 @@ A.test((remove, Obj) => {
 })
 .about('Remove element at `i`.')
 ('remove', (z, i) => {
-  z._oldValue = z._oldValue || {};
-  z._oldValue[i] = z._items[i];
+  if(z._isHot()){
+    z._oldValue = z._oldValue || {};
+    z._oldValue[i] = z._items[i];
+  }
   delete z._items[i];
 });
 A('removeValue', (o, v) => {
@@ -1849,7 +1894,7 @@ Action.Object('removeValues', (o, vs) => _each(vs, v => {
     is(v, o[i]) && delete o[i];
 }));
 A('removeAll', z => {
-  z._oldValue = z._items;
+  z._isHot() && (z._oldValue = z._items);
   z._type.onCreate(z);
 });
 M(function reduce(o, f, res){
@@ -2289,17 +2334,21 @@ A('pull', (z, item) => {
 });
 A.Number('insertAt', (z, i, v) => {
   i = +i;
-  const old = z._items;
-  z._oldValue = z._oldValue || {};
-  z._newValue = z._newValue || {};
-  z._newValue[i] = v;
-  z._items = [];
-  _each(old, (_v, k) => {
-    +k === i && z._items.push(v);
-    z._items.push(_v);
-  });
-  if(old.length <= i)
-    return z._items[i] = v;
+  if(z._isHot()){
+    const old = z._items;
+    z._oldValue = z._oldValue || {};
+    z._newValue = z._newValue || {};
+    z._newValue[i] = v;
+    z._items = [];
+    _each(old, (_v, k) => {
+      +k === i && z._items.push(v);
+      z._items.push(_v);
+    });
+    if(old.length <= i)
+      return z._items[i] = v;
+  } else {
+    z._items.splice(i, 0, v);
+  }
 });
 A('insertAfter', (z, target, v) => {
   let i;
@@ -2310,11 +2359,15 @@ A('insertAfter', (z, target, v) => {
 });
 A('removeAt', (z, i) => {
   i = +i;
-  const old = z._items;
-  z._oldValue = z._oldValue || {};
-  z._oldValue[i] = old[i];
-  z._items = [];
-  _each(old, (v, k) => +k === i || z._items.push(v));
+  if(z._isHot()){
+    const old = z._items;
+    z._oldValue = z._oldValue || {};
+    z._oldValue[i] = old[i];
+    z._items = [];
+    _each(old, (v, k) => +k === i || z._items.push(v));
+  } else {
+    z._items.splice(i, 1);
+  }
 });
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );

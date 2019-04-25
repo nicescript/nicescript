@@ -114,11 +114,6 @@ F(function each(o, f){
 });
 
 
-F('reverseEach', (o, f) => {
-  Object.keys(o._items).reverse().forEach(k => f(o._items[k], k));
-});
-
-
 Mapping.Object('get', (o, path) => {
   if(path.pop){
     let k = 0;
@@ -161,28 +156,26 @@ Action.Object('set', (o, i, v) => o[''+i] = v);
 
 A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);
-  z.transactionStart();
-  let res;
-  if(!is(v, z._items[i])){
-    z._oldValue = z._oldValue || {};
-    z._oldValue[i] = z._items[i];
-  }
+//  z.transactionStart();
   const type = z._itemsType || (z._type.types && z._type.types[i]);
   if(type){
     if(v && v._isAnything){
       if(!v._type.isSubType(type))
         throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-      res = v;
     } else {
-      res = type(v, ...tale);
+      v = type(v, ...tale);
     }
-  } else {
-    res = v;
   }
-  z._items[i] = res;
-  z._newValue = z._newValue || {};
-  z._newValue[i] = res;
-  z.transactionEnd();
+  if(!is(v, z._items[i])){
+    if(z._isHot()){
+      z._oldValue = z._oldValue || {};
+      z._oldValue[i] = z._items[i];
+      z._newValue = z._newValue || {};
+      z._newValue[i] = v;
+    }
+    z._items[i] = v;
+  }
+//  z.transactionEnd();
   return z;
 });
 
@@ -200,7 +193,7 @@ A.Object.test((replaceAll, Obj) => {
   replacement.a = 1;
   expect(o2()).deepEqual({ z:3 });
 })('replaceAll', (z, o) => {
-  z._oldValue = z._items;
+  z._isHot() && (z._oldValue = z._items);
   z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
 });
 
@@ -209,8 +202,10 @@ A.test((remove, Obj) => {
 })
 .about('Remove element at `i`.')
 ('remove', (z, i) => {
-  z._oldValue = z._oldValue || {};
-  z._oldValue[i] = z._items[i];
+  if(z._isHot()){
+    z._oldValue = z._oldValue || {};
+    z._oldValue[i] = z._items[i];
+  }
   delete z._items[i];
 });
 
@@ -235,7 +230,7 @@ Action.Object('removeValues', (o, vs) => _each(vs, v => {
 }));
 
 A('removeAll', z => {
-  z._oldValue = z._items;
+  z._isHot() && (z._oldValue = z._items);
   z._type.onCreate(z);
 });
 

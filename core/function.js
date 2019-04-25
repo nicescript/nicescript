@@ -144,7 +144,10 @@ function createFunction({ existing, name, body, signature, type, description, te
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
 
   //optimization: maybe signature might be just an array of types??
-  body && f.addSignature(body, signature.map(v => v.type), name);
+  const types = signature.map(v => v.type);
+  body && f.addSignature(body, types, name);
+  createMethodBody(types[0], f);
+
   f.maxLength >= signature.length || (f.maxLength = signature.length);
   if(name){
     if(!existing){
@@ -165,15 +168,69 @@ nice.reflect.on('signature', ({ name, signature, f }) => {
   Anything && !Anything.proto.hasOwnProperty(name) &&
       def(Anything.proto, name, function(...a) { return f(this, ...a); });
 
-  const type = signature[0] && signature[0].type;
-  if(type && !type._isJsType){
-    type && !type.proto.hasOwnProperty(name)
-        && def(type.proto, name, function(...a) { return f(this, ...a); });
-  }
+//  const type = signature[0] && signature[0].type;
+//  if(type && !type._isJsType){
+//    type && !type.proto.hasOwnProperty(name)
+//        && def(type.proto, name, function(...a) { return f(this, ...a); });
+//  }
 });
 
-//nice.callLog = {};
+function createMethodBody(type, body) {
+  if(!type || !type._isNiceType || type.proto.hasOwnProperty(body.name))
+    return;
+  const functionType = body.functionType;
+  const fistTarget = body.signatures.get(type);
+  const {_1,_2,_3,_$} = nice;
+  def(type.proto, body.name, function(...args) {
+    const fistArg = this;
+    for(let a of args){
+      if(a === _1 || a === _2 || a === _3 || a === _$)
+        return skip(z, [fistArg].concat(args));
+    }
 
+    let target = fistTarget;
+    const l = args.length;
+    for(let i = 0; i < l; i++) {
+      if(target && target.size){
+        let type = nice.getType(args[i]);
+        let found = null;
+        while(type){
+          found = target.get(type);
+          if(found){
+            break;
+          } else {
+            type = Object.getPrototypeOf(type);
+          }
+        }
+        target = found;
+      }
+    }
+
+    if(!target)
+      throw signatureError(body.name, [fistArg].concat(args));
+
+    if(target.transformations)
+      for(let i in target.transformations)
+        args[i] = target.transformations[i](args[i]);
+
+    if(functionType === 'Action'){
+      if(fistArg.transactionStart && fistArg._isHot()){
+        fistArg.transactionStart();
+        target.action(fistArg, ...args);
+        fistArg.transactionEnd();
+        return fistArg;
+      } else {
+        target.action(fistArg, ...args);
+        return fistArg;
+      }
+    } else {
+      return target.action(fistArg, ...args);
+    }
+  });
+}
+
+
+//old time 102ms
 function createFunctionBody(functionType){
   const {_1,_2,_3,_$} = nice;
   const z = create(functionProto, (...args) => {
@@ -210,17 +267,32 @@ function createFunctionBody(functionType){
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
 
-    if(functionType === 'Action')
-      args[0].transactionStart && args[0].transactionStart();
-
-    const res = target.action(...args);
-
     if(functionType === 'Action'){
-      args[0].transactionStart && args[0].transactionEnd();
-      return args[0];
+      if(args[0].transactionStart && args[0]._isHot()){
+        args[0].transactionStart();
+        target.action(...args);
+        args[0].transactionEnd();
+        return args[0];
+      } else {
+        target.action(...args);
+        return args[0];
+      }
+    } else {
+      return target.action(...args);
     }
 
-    return res;
+
+//    if(functionType === 'Action')
+//      args[0].transactionStart && args[0].transactionStart();
+//
+//    const res = target.action(...args);
+//
+//    if(functionType === 'Action'){
+//      args[0].transactionStart && args[0].transactionEnd();
+//      return args[0];
+//    }
+//
+//    return res;
   });
 
   z.functionType = functionType;
@@ -277,7 +349,7 @@ function allSignatureCombinations (ts) {
 }
 
 
-function signatureError(name, a, s){
+function signatureError(name, a){
   return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).name).join(',')})`;
 }
 

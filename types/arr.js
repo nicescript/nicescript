@@ -146,6 +146,7 @@ A.test((add, Arr) => {
     a.forEach(v => z.includes(v) || z.push(v));
   });
 
+
 A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
@@ -153,20 +154,24 @@ A('pull', (z, item) => {
   (k === -1 || k === undefined) || z.removeAt(k);
 });
 
-//TODO: its very slow
+
 A.Number('insertAt', (z, i, v) => {
   i = +i;
-  const old = z._items;
-  z._oldValue = z._oldValue || {};
-  z._newValue = z._newValue || {};
-  z._newValue[i] = v;
-  z._items = [];
-  _each(old, (_v, k) => {
-    +k === i && z._items.push(v);
-    z._items.push(_v);
-  });
-  if(old.length <= i)
-    return z._items[i] = v;
+  if(z._isHot()){
+    const old = z._items;
+    z._oldValue = z._oldValue || {};
+    z._newValue = z._newValue || {};
+    z._newValue[i] = v;
+    z._items = [];
+    _each(old, (_v, k) => {
+      +k === i && z._items.push(v);
+      z._items.push(_v);
+    });
+    if(old.length <= i)
+      return z._items[i] = v;
+  } else {
+    z._items.splice(i, 0, v);
+  }
 });
 
 
@@ -181,11 +186,15 @@ A('insertAfter', (z, target, v) => {
 
 A('removeAt', (z, i) => {
   i = +i;
-  const old = z._items;
-  z._oldValue = z._oldValue || {};
-  z._oldValue[i] = old[i];
-  z._items = [];
-  _each(old, (v, k) => +k === i || z._items.push(v));
+  if(z._isHot()){
+    const old = z._items;
+    z._oldValue = z._oldValue || {};
+    z._oldValue[i] = old[i];
+    z._items = [];
+    _each(old, (v, k) => +k === i || z._items.push(v));
+  } else {
+    z._items.splice(i, 1);
+  }
 });
 
 F('callEach', (z, ...a) => {

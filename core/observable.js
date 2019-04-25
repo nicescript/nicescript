@@ -80,8 +80,7 @@ def(nice, 'observableProto', {
   },
 
   _isHot (){
-    return this._hotChildCount ||
-      (this._subscribers && this._subscribers.size);
+    return this._subscribers && this._subscribers.size;
   },
 
   transaction (f) {

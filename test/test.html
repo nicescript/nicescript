@@ -14,18 +14,10 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, expect, Num, Str, Obj, _1, _2, _3 } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-    const o = Arr(1, 2);
-    o.listen({
-      onChange:(...a) => {
-        console.log('change: ', ...a);
-//        spy(...a);
-    }, 
-    onAdd: (...a) => console.log('Add: ', ...a),
-    onRemove: (...a) => console.log('Del: ', ...a)
-  });
 
-    o.set(0, 2);
-    o.insertAt(1, 3);
+const a = Arr();
+nice.speedTest(() => {a.insertAt(a.length-1, 2)}, 100000);
+//nice.speedTest(() => {nice.set(a, 1, 2), nice.set(a, 2, 3)}, 1000000);
       
 
 </script>
