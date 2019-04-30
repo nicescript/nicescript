@@ -35,6 +35,7 @@ nice.Obj.extend({
       let e;
       if(i >= 0){
         e = this._items[i];
+        this.transa
         this.removeAt(i);
       }
       return e;
@@ -105,7 +106,7 @@ M.Function('reduceRight', (a, f, res) => {
 
 //future: copyWithin,entries,findIndex
 
-//mappings: indexOf, join, keys, lastIndexOf, flat,flatMap,slice
+//mappings: indexOf, join, keys, lastIndexOf, flat,flatMap
 
 //,reverse,  ,sort,'.split(',').forEach(name => {
 // F.Array(name, (a, ...bs) => a[name](...bs));
@@ -116,7 +117,9 @@ M.Function('reduceRight', (a, f, res) => {
 
 
 function apply(type, names){
-  names.split(',').forEach(name => type(name, (z, ...a) => z[name](...a)));
+  names.split(',').forEach(name => type
+      .about('Delegates to native Array.prototype.' + name)
+      (name, (z, ...a) => z._items[name](...a)));
 }
 apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 //apply(F, 'entries,splice,pop,forEach');
@@ -168,7 +171,7 @@ A.Number('insertAt', (z, i, v) => {
       z._items.push(_v);
     });
     if(old.length <= i)
-      return z._items[i] = v;
+      z._items[i] = v;
   } else {
     z._items.splice(i, 0, v);
   }
@@ -180,7 +183,7 @@ A('insertAfter', (z, target, v) => {
   for(i in z._items)
     if(is(target, z._items[i]))
       break;
-  return z.insertAt(+i+1, v);
+  z.insertAt(+i+1, v);
 });
 
 
@@ -360,6 +363,37 @@ M.about('Returns last element of `a`.')
   })
 (function last(a) {
   return a._items[a._items.length - 1];
+});
+
+
+M.Number.about('Returns `n` last elements of `a`.')
+  .test((Arr) => {
+    expect(Arr(1,2,4).last(2)()).deepEqual([2,4]);
+  })
+(function last(a, n) {
+  const res = a._type();
+  res._items = a._items.slice(-n);
+  return res;
+});
+
+
+M.about('Returns first element of `a`.')
+  .test((Arr) => {
+    expect(Arr(1,2,4).first()).is(1);
+  })
+(function first(a) {
+  return a._items[0];
+});
+
+
+M.Number.about('Returns `n` first elements of `a`.')
+  .test((Arr) => {
+    expect(Arr(1,2,4).first(2)()).deepEqual([1,2]);
+  })
+(function first(a, n) {
+  const res = a._type();
+  res._items = a._items.slice(0, n);
+  return res;
 });
 
 
