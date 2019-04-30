@@ -164,16 +164,10 @@ function createFunction({ existing, name, body, signature, type, description, te
 };
 
 
-nice.reflect.on('signature', ({ name, signature, f }) => {
-  Anything && !Anything.proto.hasOwnProperty(name) &&
-      def(Anything.proto, name, function(...a) { return f(this, ...a); });
-
-//  const type = signature[0] && signature[0].type;
-//  if(type && !type._isJsType){
-//    type && !type.proto.hasOwnProperty(name)
-//        && def(type.proto, name, function(...a) { return f(this, ...a); });
-//  }
-});
+nice.reflect.on('function', (f) =>
+  Anything && !Anything.proto.hasOwnProperty(f.name) &&
+      def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
+      
 
 function createMethodBody(type, body) {
   if(!type || !type._isNiceType || type.proto.hasOwnProperty(body.name))
@@ -230,12 +224,9 @@ function createMethodBody(type, body) {
 }
 
 
-//old time 102ms
 function createFunctionBody(functionType){
   const {_1,_2,_3,_$} = nice;
   const z = create(functionProto, (...args) => {
-//    nice.callLog[z.name] = nice.callLog[z.name] || 0;
-//    nice.callLog[z.name]++;
     for(let a of args){
       if(a === _1 || a === _2 || a === _3 || a === _$)
         return skip(z, args);
@@ -280,19 +271,6 @@ function createFunctionBody(functionType){
     } else {
       return target.action(...args);
     }
-
-
-//    if(functionType === 'Action')
-//      args[0].transactionStart && args[0].transactionStart();
-//
-//    const res = target.action(...args);
-//
-//    if(functionType === 'Action'){
-//      args[0].transactionStart && args[0].transactionEnd();
-//      return args[0];
-//    }
-//
-//    return res;
   });
 
   z.functionType = functionType;
