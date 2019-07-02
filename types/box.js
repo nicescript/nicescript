@@ -8,7 +8,9 @@ nice.Type({
   onCreate: z => {
     z._value = PENDING;
     z._isReactive = false;
+
   },
+  itemArgs0: z => z.compute(),
 
   itemArgs1: (z, v) => z._setValue(v),
 
@@ -84,7 +86,7 @@ nice.Type({
         this.listenOnce(v => (nice.isErr(v) ? reject : resolve)(v));
       });
     },
-        follow (s){
+    follow (s){
       if(s.__proto__ === Promise.prototype) {
         this.doCompute = () => {
           this.transactionStart();
@@ -145,9 +147,10 @@ nice.Type({
       } catch (e) {
         console.log('ups', e);
         this.error(e);
-        return;
+        this._simpleSetState(Err('Error while doCompute'));
+        return this._value;
       } finally {
-        return this.transactionEnd();
+        this.transactionEnd();
       }
 
       return this._value;

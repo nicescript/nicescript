@@ -1,4 +1,5 @@
 //TODO: throw error when adding object that is not Html
+//TODO: BUG: Div(111).Css(':hover').backgroundColor('red').up.show() - not work
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
 
@@ -77,6 +78,9 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
 
       if(c === z)
         return z.children(`Errro: Can't add element to itself.`);
+
+      if(c.isErr())
+        return z.children(c.toString());
 
       if(!c || !nice.isAnything(c))
         return z.children('Bad child: ' + c);
@@ -170,7 +174,6 @@ Html.proto.Box = function(...a) {
         this.attributes.set(property, a.length > 1 ? nice.format(...a) : a[0]);
         return this;
       } else {
-//        return nice.Switch(this.attributes.get(property)).Value.use(v => v()).default('');
         return this.attributes.get(property);
       }
     };
@@ -406,6 +409,11 @@ if(nice.isEnvBrowser()){
 
   Func.Nothing('show', (e, parentNode = document.body, position) => {
     return insertAt(parentNode, document.createTextNode(''), position);
+  });
+
+  Func.Err('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode,
+        document.createTextNode('Error: ' + e().message), position);
   });
 
   Func.Bool('show', (e, parentNode = document.body, position) => {

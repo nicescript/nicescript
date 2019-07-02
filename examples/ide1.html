@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <title>Test page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0">
+<script>
+"use strict";
+const { RBox, Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
+const { Arr, Type, Check, Mapping, Switch, is, 
+   get, expect, Num, Str, Obj, _1, _2, _3 } = nice;
+
+const a = Arr(
+`site.storage.item('messages', Arr);`,
+
+`site.web.source('messages', () => site.messages);`,
+
+`site.web.action('addMessage', req => {
+  site.messages.push({
+    name: session.userName || 'Guest', text: req.args.text, time: Date.now()
+  });
+});`,
+  
+`const add = site =>
+  e => e.keyCode === 13 && site.addMessage(e.target.value)
+    .ok(() => e.target.value = '');`,
+
+`site.title('Chat');`,
+
+`site.route('/', (site, page) => page
+    .rBox(site.messages(), ms => Div(ms, m => P(m.name, ': ', m.text)))
+    .Input().on('keyup', add(site)).marginTop('1rem').focus()
+  );`
+);
+
+Div.extend('CodeBox', (z, text) => {
+  z.padding('.5rem').border('1px #666 solid')
+    .fontFamily('mono').whiteSpace('pre-wrap')
+    .add(text);
+    
+});
+
+Div().position('fixed').left(0).top(0).bottom(0).width('10rem')
+  .backgroundColor('#eee')
+  .add(1)
+  .show();
+  
+Div().marginLeft('11rem')
+  .div(a, s => nice.CodeBox(s).margin('1rem'))
+  .show();
+
+</script>
+  
+  </body>
+</html>

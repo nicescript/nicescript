@@ -77,3 +77,47 @@ Input.extend('Checkbox', (z, status) => {
     value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
+
+  Input.extend('Select', (z, values) => {
+    let node;
+    z.tag('select');
+    const value = Box(null);
+    def(z, 'value', value);
+
+    let mute;
+    z.on('change', e => {
+      mute = true;
+      value((e.target || e.srcElement).value);
+      mute = false;
+      return true;
+    });
+
+    if(nice.isEnvBrowser()){
+      z._autoId();
+      z.on('domNode', n => node = n);
+    }
+
+    z.options.listen({onAdd: v => z.add(Html('option').add(v.label)
+        .apply(o => o.attributes.set('value', v.value)))
+    });
+
+    Switch(values)
+      .isObject().each(z.option.bind(z))
+      .isArray().each(v => Switch(v)
+        .isObject().use(o => z.options.push(o))
+        .default.use(z.option.bind(z)));
+
+    value.listen(v => node && z.options.each((o, k) =>
+        o.value == v && (node.selectedIndex = k)));
+  })
+  .arr('options')
+  .Action.about('Adds Option HTML element to Select HTML element.')
+    .test((Select) => {
+      expect(Select().id('q').option('v1', 1).html)
+          .is('<select id="q"><option value="1">v1</option></select>');
+    })
+    (function option(z, label, value){
+      value === undefined && (value = label);
+      z.options.push({label, value});
+    })
+  .about('Represents HTML <select> element.');

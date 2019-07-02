@@ -95,7 +95,7 @@ const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 
 M.Function('reduce', (a, f, res) => {
-  each(a, (v, k) => res = f(res, v, k));
+  _each(a, (v, k) => res = f(res, v, k));
   return res;
 });
 
@@ -166,7 +166,7 @@ A.Number('insertAt', (z, i, v) => {
     z._newValue = z._newValue || {};
     z._newValue[i] = v;
     z._items = [];
-    _each(old, (_v, k) => {
+    nice._each(old, (_v, k) => {
       +k === i && z._items.push(v);
       z._items.push(_v);
     });
@@ -194,7 +194,7 @@ A('removeAt', (z, i) => {
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = old[i];
     z._items = [];
-    _each(old, (v, k) => +k === i || z._items.push(v));
+    nice._each(old, (v, k) => +k === i || z._items.push(v));
   } else {
     z._items.splice(i, 1);
   }
@@ -223,7 +223,7 @@ Action.Array
   });
 
 
-function each(z, f){
+function _each(z, f){
   const a = z._items;
   const l = a.length;
   for (let i = 0; i < l; i++)
@@ -233,8 +233,9 @@ function each(z, f){
   return z;
 }
 
-F.Function(each);
-F.Function('forEach', each);
+F.Function('each', _each);
+each = nice.each
+F.Function('forEach', _each);
 
 Func.Array.Function(function eachRight(a, f){
   let i = a.length;

@@ -69,7 +69,9 @@ nice.registerType({
     },
 
     apply(f){
-      f(this);
+      try {
+        f(this);
+      } catch (e) { return nice.Err(e) }
       return this;
     },
 

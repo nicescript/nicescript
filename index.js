@@ -1,4 +1,4 @@
-module.exports = function(){;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect;
+module.exports = function(){;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -737,10 +737,9 @@ function createFunction({ existing, name, body, signature, type, description, te
   }
   return f;
 };
-nice.reflect.on('signature', ({ name, signature, f }) => {
-  Anything && !Anything.proto.hasOwnProperty(name) &&
-      def(Anything.proto, name, function(...a) { return f(this, ...a); });
-});
+nice.reflect.on('function', (f) =>
+  Anything && !Anything.proto.hasOwnProperty(f.name) &&
+      def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
 function createMethodBody(type, body) {
   if(!type || !type._isNiceType || type.proto.hasOwnProperty(body.name))
     return;
@@ -771,7 +770,7 @@ function createMethodBody(type, body) {
       }
     }
     if(!target)
-      throw signatureError(body.name, [fistArg].concat(args));
+      return signatureError(body.name, [fistArg].concat(args));
     if(target.transformations)
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
@@ -815,22 +814,26 @@ function createFunctionBody(functionType){
       }
     }
     if(!target)
-      throw signatureError(z.name, args);
-    if(target.transformations)
-      for(let i in target.transformations)
-        args[i] = target.transformations[i](args[i]);
-    if(functionType === 'Action'){
-      if(args[0].transactionStart && args[0]._isHot()){
-        args[0].transactionStart();
-        target.action(...args);
-        args[0].transactionEnd();
-        return args[0];
+      return signatureError(z.name, args);
+    try {
+      if(target.transformations)
+        for(let i in target.transformations)
+          args[i] = target.transformations[i](args[i]);
+      if(functionType === 'Action'){
+        if(args[0].transactionStart && args[0]._isHot()){
+          args[0].transactionStart();
+          target.action(...args);
+          args[0].transactionEnd();
+          return args[0];
+        } else {
+          target.action(...args);
+          return args[0];
+        }
       } else {
-        target.action(...args);
-        return args[0];
+        return target.action(...args);
       }
-    } else {
-      return target.action(...args);
+    } catch (e) {
+      return Err(e);
     }
   });
   z.functionType = functionType;
@@ -877,7 +880,8 @@ function allSignatureCombinations (ts) {
   return res;
 }
 function signatureError(name, a){
-  return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).name).join(',')})`;
+  return Err(`Function ${name} can't handle (${a.map(v =>
+      nice.typeOf(v).name).join(',')})`);
 }
 function handleType(type){
   type.name === 'Something' && create(type.proto, functionProto);
@@ -889,7 +893,10 @@ function handleType(type){
   });
 };
 const skipedProto = {};
-[1,2,3,4].forEach(n => nice['_' + n] = a => a[n - 1]);
+[1,2,3].forEach(n => nice['_' + n] = a => a[n - 1]);
+_1 = nice._1;
+_2 = nice._2;
+_3 = nice._3;
 nice._$ = a => a;
 function _skipArgs(init, called) {
   const {_1,_2,_3,_$} = nice;
@@ -1015,7 +1022,9 @@ nice.registerType({
       return this;
     },
     apply(f){
-      f(this);
+      try {
+        f(this);
+      } catch (e) { return nice.Err(e) }
       return this;
     },
     Switch (...vs) {
@@ -2005,6 +2014,7 @@ nice.Type({
     z._value = PENDING;
     z._isReactive = false;
   },
+  itemArgs0: z => z.compute(),
   itemArgs1: (z, v) => z._setValue(v),
   initBy: (z, ...a) => a.length && z(...a),
   async (f){
@@ -2064,7 +2074,7 @@ nice.Type({
         this.listenOnce(v => (nice.isErr(v) ? reject : resolve)(v));
       });
     },
-        follow (s){
+    follow (s){
       if(s.__proto__ === Promise.prototype) {
         this.doCompute = () => {
           this.transactionStart();
@@ -2119,9 +2129,10 @@ nice.Type({
       } catch (e) {
         console.log('ups', e);
         this.error(e);
-        return;
+        this._simpleSetState(Err('Error while doCompute'));
+        return this._value;
       } finally {
-        return this.transactionEnd();
+        this.transactionEnd();
       }
       return this._value;
     },
@@ -2192,17 +2203,20 @@ nice.Type({
   name: 'Err',
   extends: 'Nothing',
   initBy: (z, message) => {
-    z.message = message;
+    if(message && message.message){
+      message = message.message;
+    }
     const a = new Error().stack.split('\n');
     a.splice(0, 4);
-    z.trace = a.join('\n');
+    z._value = { message, trace: a.join('\n') };
   },
   creator: () => ({}),
   proto: {
-    valueOf () { return new Err(this.message); },
-    toString () { return `Error: ${this.message}`; }
+    valueOf () { return new Err(this._value.message); },
+    toString () { return `Error: ${this._value.message}`; }
   }
 }).about('Represents error.');
+Err = nice.Err;
 })();
 (function(){"use strict";nice.Type({
   name: 'Single',
@@ -2306,7 +2320,7 @@ nice.Obj.extend({
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 M.Function('reduce', (a, f, res) => {
-  each(a, (v, k) => res = f(res, v, k));
+  _each(a, (v, k) => res = f(res, v, k));
   return res;
 });
 M.Function('reduceRight', (a, f, res) => {
@@ -2343,7 +2357,7 @@ A.Number('insertAt', (z, i, v) => {
     z._newValue = z._newValue || {};
     z._newValue[i] = v;
     z._items = [];
-    _each(old, (_v, k) => {
+    nice._each(old, (_v, k) => {
       +k === i && z._items.push(v);
       z._items.push(_v);
     });
@@ -2367,7 +2381,7 @@ A('removeAt', (z, i) => {
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = old[i];
     z._items = [];
-    _each(old, (v, k) => +k === i || z._items.push(v));
+    nice._each(old, (v, k) => +k === i || z._items.push(v));
   } else {
     z._items.splice(i, 1);
   }
@@ -2391,7 +2405,7 @@ Action.Array
   ('removeValue', (a, v) => {
     nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
-function each(z, f){
+function _each(z, f){
   const a = z._items;
   const l = a.length;
   for (let i = 0; i < l; i++)
@@ -2399,8 +2413,9 @@ function each(z, f){
       break;
   return z;
 }
-F.Function(each);
-F.Function('forEach', each);
+F.Function('each', _each);
+each = nice.each
+F.Function('forEach', _each);
 Func.Array.Function(function eachRight(a, f){
   let i = a.length;
   while (i-- > 0)
@@ -2867,6 +2882,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z.children(c);
       if(c === z)
         return z.children(`Errro: Can't add element to itself.`);
+      if(c.isErr())
+        return z.children(c.toString());
       if(!c || !nice.isAnything(c))
         return z.children('Bad child: ' + c);
       c.up = z;
@@ -3092,6 +3109,10 @@ if(nice.isEnvBrowser()){
   Func.Nothing('show', (e, parentNode = document.body, position) => {
     return insertAt(parentNode, document.createTextNode(''), position);
   });
+  Func.Err('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode,
+        document.createTextNode('Error: ' + e().message), position);
+  });
   Func.Bool('show', (e, parentNode = document.body, position) => {
     if(e())
       throw `I don't know how to display "true"`;
@@ -3175,7 +3196,8 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
     };
 });
 })();
-(function(){"use strict";const Html = nice.Html;
+(function(){"use strict";
+const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
   const l = t.toLowerCase();
   Html.extend(t).by((z, a, ...as) => {
@@ -3283,4 +3305,42 @@ Input.extend('Checkbox', (z, status) => {
     value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
+  Input.extend('Select', (z, values) => {
+    let node;
+    z.tag('select');
+    const value = Box(null);
+    def(z, 'value', value);
+    let mute;
+    z.on('change', e => {
+      mute = true;
+      value((e.target || e.srcElement).value);
+      mute = false;
+      return true;
+    });
+    if(nice.isEnvBrowser()){
+      z._autoId();
+      z.on('domNode', n => node = n);
+    }
+    z.options.listen({onAdd: v => z.add(Html('option').add(v.label)
+        .apply(o => o.attributes.set('value', v.value)))
+    });
+    Switch(values)
+      .isObject().each(z.option.bind(z))
+      .isArray().each(v => Switch(v)
+        .isObject().use(o => z.options.push(o))
+        .default.use(z.option.bind(z)));
+    value.listen(v => node && z.options.each((o, k) =>
+        o.value == v && (node.selectedIndex = k)));
+  })
+  .arr('options')
+  .Action.about('Adds Option HTML element to Select HTML element.')
+    .test((Select) => {
+      expect(Select().id('q').option('v1', 1).html)
+          .is('<select id="q"><option value="1">v1</option></select>');
+    })
+    (function option(z, label, value){
+      value === undefined && (value = label);
+      z.options.push({label, value});
+    })
+  .about('Represents HTML <select> element.');
 })();;nice.version = "0.3.3";})();; return nice;}

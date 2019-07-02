@@ -167,7 +167,7 @@ function createFunction({ existing, name, body, signature, type, description, te
 nice.reflect.on('function', (f) =>
   Anything && !Anything.proto.hasOwnProperty(f.name) &&
       def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
-      
+
 
 function createMethodBody(type, body) {
   if(!type || !type._isNiceType || type.proto.hasOwnProperty(body.name))
@@ -201,7 +201,7 @@ function createMethodBody(type, body) {
     }
 
     if(!target)
-      throw signatureError(body.name, [fistArg].concat(args));
+      return signatureError(body.name, [fistArg].concat(args));
 
     if(target.transformations)
       for(let i in target.transformations)
@@ -252,24 +252,28 @@ function createFunctionBody(functionType){
     }
 
     if(!target)
-      throw signatureError(z.name, args);
+      return signatureError(z.name, args);
 
-    if(target.transformations)
-      for(let i in target.transformations)
-        args[i] = target.transformations[i](args[i]);
+    try {
+      if(target.transformations)
+        for(let i in target.transformations)
+          args[i] = target.transformations[i](args[i]);
 
-    if(functionType === 'Action'){
-      if(args[0].transactionStart && args[0]._isHot()){
-        args[0].transactionStart();
-        target.action(...args);
-        args[0].transactionEnd();
-        return args[0];
+      if(functionType === 'Action'){
+        if(args[0].transactionStart && args[0]._isHot()){
+          args[0].transactionStart();
+          target.action(...args);
+          args[0].transactionEnd();
+          return args[0];
+        } else {
+          target.action(...args);
+          return args[0];
+        }
       } else {
-        target.action(...args);
-        return args[0];
+        return target.action(...args);
       }
-    } else {
-      return target.action(...args);
+    } catch (e) {
+      return Err(e);
     }
   });
 
@@ -328,7 +332,8 @@ function allSignatureCombinations (ts) {
 
 
 function signatureError(name, a){
-  return `Function ${name} can't handle (${a.map(v => nice.typeOf(v).name).join(',')})`;
+  return Err(`Function ${name} can't handle (${a.map(v =>
+      nice.typeOf(v).name).join(',')})`);
 }
 
 
@@ -346,7 +351,10 @@ function handleType(type){
 
 const skipedProto = {};
 
-[1,2,3,4].forEach(n => nice['_' + n] = a => a[n - 1]);
+[1,2,3].forEach(n => nice['_' + n] = a => a[n - 1]);
+_1 = nice._1;
+_2 = nice._2;
+_3 = nice._3;
 nice._$ = a => a;
 
 function _skipArgs(init, called) {

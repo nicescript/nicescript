@@ -4,6 +4,9 @@ nice.Type({
   extends: 'Nothing',
 
   initBy: (z, message) => {
+    if(message && message.message){
+      message = message.message;
+    }
     const a = new Error().stack.split('\n');
     a.splice(0, 4);
     z._value = { message, trace: a.join('\n') };
