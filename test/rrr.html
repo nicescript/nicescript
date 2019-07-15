@@ -1,0 +1,91 @@
+<html>
+  <head>
+    <title>Test page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../nice.js"></script>
+  </head>
+  <body>
+    <main id="js-main" class="main"></main>
+<script>
+"use strict";
+const { Box, Div, Span, H1, H2, H3, B, I, A, Html, Img } = nice;
+const { Arr, Type, Check, Mapping, Switch, is, 
+   get, expect, Num, Str, Obj, _1, _2, _3 } = nice;
+
+const values = Arr(
+  {title: 'Users', }
+);
+
+Div.extend('ChildBlock', (z, ...as) => z.super(...as)
+  .marginLeft('1rem').fontFamily('mono'))
+  
+Div.extend('Code', (z, ...as) => z.super(...as)
+  .fontFamily('mono').width('60ch')
+  .whiteSpace('pre').overflowX('auto')
+  .border('1px silver solid').padding('.5rem'))
+
+nice.Code.extend('Example', (z, ...as) => z.super(...as)
+  .color('#666').borderColor('#fff'))
+
+nice.Code.extend('ErrorPane', (z, ...as) => z.super(...as)
+  .color('red').borderColor('#fff'))
+
+
+Div().position('absolute').whiteSpace('pre')
+  .Css('a').textDecoration('none').up
+  .Div().a('', 'site').up
+  .Div(' ').a('', 'sessions').up
+  .Div(' ').a('', 'routes').up
+  .Div(' ').a('', 'users').up
+  .Div(' ').a('', 'pageTypes').up
+  .Div(' ').a('', 'facts').up
+  .Div(' ').a('', 'indexes').up
+  .show();
+
+
+const a = [
+  b => b.b('users').add(' Map')
+    .Span(' {').span([1,2,3], n => n + ', ').add('... }').color('#999').up,
+  b => b.add('item: ').b('user').add(' Obj')
+    .Span(' {').span(['id', 'name', 'email', 'drafts'], n => n + ', ').add('... }')
+      .color('#999').up,
+  b => b.b('drafts').add(' Arr {').span(['user/1/drafts/2'], n => n + ', ').add('... }'),
+  b => b.add('item: ').b('draft').add(' Obj {')
+          .span(['id', 'valid', 'fields', 'errors'], n => n + ', ').add('... }'),
+  b => b.b('fields').add(' Map {').span(['user/1/drafts/2/fields/title'], n => n + ', ')
+          .add('... }'),
+  b => b.add('item: ').b('field').add(' Obj'),
+  b => b.b('required').add(' Bool'),
+  b => b.add('by:')
+          .Code(`draft.fields['type'].values.reduce(false, (res, type) => 
+  res || type.required.includes(field))`).up
+//          .Code(`fields/type/values.reduce(false, (res, type) => 
+//  res || type.required.includes(field))`).up
+          .ErrorPane(`/users/14/drafts/1/fields/topic/required: Error
+/pageTypes/book/required': Not defined`).up
+//            .Example(`users[1].drafts[2].field['title'].required: true`).up
+          .Example(`/users/1/drafts/2/fields/title/required: true`).up
+          .Example(`/users/1/drafts/2/fields/topic/required: false`).up
+];
+
+let next;
+//a.forEach(f => {
+////  const div = nice.ChildBlock();
+//  const div = nice.Span();
+//  f(div);
+//  next ? next.add(div.add(' >> ')) : Div(div).marginLeft('120px').show();
+//  next || (next = div);
+//});
+
+//Div(nice.intersperse(a.map(f => f(Span())), Span(' >> ').color('blue')))
+//  .marginLeft('120px').show()
+Div(a.map(f => f(Div())))
+  .marginLeft('120px').show()
+
+
+
+</script>
+  
+  </body>
+</html>

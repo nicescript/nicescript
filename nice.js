@@ -2212,7 +2212,7 @@ nice.Type({
   },
   creator: () => ({}),
   proto: {
-    valueOf () { return new Err(this._value.message); },
+    valueOf () { return Err(this._value.message); },
     toString () { return `Error: ${this._value.message}`; }
   }
 }).about('Represents error.');
@@ -2813,7 +2813,10 @@ Func.Num.Range(function within(v, r){
 (function(){"use strict";
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
-nice.Type('Html', (z, tag) => tag && z.tag(tag))
+nice.Type({
+  name: 'Html',
+  itemArgs1: (z, ...as) => z.add(...as)
+}, (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .str('tag', 'div')
   .obj('eventHandlers')
@@ -3172,7 +3175,7 @@ if(nice.isEnvBrowser()){
     killNode(node);
   });
   function removeNode(node, v){
-    node.parentNode.removeChild(node);
+    node && node.parentNode.removeChild(node);
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
   }
   function removeAt(parent, position){

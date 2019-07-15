@@ -17,11 +17,9 @@ const { Arr, Type, Check, Mapping, Switch, is,
 const spy = (...a) => console.log('Spy:', ...a);
 
 
-var n = Num();
-var b = Box();
-b.follow(n);
-var x = b();
-x()
+var input = nice.Input().outline('none').border('0').autocomplete('off');
+input.show();
+
 
 //const CDN = s => `https://cdnjs.cloudflare.com/ajax/libs/${s}`;
 //const ramda = CDN('ramda/0.21.0/ramda.min');

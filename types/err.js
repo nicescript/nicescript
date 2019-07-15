@@ -15,7 +15,7 @@ nice.Type({
   creator: () => ({}),
 
   proto: {
-    valueOf () { return new Err(this._value.message); },
+    valueOf () { return Err(this._value.message); },
     toString () { return `Error: ${this._value.message}`; }
   }
 }).about('Represents error.');
