@@ -426,7 +426,7 @@ if(nice.isEnvBrowser()){
   });
 
 
-  Func.Html('show', (e, parentNode = document.body, position) => {
+  Func.Html('show', (e, parentNode = document.body, position = 0) => {
     const node = document.createElement(e.tag());
 
     //don't move this line to bootom. it's here for domNode event

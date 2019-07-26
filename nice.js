@@ -1756,12 +1756,12 @@ nice.jsTypes.isSubType = isSubType;
         i = i();
       return i;
     },
-    setDefault (i, f, ...tale) {
+    setDefault (i, ...as) {
       const z = this;
       if(i._isAnything === true)
         i = i();
       if(!z._items.hasOwnProperty(i))
-        z.set(i, f(), ...tale);
+        z.set(i, ...as);
       return z;
     },
     _itemsListener (o) {
@@ -3121,7 +3121,7 @@ if(nice.isEnvBrowser()){
       throw `I don't know how to display "true"`;
     return insertAt(parentNode, document.createTextNode(''), position);
   });
-  Func.Html('show', (e, parentNode = document.body, position) => {
+  Func.Html('show', (e, parentNode = document.body, position = 0) => {
     const node = document.createElement(e.tag());
     
     insertAt(parentNode, node, position);

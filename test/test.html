@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="../nice.js"></script>
-    <!--<script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>-->
+    <script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>
 <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js"></script>-->
   </head>
   <body>
@@ -17,8 +17,53 @@ const { Arr, Type, Check, Mapping, Switch, is,
 const spy = (...a) => console.log('Spy:', ...a);
 
 
-var input = nice.Input().outline('none').border('0').autocomplete('off');
-input.show();
+const a = { then: (resolve) => setTimeout(() => resolve(2), 1) };
+const b = new Promise((resolve) => setTimeout(() => resolve(3), 1));
+
+var o = {
+  get a(){
+    return a;
+  },
+  get b(){
+    return b;
+  }
+};
+
+//(async function() {
+////  var bar = new Foo();
+////  bar.name = 'John'; // Since getters cannot take arguments
+//  console.log(await o.a * o.b);
+//})();
+
+var AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
+
+var c = new AsyncFunction('a', 
+                          'b', 
+                          'return await a * await b');
+
+c(b, a).then(v => {
+  console.log(v); // prints 30 after 4 seconds
+});
+
+
+var p = new Proxy({}, {
+      get: (o, k) => {
+        console.log(k, ' accessed');
+        return base.storage[value][base.pathId(k)];
+      }
+    })
+
+//(async () => {
+//    let p = new Proxy({ then: undefined }, {
+//        get: (target, prop, self) => {
+//            return (prop in target) ? target[prop] : (...args) => self;
+//        },
+//    });
+//
+//    let example = await p.myChainable().awaitable().method();
+//
+//    console.log("Result: ", example);
+//})();
 
 
 //const CDN = s => `https://cdnjs.cloudflare.com/ajax/libs/${s}`;
