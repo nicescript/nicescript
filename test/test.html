@@ -17,42 +17,11 @@ const { Arr, Type, Check, Mapping, Switch, is,
 const spy = (...a) => console.log('Spy:', ...a);
 
 
-const a = { then: (resolve) => setTimeout(() => resolve(2), 1) };
-const b = new Promise((resolve) => setTimeout(() => resolve(3), 1));
-
-var o = {
-  get a(){
-    return a;
-  },
-  get b(){
-    return b;
-  }
-};
-
-//(async function() {
-////  var bar = new Foo();
-////  bar.name = 'John'; // Since getters cannot take arguments
-//  console.log(await o.a * o.b);
-//})();
-
-var AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
-
-var c = new AsyncFunction('a', 
-                          'b', 
-                          'return await a * await b');
-
-c(b, a).then(v => {
-  console.log(v); // prints 30 after 4 seconds
-});
-
-
-var p = new Proxy({}, {
-      get: (o, k) => {
-        console.log(k, ' accessed');
-        return base.storage[value][base.pathId(k)];
-      }
-    })
-
+const o = {};
+    nice.set(o, 'qwe', 1);
+    nice.set(o, nice('asd'), 2);
+    
+    var v = get(o, nice('qwe'));
 //(async () => {
 //    let p = new Proxy({ then: undefined }, {
 //        get: (target, prop, self) => {

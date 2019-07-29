@@ -1,7 +1,10 @@
 //TODO: change all actions to use insertAt|removeAt
 nice.Obj.extend({
   name: 'Arr',
-  onCreate: z => z._items = [],
+  onCreate: z => {
+    z._items = [];
+    z._itemsType = null;
+  },
   itemArgs0: z => z._items,
   itemArgs1: (z, v) => z.set(z._items.length, v),
   itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
@@ -66,10 +69,10 @@ nice.Obj.extend({
           while(i <= l){
             let change = true;
             if (onRemove) {
-              old.hasOwnProperty(i) && onRemove(old[i], i), change &= true;
+              i in old && onRemove(old[i], i), change &= true;
             }
             if(onAdd) {
-              if(v._newValue && v._newValue.hasOwnProperty(i)){
+              if(v._newValue && i in v._newValue){
                 onAdd(v._newValue[i], i), change &= true;
               }
             }

@@ -24,7 +24,7 @@ _each({
   lte: (n, a) => n <= a,
   gt: (n, a) => n > a,
   gte: (n, a) => n >= a,
-}, (f, name) => Check.Single.Single(name, f));
+}, (f, name) => Check.Number.Number(name, f));
 
 const M = Mapping.Number;
 

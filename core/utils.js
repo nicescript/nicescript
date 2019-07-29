@@ -201,7 +201,7 @@ defAll(nice, {
 
   memoize: f => {
     const res = (k, ...a) => {
-      if(res._items.hasOwnProperty(k))
+      if(k in res._items)
         return res._items[k];
       return res._items[k] = f(k, ...a);
     };

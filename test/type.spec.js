@@ -31,7 +31,6 @@ describe("Type", function() {
 
     expect(nice.T1.creator).not.to.equal(undefined);
     expect(nice.T1.creator).to.equal(nice.T2.creator);
-    expect(nice.T1()._set).to.equal(nice.T2()._set);
   });
 
 

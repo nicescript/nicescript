@@ -43,7 +43,7 @@ function match(type, { methods }){
   let ok = true;
   let l = methods.length;
   while(ok && l--){
-    ok &= type.proto.hasOwnProperty(methods[l]);
+    ok &= methods[l] in type.proto;
   }
   return ok;
 }

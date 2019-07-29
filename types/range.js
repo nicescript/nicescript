@@ -35,10 +35,10 @@ nice.Type('Range')
     return a;
   })
   .Check(function includes(z, n){
-    return n >= z.start && n <= z.end;
+    return n >= z.start() && n <= z.end();
   });
 
 
-Func.Num.Range(function within(v, r){
-  return v >= r.start && v <= r.end;
+Func.Number.Range(function within(v, r){
+  return v >= r.start() && v <= r.end();
 });

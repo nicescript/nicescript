@@ -21,7 +21,9 @@ const configProto = {
 
 const functionProto = {
   addSignature (body, signature, name){
-    const ss = this.signatures = this.signatures || new Map();
+    const ss = 'signatures' in this
+      ? this.signatures
+      : this.signatures = new Map();
     if(signature && signature.length){
       const combinations = allSignatureCombinations(signature);
       combinations.forEach(combination => {
@@ -148,7 +150,7 @@ function createFunction({ existing, name, body, signature, type, description, te
   body && f.addSignature(body, types, name);
   createMethodBody(types[0], f);
 
-  f.maxLength >= signature.length || (f.maxLength = signature.length);
+//  f.maxLength >= signature.length || (f.maxLength = signature.length);
   if(name){
     if(!existing){
       f.name !== name && nice.rewriteProperty(f, 'name', name);
@@ -165,12 +167,12 @@ function createFunction({ existing, name, body, signature, type, description, te
 
 
 nice.reflect.on('function', (f) =>
-  Anything && !Anything.proto.hasOwnProperty(f.name) &&
+  Anything && !(f.name in Anything.proto) &&
       def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
 
 
 function createMethodBody(type, body) {
-  if(!type || !type._isNiceType || type.proto.hasOwnProperty(body.name))
+  if(!type || !type._isNiceType || (body.name in type.proto))
     return;
   const functionType = body.functionType;
   const fistTarget = body.signatures.get(type);
@@ -208,7 +210,7 @@ function createMethodBody(type, body) {
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action'){
-      if(fistArg.transactionStart && fistArg._isHot()){
+      if('transactionStart' in fistArg && fistArg._isHot()){
         fistArg.transactionStart();
         target.action(fistArg, ...args);
         fistArg.transactionEnd();
@@ -260,7 +262,7 @@ function createFunctionBody(functionType){
           args[i] = target.transformations[i](args[i]);
 
       if(functionType === 'Action'){
-        if(args[0].transactionStart && args[0]._isHot()){
+        if('transactionStart' in args[0] && args[0]._isHot()){
           args[0].transactionStart();
           target.action(...args);
           args[0].transactionEnd();

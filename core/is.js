@@ -70,7 +70,7 @@ for(let i in nice.jsTypes){
   Check.about(`Checks if \`v\` is \`${i}\`.`)
     ('is' + i, basicJS.includes(low)
     ? v => typeof v === low
-    : v => v && v.constructor ? v.constructor.name === i : false);
+    : v => v && typeof v === 'object' ? v.constructor.name === i : false);
 };
 
 
@@ -209,7 +209,7 @@ defGet(actionProto, 'or', function (){
 
 reflect.on('function', f => {
   if(f.functionType !== 'Check'){
-    actionProto.hasOwnProperty(f.name) || def(actionProto, f.name, function(...a){
+    f.name in actionProto || def(actionProto, f.name, function(...a){
       return this.use(v => f(v, ...a));
     });
   }

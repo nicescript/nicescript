@@ -43,19 +43,13 @@ defAll(nice, {
           return nice.skip(type, a);
       }
 
-      const item = nice._newItem(type);
-      type.onCreate && type.onCreate(item);
-      type.initChildren(item);
-      type.initBy
-        ? type.initBy(item, ...a)
-        : (a.length && item(...a));
-      return item;
+      return newItem(type, a);
     };
 
     config.proto._type = type;
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
-    nice.extend(type, config.hasOwnProperty('extends') ? nice.type(config.extends) : nice.Obj);
+    nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);
 
     const cfg = create(config.configProto, nice.Configurator(type, ''));
     config.name && nice.registerType(type);
@@ -127,5 +121,31 @@ defGet(Anything, 'help',  function () {
 });
 
 
+function newItem (type, as) {
+  const f = function(...a){
+    if(a.length === 0){
+      return f._type.itemArgs0(f);
+    } else if (a.length === 1){
+      f._type.itemArgs1(f, a[0]);
+    } else {
+      f._type.itemArgsN(f, a);
+    }
+    return this || f;
+  };
 
+  f._transactionDepth = 0;
+  f._subscribers = new Map();
+  f._subscriptions = [];
+  f._oldValue = undefined;
+  f._newValue = undefined;
+  f._notifing = false;
 
+  Object.setPrototypeOf(f, type.proto);
+  'name' in type.proto && nice.eraseProperty(f, 'name');
+  'length' in type.proto && nice.eraseProperty(f, 'length');
+  type.onCreate && type.onCreate(f);
+  type.initChildren(f);
+  type.initBy ? type.initBy(f, ...as) : (as.length && f(...as));
+
+  return f;
+}

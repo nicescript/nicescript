@@ -1,7 +1,10 @@
 nice.Type({
   name: 'Obj',
   extends: nice.Value,
-  onCreate: z => z._items = {},
+  onCreate: z => {
+    z._items = {};
+    z._itemsType = null;
+  },
 
   itemArgs0: z => z._items,
 
@@ -58,7 +61,7 @@ nice.Type({
       if(i._isAnything === true)
         i = i();
 
-      if(!z._items.hasOwnProperty(i))
+      if(!(i in z._items))
         z.set(i, ...as);
       return z;
     },
@@ -72,7 +75,7 @@ nice.Type({
         } else {
           _each(old, (c, k) => {
             onRemove && c !== undefined && onRemove(c, k);
-            onAdd && v._items.hasOwnProperty(k) && onAdd(v._items[k], k);
+            onAdd && k in v._items && onAdd(v._items[k], k);
             onChange && onChange(k, v._items[k], c);
           });
         }
@@ -104,7 +107,7 @@ const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
 Func.Nothing('each', () => 0);
 
-C('has', (o, k) => o._items.hasOwnProperty(k));
+C('has', (o, k) => k in o._items);
 
 F(function each(o, f){
   for(let k in o._items)
@@ -115,7 +118,7 @@ F(function each(o, f){
 
 
 Mapping.Object('get', (o, path) => {
-  if(path.pop){
+  if(Array.isArray(path)){
     let k = 0;
     while(k < path.length) {
       o = o[path[k++]];
@@ -124,7 +127,8 @@ Mapping.Object('get', (o, path) => {
     }
     return o;
   } else {
-    return o[''+path];
+    typeof path === 'function' && (path = path());
+    return o[path];
   }
 });
 
@@ -133,7 +137,7 @@ M('get', (z, i) => {
   if(i._isAnything === true)
     i = i();
 
-  if(z._items.hasOwnProperty(i)){
+  if(i in z._items){
     return z._items[i];
   }
 
@@ -148,11 +152,14 @@ M('getDefault', (z, i, v) => {
   if(i._isAnything === true)
     i = i();
 
-  return z._items.hasOwnProperty(i) ? z._items[i] : z._items[i] = v;
+  return i in z._items ? z._items[i] : z._items[i] = v;
 });
 
 
-Action.Object('set', (o, i, v) => o[''+i] = v);
+Action.Object('set', (o, i, v) => {
+  typeof i === 'function' && (i = i());
+  o[i] = v;
+});
 
 A('set', (z, i, v, ...tale) => {
   i = z.checkKey(i);

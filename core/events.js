@@ -1,5 +1,5 @@
 function assertListeners(o, name){
-  const listeners = o.hasOwnProperty('_listeners')
+  const listeners = '_listeners' in o && o.hasOwnProperty('_listeners')
     ? o._listeners
     : o._listeners = {};
 
@@ -7,7 +7,7 @@ function assertListeners(o, name){
 }
 
 function assertEvents(o, name){
-  const events = o.hasOwnProperty('_events')
+  const events = '_events' in o
     ? o._events
     : o._events = {};
 
@@ -67,7 +67,7 @@ const EventEmitter = {
   },
 
   off (name, f) {
-    if(this.hasOwnProperty('_listeners') && this._listeners[name]){
+    if('_listeners' in this && this._listeners[name]){
       nice._removeArrayValue(this._listeners[name], f);
       this.emit('removeListener', name, f);
     }
@@ -75,7 +75,7 @@ const EventEmitter = {
   },
 
   removeAllListeners (name) {
-    if(this.hasOwnProperty('_listeners')){
+    if('_listeners' in this){
       const a = this._listeners[name];
       this._listeners[name] = [];
       a.forEach(f => this.emit('removeListener', name, f));

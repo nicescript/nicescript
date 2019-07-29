@@ -45,7 +45,7 @@ nice.Type({
 
       if(this._value !== v) {
         this.transactionStart();
-        this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
+        '_oldValue' in this || (this._oldValue = this._value);
         this._value = v;
         this.transactionEnd();
       }
@@ -108,7 +108,7 @@ nice.Type({
 
     doCompute (){
       this.transactionStart();
-      this.hasOwnProperty('_oldValue') || (this._oldValue = this._value);
+      '_oldValue' in this || (this._oldValue = this._value);
       this._value = PENDING;
       let _value;
       const ss = this._subscriptions || [];

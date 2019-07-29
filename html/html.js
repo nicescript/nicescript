@@ -129,7 +129,7 @@ function addCreator(type){
     return res;
   });
   const _t = nice._decapitalize(type.name);
-  Html.proto[_t] || def(Html.proto, _t, function (...a){
+  _t in Html.proto || def(Html.proto, _t, function (...a){
     return this.add(type(...a));
   });
 }
