@@ -102,7 +102,7 @@ nice.Type({
         this._isReactive = true;
       }
       this._value = NEED_COMPUTING;
-      this._isHot() && this.compute();
+      this._isHot && this.compute();
       return this;
     },
 

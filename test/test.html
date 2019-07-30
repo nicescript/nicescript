@@ -16,12 +16,29 @@ const { Arr, Type, Check, Mapping, Switch, is,
    get, expect, Num, Str, Obj, _1, _2, _3 } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
+var { Company } = nice;
 
-const o = {};
-    nice.set(o, 'qwe', 1);
-    nice.set(o, nice('asd'), 2);
-    
-    var v = get(o, nice('qwe'));
+//var c = Company();
+var c = Obj();
+var people = Arr('Joe');
+//var people = Arr(Obj({name:'Joe'}));
+
+var div = Div()
+  .h1(c.title.or('No name'))
+  .p(c.about.or('No description'))
+  .div(people, p => nice.Li(p));
+div.show();
+
+c.set('title', 'Cool company');
+c.set('about', `Some wordy description`);
+
+//people.listen({
+//  onAdd: v => spy('add', v.name),
+//  onRemove: v => spy('del', v.name)
+//});
+
+people.push('Jane');
+
 //(async () => {
 //    let p = new Proxy({ then: undefined }, {
 //        get: (target, prop, self) => {

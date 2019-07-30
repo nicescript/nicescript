@@ -28,7 +28,7 @@ describe("Arr", function() {
     a(9);
     expect(a.get(1)).to.equal(5);
     expect(a.get(3)).to.equal(9);
-    expect(a.get(4)).to.equal(undefined);
+    expect(a.get(4).isUndefined()).to.equal(true);
   });
 
 
@@ -106,13 +106,12 @@ describe("Arr", function() {
     expect(a.jsValue).to.deep.equal([1, 4, 2, 1]);
   });
 
+
   it("pop", () => {
     const a = Arr(1, 2);
     const b = a.pop();
-    const c = a.rMap(x2);
     expect(b).to.equal(2);
     expect(a.jsValue).to.deep.equal([1]);
-    expect(c.jsValue).to.deep.equal([2]);
   });
 
 
@@ -121,6 +120,7 @@ describe("Arr", function() {
     a.unshift(2, 3);
     expect(a.jsValue).to.deep.equal([2, 3, 1, 4]);
   });
+
 
   it("shift", () => {
     let a = Arr(1, 4);
@@ -216,20 +216,20 @@ describe("Arr", function() {
     expect(nice.Arr(1,2,4).insertAfter(3,5).jsValue).to.deep.equal([1,2,4,5]);
   });
 
-  it('rFilter', () => {
-    var a = Arr(1,2);
-    var b = a.rFilter(x => x % 2);
-
-    expect(b()).to.deep.equal([1]);
-    a.push(3);
-    expect(b()).to.deep.equal([1,3]);
-    a.removeAt(0);
-    expect(b()).to.deep.equal([3]);
-    a.push(4);
-    expect(b()).to.deep.equal([3]);
-    a.push(5);
-    expect(b()).to.deep.equal([3,5]);
-    a.push(1);
-    expect(b()).to.deep.equal([3,5,1]);
-  });
+//  it('rFilter', () => {
+//    var a = Arr(1,2);
+//    var b = a.rFilter(x => x % 2);
+//
+//    expect(b()).to.deep.equal([1]);
+//    a.push(3);
+//    expect(b()).to.deep.equal([1,3]);
+//    a.removeAt(0);
+//    expect(b()).to.deep.equal([3]);
+//    a.push(4);
+//    expect(b()).to.deep.equal([3]);
+//    a.push(5);
+//    expect(b()).to.deep.equal([3,5]);
+//    a.push(1);
+//    expect(b()).to.deep.equal([3,5,1]);
+//  });
 });

@@ -35,7 +35,7 @@ nice.Type({
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className') || '';
+    const s = z.attributes.get('className').or('');
     if(s.indexOf(AUTO_PREFIX) < 0){
       const c = AUTO_PREFIX + autoId++;
       z.attributes.set('className', s + ' ' + c);
@@ -43,7 +43,7 @@ nice.Type({
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className') || '';
+    const current = z.attributes.get('className').or('');
     if(!vs.length)
       return current;
 
@@ -111,9 +111,9 @@ defGet(Html.proto, function hover(){
 
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
-  const existing = this.cssSelectors.get(s);
-  if(existing !== undefined)
-    return existing;
+//  const existing = this.cssSelectors.get(s);
+  if(this.cssSelectors.has(s))
+    return this.cssSelectors.get(s);
   this._autoClass();
   const style = Style();
   style.up = this;

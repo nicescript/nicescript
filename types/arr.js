@@ -59,7 +59,8 @@ nice.Obj.extend({
 
     _itemsListener (o) {
       const { onRemove, onAdd, onChange } = o;
-      return (v, old) => {
+      return v => {
+        const old = v._oldValue;
         if(old === undefined){
           onAdd && v.each(onAdd);
           onChange && v.each((_v, k) => onChange(k, _v));
@@ -163,7 +164,7 @@ A('pull', (z, item) => {
 
 A.Number('insertAt', (z, i, v) => {
   i = +i;
-  if(z._isHot()){
+  if(z._isHot){
     const old = z._items;
     z._oldValue = z._oldValue || {};
     z._newValue = z._newValue || {};
@@ -192,7 +193,7 @@ A('insertAfter', (z, target, v) => {
 
 A('removeAt', (z, i) => {
   i = +i;
-  if(z._isHot()){
+  if(z._isHot){
     const old = z._items;
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = old[i];
@@ -269,14 +270,14 @@ Mapping.Array.Function(function map(a, f){
 });
 
 
-M(function rMap(a, f){
-  const res = a._type();
-  a.listen({
-    onAdd: (v, k) => res.insertAt(k, f(v, k)),
-    onRemove: (v, k) => res.removeAt(k)
-  });
-  return res;
-});
+//M(function rMap(a, f){
+//  const res = a._type();
+//  a.listen({
+//    onAdd: (v, k) => res.insertAt(k, f(v, k)),
+//    onRemove: (v, k) => res.removeAt(k)
+//  });
+//  return res;
+//});
 
 M.Function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
@@ -327,30 +328,30 @@ Mapping.Array.Array('intersection', (a, b) => {
 });
 
 
-M('rFilter', (a, f) => a._type().apply(res => {
-  const mapping = [];
-  a.listen({
-    onAdd: (v, k) => {
-      if(!f(v, k))
-        return;
-
-      let pos;
-      for(let i = 0; i++; i < mapping.length){
-        if(mapping[i] >= i)
-          pos = i;
-      }
-      pos = pos || mapping.length;
-      res.insertAt(pos, v);
-      mapping[pos] = k;
-    },
-    onRemove: (v, k) => {
-      res.removeAt(k);
-      const i = mapping.indexOf(k);
-      expect(i !== -1).isTrue();
-      mapping.splice(i, 1);
-    }
-  });
-}));
+//M('rFilter', (a, f) => a._type().apply(res => {
+//  const mapping = [];
+//  a.listen({
+//    onAdd: (v, k) => {
+//      if(!f(v, k))
+//        return;
+//
+//      let pos;
+//      for(let i = 0; i++; i < mapping.length){
+//        if(mapping[i] >= i)
+//          pos = i;
+//      }
+//      pos = pos || mapping.length;
+//      res.insertAt(pos, v);
+//      mapping[pos] = k;
+//    },
+//    onRemove: (v, k) => {
+//      res.removeAt(k);
+//      const i = mapping.indexOf(k);
+//      expect(i !== -1).isTrue();
+//      mapping.splice(i, 1);
+//    }
+//  });
+//}));
 
 
 M.about('Creates new array with aboutseparator between elments.')

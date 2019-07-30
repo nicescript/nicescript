@@ -12,7 +12,7 @@ describe("Obj", function() {
   it("constructor", function() {
     const a = Obj({asd: 3});
     expect(a.get('asd')).to.equal(3);
-    expect(a.get('qwe')).to.equal(undefined);
+    expect(a.get('qwe').isUndefined()).to.equal(true);
   });
 
 
@@ -277,13 +277,13 @@ describe("Obj", function() {
   });
 
 
-  it("rMap", function() {
-    const a = Obj({qwe: 1, asd: 3});
-    const b = a.rMap(x2);
-    a.set('zxc', 2);
-    expect(b._type).to.equal(Obj);
-    expect(b.jsValue).to.deep.equal({qwe:2, asd:6, zxc:4});
-  });
+//  it("rMap", function() {
+//    const a = Obj({qwe: 1, asd: 3});
+//    const b = a.rMap(x2);
+//    a.set('zxc', 2);
+//    expect(b._type).to.equal(Obj);
+//    expect(b.jsValue).to.deep.equal({qwe:2, asd:6, zxc:4});
+//  });
 
 
   it("itemsType", function() {
@@ -319,15 +319,15 @@ describe("Obj", function() {
   });
 
 
-  it("rFilter", function() {
-    const a = Obj({qwe: 1, asd: 2});
-    const b = a.rFilter(even);
-    a.set('zxc', 4);
-    expect(b._type).to.equal(Obj);
-    expect(b.jsValue).to.deep.equal({asd:2, zxc:4});
-    a.remove('asd');
-    expect(b.jsValue).to.deep.equal({zxc:4});
-  });
+//  it("rFilter", function() {
+//    const a = Obj({qwe: 1, asd: 2});
+//    const b = a.rFilter(even);
+//    a.set('zxc', 4);
+//    expect(b._type).to.equal(Obj);
+//    expect(b.jsValue).to.deep.equal({asd:2, zxc:4});
+//    a.remove('asd');
+//    expect(b.jsValue).to.deep.equal({zxc:4});
+//  });
 
 
   it("default object values for property", () => {

@@ -1,5 +1,8 @@
-const builtIns = ['_subscribers', '_subscriptions', '_setValue', '_oldValue',
-  '_newValue', '_value', '_type', 'isPrototypeOf'];
+/*
+ * 1. setting new(calculated) value
+ * 2. recalculate on each use when not hot?
+ * 3.
+ */
 const proxy = new Proxy({}, {
   get (o, k, receiver) {
     if(k[0] === '_')
@@ -7,13 +10,15 @@ const proxy = new Proxy({}, {
     if(k === 'isPrototypeOf')
       return Object.prototype.isPrototypeOf;
 
-//    console.log(k);
-
     if(k in receiver){
-      return receiver[k];//Reflect.get(receiver, k)
+      return receiver[k];
     } else {
       k.toString && (k = k.toString());
-      return nice.Err(`Property ${k} not found in`);// ${receiver}`);
+      const res = nice.Err(`Property ${k} not found`)
+        ._set('_functionName', 'get')
+        ._set('_args', [receiver, k]);
+      receiver.listen(res);
+      return res;
     }
   },
 });
@@ -87,33 +92,82 @@ nice.registerType({
       });
     },
 
+    _changeValue (v, t){
+      if(v === this._value)
+        return;
+      let value, type;
+      if(v !== null && v !== undefined && v._isAnything){
+        value = v._value;
+        type = t || v._type;
+      } else {
+        value = v;
+        type = nice.getType(v);
+        type = type.niceType ? nice[type.niceType] : type;
+      }
+      if(type !== this._type) {
+        if(!type._isNiceType)
+          throw('Bad type');
+        Object.setPrototypeOf(this, type.proto);
+      }
+      this._setValue(value);
+    },
+
+
     _setValue (v){
       if(v === this._value)
         return;
       this.transaction(() => {
         !('_oldValue' in this) && (this._oldValue = this._value);
-        this._value = v;
+        this._set('_value', v);
       });
     },
 
-    _isResolved() { return true; },
+    compute (){
+//      if(this._transactionDepth)
+//        return;
+
+      if(!this._functionName || this._isHot)
+        return;
+
+      this.doCompute();
+    },
+//    compute () {
+////      return !nice.isNeedComputing(this._value) || this._transactionDepth
+////        ? this._value : this.doCompute();
+//    },
+
+    doCompute () {
+      this._args.forEach(a => {
+        if(a._isAnything){
+          a._isHot || a.compute();
+          a.listen(this);
+        }
+      });
+
+      try {
+        const result = nice[this._functionName](...this._args);
+        this._changeValue(result);
+      } catch (e) {
+        this._changeValue('Error while doCompute', Err)
+      }
+
+    },
 
     listen (f, target) {
-      if(typeof f === 'object'){
+      if(typeof f === 'object' && !f._isAnything){
         f = this._itemsListener(f);
       }
       const key = target || f;
       const ss = this._subscribers = this._subscribers || new Map();
 
       if(!ss.has(key)){
-        this.compute && this.compute();
+        this.compute();
         ss.set(key, f);
-        const val = '_notificationValue' in this ? this._notificationValue() : this;
-        nice.isPending(val) || f(val);
+        this._set('_isHot', true);
+        this.isPending() || notifyItem(f, this);
       }
 
       if(target) {
-//        target._subscriptions = target._subscriptions || [];
         target._subscriptions.push(this);
       }
 
@@ -177,9 +231,20 @@ nice.registerType({
       return this;
     },
 
-    _isHot (){
-      return '_subscribers' in this && this._subscribers.size;
+    get _isHot() {
+      if(this._has('_hot'))
+        return this._has('_hot');
+      return false;
     },
+
+    set _isHot(v) {
+      this._set('_hot', !!v);
+    },
+
+     _isResolved (){
+      return !this.isPending() && !this.isNeedComputing();
+    },
+
 
     transaction (f) {
       this.transactionStart();
@@ -189,10 +254,10 @@ nice.registerType({
     },
 
     listenOnce (f, target) {
-      this._isResolved() || this.compute();
+      this._isHot || this.compute();
 
       if(this._isResolved())
-        return f('_notificationValue' in this ? this._notificationValue() : this);
+        return f(this);
 
       const key = target || f;
       const _f = v => {
@@ -200,18 +265,37 @@ nice.registerType({
         this.unsubscribe(key);
       };
 
-//      (this._subscribers = this._subscribers || new Map());
       this._subscribers.set(key, f);
+      this._set('_isHot', true);
 
       return this;
+    },
+
+    _get (k) {
+      if(k in this)
+        return this[k];
+      return undefined;
+    },
+
+    _set (k, v) {
+      this[k] = v;
+      return this;
+    },
+
+    _has (k) {
+      return k in this;
     },
 
     unsubscribe (target){
       this._subscribers.delete(target);
       if(!this._subscribers.size){
+        this._set('_isHot', false);
         this._subscriptions &&
           this._subscriptions.forEach(_s => _s.unsubscribe(this));
       }
+    },
+    [Symbol.toPrimitive]() {
+      return this.jsValue;
     }
   }, proxy),
 
@@ -250,23 +334,20 @@ nice.registerType({
 
 
 function notify(z){
-  let needNotification = false;
-  let oldValue;
+  let needNotification = '_oldValue' in z;
 
-  if('_oldValue' in z) {
-    needNotification = true;
-    oldValue = z._oldValue;
-    delete z._oldValue;
-  }
   if(needNotification && z._subscribers){
     z._notifing = true;
-    z._subscribers.forEach(s => {
-      z._isResolved()
-          && s('_notificationValue' in z ? z._notificationValue() : z, oldValue);
-    });
+    z._isResolved() && z._subscribers.forEach(s => notifyItem(s, z));
     z._notifing = false;
   }
+
+  delete z._oldValue;
 };
+
+function notifyItem(f, value){
+  f._isAnything ? f.doCompute() : f(value);
+}
 
 Anything = nice.Anything;
 

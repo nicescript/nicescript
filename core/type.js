@@ -140,12 +140,18 @@ function newItem (type, as) {
   f._newValue = undefined;
   f._notifing = false;
 
+  if(!type._isNiceType)
+    throw('Bad type');
+
   Object.setPrototypeOf(f, type.proto);
-  'name' in type.proto && nice.eraseProperty(f, 'name');
-  'length' in type.proto && nice.eraseProperty(f, 'length');
   type.onCreate && type.onCreate(f);
   type.initChildren(f);
-  type.initBy ? type.initBy(f, ...as) : (as.length && f(...as));
 
+//  'name' in type.proto && nice.eraseProperty(target, 'name');
+  nice.eraseProperty(f, 'name');
+//  'length' in type.proto && nice.eraseProperty(target, 'length');
+  nice.eraseProperty(f, 'length');
+  type.initBy ? type.initBy(f, ...as) : (as.length && f(...as));
   return f;
 }
+

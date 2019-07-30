@@ -210,7 +210,7 @@ function createMethodBody(type, body) {
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action'){
-      if('transactionStart' in fistArg && fistArg._isHot()){
+      if('transactionStart' in fistArg && fistArg._isHot){
         fistArg.transactionStart();
         target.action(fistArg, ...args);
         fistArg.transactionEnd();
@@ -256,13 +256,14 @@ function createFunctionBody(functionType){
     if(!target)
       return signatureError(z.name, args);
 
+    let result;
     try {
       if(target.transformations)
         for(let i in target.transformations)
           args[i] = target.transformations[i](args[i]);
 
       if(functionType === 'Action'){
-        if('transactionStart' in args[0] && args[0]._isHot()){
+        if('transactionStart' in args[0] && args[0]._isHot){
           args[0].transactionStart();
           target.action(...args);
           args[0].transactionEnd();
@@ -272,11 +273,19 @@ function createFunctionBody(functionType){
           return args[0];
         }
       } else {
-        return target.action(...args);
+        result = target.action(...args);
       }
     } catch (e) {
-      return Err(e);
+      result = Err(e);
     }
+    if(result === undefined){
+      result = nice.Undefined();
+    }
+    if(result._isAnything){
+      result._functionName = z.name;
+      result._args = args;
+    }
+    return result;
   });
 
   z.functionType = functionType;
@@ -417,7 +426,7 @@ def(nice, 'runTests', () => {
   console.log('');
   console.log(' \x1b[34mRunning tests\x1b[0m');
   console.log('');
-  let good = 0, bad = 0, start = Date.now();;
+  let good = 0, bad = 0, start = Date.now();
   nice.reflect.on('signature', s => {
     s.tests.forEach(t => {
       try {

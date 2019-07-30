@@ -68,12 +68,12 @@ nice.Type({
 
     _itemsListener (o) {
       const { onRemove, onAdd, onChange } = o;
-      return (v, old) => {
-        if(old === undefined){
+      return v => {
+        if(v._oldValue === undefined){
           onAdd && v.each(onAdd);
           onChange && v.each((_v, k) => onChange(k, _v));
         } else {
-          _each(old, (c, k) => {
+          _each(v._oldValue, (c, k) => {
             onRemove && c !== undefined && onRemove(c, k);
             onAdd && k in v._items && onAdd(v._items[k], k);
             onChange && onChange(k, v._items[k], c);
@@ -174,7 +174,7 @@ A('set', (z, i, v, ...tale) => {
     }
   }
   if(!is(v, z._items[i])){
-    if(z._isHot()){
+    if(z._isHot){
       z._oldValue = z._oldValue || {};
       z._oldValue[i] = z._items[i];
       z._newValue = z._newValue || {};
@@ -200,7 +200,7 @@ A.Object.test((replaceAll, Obj) => {
   replacement.a = 1;
   expect(o2()).deepEqual({ z:3 });
 })('replaceAll', (z, o) => {
-  z._isHot() && (z._oldValue = z._items);
+  z._isHot && (z._oldValue = z._items);
   z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
 });
 
@@ -209,7 +209,7 @@ A.test((remove, Obj) => {
 })
 .about('Remove element at `i`.')
 ('remove', (z, i) => {
-  if(z._isHot()){
+  if(z._isHot){
     z._oldValue = z._oldValue || {};
     z._oldValue[i] = z._items[i];
   }
@@ -237,7 +237,7 @@ Action.Object('removeValues', (o, vs) => _each(vs, v => {
 }));
 
 A('removeAll', z => {
-  z._isHot() && (z._oldValue = z._items);
+  z._isHot && (z._oldValue = z._items);
   z._type.onCreate(z);
 });
 
@@ -280,19 +280,19 @@ M(function map(c, f){
 });
 
 
-M('rMap', (c, f) => c._type().apply(res => c.listen({
-  onAdd: (v, k) => res.set(k, f(v, k)),
-  onRemove: (v, k) => res.remove(k)
-})));
+//M('rMap', (c, f) => c._type().apply(res => c.listen({
+//  onAdd: (v, k) => res.set(k, f(v, k)),
+//  onRemove: (v, k) => res.remove(k)
+//})));
 
 
 M('filter', (c, f) => c.reduceTo(c._type(), (z, v, k) => f(v,k) && z.set(k, v)));
 
 
-M('rFilter', (c, f) => c._type().apply(z => c.listen({
-  onAdd: (v, k) => f(v, k) && z.set(k, v),
-  onRemove: (v, k) => z.remove(k)
-})));
+//M('rFilter', (c, f) => c._type().apply(z => c.listen({
+//  onAdd: (v, k) => f(v, k) && z.set(k, v),
+//  onRemove: (v, k) => z.remove(k)
+//})));
 
 
 M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
