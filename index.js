@@ -797,6 +797,12 @@ function createFunctionBody(functionType){
       if(a === _1 || a === _2 || a === _3 || a === _$)
         return skip(z, args);
     }
+    const call = new Set();
+    const existing = nice.reflect.currentCall;
+    if(existing !== undefined) {
+      call.parentCall = existing;
+    }
+    nice.reflect.currentCall = call;
     let target = z.signatures;
     const l = args.length;
     for(let i = 0; i < l; i++) {
@@ -844,6 +850,7 @@ function createFunctionBody(functionType){
       result._functionName = z.name;
       result._args = args;
     }
+    nice.reflect.currentCall = call.parentCall;
     return result;
   });
   z.functionType = functionType;
@@ -964,7 +971,8 @@ def(nice, 'runTests', () => {
         good++;
       } catch (e) {
         bad ++;
-        console.log(' ', s.name, t.description);
+        console.log('Error while testing ', s.name, t.description);
+        console.log(t.body.toString());
         console.error('  ', e);
       }
     });
@@ -973,6 +981,10 @@ def(nice, 'runTests', () => {
   console.log(bad ? '\x1b[31m' : '\x1b[32m',
     `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
   console.log('');
+});
+nice.reflect.on('itemUse', item => {
+  const call = nice.reflect.currentCall;
+  call === undefined || call.add(item);
 });
 })();
 (function(){"use strict";
@@ -1224,16 +1236,18 @@ nice.registerType({
       this.target.description = nice.format(...a);
       return this;
     },
+    
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
       expect(f).isFunction();
-      defGet(this.target.proto, name, function() {
-        return f(this);
-      });
+      'readOnlys' in this.target
+        ? this.target.readOnlys[name] = f
+        : this.target.readOnlys = {[name]: f};
       return this;
-    },
+  },
   },
   types: {},
+  readOnlys: {},
   static (...a) {
     const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];
     def(this, name, v);
@@ -1566,6 +1580,7 @@ expect = nice.expect;
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
+  create(parent.readOnlys, child.readOnlys);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
   reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
@@ -1587,6 +1602,7 @@ defAll(nice, {
       || nice.error("Need object for type's prototype");
     config.name = config.name || 'Type_' + (nice._counter++);
     config.types = {};
+    config.readOnlys = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
@@ -1656,7 +1672,7 @@ defGet(Anything, 'help',  function () {
   return this.description;
 });
 function newItem (type, as) {
-  const f = function(...a){
+  const f = new Proxy(function(...a){
     if(a.length === 0){
       return f._type.itemArgs0(f);
     } else if (a.length === 1){
@@ -1665,7 +1681,24 @@ function newItem (type, as) {
       f._type.itemArgsN(f, a);
     }
     return this || f;
-  };
+  }, {
+    get (target, property, z) {
+      if(property === '_set' || property === '_get' || property === '_has')
+        return target[property];
+      if(property === '_value' || property === '_type' || property === '_items')
+        nice.reflect.emit('itemUse', z);
+      const type = target._get('_type');
+      if(type.types[property])
+        return f.get(property);
+      if(type.readOnlys[property])
+        return type.readOnlys[property](f);
+      return target[property];
+    },
+    set (target, property, value) {
+      target[property] = value;
+      return true;
+    }
+  });
   f._transactionDepth = 0;
   f._subscribers = new Map();
   f._subscriptions = [];
@@ -1677,8 +1710,6 @@ function newItem (type, as) {
   Object.setPrototypeOf(f, type.proto);
   type.onCreate && type.onCreate(f);
   type.initChildren(f);
-  nice.eraseProperty(f, 'name');
-  nice.eraseProperty(f, 'length');
   type.initBy ? type.initBy(f, ...as) : (as.length && f(...as));
   return f;
 }
@@ -1890,7 +1921,11 @@ F(function each(o, f){
       break;
   return o;
 });
-Mapping.Object('get', (o, path) => {
+Mapping.Object.test(Obj => {
+  const o = Obj({qwe:1});
+  expect(o.qwe === o.qwe).is(true);
+  expect(o.asd === o.asd).is(true);
+})('get', (o, path) => {
   if(Array.isArray(path)){
     let k = 0;
     while(k < path.length) {
@@ -2071,10 +2106,6 @@ reflect.on('Type', type => {
             + `"${nice._decapitalize(name)}" not "${name}"`;
     targetType.types[name] = type;
     as.length && (targetType.defaultArguments[name] = as);
-    defGet(targetType.proto, name, function(){
-      const res = this.get(name);
-      return res;
-    });
     reflect.emitAndSave('Property', { type, name, targetType });
   }
   def(nice.Obj.configProto, smallName, function (name, ...as) {

@@ -5,6 +5,7 @@ def(nice, function extend(child, parent){
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
+  create(parent.readOnlys, child.readOnlys);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
   reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
@@ -31,6 +32,7 @@ defAll(nice, {
 
     config.name = config.name || 'Type_' + (nice._counter++);
     config.types = {};
+    config.readOnlys = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
@@ -122,7 +124,7 @@ defGet(Anything, 'help',  function () {
 
 
 function newItem (type, as) {
-  const f = function(...a){
+  const f = new Proxy(function(...a){
     if(a.length === 0){
       return f._type.itemArgs0(f);
     } else if (a.length === 1){
@@ -131,7 +133,28 @@ function newItem (type, as) {
       f._type.itemArgsN(f, a);
     }
     return this || f;
-  };
+  }, {
+    get (target, property, z) {
+      if(property === '_set' || property === '_get' || property === '_has')
+        return target[property];
+
+      if(property === '_value' || property === '_type' || property === '_items')
+        nice.reflect.emit('itemUse', z);
+
+      const type = target._get('_type');
+      if(type.types[property])
+        return f.get(property);
+
+      if(type.readOnlys[property])
+        return type.readOnlys[property](f);
+
+      return target[property];
+    },
+    set (target, property, value) {
+      target[property] = value;
+      return true;
+    }
+  });
 
   f._transactionDepth = 0;
   f._subscribers = new Map();
@@ -148,9 +171,9 @@ function newItem (type, as) {
   type.initChildren(f);
 
 //  'name' in type.proto && nice.eraseProperty(target, 'name');
-  nice.eraseProperty(f, 'name');
+//  nice.eraseProperty(f, 'name');
 //  'length' in type.proto && nice.eraseProperty(target, 'length');
-  nice.eraseProperty(f, 'length');
+//  nice.eraseProperty(f, 'length');
   type.initBy ? type.initBy(f, ...as) : (as.length && f(...as));
   return f;
 }

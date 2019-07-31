@@ -313,17 +313,19 @@ nice.registerType({
       return this;
     },
 
+    //TODO: replace with Mapping
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
       expect(f).isFunction();
-      defGet(this.target.proto, name, function() {
-        return f(this);
-      });
+      'readOnlys' in this.target
+        ? this.target.readOnlys[name] = f
+        : this.target.readOnlys = {[name]: f};
       return this;
-    },
+  },
   },
 
   types: {},
+  readOnlys: {},
 
   static (...a) {
     const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];

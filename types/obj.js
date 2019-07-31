@@ -117,7 +117,12 @@ F(function each(o, f){
 });
 
 
-Mapping.Object('get', (o, path) => {
+Mapping.Object.test(Obj => {
+  const o = Obj({qwe:1});
+  expect(o.qwe === o.qwe).is(true);
+  expect(o.asd === o.asd).is(true);
+
+})('get', (o, path) => {
   if(Array.isArray(path)){
     let k = 0;
     while(k < path.length) {
@@ -384,16 +389,16 @@ reflect.on('Type', type => {
 
     as.length && (targetType.defaultArguments[name] = as);
 
-    defGet(targetType.proto, name, function(){
-      const res = this.get(name);
-
-//  slows everything but only actual when data was set externaly
-//  could be enabled with debug option
-//      if(!nice.isSubType(res._type, type))
-//        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
-
-      return res;
-    });
+//    defGet(targetType.proto, name, function(){
+//      const res = this.get(name);
+//
+////  slows everything but only actual when data was set externaly
+////  could be enabled with debug option
+////      if(!nice.isSubType(res._type, type))
+////        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
+//
+//      return res;
+//    });
 
     reflect.emitAndSave('Property', { type, name, targetType });
   }

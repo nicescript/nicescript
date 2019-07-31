@@ -234,6 +234,13 @@ function createFunctionBody(functionType){
         return skip(z, args);
     }
 
+    const call = new Set();
+    const existing = nice.reflect.currentCall;
+    if(existing !== undefined) {
+      call.parentCall = existing;
+    }
+    nice.reflect.currentCall = call;
+
     let target = z.signatures;
 
     const l = args.length;
@@ -285,6 +292,7 @@ function createFunctionBody(functionType){
       result._functionName = z.name;
       result._args = args;
     }
+    nice.reflect.currentCall = call.parentCall;
     return result;
   });
 
@@ -434,7 +442,8 @@ def(nice, 'runTests', () => {
         good++;
       } catch (e) {
         bad ++;
-        console.log(' ', s.name, t.description);
+        console.log('Error while testing ', s.name, t.description);
+        console.log(t.body.toString());
         console.error('  ', e);
       }
     });
@@ -443,4 +452,10 @@ def(nice, 'runTests', () => {
   console.log(bad ? '\x1b[31m' : '\x1b[32m',
     `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
   console.log('');
+});
+
+
+nice.reflect.on('itemUse', item => {
+  const call = nice.reflect.currentCall;
+  call === undefined || call.add(item);
 });
