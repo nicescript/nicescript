@@ -13,6 +13,7 @@ const order = [
   'doc/doc_lib',
   'core/utils_object',
   'core/events',
+  'core/column_storage',
   'core/js_type',
   'core/function',
   'core/anything',
