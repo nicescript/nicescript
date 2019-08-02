@@ -65,6 +65,92 @@ defAll(nice, {
     }
   },
 
+  _createItem(type, as){
+    if(!type._isNiceType)
+      throw('Bad type');
+
+    const id = nice._db.push({_type: type}).lastId;
+    const item = this._getItem(id);
+    type.onCreate && type.onCreate(item);
+    type.initChildren(item);
+    as === undefined
+      ? type.initBy && type.initBy(item)
+      : type.initBy ? type.initBy(item, ...as) : (as.length && item(...as));
+    return item;
+  },
+
+
+  _assignType(item, type) {;
+    Object.setPrototypeOf(item, type.proto);
+
+  //  'name' in type.proto && nice.eraseProperty(target, 'name');
+  //  nice.eraseProperty(f, 'name');
+  //  'length' in type.proto && nice.eraseProperty(target, 'length');
+  //  nice.eraseProperty(f, 'length');
+
+  },
+
+  _getItem(id) {
+    const type = nice._db.data._type[id];
+
+    if(!type._isNiceType)
+      throw('Bad type');
+
+    const f = function(...a){
+      if(a.length === 0){
+        return f._type.itemArgs0(p);
+      } else if (a.length === 1){
+        f._type.itemArgs1(p, a[0]);
+      } else {
+        f._type.itemArgsN(p, a);
+      }
+      return this || f;
+    }
+    f._id = id;
+
+    const p = new Proxy(f, {
+      get (target, key, z) {
+        if(key === '_set' || key === '_get' || key === '_has')
+          return target[key];
+
+        if(key === '_id')
+          return target[key];
+
+        if(key === '_isAnything')
+          return true;
+
+        if(key === '_value' || key === '_type' || key === '_items')
+          nice.reflect.emit('itemUse', z);
+
+        //TODO: forbid public names with _
+        if(key[0] === '_')
+          return nice._db.getValue(target._id, key);
+
+        const type = target._get('_type');
+        if(type.types[key])
+          return f.get(key);
+
+        if(type.readOnlys[key])
+          return type.readOnlys[key](f);
+
+        return target[key];
+      },
+      set (target, property, value) {
+        return nice._db.update(target._id, property, value);
+        return true;
+      }
+    });
+
+    f._transactionDepth = 0;
+    f._oldValue = undefined;
+    f._newValue = undefined;
+    f._notifing = false;
+
+    this._assignType(f, type);
+
+    return p;
+  },
+
   valueType: v => {
     const t = typeof v;
     if(v === undefined)

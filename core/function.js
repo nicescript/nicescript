@@ -288,10 +288,11 @@ function createFunctionBody(functionType){
     if(result === undefined){
       result = nice.Undefined();
     }
-    if(result._isAnything){
-      result._functionName = z.name;
-      result._args = args;
-    }
+    //TODO:0 restore:
+//    if(result._isAnything){
+//      result._functionName = z.name;
+//      result._args = args;
+//    }
     nice.reflect.currentCall = call.parentCall;
     return result;
   });

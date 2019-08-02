@@ -7,18 +7,20 @@ const proxy = new Proxy({}, {
   get (o, k, receiver) {
     if(k[0] === '_')
       return undefined;
+
     if(k === 'isPrototypeOf')
       return Object.prototype.isPrototypeOf;
 
     if(k in receiver){
       return receiver[k];
     } else {
-      k.toString && (k = k.toString());
-      const res = nice.Err(`Property ${k} not found`)
-        ._set('_functionName', 'get')
-        ._set('_args', [receiver, k]);
-      receiver.listen(res);
-      return res;
+      return receiver.get(k);
+//      k.toString && (k = k.toString());
+//      const res = nice.Err(`Property ${k} not found`)
+//        ._set('_functionName', 'get')
+//        ._set('_args', [receiver, k]);
+//      receiver.listen(res);
+//      return res;
     }
   },
 });

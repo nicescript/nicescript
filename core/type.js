@@ -45,7 +45,7 @@ defAll(nice, {
           return nice.skip(type, a);
       }
 
-      return newItem(type, a);
+      return nice._createItem(type, a);
     };
 
     config.proto._type = type;
@@ -91,6 +91,9 @@ nice.getType = v => {
   if(v === undefined)
     return nice.Undefined;
 
+  if(v === null)
+    return nice.Null;
+
   if(v && v._isAnything)
     return v._type;
 
@@ -123,58 +126,65 @@ defGet(Anything, 'help',  function () {
 });
 
 
-function newItem (type, as) {
-  const f = new Proxy(function(...a){
-    if(a.length === 0){
-      return f._type.itemArgs0(f);
-    } else if (a.length === 1){
-      f._type.itemArgs1(f, a[0]);
-    } else {
-      f._type.itemArgsN(f, a);
-    }
-    return this || f;
-  }, {
-    get (target, property, z) {
-      if(property === '_set' || property === '_get' || property === '_has')
-        return target[property];
-
-      if(property === '_value' || property === '_type' || property === '_items')
-        nice.reflect.emit('itemUse', z);
-
-      const type = target._get('_type');
-      if(type.types[property])
-        return f.get(property);
-
-      if(type.readOnlys[property])
-        return type.readOnlys[property](f);
-
-      return target[property];
-    },
-    set (target, property, value) {
-      target[property] = value;
-      return true;
-    }
-  });
-
-  f._transactionDepth = 0;
-  f._subscribers = new Map();
-  f._subscriptions = [];
-  f._oldValue = undefined;
-  f._newValue = undefined;
-  f._notifing = false;
-
-  if(!type._isNiceType)
-    throw('Bad type');
-
-  Object.setPrototypeOf(f, type.proto);
-  type.onCreate && type.onCreate(f);
-  type.initChildren(f);
-
-//  'name' in type.proto && nice.eraseProperty(target, 'name');
-//  nice.eraseProperty(f, 'name');
-//  'length' in type.proto && nice.eraseProperty(target, 'length');
-//  nice.eraseProperty(f, 'length');
-  type.initBy ? type.initBy(f, ...as) : (as.length && f(...as));
-  return f;
-}
+//function newItem (type, as) {
+//  if(!type._isNiceType)
+//    throw('Bad type');
+//
+//  const id = nice._db.push({_type: type}).lastId;
+//
+//  const f = function(...a){
+//    if(a.length === 0){
+//      return f._type.itemArgs0(f);
+//    } else if (a.length === 1){
+//      f._type.itemArgs1(f, a[0]);
+//    } else {
+//      f._type.itemArgsN(f, a);
+//    }
+//    return this || f;
+//  }
+//  f._id = id;
+//
+//  const p = new Proxy(f, {
+//    get (target, property, z) {
+//      if(property === '_set' || property === '_get' || property === '_has')
+//        return target[property];
+//
+//      if(property === '_value' || property === '_type' || property === '_items')
+//        nice.reflect.emit('itemUse', z);
+//
+//      //TODO: forbid public names with _
+//      if(property[0] === '_')
+//        return nice._db.getValue(target._id);
+//
+//      const type = target._get('_type');
+//      if(type.types[property])
+//        return f.get(property);
+//
+//      if(type.readOnlys[property])
+//        return type.readOnlys[property](f);
+//
+//      return target[property];
+//    },
+//    set (target, property, value) {
+//      return nice._db.update(target._id, property, value);
+//      return true;
+//    }
+//  });
+//
+//  f._transactionDepth = 0;
+//  f._oldValue = undefined;
+//  f._newValue = undefined;
+//  f._notifing = false;
+//
+//  Object.setPrototypeOf(p, type.proto);
+//  type.onCreate && type.onCreate(p);
+//  type.initChildren(p);
+//
+////  'name' in type.proto && nice.eraseProperty(target, 'name');
+////  nice.eraseProperty(f, 'name');
+////  'length' in type.proto && nice.eraseProperty(target, 'length');
+////  nice.eraseProperty(f, 'length');
+//  type.initBy ? type.initBy(p, ...as) : (as.length && p(...as));
+//  return p;
+//}
 

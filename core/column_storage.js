@@ -1,14 +1,40 @@
 class ColumnStorage {
   constructor (...columns) {
     this.data = {};
+    this.defaultBy = {};
     this.defaults = {};
     this.size = 0;
-    this.maxId = 0;
-    columns.forEach(c => addColumn(this, c));
+    this.lastId = 1;
+    columns.forEach(c => this.addColumn(c));
   }
 
+  addColumn (cfg) {
+    if(typeof cfg === 'string'){
+      cfg = { name: cfg };
+    }
+    const { name, defaultValue, defaultBy } = cfg;
+
+    if(typeof cfg.name !== 'string')
+      throw 'Bad column name: ' + name;
+
+    if(blackList.includes(cfg.name))
+      throw 'Forbiden column name: ' + name;
+
+    if(this.data.hasOwnProperty(name))
+      throw name + ' busy.';
+
+    if(defaultBy !== undefined && defaultValue !== undefined)
+      throw `Can't have defaultBy and defaultValue at the same time.`;
+
+    this.defaultBy[name] = defaultBy;
+    this.defaults[name] = defaultValue;
+    this.data[name] = {};
+    return this;
+  }
+
+
   iterate (f, q) {
-    for(let i = 0; i < this.size; i++){
+    for(let i = 0; i <= this.lastId; i++){
       if((!q || this.match(i, q)) && f(i) === null)
         return;
     }
@@ -41,8 +67,24 @@ class ColumnStorage {
     return a;
   }
 
+  getValue (id, column) {
+    let value = this.data[column][id];
+
+    if(value === undefined){
+      const by = this.defaultBy[column];
+      if(by !== undefined){
+        value = by();
+        this.update(id, column, value);
+      } else {
+        value = this.defaults[column];
+      }
+    }
+
+    return value;
+  }
+
   getRow (i) {
-    if(i >= this.maxId)
+    if(i >= this.lastId)
       return null;
     const res = {};
     nice._each(this.data, (v, k) => {
@@ -59,16 +101,10 @@ class ColumnStorage {
     throw 'TODO:';
   }
 
-  getDefault (i) {
-    const v = this.defaults[i];
-    return typeof v === 'function' ? v() : v;
-  }
-
   push (row) {
-    const id = ++this.maxId;
+    const id = ++this.lastId;
     this.size++;
     _each(row, (v, k) => {
-      this.data[k] === undefined && addColumn(db, k);
       this.data[k][id] = v;
       this.emit(k, id, v);
     });
@@ -86,7 +122,7 @@ class ColumnStorage {
 //  }
 
   update (i, k, v) {
-    if(i > this.maxId)
+    if(i > this.lastId)
       throw 'No such id ', i;
 
     const old = this.data[k][i];
@@ -110,6 +146,18 @@ class ColumnStorage {
     this.data = data;
     this.size = data[Object.keys(data)[0]].length;
   }
+
+  delete (id) {
+    _each(this.data, (v, k) => {
+      if(id in v){
+        const val = v[id];
+        delete v[id];
+        this.emit(k, id, null, val);
+      }
+    });
+    this.size--;
+    this.emit('delete', id);
+  }
 }
 
 nice.create(nice.EventEmitter, ColumnStorage.prototype);
@@ -117,24 +165,16 @@ nice.create(nice.EventEmitter, ColumnStorage.prototype);
 
 const blackList = ['update', 'push', 'insert', 'ready'];
 
-function addColumn (storage, cfg) {
-  if(typeof cfg === 'string'){
-    cfg = { name: cfg };
-  }
-  const { name, defaultValue } = cfg;
+const db = new ColumnStorage(
+  '_type',
+  '_value',
+  '_parent',
+  '_name',
+  '_isHot',
+  {name: '_size', defaultValue: 0 },
+  {name: '_itemsType', defaultValue: null },
+  {name: '_subscribers', defaultBy: () => new Map() },
+  {name: '_subscriptions', defaultBy: () => [] }
+);
 
-  if(typeof cfg.name !== 'string')
-    throw 'Bad column name: ' + name;
-
-  if(blackList.includes(cfg.name))
-    throw 'Forbiden column name: ' + name;
-
-  if(storage.data.hasOwnProperty(name))
-    throw name + ' busy.';
-
-  storage.defaults[name] = defaultValue;
-  storage.data[name] = {};
-}
-
-const db = new ColumnStorage();
 def(nice, '_db', db);

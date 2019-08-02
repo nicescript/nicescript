@@ -2,12 +2,12 @@
 nice.Obj.extend({
   name: 'Arr',
   onCreate: z => {
-    z._items = [];
+//    z._items = [];
     z._itemsType = null;
   },
-  itemArgs0: z => z._items,
-  itemArgs1: (z, v) => z.set(z._items.length, v),
-  itemArgsN: (z, vs) => vs.forEach( v => z.set(z._items.length, v)),
+//  itemArgs0: z => z._items,
+  itemArgs1: (z, v) => z.push(v),
+  itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   proto: {
   //  _compareItems: (a1, a2, add, del) => {
   //    let i1 = 0, i2 = 0, ii2, n;
@@ -33,21 +33,21 @@ nice.Obj.extend({
   //    while(i2 < l2) add(a2[i2], i2++);
   //  },
     //TODO: remove??
-    pop () {
-      const i = this._items.length - 1;
-      let e;
-      if(i >= 0){
-        e = this._items[i];
-        this.transa
-        this.removeAt(i);
-      }
-      return e;
-    },
+//    pop () {
+//      const i = this._items.length - 1;
+//      let e;
+//      if(i >= 0){
+//        e = this._items[i];
+//        this.transa
+//        this.removeAt(i);
+//      }
+//      return e;
+//    },
 
-    //TODO: remove??
-    shift () {
-      return this._items.shift();
-    },
+//    //TODO: remove??
+//    shift () {
+//      return this._items.shift();
+//    },
 
     checkKey (i) {
       if(i._isAnything === true)
@@ -88,10 +88,10 @@ nice.Obj.extend({
   }
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => {
-    return z._items.length;
+    return z._size;
   })
   .Action(function push(z, ...a) {
-    a.forEach(v => z.insertAt(z._items.length, v));
+    a.forEach(v => z.insertAt(z._size, v));
   });
 
 
@@ -120,12 +120,12 @@ M.Function('reduceRight', (a, f, res) => {
 //});
 
 
-function apply(type, names){
-  names.split(',').forEach(name => type
-      .about('Delegates to native Array.prototype.' + name)
-      (name, (z, ...a) => z._items[name](...a)));
-}
-apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
+//function apply(type, names){
+//  names.split(',').forEach(name => type
+//      .about('Delegates to native Array.prototype.' + name)
+//      (name, (z, ...a) => z._items[name](...a)));
+//}
+//apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
 //
@@ -139,7 +139,7 @@ apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
 //}));
 
 
-M.Array('concat', (a, ...bs) => a._items.concat(...bs));
+//M.Array('concat', (a, ...bs) => a._items.concat(...bs));
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 
 
@@ -251,7 +251,7 @@ Func.Array.Function(function eachRight(a, f){
 
 
 A(function fill(z, v, start = 0, end){
-  const l = z._items.length;
+  const l = z._size;
   end === undefined && (end = l);
   start < 0 && (start += l);
   end < 0 && (end += l);
@@ -285,21 +285,20 @@ M.Function(function filter(a, f){
 
 
 M(function random(a){
-  return a._items[Math.random() * a.size | 0];
+  return a.get(Math.random() * a._size | 0);
 });
 
 
-M(function sortBy(a, f){
-  f = nice.mapper(f);
-
-  const res = Arr();
-  const source = a._items;
-  source
-    .map((v, k) => [k, f(v)])
-    .sort((a, b) => +(a[1] > b[1]) || +(a[1] === b[1]) - 1)
-    .forEach(v => res.push(source[v[0]]));
-  return res;
-});
+//M(function sortBy(a, f){
+//  f = nice.mapper(f);
+//
+//  const res = Arr();
+////  const source = a._items;
+//  a.map((v, k) => [k, f(v)])
+//    .sort((a, b) => +(a[1] > b[1]) || +(a[1] === b[1]) - 1)
+//    .forEach(v => res.push(source[v[0]]));
+//  return res;
+//});
 
 
 M('sortedIndex', (a, v, f = (a, b) => a - b) => {
@@ -367,19 +366,19 @@ M.about('Returns last element of `a`.')
     expect(Arr(1,2,4).last()).is(4);
   })
 (function last(a) {
-  return a._items[a._items.length - 1];
+  return a.get(a._size - 1);
 });
 
 
-M.Number.about('Returns `n` last elements of `a`.')
-  .test((Arr) => {
-    expect(Arr(1,2,4).last(2)()).deepEqual([2,4]);
-  })
-(function last(a, n) {
-  const res = a._type();
-  res._items = a._items.slice(-n);
-  return res;
-});
+//M.Number.about('Returns `n` last elements of `a`.')
+//  .test((Arr) => {
+//    expect(Arr(1,2,4).last(2)()).deepEqual([2,4]);
+//  })
+//(function last(a, n) {
+//  const res = a._type();
+//  res._items = a._items.slice(-n);
+//  return res;
+//});
 
 
 M.about('Returns first element of `a`.')
@@ -387,23 +386,23 @@ M.about('Returns first element of `a`.')
     expect(Arr(1,2,4).first()).is(1);
   })
 (function first(a) {
-  return a._items[0];
+  return a.get(0);
 });
 
 
-M.Number.about('Returns `n` first elements of `a`.')
-  .test((Arr) => {
-    expect(Arr(1,2,4).first(2)()).deepEqual([1,2]);
-  })
-(function first(a, n) {
-  const res = a._type();
-  res._items = a._items.slice(0, n);
-  return res;
-});
+//M.Number.about('Returns `n` first elements of `a`.')
+//  .test((Arr) => {
+//    expect(Arr(1,2,4).first(2)()).deepEqual([1,2]);
+//  })
+//(function first(a, n) {
+//  const res = a._type();
+//  res._items = a._items.slice(0, n);
+//  return res;
+//});
 
 
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
-  const l = z._items.length;
-  return { next: () => ({ value: z._items[i], done: ++i > l }) };
+  const l = z._size;
+  return { next: () => ({ value: z.get(i), done: ++i > l }) };
 });

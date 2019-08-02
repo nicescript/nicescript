@@ -2,11 +2,11 @@ nice.Type({
   name: 'Obj',
   extends: nice.Value,
   onCreate: z => {
-    z._items = {};
+//    z._items = {};
     z._itemsType = null;
   },
 
-  itemArgs0: z => z._items,
+//  itemArgs0: z => z._items,
 
   itemArgs1: (z, o) => {
     const t = typeof o;
@@ -17,21 +17,22 @@ nice.Type({
 
   itemArgsN: (z, os) => _each(os, o => z(o)),
 
-  fromValue (v) {
-    const res = this();
-    Object.assign(res._items, nice._map(v, nice.fromJson));
-    return res;
-  },
+//  fromValue (v) {
+//    const res = this();
+//    Object.assign(res._items, nice._map(v, nice.fromJson));
+//    return res;
+//  },
 
-  deserialize (js) {
-    const res = this();
-    _each(js, (v, k) => res._items[k] = nice.deserialize(v));
-    return res;
-  },
+//  deserialize (js) {
+//    const res = this();
+//    _each(js, (v, k) => res._items[k] = nice.deserialize(v));
+//    return res;
+//  },
 
   initChildren (item){
     _each(this.defaultArguments, (as, k) => {
-      item._items[k] = this.types[k](...as);
+      item.set(k, this.types[k](...as));
+//      item._items[k] = this.types[k](...as);
     });
   },
 
@@ -90,8 +91,8 @@ nice.Type({
     return a;
   })
   .ReadOnly(function jsValue(z){
-    const o = Array.isArray(z._items) ? [] : {};
-    _each(z._items, (v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
+    const o = z.isArray() || z.isArr() ? [] : {};
+    z.each((v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
     Switch(z._type.name).isString().use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
@@ -107,20 +108,35 @@ const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
 Func.Nothing('each', () => 0);
 
-C('has', (o, k) => k in o._items);
+C('has', (o, key) => {
+  //k in o._items
+  const id = o._id;
+  const parents = nice._db.data._parent;
+  const names = nice._db.data._name;
+  const types = nice._db.data._type;
+  for(let i in parents)
+    if(parents[i] === id && names[i] === key && types[i] !== nice.NotFound)
+      return true;
+  return false;
+});
 
 F(function each(o, f){
-  for(let k in o._items)
-    if(nice.isStop(f(o._items[k], k)))
+  const id = o._id;
+  const parents = nice._db.data._parent;
+  for(let k in parents)
+    if(parents[k] === id && nice.isStop(f(nice._getItem(k), k)))
       break;
+//  for(let k in o._items)
+//    if(nice.isStop(f(o._items[k], k)))
+//      break;
   return o;
 });
 
 
 Mapping.Object.test(Obj => {
   const o = Obj({qwe:1});
-  expect(o.qwe === o.qwe).is(true);
-  expect(o.asd === o.asd).is(true);
+//  expect(o.qwe === o.qwe).is(true);
+//  expect(o.asd === o.asd).is(true);
 
 })('get', (o, path) => {
   if(Array.isArray(path)){
@@ -138,27 +154,32 @@ Mapping.Object.test(Obj => {
 });
 
 
-M('get', (z, i) => {
-  if(i._isAnything === true)
-    i = i();
+M.test((Obj,NotFound) => {
+  const o = Obj({q:1});
+  expect(o.get('q')()).is(1);
+  expect(o.get('z')._type).is(NotFound);
+})('get', (z, key) => {
+  if(key._isAnything === true)
+    key = key();
 
-  if(i in z._items){
-    return z._items[i];
-  }
+  const found = nice._db.findKey({_parent: z._id, _name: key});
+  if(found !== null)
+    return nice._getItem(found);
 
-  const type = z._type.types[i];
-  return type
-    ? z._items[i] = type()
-    : undefined;
+  const type = z._type.types[key];
+  const item = nice._createItem(type || nice.NotFound)
+  item._parent = z._id;
+  item._name = key;
+  return item;
 });
 
 
-M('getDefault', (z, i, v) => {
-  if(i._isAnything === true)
-    i = i();
-
-  return i in z._items ? z._items[i] : z._items[i] = v;
-});
+//M('getDefault', (z, i, v) => {
+//  if(i._isAnything === true)
+//    i = i();
+//
+//  return i in z._items ? z._items[i] : z._items[i] = v;
+//});
 
 
 Action.Object('set', (o, i, v) => {
@@ -166,85 +187,121 @@ Action.Object('set', (o, i, v) => {
   o[i] = v;
 });
 
-A('set', (z, i, v, ...tale) => {
-  i = z.checkKey(i);
+
+A('set', (z, key, value, ...tale) => {
+  key = z.checkKey(key);
+
+  if(value === undefined)
+    throw `Can't set ${key} to undefined`;
+
+  if(value === null)
+    return z.remove(key);
+
+  const db = nice._db;
+  const id = db.findKey({_parent: z._id, _name: key});
+  let type
+
+  if (value._isAnything){
+    throw 'TODO:0';
+  } else {
+    type = nice.valueType(value);
+  }
+  if(id === null){
+    db.push({ _value: value, _type: type, _parent: z._id, _name: key});
+    db.update(z._id, '_size', db.getValue(z._id, '_size') + 1);
+  } else {
+    db.update(id, { _value: value, _type: type });
+  }
+
+  return;
+  //TODO:0 restore type check
 //  z.transactionStart();
-  const type = z._itemsType || (z._type.types && z._type.types[i]);
-  if(type){
-    if(v && v._isAnything){
-      if(!v._type.isSubType(type))
-        throw `Expected item type is ${type.name} but ${v._type.name} is given.`;
-    } else {
-      v = type(v, ...tale);
-    }
-  }
-  if(!is(v, z._items[i])){
-    if(z._isHot){
-      z._oldValue = z._oldValue || {};
-      z._oldValue[i] = z._items[i];
-      z._newValue = z._newValue || {};
-      z._newValue[i] = v;
-    }
-    z._items[i] = v;
-  }
+//  const type = z._itemsType || (z._type.types && z._type.types[key]);
+//  if(type){
+//    if(value && value._isAnything){
+//      if(!value._type.isSubType(type))
+//        throw `Expected item type is ${type.name} but ${value._type.name} is given.`;
+//    } else {
+//      value = type(value, ...tale);
+//    }
+//  }
+//  if(!is(value, z._items[key])){
+//    if(z._isHot){
+//      z._oldValue = z._oldValue || {};
+//      z._oldValue[key] = z._items[key];
+//      z._newValue = z._newValue || {};
+//      z._newValue[key] = value;
+//    }
+//    z._items[key] = value;
+//  }
 //  z.transactionEnd();
-  return z;
 });
 
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
-A.Obj.test((replaceAll, Obj) => {
-  expect( replaceAll(Obj({ q:1, a:2 }), Obj({a:1}))() ).deepEqual({ a:1 });
-})('replaceAll', (z, o) => z.replaceAll(o._items));
-
-A.Object.test((replaceAll, Obj) => {
-  const o1 = Obj({ q:1, a:2 });
-  const replacement = { z:3 };
-  const o2 = o1.replaceAll(replacement);
-  replacement.a = 1;
-  expect(o2()).deepEqual({ z:3 });
-})('replaceAll', (z, o) => {
-  z._isHot && (z._oldValue = z._items);
-  z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
-});
+//A.Obj.test((replaceAll, Obj) => {
+//  expect( replaceAll(Obj({ q:1, a:2 }), Obj({a:1}))() ).deepEqual({ a:1 });
+//})('replaceAll', (z, o) => z.replaceAll(o._items));
+//
+//A.Object.test((replaceAll, Obj) => {
+//  const o1 = Obj({ q:1, a:2 });
+//  const replacement = { z:3 };
+//  const o2 = o1.replaceAll(replacement);
+//  replacement.a = 1;
+//  expect(o2()).deepEqual({ z:3 });
+//})('replaceAll', (z, o) => {
+//  z._isHot && (z._oldValue = z._items);
+//  z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
+//});
 
 A.test((remove, Obj) => {
-  expect( remove(Obj({ q:1, a:2 }), 'q').jsValue ).deepEqual({ a:2 });
+  const o = Obj({ q:1, a:2 });
+  expect( o._size ).is(2);
+  expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
+  expect( o._size ).is(1);
 })
 .about('Remove element at `i`.')
-('remove', (z, i) => {
-  if(z._isHot){
-    z._oldValue = z._oldValue || {};
-    z._oldValue[i] = z._items[i];
+('remove', (z, key) => {
+  const id = nice._db.findKey({_parent: z._id, _name: key});
+
+  if(id === null)
+    return;
+
+  const db = nice._db;
+  if(nice._db.data._isHot[id]){
+    db.update(id, '_type', nice.NotFound);
+    db.update(id, '_value', null);
+  } else {
+    db.delete(id);
   }
-  delete z._items[i];
+  db.update(z._id, '_size', db.getValue(z._id, '_size'));
 });
 
-A('removeValue', (o, v) => {
-  for(let i in o._items)
-    is(v, o._items[i]) && o.remove(i);
-});
-
-Action.Object('removeValue', (o, v) => {
-  for(let i in o)
-    is(v, o[i]) && delete o[i];
-});
-
-A('removeValues', (o, vs) => _each(vs, v => {
-  for(let i in o._items)
-    is(v, o._items[i]) && o.remove(i);
-}));
-
-Action.Object('removeValues', (o, vs) => _each(vs, v => {
-  for(let i in o)
-    is(v, o[i]) && delete o[i];
-}));
-
-A('removeAll', z => {
-  z._isHot && (z._oldValue = z._items);
-  z._type.onCreate(z);
-});
+//A('removeValue', (o, v) => {
+//  for(let i in o._items)
+//    is(v, o._items[i]) && o.remove(i);
+//});
+//
+//Action.Object('removeValue', (o, v) => {
+//  for(let i in o)
+//    is(v, o[i]) && delete o[i];
+//});
+//
+//A('removeValues', (o, vs) => _each(vs, v => {
+//  for(let i in o._items)
+//    is(v, o._items[i]) && o.remove(i);
+//}));
+//
+//Action.Object('removeValues', (o, vs) => _each(vs, v => {
+//  for(let i in o)
+//    is(v, o[i]) && delete o[i];
+//}));
+//
+//A('removeAll', z => {
+//  z._isHot && (z._oldValue = z._items);
+//  z._type.onCreate(z);
+//});
 
 
 //['max','min','hypot'].forEach(name => {
@@ -257,8 +314,7 @@ A('removeAll', z => {
 
 
 M(function reduce(o, f, res){
-  for(let k in o._items)
-    res = f(res, o._items[k], k);
+  o.each((v,k) => res = f(res, v, k));
   return res;
 });
 
@@ -278,9 +334,10 @@ Mapping.Object('map', (o, f) => nice.apply({}, res => {
 
 M(function map(c, f){
   const res = c._type();
-  const o = c._items;
-  for(let i in o)
-    res.set(i, f(o[i], i));
+  c.each((v,k) => res.set(f(v, k)));
+//  const o = c._items;
+//  for(let i in o)
+//    res.set(i, f(o[i], i));
   return res;
 });
 
@@ -304,10 +361,18 @@ M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
 
 
 C.Function(function some(c, f){
-  for(let i in c._items)
-    if(f(c._items[i], i))
-      return true;
-  return false;
+  let res = false;
+  c.each((v,k) => {
+    if(f(res, v, k)){
+      res = true;
+      return nice.Stop;
+    }
+  });
+  return res;
+//  for(let i in c._items)
+//    if(f(c._items[i], i))
+//      return true;
+//  return false;
 });
 
 
