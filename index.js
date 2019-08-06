@@ -71,46 +71,21 @@ defAll(nice, {
       throw('Bad type');
     const f = function(...a){
       if(a.length === 0){
-        return f._type.itemArgs0(p);
+        return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        f._type.itemArgs1(p, a[0]);
+        f._type.itemArgs1(f, a[0]);
       } else {
-        f._type.itemArgsN(p, a);
+        f._type.itemArgsN(f, a);
       }
       return this || f;
     }
     f._id = id;
-    const p = new Proxy(f, {
-      get (target, key, z) {
-        if(key === '_set' || key === '_get' || key === '_has')
-          return target[key];
-        if(key === '_id')
-          return target[key];
-        if(key === '_isAnything')
-          return true;
-        if(key === '_value' || key === '_type' || key === '_items')
-          nice.reflect.emit('itemUse', z);
-        
-        if(key[0] === '_')
-          return nice._db.getValue(target._id, key);
-        const type = target._get('_type');
-        if(type.types[key])
-          return f.get(key);
-        if(type.readOnlys[key])
-          return type.readOnlys[key](f);
-        return target[key];
-      },
-      set (target, property, value) {
-        return nice._db.update(target._id, property, value);
-        return true;
-      }
-    });
     f._transactionDepth = 0;
     f._oldValue = undefined;
     f._newValue = undefined;
     f._notifing = false;
     this._assignType(f, type);
-    return p;
+    return f;
   },
   valueType: v => {
     const t = typeof v;
@@ -346,11 +321,11 @@ defAll(nice, {
   },
   memoize: f => {
     const res = (k, ...a) => {
-      if(k in res._items)
-        return res._items[k];
-      return res._items[k] = f(k, ...a);
+      if(k in res._cache)
+        return res._cache[k];
+      return res._cache[k] = f(k, ...a);
     };
-    res._items = {};
+    res._cache = {};
     return res;
   },
   once: f => {
@@ -1230,6 +1205,47 @@ nice.registerType({
   _isNiceType: true,
   proto: Object.setPrototypeOf({
     _isAnything: true,
+    get _value() {
+      
+      return nice._db.getValue(this._id, '_value');
+    },
+    set _value(value) {
+      
+      nice._db.update(this._id, '_value', value);
+      return true;
+    },
+    get _type() {
+      
+      return nice._db.getValue(this._id, '_type');
+    },
+    set _type(type) {
+      
+      return nice._db.update(this._id, '_type', type);
+      return true;
+    },
+    get _parent() {
+      
+      return nice._db.getValue(this._id, '_parent');
+    },
+    set _parent(v) {
+      
+      return nice._db.update(this._id, '_parent', v);
+      return true;
+    },
+    get _name() {
+      
+      return nice._db.getValue(this._id, '_name');
+    },
+    set _name(v) {
+      
+      return nice._db.update(this._id, '_name', v);
+      return true;
+    },
+    get _size() {
+      
+      return nice._db.getValue(this._id, '_size');
+    },
+    
     valueOf () {
       return '_value' in this ? this._value : undefined;
     },
@@ -1441,14 +1457,13 @@ nice.registerType({
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
       expect(f).isFunction();
-      'readOnlys' in this.target
-        ? this.target.readOnlys[name] = f
-        : this.target.readOnlys = {[name]: f};
+      defGet(this.target.proto, name, function() {
+        return f(this);
+      });
       return this;
   },
   },
   types: {},
-  readOnlys: {},
   static (...a) {
     const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];
     def(this, name, v);
@@ -1781,7 +1796,6 @@ expect = nice.expect;
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
-  create(parent.readOnlys, child.readOnlys);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
   reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
@@ -1803,7 +1817,6 @@ defAll(nice, {
       || nice.error("Need object for type's prototype");
     config.name = config.name || 'Type_' + (nice._counter++);
     config.types = {};
-    config.readOnlys = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
@@ -2017,14 +2030,6 @@ nice.jsTypes.isSubType = isSubType;
         i = i();
       return i;
     },
-    setDefault (i, ...as) {
-      const z = this;
-      if(i._isAnything === true)
-        i = i();
-      if(!(i in z._items))
-        z.set(i, ...as);
-      return z;
-    },
     _itemsListener (o) {
       const { onRemove, onAdd, onChange } = o;
       return v => {
@@ -2055,9 +2060,7 @@ nice.jsTypes.isSubType = isSubType;
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .addProperty('size', { get () {
-    return Object.keys(this._items).reduce(n => n + 1, 0);
-  }})
+  .ReadOnly('size', z => z._size)
   .Action(function itemsType(z, t){
     z._itemsType = t;
   });
@@ -2065,6 +2068,8 @@ const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 Func.Nothing('each', () => 0);
 C('has', (o, key) => {
   
+  if(key._isAnything === true)
+    key = key();
   const id = o._id;
   const parents = nice._db.data._parent;
   const names = nice._db.data._name;
@@ -2074,11 +2079,24 @@ C('has', (o, key) => {
       return true;
   return false;
 });
+A
+  .about(`Set value if it's missing.`)
+  .test((Obj) => {
+    const o = Obj({a:1});
+    o.setDefault('a', 2);
+    expect(o.get('a').is(1));
+    o.setDefault('z', 2);
+    expect(o.get('a').is(2))
+  })
+  (function setDefault (i, ...as) {
+    this.has(i) || this.set(i, ...as);
+  });
 F(function each(o, f){
   const id = o._id;
   const parents = nice._db.data._parent;
+  const names = nice._db.data._name;
   for(let k in parents)
-    if(parents[k] === id && nice.isStop(f(nice._getItem(k), k)))
+    if(parents[k] === id && nice.isStop(f(nice._getItem(k), names[k])))
       break;
   return o;
 });
@@ -2119,24 +2137,33 @@ Action.Object('set', (o, i, v) => {
   o[i] = v;
 });
 A('set', (z, key, value, ...tale) => {
-  key = z.checkKey(key);
+  const _name = z.checkKey(key);
   if(value === undefined)
     throw `Can't set ${key} to undefined`;
   if(value === null)
-    return z.remove(key);
+    return z.remove(_name);
   const db = nice._db;
-  const id = db.findKey({_parent: z._id, _name: key});
-  let type
+  const id = db.findKey({_parent: z._id, _name});
+  let _type, _value = value;
   if (value._isAnything){
-    throw 'TODO:0';
+    if(!z._id)
+      throw 'err 94834839';
+    if(id !== null && z._id !== id)
+      throw 'TODO:0 err 948v43';
+    if(value._name || value._parent){
+      throw 'TODO:0 rveo484';
+    } else {
+      value._name = _name;
+      value._parent = z._id;
+    }
   } else {
-    type = nice.valueType(value);
-  }
-  if(id === null){
-    db.push({ _value: value, _type: type, _parent: z._id, _name: key});
-    db.update(z._id, '_size', db.getValue(z._id, '_size') + 1);
-  } else {
-    db.update(id, { _value: value, _type: type });
+    _type = nice.valueType(_value);
+    if(id === null){
+      db.push({ _value, _type, _parent: z._id, _name});
+      db.update(z._id, '_size', db.getValue(z._id, '_size') + 1);
+    } else {
+      db.update(id, { _value, _type });
+    }
   }
   return;
   
@@ -2150,17 +2177,17 @@ A.test((remove, Obj) => {
 })
 .about('Remove element at `i`.')
 ('remove', (z, key) => {
-  const id = nice._db.findKey({_parent: z._id, _name: key});
+  const db = nice._db;
+  const id = db.findKey({_parent: z._id, _name: key});
   if(id === null)
     return;
-  const db = nice._db;
   if(nice._db.data._isHot[id]){
     db.update(id, '_type', nice.NotFound);
     db.update(id, '_value', null);
   } else {
     db.delete(id);
   }
-  db.update(z._id, '_size', db.getValue(z._id, '_size'));
+  db.update(z._id, '_size', db.getValue(z._id, '_size') - 1);
 });
 M(function reduce(o, f, res){
   o.each((v,k) => res = f(res, v, k));
@@ -2191,22 +2218,37 @@ C.Function(function some(c, f){
   });
   return res;
 });
-C(function every(c, f){
-  for(let i in c._items)
-    if(!f(c._items[i], i))
-      return false;
-  return true;
+C
+  .about(`Check if every element in colection matches given check`)
+  .test(Obj => {
+    const o = Obj({a:1,b:2});
+    expect(o.every(v => v % 2)).is(false);
+    expect(o.every(v => v < 3)).is(true);
+    expect(o.every(v => v < 0)).is(false);
+  })
+  (function every(c, f){
+  return !!c.reduce((res, v, k) => res && f(v, k), true);
 });
 M(function find(c, f){
-  for(let i in c._items)
-    if(f(c._items[i], i))
-      return c._items[i];
+  let res;
+  c.each((v, k) => {
+    if(f(v, k)){
+      res = v;
+      return nice.Stop();
+    }
+  });
+  return res === undefined ? nice.NotFound() : res;
 });
 M(function findKey(c, f){
   nice.isFunction(f) || (f = is(f, nice));
-  for(let i in c._items)
-    if(f(c._items[i], i))
-      return i;
+  let res;
+  c.each((v, k) => {
+    if(f(v, k)){
+      res = k;
+      return nice.Stop();
+    }
+  });
+  return res === undefined ? nice.NotFound() : res;
 });
 M.Function(function count(o, f) {
   let n = 0;
@@ -2544,9 +2586,7 @@ nice.Obj.extend({
     }
   }
 }).about('Ordered list of elements.')
-  .ReadOnly('size', z => {
-    return z._size;
-  })
+  .ReadOnly('size', z => z._size)
   .Action(function push(z, ...a) {
     a.forEach(v => z.insertAt(z._size, v));
   });
@@ -2631,17 +2671,6 @@ Action.Array
   ('removeValue', (a, v) => {
     nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
-function _each(z, f){
-  const a = z._items;
-  const l = a.length;
-  for (let i = 0; i < l; i++)
-    if(nice.isStop(f(z._items[i], i)))
-      break;
-  return z;
-}
-F.Function('each', _each);
-each = nice.each
-F.Function('forEach', _each);
 Func.Array.Function(function eachRight(a, f){
   let i = a.length;
   while (i-- > 0)
@@ -3143,8 +3172,8 @@ function text(z){
 };
 function compileStyle (s){
   let a = [];
-  for(let k in s._items)
-    a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + s._items[k]);
+  s.each((v, k) =>
+    a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
   return a.join(';');
 };
 function compileSelectors (h){
@@ -3156,7 +3185,8 @@ function compileSelectors (h){
 const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
 nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
 nice.ReadOnly.Single('html', z => _html(z._value));
-nice.ReadOnly.Arr('html', z => z._items.map(_html).join(''));
+nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
+    .map(_html).join(''));
 function html(z){
   const tag = z.tag();
   const selectors = compileSelectors(z) || '';
@@ -3168,8 +3198,7 @@ function html(z){
     as += ` ${k}="${v}"`;
   });
   let body = '';
-  for(let c of z.children._items)
-    body += c._isAnything ? c.html : nice.htmlEscape(c);
+  z.children.each(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 defAll(nice, {

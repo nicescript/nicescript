@@ -196,8 +196,8 @@ function text(z){
 
 function compileStyle (s){
   let a = [];
-  for(let k in s._items)
-    a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + s._items[k]);
+  s.each((v, k) =>
+    a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
   return a.join(';');
 };
 
@@ -211,7 +211,8 @@ function compileSelectors (h){
 const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
 nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
 nice.ReadOnly.Single('html', z => _html(z._value));
-nice.ReadOnly.Arr('html', z => z._items.map(_html).join(''));
+nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
+    .map(_html).join(''));
 
 function html(z){
   const tag = z.tag();
@@ -226,8 +227,7 @@ function html(z){
   });
 
   let body = '';
-  for(let c of z.children._items)
-    body += c._isAnything ? c.html : nice.htmlEscape(c);
+  z.children.each(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
 
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };

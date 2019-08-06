@@ -98,48 +98,48 @@ defAll(nice, {
 
     const f = function(...a){
       if(a.length === 0){
-        return f._type.itemArgs0(p);
+        return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        f._type.itemArgs1(p, a[0]);
+        f._type.itemArgs1(f, a[0]);
       } else {
-        f._type.itemArgsN(p, a);
+        f._type.itemArgsN(f, a);
       }
       return this || f;
     }
     f._id = id;
 
-    const p = new Proxy(f, {
-      get (target, key, z) {
-        if(key === '_set' || key === '_get' || key === '_has')
-          return target[key];
-
-        if(key === '_id')
-          return target[key];
-
-        if(key === '_isAnything')
-          return true;
-
-        if(key === '_value' || key === '_type' || key === '_items')
-          nice.reflect.emit('itemUse', z);
-
-        //TODO: forbid public names with _
-        if(key[0] === '_')
-          return nice._db.getValue(target._id, key);
-
-        const type = target._get('_type');
-        if(type.types[key])
-          return f.get(key);
-
-        if(type.readOnlys[key])
-          return type.readOnlys[key](f);
-
-        return target[key];
-      },
-      set (target, property, value) {
-        return nice._db.update(target._id, property, value);
-        return true;
-      }
-    });
+//    const p = new Proxy(f, {
+//      get (target, key, z) {
+//        if(key === '_set' || key === '_get' || key === '_has')
+//          return target[key];
+//
+//        if(key === '_id')
+//          return target[key];
+//
+//        if(key === '_isAnything')
+//          return true;
+//
+//        if(key === '_value' || key === '_type' || key === '_items')
+//          nice.reflect.emit('itemUse', z);
+//
+//        //TODO: forbid public names with _
+//        if(key[0] === '_')
+//          return nice._db.getValue(target._id, key);
+//
+//        const type = target._get('_type');
+//        if(type.types[key])
+//          return f.get(key);
+//
+//        if(type.readOnlys[key])
+//          return type.readOnlys[key](f);
+//
+//        return target[key];
+//      },
+//      set (target, property, value) {
+//        return nice._db.update(target._id, property, value);
+//        return true;
+//      }
+//    });
 
     f._transactionDepth = 0;
     f._oldValue = undefined;
@@ -148,7 +148,7 @@ defAll(nice, {
 
     this._assignType(f, type);
 
-    return p;
+    return f;
   },
 
   valueType: v => {

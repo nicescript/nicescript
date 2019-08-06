@@ -2,6 +2,14 @@
  * 1. setting new(calculated) value
  * 2. recalculate on each use when not hot?
  * 3.
+ * listen(f(eventType, item))
+ * listen({eventType: f(item)})
+
+ * listenItems(f(eventType, item))
+ * listenItems({eventType: f(item)})
+ *
+ * listenDeep(f(eventType, item))
+ * listenDeep({eventType: f(item)})
  */
 const proxy = new Proxy({}, {
   get (o, k, receiver) {
@@ -56,6 +64,65 @@ nice.registerType({
 
   proto: Object.setPrototypeOf({
     _isAnything: true,
+
+    get _value() {
+      //nice.reflect.emit('itemUse', z);
+      return nice._db.getValue(this._id, '_value');
+    },
+
+    set _value(value) {
+      //nice.reflect.emit('itemSet', z);
+      nice._db.update(this._id, '_value', value);
+      return true;
+    },
+
+    get _type() {
+      //nice.reflect.emit('itemUse', z);
+      return nice._db.getValue(this._id, '_type');
+    },
+
+    set _type(type) {
+      //nice.reflect.emit('itemSet', z);
+      return nice._db.update(this._id, '_type', type);
+      return true;
+    },
+
+    get _parent() {
+      //nice.reflect.emit('itemUse', z);
+      return nice._db.getValue(this._id, '_parent');
+    },
+
+    set _parent(v) {
+      //nice.reflect.emit('itemSet', z);
+      return nice._db.update(this._id, '_parent', v);
+      return true;
+    },
+
+    get _name() {
+      //nice.reflect.emit('itemUse', z);
+      return nice._db.getValue(this._id, '_name');
+    },
+
+    set _name(v) {
+      //nice.reflect.emit('itemSet', z);
+      return nice._db.update(this._id, '_name', v);
+      return true;
+    },
+
+    get _size() {
+      //nice.reflect.emit('itemUse', z);
+      return nice._db.getValue(this._id, '_size');
+    },
+
+    //TODO: forbid public names with _
+//        const type = target._get('_type');
+//        if(type.types[key])
+//          return f.get(key);
+//
+//        if(type.readOnlys[key])
+//          return type.readOnlys[key](f);
+//
+//        return target[key];
 
     valueOf () {
       return '_value' in this ? this._value : undefined;
@@ -315,19 +382,18 @@ nice.registerType({
       return this;
     },
 
-    //TODO: replace with Mapping
+    //TODO: replace with Mapping??
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
       expect(f).isFunction();
-      'readOnlys' in this.target
-        ? this.target.readOnlys[name] = f
-        : this.target.readOnlys = {[name]: f};
+      defGet(this.target.proto, name, function() {
+        return f(this);
+      });
       return this;
   },
   },
 
   types: {},
-  readOnlys: {},
 
   static (...a) {
     const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];

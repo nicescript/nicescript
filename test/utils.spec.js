@@ -47,14 +47,14 @@ describe("utils", function() {
   it('Object fromJson', () => {
     const res = fromJson({});
     expect(res._type).to.equal(Obj);
-    expect(res._items).to.deep.equal({});
+    expect(res._size).to.deep.equal({});
   });
 
   it('Object fromJson', () => {
     const res = fromJson({ q: 5 });
     expect(res._type).to.equal(Obj);
-    expect(res._items.q._type).to.equal(nice.Num);
-    expect(res._items.q()).to.equal(5);
+    expect(res.get('q')._type).to.equal(nice.Num);
+    expect(res.get('q')()).to.equal(5);
   });
 
 
@@ -231,7 +231,7 @@ describe("utils", function() {
 
     const a = {[nice.TYPE_KEY]:'Arr',value:[1,2]};
     expect(nice.serialize(Arr(1,2))).to.deep.equal(a);
-    expect(nice.deserialize(a)._items).to.deep.equal([1,2]);
+    expect(nice.deserialize(a).jsValue).to.deep.equal([1,2]);
     expect(nice.deserialize(a)._type).to.equal(Arr);
 
     expect(turn(Obj())._type.name).to.equal('Obj');

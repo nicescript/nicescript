@@ -201,11 +201,11 @@ defAll(nice, {
 
   memoize: f => {
     const res = (k, ...a) => {
-      if(k in res._items)
-        return res._items[k];
-      return res._items[k] = f(k, ...a);
+      if(k in res._cache)
+        return res._cache[k];
+      return res._cache[k] = f(k, ...a);
     };
-    res._items = {};
+    res._cache = {};
     return res;
   },
 

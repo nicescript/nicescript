@@ -5,7 +5,6 @@ def(nice, function extend(child, parent){
   create(parent.proto, child.proto);
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
-  create(parent.readOnlys, child.readOnlys);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
   reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
@@ -32,7 +31,6 @@ defAll(nice, {
 
     config.name = config.name || 'Type_' + (nice._counter++);
     config.types = {};
-    config.readOnlys = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};

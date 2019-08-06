@@ -254,13 +254,6 @@ describe("Obj", function() {
   });
 
 
-  it("every", function() {
-    const a = Obj({qwe: 1, ads: 3});
-    expect(a.every(n => n > 2)).to.equal(false);
-    expect(a.every(n => n > 0)).to.equal(true);
-  });
-
-
   it("size", function() {
     expect(Obj({qwe: 1, ads: 3}).size).to.equal(2);
     expect(Obj().size).to.equal(0);

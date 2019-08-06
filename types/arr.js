@@ -87,9 +87,7 @@ nice.Obj.extend({
     }
   }
 }).about('Ordered list of elements.')
-  .ReadOnly('size', z => {
-    return z._size;
-  })
+  .ReadOnly('size', z => z._size)
   .Action(function push(z, ...a) {
     a.forEach(v => z.insertAt(z._size, v));
   });
@@ -227,19 +225,19 @@ Action.Array
   });
 
 
-function _each(z, f){
-  const a = z._items;
-  const l = a.length;
-  for (let i = 0; i < l; i++)
-    if(nice.isStop(f(z._items[i], i)))
-      break;
-
-  return z;
-}
-
-F.Function('each', _each);
-each = nice.each
-F.Function('forEach', _each);
+//function _each(z, f){
+//  const a = z._items;
+//  const l = a.length;
+//  for (let i = 0; i < l; i++)
+//    if(nice.isStop(f(z._items[i], i)))
+//      break;
+//
+//  return z;
+//}
+//
+//F.Function('each', _each);
+//each = nice.each
+//F.Function('forEach', _each);
 
 Func.Array.Function(function eachRight(a, f){
   let i = a.length;

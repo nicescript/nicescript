@@ -56,17 +56,6 @@ nice.Type({
       return i;
     },
 
-    setDefault (i, ...as) {
-      const z = this;
-
-      if(i._isAnything === true)
-        i = i();
-
-      if(!(i in z._items))
-        z.set(i, ...as);
-      return z;
-    },
-
     _itemsListener (o) {
       const { onRemove, onAdd, onChange } = o;
       return v => {
@@ -97,9 +86,7 @@ nice.Type({
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .addProperty('size', { get () {
-    return Object.keys(this._items).reduce(n => n + 1, 0);
-  }})
+  .ReadOnly('size', z => z._size)
   .Action(function itemsType(z, t){
     z._itemsType = t;
   });
@@ -110,6 +97,8 @@ Func.Nothing('each', () => 0);
 
 C('has', (o, key) => {
   //k in o._items
+  if(key._isAnything === true)
+    key = key();
   const id = o._id;
   const parents = nice._db.data._parent;
   const names = nice._db.data._name;
@@ -120,11 +109,25 @@ C('has', (o, key) => {
   return false;
 });
 
+A
+  .about(`Set value if it's missing.`)
+  .test((Obj) => {
+    const o = Obj({a:1});
+    o.setDefault('a', 2);
+    expect(o.get('a').is(1));
+    o.setDefault('z', 2);
+    expect(o.get('a').is(2))
+  })
+  (function setDefault (i, ...as) {
+    this.has(i) || this.set(i, ...as);
+  });
+
 F(function each(o, f){
   const id = o._id;
   const parents = nice._db.data._parent;
+  const names = nice._db.data._name;
   for(let k in parents)
-    if(parents[k] === id && nice.isStop(f(nice._getItem(k), k)))
+    if(parents[k] === id && nice.isStop(f(nice._getItem(k), names[k])))
       break;
 //  for(let k in o._items)
 //    if(nice.isStop(f(o._items[k], k)))
@@ -189,28 +192,37 @@ Action.Object('set', (o, i, v) => {
 
 
 A('set', (z, key, value, ...tale) => {
-  key = z.checkKey(key);
+  const _name = z.checkKey(key);
 
   if(value === undefined)
     throw `Can't set ${key} to undefined`;
 
   if(value === null)
-    return z.remove(key);
+    return z.remove(_name);
 
   const db = nice._db;
-  const id = db.findKey({_parent: z._id, _name: key});
-  let type
+  const id = db.findKey({_parent: z._id, _name});
+  let _type, _value = value;
 
   if (value._isAnything){
-    throw 'TODO:0';
+    if(!z._id)
+      throw 'err 94834839';
+    if(id !== null && z._id !== id)
+      throw 'TODO:0 err 948v43';
+    if(value._name || value._parent){
+      throw 'TODO:0 rveo484';
+    } else {
+      value._name = _name;
+      value._parent = z._id;
+    }
   } else {
-    type = nice.valueType(value);
-  }
-  if(id === null){
-    db.push({ _value: value, _type: type, _parent: z._id, _name: key});
-    db.update(z._id, '_size', db.getValue(z._id, '_size') + 1);
-  } else {
-    db.update(id, { _value: value, _type: type });
+    _type = nice.valueType(_value);
+    if(id === null){
+      db.push({ _value, _type, _parent: z._id, _name});
+      db.update(z._id, '_size', db.getValue(z._id, '_size') + 1);
+    } else {
+      db.update(id, { _value, _type });
+    }
   }
 
   return;
@@ -263,19 +275,19 @@ A.test((remove, Obj) => {
 })
 .about('Remove element at `i`.')
 ('remove', (z, key) => {
-  const id = nice._db.findKey({_parent: z._id, _name: key});
+  const db = nice._db;
+  const id = db.findKey({_parent: z._id, _name: key});
 
   if(id === null)
     return;
 
-  const db = nice._db;
   if(nice._db.data._isHot[id]){
     db.update(id, '_type', nice.NotFound);
     db.update(id, '_value', null);
   } else {
     db.delete(id);
   }
-  db.update(z._id, '_size', db.getValue(z._id, '_size'));
+  db.update(z._id, '_size', db.getValue(z._id, '_size') - 1);
 });
 
 //A('removeValue', (o, v) => {
@@ -377,26 +389,47 @@ C.Function(function some(c, f){
 
 
 
-C(function every(c, f){
-  for(let i in c._items)
-    if(!f(c._items[i], i))
-      return false;
-  return true;
+C
+  .about(`Check if every element in colection matches given check`)
+  .test(Obj => {
+    const o = Obj({a:1,b:2});
+    expect(o.every(v => v % 2)).is(false);
+    expect(o.every(v => v < 3)).is(true);
+    expect(o.every(v => v < 0)).is(false);
+  })
+  (function every(c, f){
+  return !!c.reduce((res, v, k) => res && f(v, k), true);
 });
 
 
 M(function find(c, f){
-  for(let i in c._items)
-    if(f(c._items[i], i))
-      return c._items[i];
+  let res;
+  c.each((v, k) => {
+    if(f(v, k)){
+      res = v;
+      return nice.Stop();
+    }
+  });
+  return res === undefined ? nice.NotFound() : res;
+//  for(let i in c._items)
+//    if(f(c._items[i], i))
+//      return c._items[i];
 });
 
 
 M(function findKey(c, f){
   nice.isFunction(f) || (f = is(f, nice));
-  for(let i in c._items)
-    if(f(c._items[i], i))
-      return i;
+  let res;
+  c.each((v, k) => {
+    if(f(v, k)){
+      res = k;
+      return nice.Stop();
+    }
+  });
+  return res === undefined ? nice.NotFound() : res;
+//  for(let i in c._items)
+//    if(f(c._items[i], i))
+//      return i;
 });
 
 
