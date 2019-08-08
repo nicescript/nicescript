@@ -29,7 +29,7 @@ nice.generateDoc = () => {
   });
 
 
-  reflect.on('Type', t => {
+  reflect.on('type', t => {
     if(!t.name || t.name[0] === '_')
       return;
     const o = { title: t.name, properties: [] };

@@ -134,7 +134,7 @@ function addCreator(type){
   });
 }
 
-reflect.on('Extension', ({child, parent}) => {
+reflect.on('extension', ({child, parent}) => {
   if(parent === Html || Html.isPrototypeOf(parent)){
     addCreator(child);
   }

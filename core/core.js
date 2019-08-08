@@ -215,8 +215,7 @@ defAll(nice, {
     nice.types[name] = type;
     def(nice, name, type);
     def(type.proto, '_is' + name, true);
-    //TODO: replace to 'type'
-    reflect.emitAndSave('Type', type);
+    reflect.emitAndSave('type', type);
   },
 
   _each: (o, f) => {

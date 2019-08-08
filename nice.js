@@ -134,8 +134,7 @@ defAll(nice, {
     nice.types[name] = type;
     def(nice, name, type);
     def(type.proto, '_is' + name, true);
-    
-    reflect.emitAndSave('Type', type);
+    reflect.emitAndSave('type', type);
   },
   _each: (o, f) => {
     if(o)
@@ -458,7 +457,7 @@ nice.Configurator = (o, ...a) => {
     res.functions.push(o);
     (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
   });
-  reflect.on('Type', t => {
+  reflect.on('type', t => {
     if(!t.name || t.name[0] === '_')
       return;
     const o = { title: t.name, properties: [] };
@@ -1144,13 +1143,13 @@ reflect.on('function', f => f.name && !skipedProto[f.name]
     })
 );
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
-reflect.on('Type', handleType);
+reflect.on('type', handleType);
 Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
 Check = def(nice, 'Check', configurator({functionType: 'Check'}));
 const ro = def(nice, 'ReadOnly', {});
-reflect.on('Type', type => {
+reflect.on('type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
     expect(f).isFunction();
@@ -1591,7 +1590,7 @@ for(let i in nice.jsTypes){
     ? v => typeof v === low
     : v => v && typeof v === 'object' ? v.constructor.name === i : false);
 };
-reflect.on('Type', function defineReducer(type) {
+reflect.on('type', function defineReducer(type) {
   type.name && Check
     .about('Checks if `v` has type `' + type.name + '`')
     ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);
@@ -2319,7 +2318,7 @@ Mapping.Object('reduceTo', (o, res, f) => {
   _each(o, (v, k) => f(res, v, k));
   return res;
 });
-reflect.on('Type', type => {
+reflect.on('type', type => {
   const smallName = nice._decapitalize(type.name);
   function createProperty(z, name, ...as){
     const targetType = z.target;
@@ -2553,7 +2552,7 @@ Err = nice.Err;
   extends: nice.Value,
   proto: {}
 }).about('Parent type for all single value types.');
-reflect.on('Type', type => {
+reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
   });

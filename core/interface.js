@@ -15,7 +15,7 @@ nice.Type({
 
     a.forEach(k => (index[k] = index[k] || []).push(z));
 
-    reflect.on('Type', type => match(type, z) && z.matchingTypes.push(type));
+    reflect.on('type', type => match(type, z) && z.matchingTypes.push(type));
     Check(name, type => z.matchingTypes.includes(type._type || type));
 
     Object.freeze(z);

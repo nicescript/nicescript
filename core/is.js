@@ -74,7 +74,7 @@ for(let i in nice.jsTypes){
 };
 
 
-reflect.on('Type', function defineReducer(type) {
+reflect.on('type', function defineReducer(type) {
   type.name && Check
     .about('Checks if `v` has type `' + type.name + '`')
     ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);

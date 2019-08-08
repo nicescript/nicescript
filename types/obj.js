@@ -473,7 +473,7 @@ Mapping.Object('reduceTo', (o, res, f) => {
 });
 
 
-reflect.on('Type', type => {
+reflect.on('type', type => {
   const smallName = nice._decapitalize(type.name);
 
   function createProperty(z, name, ...as){

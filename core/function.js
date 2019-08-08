@@ -407,7 +407,7 @@ reflect.on('function', f => f.name && !skipedProto[f.name]
 );
 
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
-reflect.on('Type', handleType);
+reflect.on('type', handleType);
 Func = def(nice, 'Func', configurator());
 Action = def(nice, 'Action', configurator({functionType: 'Action'}));
 Mapping = def(nice, 'Mapping', configurator({functionType: 'Mapping'}));
@@ -415,7 +415,7 @@ Check = def(nice, 'Check', configurator({functionType: 'Check'}));
 
 
 const ro = def(nice, 'ReadOnly', {});
-reflect.on('Type', type => {
+reflect.on('type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
     expect(f).isFunction();
