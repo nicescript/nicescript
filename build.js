@@ -16,6 +16,7 @@ const order = [
   'core/column_storage',
   'core/js_type',
   'core/function',
+  'core/tests',
   'core/anything',
   'core/is',
   'core/expect',
@@ -42,7 +43,7 @@ const order = [
 ];
 
 
-let src = ';let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;' +
+let src = ';let nice;(function(){let create,Div,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;' +
   order.map(name => fs.readFileSync('./' + name + '.js'))
     .map(wrap)
     .map(cleanComments)

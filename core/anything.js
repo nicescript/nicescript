@@ -409,6 +409,15 @@ nice.registerType({
       return this;
     },
 
+    test (s, f) {
+      const z = this;
+      nice.reflect.emitAndSave('test', {
+        body: f || s,
+        description: f ? s : z.target.name || '',
+      });
+      return z;
+    },
+
     //TODO: replace with Mapping??
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
@@ -429,6 +438,15 @@ nice.registerType({
   }
 });
 
+
+Test(function listen(Num){
+  const n = Num();
+  let res;
+  n.listen(v => res = v());
+  expect(res).is(0);
+  n(1);
+  expect(res).is(1);
+});
 
 //function notify(z){
 //  let needNotification = '_oldValue' in z;

@@ -1,4 +1,4 @@
-;let nice;(function(){let create,Div,Func,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;
+;let nice;(function(){let create,Div,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -134,6 +134,7 @@ defAll(nice, {
     nice.types[name] = type;
     def(nice, name, type);
     def(type.proto, '_is' + name, true);
+    
     reflect.emitAndSave('Type', type);
   },
   _each: (o, f) => {
@@ -452,7 +453,7 @@ nice.Configurator = (o, ...a) => {
     types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
     o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
     o.description = s.description;
-    o.tests = s.tests.map(wrapTest(s));
+    
     o.type = s.type
     res.functions.push(o);
     (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
@@ -811,16 +812,21 @@ nice.jsBasicTypes = {
   next (o) {
     const c = Configurator(this.name || o.name);
     c.signature = (this.signature || []).concat(o.signature || []);
-    ['existing', 'functionType', 'returnValue', 'description', 'tests']
+    ['existing', 'functionType', 'returnValue', 'description']
       .forEach(k => c[k] = o[k] || this[k]);
     return c;
   },
   about (s) { return this.next({ description: s}); },
   test (s, f) {
-    return this.next({ tests: this.tests.concat([{
+    const z = this;
+    nice.reflect.emitAndSave('test', {
       body: f || s,
-      description: f ? s : ''
-    }])});
+      description: f ? s : '',
+      get name(){
+        return z.name;
+      }
+    });
+    return z;
   },
 };
 const functionProto = {
@@ -867,13 +873,7 @@ const functionProto = {
   },
   about (s) {
     return configurator({ description: s });
-  },
-  test (s, f) {
-    return configurator({ tests: this.tests.concat([{
-      body: f || s,
-      description: f ? s : ''
-    }])});
-  },
+  }
 };
 defGet(functionProto, 'help',  function () {
   if(!nice.doc)
@@ -906,19 +906,17 @@ function Configurator(name){
       name: z.name || name,
       body: body || z.body,
       signature: (z.signature || []).concat(signature || []),
-      tests : z.tests
     });
     return z.returnValue || res;
   });
   nice.rewriteProperty(z, 'name', name || '');
-  z.tests = [];
   return z;
 }
 function configurator(...a){
   const cfg = parseParams(...a);
   return Configurator(cfg.name).next(cfg);
 };
-function createFunction({ existing, name, body, signature, type, description, tests }){
+function createFunction({ existing, name, body, signature, type, description }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
@@ -938,7 +936,7 @@ function createFunction({ existing, name, body, signature, type, description, te
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, f, tests });
+      { name, body, signature, type, description, f });
   }
   return f;
 };
@@ -1160,33 +1158,43 @@ reflect.on('Type', type => {
     return this;
   };
 });
+nice.reflect.on('itemUse', item => {
+  const call = nice.reflect.currentCall;
+  call === undefined || call.add(item);
+});
+})();
+(function(){"use strict";Test = def(nice, 'Test', (f, s) => nice.reflect.emitAndSave('test', {
+  body: f || s,
+  description: (f && f.name) || '',
+}));
+const colors = {
+  blue: s => '\x1b[34m' + s + '\x1b[0m',
+  red: s => '\x1b[31m' + s + '\x1b[0m',
+  green: s => '\x1b[32m' + s + '\x1b[0m',
+};
 def(nice, 'runTests', () => {
   console.log('');
-  console.log(' \x1b[34mRunning tests\x1b[0m');
+  console.log(' ', colors.blue('Running tests'));
   console.log('');
   let good = 0, bad = 0, start = Date.now();
-  const f = (t, name) => runTest(t, name) ? good++ : bad++;
-  nice.reflect.on('signature', s => s.tests.forEach(t => f(t, s.name)));
+  nice.reflect.on('test', t => runTest(t) ? good++ : bad++);
   console.log(' ');
-  console.log(bad ? '\x1b[31m' : '\x1b[32m',
-    `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
+  console.log(colors[bad ? 'red' : 'green']
+    (`Tests done. OK: ${good}, Error: ${bad}`), `(${Date.now() - start}ms)`);
   console.log('');
 });
-function runTest(t, name){
+function runTest(t){
   try {
     t.body(...nice.argumentNames(t.body).map(n => nice[n]));
     return true;
   } catch (e) {
-    console.log('Error while testing ', name, t.description);
+    console.log(colors.red('Error while testing ' + (t.name || '') + ' '
+        + (t.description || '')));
     console.log(t.body.toString());
     console.error('  ', e);
     return false;
   }
 }
-nice.reflect.on('itemUse', item => {
-  const call = nice.reflect.currentCall;
-  call === undefined || call.add(item);
-});
 })();
 (function(){"use strict";
 const proxy = new Proxy({}, {
@@ -1477,6 +1485,14 @@ nice.registerType({
       this.target.description = nice.format(...a);
       return this;
     },
+    test (s, f) {
+      const z = this;
+      nice.reflect.emitAndSave('test', {
+        body: f || s,
+        description: f ? s : z.target.name || '',
+      });
+      return z;
+    },
     
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
@@ -1493,6 +1509,14 @@ nice.registerType({
     def(this, name, v);
     return this;
   }
+});
+Test(function listen(Num){
+  const n = Num();
+  let res;
+  n.listen(v => res = v());
+  expect(res).is(0);
+  n(1);
+  expect(res).is(1);
 });
 function notifyItem(f, value){
   f._isAnything ? f._doCompute() : f(value);
@@ -1815,6 +1839,7 @@ expect = nice.expect;
   create(parent.configProto, child.configProto);
   create(parent.types, child.types);
   parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
+  
   reflect.emitAndSave('Extension', { child, parent });
   child.super = parent;
 });

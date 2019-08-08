@@ -3,7 +3,7 @@ const configProto = {
     const c = Configurator(this.name || o.name);
 
     c.signature = (this.signature || []).concat(o.signature || []);
-    ['existing', 'functionType', 'returnValue', 'description', 'tests']
+    ['existing', 'functionType', 'returnValue', 'description']
       .forEach(k => c[k] = o[k] || this[k]);
 
     return c;
@@ -12,10 +12,15 @@ const configProto = {
   about (s) { return this.next({ description: s}); },
 
   test (s, f) {
-    return this.next({ tests: this.tests.concat([{
+    const z = this;
+    nice.reflect.emitAndSave('test', {
       body: f || s,
-      description: f ? s : ''
-    }])});
+      description: f ? s : '',
+      get name(){
+        return z.name;
+      }
+    });
+    return z;
   },
 };
 
@@ -65,14 +70,7 @@ const functionProto = {
 
   about (s) {
     return configurator({ description: s });
-  },
-
-  test (s, f) {
-    return configurator({ tests: this.tests.concat([{
-      body: f || s,
-      description: f ? s : ''
-    }])});
-  },
+  }
 };
 
 defGet(functionProto, 'help',  function () {
@@ -114,15 +112,11 @@ function Configurator(name){
       name: z.name || name,
       body: body || z.body,
       signature: (z.signature || []).concat(signature || []),
-      tests : z.tests
     });
     return z.returnValue || res;
   });
 
   nice.rewriteProperty(z, 'name', name || '');
-
-  z.tests = [];
-
   return z;
 }
 
@@ -134,7 +128,7 @@ function configurator(...a){
 
 
 //optimization: create function that don't check fist argument for type.proto
-function createFunction({ existing, name, body, signature, type, description, tests }){
+function createFunction({ existing, name, body, signature, type, description }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw "Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`;
@@ -159,7 +153,7 @@ function createFunction({ existing, name, body, signature, type, description, te
       type && reflect.emitAndSave(type, f);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, f, tests });
+      { name, body, signature, type, description, f });
   }
 
   return f;
@@ -429,34 +423,6 @@ reflect.on('Type', type => {
     return this;
   };
 });
-
-
-def(nice, 'runTests', () => {
-  console.log('');
-  console.log(' \x1b[34mRunning tests\x1b[0m');
-  console.log('');
-  let good = 0, bad = 0, start = Date.now();
-  const f = (t, name) => runTest(t, name) ? good++ : bad++;
-  nice.reflect.on('signature', s => s.tests.forEach(t => f(t, s.name)));
-  console.log(' ');
-  console.log(bad ? '\x1b[31m' : '\x1b[32m',
-    `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
-  console.log('');
-});
-
-
-function runTest(t, name){
-  try {
-    t.body(...nice.argumentNames(t.body).map(n => nice[n]));
-    return true;
-  } catch (e) {
-    console.log('Error while testing ', name, t.description);
-    console.log(t.body.toString());
-    console.error('  ', e);
-    return false;
-  }
-}
-
 
 nice.reflect.on('itemUse', item => {
   const call = nice.reflect.currentCall;

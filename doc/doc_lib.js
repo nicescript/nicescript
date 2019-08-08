@@ -15,7 +15,8 @@ nice.generateDoc = () => {
     types.forEach((v,k) => args[k] = args[k] ? v + ' ' + args[k] : v);
     o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
     o.description = s.description;
-    o.tests = s.tests.map(wrapTest(s));
+    //TODO: lookup tests
+//    o.tests = s.tests.map(wrapTest(s));
     o.type = s.type
 
 /*      _each(s, (v, k) => nice.Switch(k)
