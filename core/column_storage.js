@@ -122,6 +122,11 @@ class ColumnStorage {
 //  }
 
   update (i, k, v) {
+    if(typeof k === 'object'){
+      _each((_v, _k) => this.update(_k, _v));
+      return this;
+    }
+
     if(i > this.lastId)
       throw 'No such id ', i;
 
@@ -171,10 +176,31 @@ const db = new ColumnStorage(
   '_parent',
   '_name',
   '_isHot',
+  '_listeners',
+  '_itemListeners',
+  '_deepListeners',
   {name: '_size', defaultValue: 0 },
   {name: '_itemsType', defaultValue: null },
   {name: '_subscribers', defaultBy: () => new Map() },
-  {name: '_subscriptions', defaultBy: () => [] }
+  {name: '_subscriptions', defaultBy: () => [] },
+  {name: '_transaction', defaultBy: () => ({ depth:0 }) }
 );
 
 def(nice, '_db', db);
+
+
+db.on('_value', (id, value, oldValue) => {
+  const tr = db.getValue(id, '_transaction');
+  if(tr === undefined)
+    return console.log('NO TRANSACTION!');
+
+  '_value' in tr || (tr._value = oldValue);
+});
+
+db.on('_type', (id, value, oldValue) => {
+  const tr = db.getValue(id, '_transaction');
+  if(tr === undefined)
+    return console.log('NO TRANSACTION!');
+
+  '_type' in tr || (tr._type = oldValue);
+});

@@ -18,6 +18,8 @@ const spy = (...a) => console.log('Spy:', ...a);
 
 var div = Div();
 
+div.listen(spy);
+
 //const o = Obj({ q:1, a:2 });
 //o.jsValue;
 //spy(nice.remove(o, 'q').jsValue);

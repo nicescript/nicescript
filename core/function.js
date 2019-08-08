@@ -436,24 +436,26 @@ def(nice, 'runTests', () => {
   console.log(' \x1b[34mRunning tests\x1b[0m');
   console.log('');
   let good = 0, bad = 0, start = Date.now();
-  nice.reflect.on('signature', s => {
-    s.tests.forEach(t => {
-      try {
-        t.body(...nice.argumentNames(t.body).map(n => nice[n]));
-        good++;
-      } catch (e) {
-        bad ++;
-        console.log('Error while testing ', s.name, t.description);
-        console.log(t.body.toString());
-        console.error('  ', e);
-      }
-    });
-  });
+  const f = (t, name) => runTest(t, name) ? good++ : bad++;
+  nice.reflect.on('signature', s => s.tests.forEach(t => f(t, s.name)));
   console.log(' ');
   console.log(bad ? '\x1b[31m' : '\x1b[32m',
     `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
   console.log('');
 });
+
+
+function runTest(t, name){
+  try {
+    t.body(...nice.argumentNames(t.body).map(n => nice[n]));
+    return true;
+  } catch (e) {
+    console.log('Error while testing ', name, t.description);
+    console.log(t.body.toString());
+    console.error('  ', e);
+    return false;
+  }
+}
 
 
 nice.reflect.on('itemUse', item => {

@@ -687,6 +687,10 @@ reflect = nice.reflect;
     return this;
   }
   update (i, k, v) {
+    if(typeof k === 'object'){
+      _each((_v, _k) => this.update(_k, _v));
+      return this;
+    }
     if(i > this.lastId)
       throw 'No such id ', i;
     const old = this.data[k][i];
@@ -727,12 +731,28 @@ const db = new ColumnStorage(
   '_parent',
   '_name',
   '_isHot',
+  '_listeners',
+  '_itemListeners',
+  '_deepListeners',
   {name: '_size', defaultValue: 0 },
   {name: '_itemsType', defaultValue: null },
   {name: '_subscribers', defaultBy: () => new Map() },
-  {name: '_subscriptions', defaultBy: () => [] }
+  {name: '_subscriptions', defaultBy: () => [] },
+  {name: '_transaction', defaultBy: () => ({ depth:0 }) }
 );
 def(nice, '_db', db);
+db.on('_value', (id, value, oldValue) => {
+  const tr = db.getValue(id, '_transaction');
+  if(tr === undefined)
+    return console.log('NO TRANSACTION!');
+  '_value' in tr || (tr._value = oldValue);
+});
+db.on('_type', (id, value, oldValue) => {
+  const tr = db.getValue(id, '_transaction');
+  if(tr === undefined)
+    return console.log('NO TRANSACTION!');
+  '_type' in tr || (tr._type = oldValue);
+});
 })();
 (function(){"use strict";nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
 const jsHierarchy = {
@@ -1145,24 +1165,24 @@ def(nice, 'runTests', () => {
   console.log(' \x1b[34mRunning tests\x1b[0m');
   console.log('');
   let good = 0, bad = 0, start = Date.now();
-  nice.reflect.on('signature', s => {
-    s.tests.forEach(t => {
-      try {
-        t.body(...nice.argumentNames(t.body).map(n => nice[n]));
-        good++;
-      } catch (e) {
-        bad ++;
-        console.log('Error while testing ', s.name, t.description);
-        console.log(t.body.toString());
-        console.error('  ', e);
-      }
-    });
-  });
+  const f = (t, name) => runTest(t, name) ? good++ : bad++;
+  nice.reflect.on('signature', s => s.tests.forEach(t => f(t, s.name)));
   console.log(' ');
   console.log(bad ? '\x1b[31m' : '\x1b[32m',
     `Tests done. OK: ${good}, Error: ${bad}\x1b[0m (${Date.now() - start}ms)`);
   console.log('');
 });
+function runTest(t, name){
+  try {
+    t.body(...nice.argumentNames(t.body).map(n => nice[n]));
+    return true;
+  } catch (e) {
+    console.log('Error while testing ', name, t.description);
+    console.log(t.body.toString());
+    console.error('  ', e);
+    return false;
+  }
+}
 nice.reflect.on('itemUse', item => {
   const call = nice.reflect.currentCall;
   call === undefined || call.add(item);
@@ -1305,15 +1325,15 @@ nice.registerType({
         this._set('_value', v);
       });
     },
-    compute (){
+    _compute (){
       if(!this._functionName || this._isHot)
         return;
-      this.doCompute();
+      this._doCompute();
     },
-    doCompute () {
+    _doCompute () {
       this._args.forEach(a => {
         if(a._isAnything){
-          a._isHot || a.compute();
+          a._isHot || a._compute();
           a.listen(this);
         }
       });
@@ -1321,71 +1341,75 @@ nice.registerType({
         const result = nice[this._functionName](...this._args);
         this._changeValue(result);
       } catch (e) {
-        this._changeValue('Error while doCompute', Err)
+        this._changeValue('Error while _doCompute', Err)
       }
     },
-    listen (f, target) {
-      if(typeof f === 'object' && !f._isAnything){
-        f = this._itemsListener(f);
+    listen (f, key) {
+      key === undefined && (key = f);
+      const ls = this._listeners || (this._listeners = new Map());
+      if(ls.has(key))
+        return;
+      let isHot = false;
+      if(f._isAnything){
+        isHot = f._isHot;
+      } else {
+        typeof f === 'function' || (f = objectListener(f));
+        isHot = true;
       }
-      const key = target || f;
-      const ss = this._subscribers = this._subscribers || new Map();
-      if(!ss.has(key)){
-        this.compute();
-        ss.set(key, f);
+      ls.set(key, f);
+      if(isHot){
+        this._compute();
         this._set('_isHot', true);
         this.isPending() || notifyItem(f, this);
       }
-      if(target) {
-        target._subscriptions.push(this);
-      }
-      return () => this.unsubscribe(key);
     },
-    listenChanges(f, target) {
-      let counter = 0;
-      if(typeof f === 'object'){
-        f = this._itemsListener(f);
-      }
-      this.listen((...a) => counter++ && f(...a), target || f);
+    get _listeners(){
+      return nice._db.getValue(this._id, '_listeners');
     },
-    listenChildren (f, path = [], skip = true) {
-      this.listen(this.isObj()
-        ? {
-            onRemove: (v, k) => {
-              
-              v.unsubscribe && v.unsubscribe(f);
-              f(null, path.concat(k));
-            },
-            onAdd: (v, k) => {
-              const _path = path.concat(k);
-              skip || f(v, _path);
-              v && v._isAnything&& v.listenChildren(f, _path, skip);
-            }
-          }
-        : v => skip || f(v, path),
-      f);
-      skip = false;
+    set _listeners(v){
+      nice._db.update(this._id, '_listeners', v);
+      return true;
+    },
+    listenItems (f) {
+      typeof f === 'function' || (f = objectListener(f));
+    },
+    listenDeep (f) {
+      typeof f === 'function' || (f = objectListener(f));
+    },
+    get _transaction () {
+      return nice._db.getValue(this._id, '_transaction');
     },
     transactionStart (){
       if('_locked' in this)
         throw nice.LOCKED_ERROR;
-      this._transactionDepth++;
+      this._transaction.depth++;
       return this;
     },
     transactionEnd (){
-      if(--this._transactionDepth > 0)
+      const tr = this._transaction;
+      if(--tr.depth > 0)
         return false;
-      this._transactionDepth = 0;
-      if(!('_oldValue' in this) || this._oldValue !== this._value)
-        notify(this);
-      delete this._newValue;
-    },
-    transactionRollback (){
-      this._transactionDepth > 0 && (this._result = this.initState);
-      this._transactionDepth = 0;
-      this.initState = null;
-      delete this._newValue;
-      return this;
+      const db = nice._db;
+      tr.depth = 0;
+      if('_value' in tr || '_type' in tr){
+        const ls = this._listeners;
+        ls && ls.forEach(f => notifyItem(f, this));
+        const parentId = this._parent;
+        if(parentId !== undefined){
+          const ls = db.getValue(parentId, '_itemListeners');
+          ls && ls.forEach(f => notifyItem(f, this));
+        }
+        let nextParentId = this._parent;
+        let path = [];
+        
+        while(nextParentId !== undefined){
+          const ls = db.getValue(nextParentId, '_deepListeners');
+          path.unshift(nextParentId);
+          ls && ls.forEach(f => f(this, path));
+          nextParentId = db.getValue(nextParentId, '_parent');
+        }
+      }
+      delete this._transaction;
     },
     get _isHot() {
       if(this._has('_hot'))
@@ -1405,7 +1429,7 @@ nice.registerType({
       return this;
     },
     listenOnce (f, target) {
-      this._isHot || this.compute();
+      this._isHot || this._compute();
       if(this._isResolved())
         return f(this);
       const key = target || f;
@@ -1470,17 +1494,11 @@ nice.registerType({
     return this;
   }
 });
-function notify(z){
-  let needNotification = '_oldValue' in z;
-  if(needNotification && z._subscribers){
-    z._notifing = true;
-    z._isResolved() && z._subscribers.forEach(s => notifyItem(s, z));
-    z._notifing = false;
-  }
-  delete z._oldValue;
-};
 function notifyItem(f, value){
-  f._isAnything ? f.doCompute() : f(value);
+  f._isAnything ? f._doCompute() : f(value);
+}
+function objectListener(o){
+  return (k, v) => k in o && o[k](v);
 }
 Anything = nice.Anything;
 defGet(Anything.proto, function jsValue() { return this._value; });
