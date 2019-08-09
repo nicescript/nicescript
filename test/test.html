@@ -20,6 +20,17 @@ var div = Div();
 
 div.listen(spy);
 
+var proto = {
+  get qwe(){
+    
+  },
+  set qwe(v){
+    console.log('SEEEEEE');
+  }
+};
+
+var o = nice.create(proto);
+
 //const o = Obj({ q:1, a:2 });
 //o.jsValue;
 //spy(nice.remove(o, 'q').jsValue);

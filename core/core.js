@@ -79,6 +79,16 @@ defAll(nice, {
     return item;
   },
 
+  _assertItem(_parent, _name) {
+    const db = this._db;
+    let id = db.findKey({_parent, _name});
+    if(id === null){
+      db.push({ _parent, _name});
+//      db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
+      id = db.lastId;
+    }
+    return this._getItem(id);
+  },
 
   _assignType(item, type) {;
     Object.setPrototypeOf(item, type.proto);
@@ -105,7 +115,7 @@ defAll(nice, {
         f._type.itemArgsN(f, a);
       }
       return this || f;
-    }
+    };
     f._id = id;
 
 //    const p = new Proxy(f, {
@@ -141,9 +151,10 @@ defAll(nice, {
 //      }
 //    });
 
-    f._transactionDepth = 0;
-    f._oldValue = undefined;
-    f._newValue = undefined;
+//    f._transactionDepth = 0;
+//    f._oldValue = undefined;
+//    f._newValue = undefined;
+//  TODO: 
     f._notifing = false;
 
     this._assignType(f, type);

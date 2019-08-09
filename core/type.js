@@ -46,7 +46,7 @@ defAll(nice, {
       return nice._createItem(type, a);
     };
 
-    config.proto._type = type;
+//    config.proto._type = type;
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
     nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);

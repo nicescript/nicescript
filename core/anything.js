@@ -123,9 +123,10 @@ nice.registerType({
     super (...as){
       const type = this._type;
       const superType = type.super;
-      this._type = superType;
+//      ??
+//      this._type = superType;
       superType.initBy(this, ...as);
-      this._type = type;
+//      this._type = type;
       return this;
     },
 
@@ -216,7 +217,10 @@ nice.registerType({
 
     listen (f, key) {
       key === undefined && (key = f);
-      const ls = this._listeners || (this._listeners = new Map());
+
+      const z = this, db = nice._db;
+      let ls = db.getValue(z._id, '_listeners');
+      ls === undefined && db.update(z._id, '_listeners', ls = new Map());
 
       if(ls.has(key))
         return;
@@ -238,17 +242,31 @@ nice.registerType({
       }
     },
 
-    get _listeners(){
-      return nice._db.getValue(this._id, '_listeners');
-    },
+    listenItems (f, key) {
+      key === undefined && (key = f);
 
-    set _listeners(v){
-      nice._db.update(this._id, '_listeners', v);
-      return true;
-    },
+      const db = nice._db;
+      let ls = db.getValue(this._id, '_itemsListeners');
+      ls === undefined && db.update(this._id, '_itemsListeners', ls = new Map());
 
-    listenItems (f) {
+      if(ls.has(key))
+        return;
+
       typeof f === 'function' || (f = objectListener(f));
+
+      ls.set(key, f);
+      this._compute();
+      this._set('_isHot', true);
+      this.isPending() || notifyItem(f, this);
+    },
+
+    get _deepListeners(){
+      return nice._db.getValue(this._id, '_deepListeners');
+    },
+
+    set _deepListeners(v){
+      nice._db.update(this._id, '_deepListeners', v);
+      return true;
     },
 
     listenDeep (f) {
@@ -275,48 +293,31 @@ nice.registerType({
       if(--tr.depth > 0)
         return false;
 
-      const db = nice._db;
+      const db = nice._db, z = this;
       tr.depth = 0;
 
-//      if(!('_oldValue' in this) || this._oldValue !== this._value)
       if('_value' in tr || '_type' in tr){
-        const ls = this._listeners;
-        ls && ls.forEach(f => notifyItem(f, this));
+        const ls = db.getValue(z._id, '_listeners');
+        ls && ls.forEach(f => notifyItem(f, z));
 
-        const parentId = this._parent;
+        const parentId = z._parent;
         if(parentId !== undefined){
-          const ls = db.getValue(parentId, '_itemListeners');
-          ls && ls.forEach(f => notifyItem(f, this));
+          const ls = db.getValue(parentId, '_itemsListeners');
+          ls && ls.forEach(f => notifyItem(f, z));
         }
 
-        let nextParentId = this._parent;
+        let nextParentId = z._parent;
         let path = [];
         //TODO: protection from loop
         while(nextParentId !== undefined){
           const ls = db.getValue(nextParentId, '_deepListeners');
           path.unshift(nextParentId);
-          ls && ls.forEach(f => f(this, path));
+          ls && ls.forEach(f => f(z, path));
           nextParentId = db.getValue(nextParentId, '_parent');
         }
-
-//        function notify(z){
-//          let needNotification = '_oldValue' in z;
-//
-//          if(needNotification && z._subscribers){
-//            z._notifing = true;
-//            z._isResolved() && z._subscribers.forEach(s => notifyItem(s, z));
-//            z._notifing = false;
-//          }
-//
-//          delete z._oldValue;
-//        };
-//
       }
-//        notify(this);
 
       delete this._transaction;
-//      this._oldValue === this._value || notify(this);
-//      delete this._newValue;
     },
 
 //    transactionRollback (){
@@ -476,5 +477,5 @@ defGet(Anything.proto, 'switch', function () { return Switch(this); });
 
 
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
-Anything.proto._type = Anything;
+//Anything.proto._type = Anything;
 

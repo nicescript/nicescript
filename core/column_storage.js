@@ -83,6 +83,10 @@ class ColumnStorage {
     return value;
   }
 
+  hasValue (id, column) {
+    return id in  this.data[column];
+  }
+
   getRow (i) {
     if(i >= this.lastId)
       return null;
@@ -177,7 +181,7 @@ const db = new ColumnStorage(
   '_name',
   '_isHot',
   '_listeners',
-  '_itemListeners',
+  '_itemsListeners',
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
   {name: '_itemsType', defaultValue: null },
@@ -190,17 +194,24 @@ def(nice, '_db', db);
 
 
 db.on('_value', (id, value, oldValue) => {
-  const tr = db.getValue(id, '_transaction');
-  if(tr === undefined)
+  if(!db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
-
+  const tr = db.getValue(id, '_transaction');
   '_value' in tr || (tr._value = oldValue);
 });
 
 db.on('_type', (id, value, oldValue) => {
-  const tr = db.getValue(id, '_transaction');
-  if(tr === undefined)
+  if(!db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
 
+  const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
+
+  if(!oldValue || oldValue === nice.NotFound){
+    const pId = db.getValue(id, '_parent');
+    db.update(pId, '_size', db.getValue(pId, '_size') + 1);
+  } else if (!value || value === nice.NotFound){
+    const pId = db.getValue(id, '_parent');
+    db.update(pId, '_size', db.getValue(pId, '_size') - 1);
+  }
 });

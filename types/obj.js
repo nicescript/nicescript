@@ -91,6 +91,21 @@ nice.Type({
     z._itemsType = t;
   });
 
+Test((Obj) => {
+  const o = Obj();
+  let res;
+  let name;
+  o.listenItems(v => {
+    res = v();
+    name = v._name;
+  });
+  expect(res).is(undefined);
+  expect(name).is(undefined);
+  o.set('q', 1);
+  expect(res).is(1);
+//  expect(name).is('q');
+});
+
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
 Func.Nothing('each', () => 0);
@@ -200,32 +215,38 @@ A('set', (z, key, value, ...tale) => {
   if(value === null)
     return z.remove(_name);
 
-  const db = nice._db;
-  const id = db.findKey({_parent: z._id, _name});
-  let _type, _value = value;
+//  const item = nice._assertItem(z._id, _name);
+  const item = z.get(_name);
+  item.transactionStart();
+  const isNice = value._isAnything;
+  item._value = isNice ? value._value : value;
+  item._type = isNice ? value._type : nice.valueType(value);
+  item.transactionEnd();
 
-  if (value._isAnything){
-    if(!z._id)
-      throw 'err 94834839';
-    if(id !== null && z._id !== id)
-      throw 'TODO:0 err 948v43';
-    if(value._name || value._parent){
-      throw 'TODO:0 rveo484';
-    } else {
-      value._name = _name;
-      value._parent = z._id;
-    }
-  } else {
-    _type = nice.valueType(_value);
-    if(id === null){
-      db.push({ _value, _type, _parent: z._id, _name});
-      db.update(z._id, '_size', db.getValue(z._id, '_size') + 1);
-    } else {
-      db.update(id, { _value, _type });
-    }
-  }
+//  const id = db.findKey({_parent, _name});
+//  if (value._isAnything){
+//    if(!_parent)
+//      throw 'err 94834839';
+//    if(id !== null)
+//      throw 'TODO:0 err 948v43';
+//    if(value._name || value._parent){
+//      throw 'TODO:0 rveo484';
+//    } else {
+//      value._name = _name;
+//      value._parent = _parent;
+//      nice._notify(value, {});
+//    }
+//  } else {
+//    let _type = nice.valueType(_value), _value = value;
+//    if(id === null){
+//      db.push({ _value, _type, _parent, _name});
+//      id = db.lastId;
+//      db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
+//    } else {
+//      db.update(id, { _value, _type });
+//    }
+//  }
 
-  return;
   //TODO:0 restore type check
 //  z.transactionStart();
 //  const type = z._itemsType || (z._type.types && z._type.types[key]);
@@ -248,6 +269,18 @@ A('set', (z, key, value, ...tale) => {
 //  }
 //  z.transactionEnd();
 });
+
+function assertChild(parent, name, type){
+  let _type, _value = value, _parent = z._id;
+  _type = nice.valueType(_value);
+  if(id === null){
+    db.push({ _value, _type, _parent, _name});
+    id = db.lastId;
+    db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
+  } else {
+    db.update(id, { _value, _type });
+  }
+};
 
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
@@ -287,7 +320,6 @@ A.test((remove, Obj) => {
   } else {
     db.delete(id);
   }
-  db.update(z._id, '_size', db.getValue(z._id, '_size') - 1);
 });
 
 //A('removeValue', (o, v) => {
@@ -441,10 +473,8 @@ M.Function(function count(o, f) {
 
 
 Check.Object
-  .test((includes, Obj) => {
+  .test((includes) => {
     const o = {q:1,z:3};
-    expect(Obj(o).includes(2)).is(false);
-    expect(Obj(o).includes(3)).is(true);
     expect(includes(o, 2)).is(false);
     expect(includes(o, 3)).is(true);
   })
@@ -453,6 +483,25 @@ Check.Object
       if(is(o[i], t))
         return true;
     return false;
+  });
+
+Check.Obj
+  .test((includes, Obj) => {
+    const o = Obj({q:1,z:3});
+    expect(o.includes(2)).is(false);
+    expect(o.includes(3)).is(true);
+    expect(includes(o, 2)).is(false);
+    expect(includes(o, 3)).is(true);
+  })
+  ('includes', (o, t) => {
+    let res = false;
+    o.each(v => {
+      if(v.is(t)){
+        res = true;
+        return nice.Stop();
+      }
+    });
+    return res;
   });
 
 //M.Function('mapAndFilter', (o, f) => nice.with({}, res => {
