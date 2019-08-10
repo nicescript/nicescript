@@ -157,12 +157,15 @@ class ColumnStorage {
   }
 
   delete (id) {
+    const row = [];
     _each(this.data, (v, k) => {
       if(id in v){
-        const val = v[id];
-        delete v[id];
-        this.emit(k, id, null, val);
+        row.push(k);
+        this.emit(k, id, null, v[id]);
       }
+    });
+    row.forEach(k => {
+      delete this.data[k][id];
     });
     this.size--;
     this.emit('delete', id);
@@ -200,6 +203,7 @@ db.on('_value', (id, value, oldValue) => {
   '_value' in tr || (tr._value = oldValue);
 });
 
+
 db.on('_type', (id, value, oldValue) => {
   if(!db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
@@ -214,4 +218,19 @@ db.on('_type', (id, value, oldValue) => {
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') - 1);
   }
+});
+
+
+db.on('_name', (id, value, oldValue) => {
+  const parent = db.getValue(id, '_parent')
+  let index = db.getValue(parent, '_value');
+  if(index === undefined){
+    //TODO: array for arrays db.getValue(parent, '_type').isArr();
+    db.update(parent, '_value', index = {});
+  }
+
+  if(oldValue !== null && oldValue !== undefined)
+    delete index[oldValue];
+  if(value !== null && value !== undefined)
+    index[value] = id;
 });

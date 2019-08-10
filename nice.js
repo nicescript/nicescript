@@ -721,12 +721,15 @@ reflect = nice.reflect;
     this.size = data[Object.keys(data)[0]].length;
   }
   delete (id) {
+    const row = [];
     _each(this.data, (v, k) => {
       if(id in v){
-        const val = v[id];
-        delete v[id];
-        this.emit(k, id, null, val);
+        row.push(k);
+        this.emit(k, id, null, v[id]);
       }
+    });
+    row.forEach(k => {
+      delete this.data[k][id];
     });
     this.size--;
     this.emit('delete', id);
@@ -768,6 +771,18 @@ db.on('_type', (id, value, oldValue) => {
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') - 1);
   }
+});
+db.on('_name', (id, value, oldValue) => {
+  const parent = db.getValue(id, '_parent')
+  let index = db.getValue(parent, '_value');
+  if(index === undefined){
+    
+    db.update(parent, '_value', index = {});
+  }
+  if(oldValue !== null && oldValue !== undefined)
+    delete index[oldValue];
+  if(value !== null && value !== undefined)
+    index[value] = id;
 });
 })();
 (function(){"use strict";nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
@@ -2169,14 +2184,12 @@ A
   (function setDefault (i, ...as) {
     this.has(i) || this.set(i, ...as);
   });
-F(function each(o, f){
-  const id = o._id;
-  const parents = nice._db.data._parent;
-  const names = nice._db.data._name;
-  for(let k in parents)
-    if(parents[k] === id && nice.isStop(f(nice._getItem(k), names[k])))
+F(function each(z, f){
+  const index = z._value;
+  for(let i in index){
+    if(nice.isStop(f(nice._getItem(index[i]), i)))
       break;
-  return o;
+  }
 });
 Mapping.Object.test(Obj => {
   const o = Obj({qwe:1});
@@ -2252,7 +2265,7 @@ A.test((remove, Obj) => {
   const id = db.findKey({_parent: z._id, _name: key});
   if(id === null)
     return;
-  if(nice._db.data._isHot[id]){
+  if(db.data._isHot[id]){
     db.update(id, '_type', nice.NotFound);
     db.update(id, '_value', null);
   } else {
@@ -2689,8 +2702,8 @@ M.Function('reduceRight', (a, f, res) => {
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 A.test((add, Arr) => {
-    expect(Arr(1,2).add(2)()).deepEqual([1,2]);
-    expect(Arr(1,2).add(3)()).deepEqual([1,2,3]);
+    expect(Arr(1,2).add(2).jsValue).deepEqual([1,2]);
+    expect(Arr(1,2).add(3).jsValue).deepEqual([1,2,3]);
   })
   ('add', (z, ...a) => {
     a.forEach(v => z.includes(v) || z.push(v));
@@ -2703,40 +2716,35 @@ A('pull', (z, item) => {
 });
 A.Number('insertAt', (z, i, v) => {
   i = +i;
-  if(z._isHot){
-    const old = z._items;
-    z._oldValue = z._oldValue || {};
-    z._newValue = z._newValue || {};
-    z._newValue[i] = v;
-    z._items = [];
-    nice._each(old, (_v, k) => {
-      +k === i && z._items.push(v);
-      z._items.push(_v);
-    });
-    if(old.length <= i)
-      z._items[i] = v;
-  } else {
-    z._items.splice(i, 0, v);
-  }
+  z.each((c, k) => k > i && (c._name = k + 1));
+  z.set(i, v);
 });
 A('insertAfter', (z, target, v) => {
-  let i;
-  for(i in z._items)
-    if(is(target, z._items[i]))
-      break;
-  z.insertAt(+i+1, v);
+  z.each((v, k) => v.is(target) && z.insertAt(+k+1, v) && nice.Stop());
 });
-A('removeAt', (z, i) => {
-  i = +i;
-  if(z._isHot){
-    const old = z._items;
-    z._oldValue = z._oldValue || {};
-    z._oldValue[i] = old[i];
-    z._items = [];
-    nice._each(old, (v, k) => +k === i || z._items.push(v));
+A('remove', (z, k) => {
+  k = +k;
+  const db = nice._db;
+  const id = db.findKey({_parent: z._id, _name: k});
+  if(id === null)
+    return;
+  if(db.data._isHot[id]){
+    db.update(id, '_type', nice.NotFound);
+    db.update(id, '_value', null);
   } else {
-    z._items.splice(i, 1);
+    db.delete(id);
   }
+  _each(z._value, (v, _k) => {
+    _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
+  });
+});
+Test(Arr => {
+  const a = Arr(1,2,3,4);
+  expect(a.size).is(4);
+  expect(a.get(1)).is(2);
+  a.remove(1);
+  expect(a.size).is(3);
+  expect(a.get(1)).is(3);
 });
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
@@ -2745,10 +2753,10 @@ F('callEach', (z, ...a) => {
 A.test((removeValue, Arr) => {
     expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
   })
-  .about('Remove all values equal to `v` from `a`.')('removeValue', (a, v) => {
-  for(let i in a._items)
-    is(v, a._items[i]) && a.removeAt(i);
-});
+  .about('Remove all values equal to `v` from `a`.')
+  ('removeValue', (z, target) => {
+    z.each((v, k) => v.is(target) && z.remove(k));
+  });
 Action.Array
   .test(removeValue => {
     expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
@@ -3605,9 +3613,9 @@ Input.extend('Checkbox', (z, status) => {
       z._autoId();
       z.on('domNode', n => node = n);
     }
-    z.options.listen({onAdd: v => z.add(Html('option').add(v.label)
+    z.options.listenChildren(v => z.add(Html('option').add(v.label)
         .apply(o => o.attributes.set('value', v.value)))
-    });
+    );
     Switch(values)
       .isObject().each(z.option.bind(z))
       .isArray().each(v => Switch(v)

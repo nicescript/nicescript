@@ -137,17 +137,17 @@ A
     this.has(i) || this.set(i, ...as);
   });
 
-F(function each(o, f){
-  const id = o._id;
-  const parents = nice._db.data._parent;
-  const names = nice._db.data._name;
-  for(let k in parents)
-    if(parents[k] === id && nice.isStop(f(nice._getItem(k), names[k])))
-      break;
-//  for(let k in o._items)
-//    if(nice.isStop(f(o._items[k], k)))
+F(function each(z, f){
+//  const parents = nice._db.data._parent;
+//  const names = nice._db.data._name;
+//  for(let k in parents)
+//    if(parents[k] === id && nice.isStop(f(nice._getItem(k), names[k])))
 //      break;
-  return o;
+  const index = z._value;
+  for(let i in index){
+    if(nice.isStop(f(nice._getItem(index[i]), i)))
+      break;
+  }
 });
 
 
@@ -314,7 +314,7 @@ A.test((remove, Obj) => {
   if(id === null)
     return;
 
-  if(nice._db.data._isHot[id]){
+  if(db.data._isHot[id]){
     db.update(id, '_type', nice.NotFound);
     db.update(id, '_value', null);
   } else {
