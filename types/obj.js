@@ -145,8 +145,10 @@ F(function each(z, f){
 //      break;
   const index = z._value;
   for(let i in index){
-    if(nice.isStop(f(nice._getItem(index[i]), i)))
-      break;
+    const item = nice._getItem(index[i]);
+    if(!item.isNotFound())
+      if(nice.isStop(f(nice._getItem(index[i]), i)))
+        break;
   }
 });
 

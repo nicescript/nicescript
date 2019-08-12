@@ -45,9 +45,17 @@ const constructors = {
     }, z.children);
   },
   Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-  Arr: (z, a, f) => a.listen({
-    onRemove: (v, k) => z.children.removeAt(k),
-    onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-  }, z.children),
+//  Arr: (z, a, f) => a.listenItems(v => v.isNotFound()
+//    ? z.children.removeAt(v._name)
+//    : z.children.insertAt(v._name, f(v, v._name))
+//  , z.children),
+    Arr: (z, a, f) => a.listenItems({
+      NotFound: v => z.children.removeAt(v._name),
+      '*': v => z.children.insertAt(v._name, f(v, v._name))
+    }, z.children),
+//  Arr: (z, a, f) => a.listen({
+//    onRemove: (v, k) => z.children.removeAt(k),
+//    onAdd: (v, k) => z.children.insertAt(k, f(v, k))
+//  }, z.children),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
 };

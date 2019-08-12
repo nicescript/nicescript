@@ -257,7 +257,7 @@ nice.registerType({
       ls.set(key, f);
       this._compute();
       this._set('_isHot', true);
-      this.isPending() || notifyItem(f, this);
+      this.isPending() || this.each(v => notifyItem(f, v));
     },
 
     get _deepListeners(){
@@ -457,7 +457,13 @@ function notifyItem(f, value){
 }
 
 function objectListener(o){
-  return (k, v) => k in o && o[k](v);
+  return v => {
+    for(let i in o){
+      if(i !== '*' && v['is' + i]())
+        return o[i](v);
+    }
+    o['*'] && o['*'](v);
+  };
 }
 
 Anything = nice.Anything;

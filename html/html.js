@@ -96,6 +96,46 @@ nice.Type({
 
 const Html = nice.Html;
 
+Test('Simple html element with string child', Html => {
+  expect(Html().add('qwe').html).is('<div>qwe</div>');
+});
+
+Test("insert Html", (Html) => {
+  const div = Html('li');
+  const div2 = Html('b');
+  div.add(div2);
+  //TODO:
+//  expect(div.html).is('<li><b>qwe</b></li>');
+});
+
+Test("Html tag name", (Html) => {
+  expect(Html('li').html).is('<li></li>');
+});
+
+Test("Html class name", (Html) => {
+  expect(Html().class('qwe').html).is('<div class="qwe"></div>');
+});
+
+Test("Html children array", (Div) => {
+  expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');
+});
+
+Test("Html children Arr", (Div, Arr) => {
+  expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
+});
+
+Test("item child", function(Num, Html) {
+  const n = Num(5);
+  const n2 = Num(7);
+  const div = Html().add(n, n2);
+  expect(div.html).is('<div>57</div>');
+  n2(8);
+  //TODO:
+//  expect(div.html).is('<ol>58</ol>');
+});
+
+
+
 nice.Type('Style')
   .about('Represents CSS style.');
 
@@ -438,10 +478,10 @@ if(nice.isEnvBrowser()){
   Func.Html('attachNode', (e, node) => {
     e._shownNodes = e._shownNodes || new WeakMap();
     const ss = [];
-    ss.push(e.children.listen({
-        onRemove: (v, k) => removeNode(node.childNodes[k], v),
-        onAdd: (v, k) => nice.show(v, node, k)
-      }),
+    ss.push(e.children.listenItems(v => v.isNothing()
+        ? removeNode(node.childNodes[k], v._name)
+        : nice.show(v, node, v._name)
+      ),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
         onAdd: (v, k) => nice.isBox(v)
@@ -452,6 +492,11 @@ if(nice.isEnvBrowser()){
         onRemove: (v, k) => delete node[k],
         onAdd: (v, k) => node[k] = v
       }),
+//      e.attributes.listen(v => {
+//        v._type === NotFound
+//          ? delete node[v._name]
+//          : node[v._name] = v
+//      }),
       e.cssSelectors.listen({
         onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
         onAdd: (v, k) => addRules(v, k, getAutoClass(node.className))

@@ -16,12 +16,11 @@ const { Arr, Type, Check, Mapping, Switch, is,
    get, expect, Num, Str, Obj, _1, _2, _3 } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-var div = Div();
-
-div.listen(spy);
-
-var a = Arr(1,2,3);
-a.jsValue;
+  const div = Html('li');
+  const div2 = Html('b').add('qwe');
+  div.add(div2);
+  expect(div.html).is('<li><b>qwe</b></li>');
+  
 
 //const o = Obj({ q:1, a:2 });
 //o.each(spy);

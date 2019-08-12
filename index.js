@@ -754,13 +754,13 @@ const db = new ColumnStorage(
 );
 def(nice, '_db', db);
 db.on('_value', (id, value, oldValue) => {
-  if(!db.hasValue(id, '_transaction'))
+  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_value' in tr || (tr._value = oldValue);
 });
 db.on('_type', (id, value, oldValue) => {
-  if(!db.hasValue(id, '_transaction'))
+  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
@@ -1400,7 +1400,7 @@ nice.registerType({
       ls.set(key, f);
       this._compute();
       this._set('_isHot', true);
-      this.isPending() || notifyItem(f, this);
+      this.isPending() || this.each(v => notifyItem(f, v));
     },
     get _deepListeners(){
       return nice._db.getValue(this._id, '_deepListeners');
@@ -1542,7 +1542,13 @@ function notifyItem(f, value){
   f._isAnything ? f._doCompute() : f(value);
 }
 function objectListener(o){
-  return (k, v) => k in o && o[k](v);
+  return v => {
+    for(let i in o){
+      if(i !== '*' && v['is' + i]())
+        return o[i](v);
+    }
+    o['*'] && o['*'](v);
+  };
 }
 Anything = nice.Anything;
 defGet(Anything.proto, function jsValue() { return this._value; });
@@ -2166,8 +2172,10 @@ Test((Obj, setDefault) => {
 F(function each(z, f){
   const index = z._value;
   for(let i in index){
-    if(nice.isStop(f(nice._getItem(index[i]), i)))
-      break;
+    const item = nice._getItem(index[i]);
+    if(!item.isNotFound())
+      if(nice.isStop(f(nice._getItem(index[i]), i)))
+        break;
   }
 });
 Mapping.Object('get', (o, path) => {
@@ -3165,6 +3173,32 @@ const Html = nice.Html;
 Test('Simple html element with string child', Html => {
   expect(Html().add('qwe').html).is('<div>qwe</div>');
 });
+Test("insert Html", (Html) => {
+  const div = Html('li');
+  const div2 = Html('b');
+  div.add(div2);
+  
+});
+Test("Html tag name", (Html) => {
+  expect(Html('li').html).is('<li></li>');
+});
+Test("Html class name", (Html) => {
+  expect(Html().class('qwe').html).is('<div class="qwe"></div>');
+});
+Test("Html children array", (Div) => {
+  expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');
+});
+Test("Html children Arr", (Div, Arr) => {
+  expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
+});
+Test("item child", function(Num, Html) {
+  const n = Num(5);
+  const n2 = Num(7);
+  const div = Html().add(n, n2);
+  expect(div.html).is('<div>57</div>');
+  n2(8);
+  
+});
 nice.Type('Style')
   .about('Represents CSS style.');
 const Style = nice.Style;
@@ -3400,10 +3434,10 @@ if(nice.isEnvBrowser()){
   Func.Html('attachNode', (e, node) => {
     e._shownNodes = e._shownNodes || new WeakMap();
     const ss = [];
-    ss.push(e.children.listen({
-        onRemove: (v, k) => removeNode(node.childNodes[k], v),
-        onAdd: (v, k) => nice.show(v, node, k)
-      }),
+    ss.push(e.children.listenItems(v => v.isNothing()
+        ? removeNode(node.childNodes[k], v._name)
+        : nice.show(v, node, v._name)
+      ),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
         onAdd: (v, k) => nice.isBox(v)
@@ -3508,10 +3542,10 @@ const constructors = {
     }, z.children);
   },
   Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-  Arr: (z, a, f) => a.listen({
-    onRemove: (v, k) => z.children.removeAt(k),
-    onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-  }, z.children),
+    Arr: (z, a, f) => a.listenItems({
+      NotFound: v => z.children.removeAt(v._name),
+      '*': v => z.children.insertAt(v._name, f(v, v._name))
+    }, z.children),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
 };
 })();
