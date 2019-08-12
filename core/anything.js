@@ -410,15 +410,6 @@ nice.registerType({
       return this;
     },
 
-    test (s, f) {
-      const z = this;
-      nice.reflect.emitAndSave('test', {
-        body: f || s,
-        description: f ? s : z.target.name || '',
-      });
-      return z;
-    },
-
     //TODO: replace with Mapping??
     ReadOnly (...a){
       const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];

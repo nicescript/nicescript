@@ -143,13 +143,14 @@ M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0)
 
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
 
-A.test((add, Arr) => {
-    expect(Arr(1,2).add(2).jsValue).deepEqual([1,2]);
-    expect(Arr(1,2).add(3).jsValue).deepEqual([1,2,3]);
-  })
-  ('add', (z, ...a) => {
-    a.forEach(v => z.includes(v) || z.push(v));
-  });
+A('add', (z, ...a) => {
+  a.forEach(v => z.includes(v) || z.push(v));
+});
+
+Test((add, Arr) => {
+  expect(Arr(1,2).add(2).jsValue).deepEqual([1,2]);
+  expect(Arr(1,2).add(3).jsValue).deepEqual([1,2,3]);
+});
 
 
 A('pull', (z, item) => {
@@ -221,24 +222,25 @@ F('callEach', (z, ...a) => {
   return z;
 });
 
-A.test((removeValue, Arr) => {
-    expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
-  })
-  .about('Remove all values equal to `v` from `a`.')
+A.about('Remove all values equal to `v` from `a`.')
   ('removeValue', (z, target) => {
     z.each((v, k) => v.is(target) && z.remove(k));
 //    for(let i in a._items)
 //      is(v, a._items[i]) && a.removeAt(i);
   });
 
-Action.Array
-  .test(removeValue => {
-    expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
-  })
-  .about('Remove all values equal to `v` from `a`.')
+Test((removeValue, Arr) => {
+  expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
+});
+
+Action.Array.about('Remove all values equal to `v` from `a`.')
   ('removeValue', (a, v) => {
     nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
+
+Test(removeValue => {
+  expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
+});
 
 
 //function _each(z, f){
@@ -376,11 +378,12 @@ M.about('Creates new array with aboutseparator between elments.')
 });
 
 M.about('Returns last element of `a`.')
-  .test((last, Arr) => {
-    expect(Arr(1,2,4).last()).is(4);
-  })
-(function last(a) {
+  (function last(a) {
   return a.get(a._size - 1);
+});
+
+Test((last, Arr) => {
+  expect(Arr(1,2,4).last()).is(4);
 });
 
 
@@ -396,11 +399,12 @@ M.about('Returns last element of `a`.')
 
 
 M.about('Returns first element of `a`.')
-  .test((Arr) => {
-    expect(Arr(1,2,4).first()).is(1);
-  })
-(function first(a) {
-  return a.get(0);
+  (function first(a) {
+    return a.get(0);
+  });
+
+Test((Arr, first) => {
+  expect(Arr(1,2,4).first()).is(1);
 });
 
 

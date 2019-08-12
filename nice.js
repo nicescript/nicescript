@@ -847,17 +847,6 @@ nice.jsBasicTypes = {
     return c;
   },
   about (s) { return this.next({ description: s}); },
-  test (s, f) {
-    const z = this;
-    nice.reflect.emitAndSave('test', {
-      body: f || s,
-      description: f ? s : '',
-      get name(){
-        return z.name;
-      }
-    });
-    return z;
-  },
 };
 const functionProto = {
   addSignature (body, signature, name){
@@ -1193,10 +1182,10 @@ nice.reflect.on('itemUse', item => {
   call === undefined || call.add(item);
 });
 })();
-(function(){"use strict";Test = def(nice, 'Test', (f, s) => nice.reflect.emitAndSave('test', {
-  body: f || s,
-  description: (f && f.name) || '',
-}));
+(function(){"use strict";Test = def(nice, 'Test', (...a) => {
+  const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
+  nice.reflect.emitAndSave('test', { body, description });
+});
 const colors = {
   blue: s => '\x1b[34m' + s + '\x1b[0m',
   red: s => '\x1b[31m' + s + '\x1b[0m',
@@ -1218,8 +1207,7 @@ function runTest(t){
     t.body(...nice.argumentNames(t.body).map(n => nice[n]));
     return true;
   } catch (e) {
-    console.log(colors.red('Error while testing ' + (t.name || '') + ' '
-        + (t.description || '')));
+    console.log(colors.red('Error while testing ' + (t.description || '')));
     console.log(t.body.toString());
     console.error('  ', e);
     return false;
@@ -1524,14 +1512,6 @@ nice.registerType({
     about (...a) {
       this.target.description = nice.format(...a);
       return this;
-    },
-    test (s, f) {
-      const z = this;
-      nice.reflect.emitAndSave('test', {
-        body: f || s,
-        description: f ? s : z.target.name || '',
-      });
-      return z;
     },
     
     ReadOnly (...a){
@@ -2172,18 +2152,17 @@ C('has', (o, key) => {
       return true;
   return false;
 });
-A
-  .about(`Set value if it's missing.`)
-  .test((Obj) => {
-    const o = Obj({a:1});
-    o.setDefault('a', 2);
-    expect(o.get('a').is(1));
-    o.setDefault('z', 2);
-    expect(o.get('a').is(2))
-  })
+A.about(`Set value if it's missing.`)
   (function setDefault (i, ...as) {
     this.has(i) || this.set(i, ...as);
   });
+Test((Obj, setDefault) => {
+  const o = Obj({a:1});
+  o.setDefault('a', 2);
+  expect(o.get('a').is(1));
+  o.setDefault('z', 2);
+  expect(o.get('a').is(2))
+});
 F(function each(z, f){
   const index = z._value;
   for(let i in index){
@@ -2191,9 +2170,7 @@ F(function each(z, f){
       break;
   }
 });
-Mapping.Object.test(Obj => {
-  const o = Obj({qwe:1});
-})('get', (o, path) => {
+Mapping.Object('get', (o, path) => {
   if(Array.isArray(path)){
     let k = 0;
     while(k < path.length) {
@@ -2207,11 +2184,10 @@ Mapping.Object.test(Obj => {
     return o[path];
   }
 });
-M.test((Obj,NotFound) => {
-  const o = Obj({q:1});
-  expect(o.get('q')()).is(1);
-  expect(o.get('z')._type).is(NotFound);
-})('get', (z, key) => {
+Test((Obj, get) => {
+  const o = Obj({qwe:1});
+});
+M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
   const found = nice._db.findKey({_parent: z._id, _name: key});
@@ -2223,6 +2199,11 @@ M.test((Obj,NotFound) => {
   item._name = key;
   return item;
 });
+Test((Obj,NotFound) => {
+  const o = Obj({q:1});
+  expect(o.get('q')()).is(1);
+  expect(o.get('z')._type).is(NotFound);
+})
 Action.Object('set', (o, i, v) => {
   typeof i === 'function' && (i = i());
   o[i] = v;
@@ -2253,13 +2234,7 @@ function assertChild(parent, name, type){
   }
 };
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
-A.test((remove, Obj) => {
-  const o = Obj({ q:1, a:2 });
-  expect( o._size ).is(2);
-  expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
-  expect( o._size ).is(1);
-})
-.about('Remove element at `i`.')
+A.about('Remove element at `i`.')
 ('remove', (z, key) => {
   const db = nice._db;
   const id = db.findKey({_parent: z._id, _name: key});
@@ -2271,6 +2246,12 @@ A.test((remove, Obj) => {
   } else {
     db.delete(id);
   }
+});
+Test((remove, Obj) => {
+  const o = Obj({ q:1, a:2 });
+  expect( o._size ).is(2);
+  expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
+  expect( o._size ).is(1);
 });
 M(function reduce(o, f, res){
   o.each((v,k) => res = f(res, v, k));
@@ -2301,16 +2282,15 @@ C.Function(function some(c, f){
   });
   return res;
 });
-C
-  .about(`Check if every element in colection matches given check`)
-  .test(Obj => {
-    const o = Obj({a:1,b:2});
-    expect(o.every(v => v % 2)).is(false);
-    expect(o.every(v => v < 3)).is(true);
-    expect(o.every(v => v < 0)).is(false);
-  })
+C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
-  return !!c.reduce((res, v, k) => res && f(v, k), true);
+    return !!c.reduce((res, v, k) => res && f(v, k), true);
+  });
+Test((Obj, every) => {
+  const o = Obj({a:1,b:2});
+  expect(o.every(v => v % 2)).is(false);
+  expect(o.every(v => v < 3)).is(true);
+  expect(o.every(v => v < 0)).is(false);
 });
 M(function find(c, f){
   let res;
@@ -2338,36 +2318,34 @@ M.Function(function count(o, f) {
   o.each((v, k) => f(v, k) && n++);
   return nice.Num(n);
 });
-Check.Object
-  .test((includes) => {
-    const o = {q:1,z:3};
-    expect(includes(o, 2)).is(false);
-    expect(includes(o, 3)).is(true);
-  })
-  ('includes', (o, t) => {
-    for(let i in o)
-      if(is(o[i], t))
-        return true;
-    return false;
+Check.Object('includes', (o, t) => {
+  for(let i in o)
+    if(is(o[i], t))
+      return true;
+  return false;
+});
+Test((includes) => {
+  const o = {q:1,z:3};
+  expect(includes(o, 2)).is(false);
+  expect(includes(o, 3)).is(true);
+});
+Check.Obj('includes', (o, t) => {
+  let res = false;
+  o.each(v => {
+    if(v.is(t)){
+      res = true;
+      return nice.Stop();
+    }
   });
-Check.Obj
-  .test((includes, Obj) => {
-    const o = Obj({q:1,z:3});
-    expect(o.includes(2)).is(false);
-    expect(o.includes(3)).is(true);
-    expect(includes(o, 2)).is(false);
-    expect(includes(o, 3)).is(true);
-  })
-  ('includes', (o, t) => {
-    let res = false;
-    o.each(v => {
-      if(v.is(t)){
-        res = true;
-        return nice.Stop();
-      }
-    });
-    return res;
-  });
+  return res;
+});
+Test((includes, Obj) => {
+  const o = Obj({q:1,z:3});
+  expect(o.includes(2)).is(false);
+  expect(o.includes(3)).is(true);
+  expect(includes(o, 2)).is(false);
+  expect(includes(o, 3)).is(true);
+});
 M('getProperties',  z => apply([], res => {
   for(let i in z) z[i]._isProperty && res.push(z[i]);
 }));
@@ -2701,13 +2679,13 @@ M.Function('reduceRight', (a, f, res) => {
 });
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
-A.test((add, Arr) => {
-    expect(Arr(1,2).add(2).jsValue).deepEqual([1,2]);
-    expect(Arr(1,2).add(3).jsValue).deepEqual([1,2,3]);
-  })
-  ('add', (z, ...a) => {
-    a.forEach(v => z.includes(v) || z.push(v));
-  });
+A('add', (z, ...a) => {
+  a.forEach(v => z.includes(v) || z.push(v));
+});
+Test((add, Arr) => {
+  expect(Arr(1,2).add(2).jsValue).deepEqual([1,2]);
+  expect(Arr(1,2).add(3).jsValue).deepEqual([1,2,3]);
+});
 A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
@@ -2750,21 +2728,20 @@ F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
   return z;
 });
-A.test((removeValue, Arr) => {
-    expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
-  })
-  .about('Remove all values equal to `v` from `a`.')
+A.about('Remove all values equal to `v` from `a`.')
   ('removeValue', (z, target) => {
     z.each((v, k) => v.is(target) && z.remove(k));
   });
-Action.Array
-  .test(removeValue => {
-    expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
-  })
-  .about('Remove all values equal to `v` from `a`.')
+Test((removeValue, Arr) => {
+  expect(removeValue(Arr(1,2,3), 2).jsValue).deepEqual([1,3]);
+});
+Action.Array.about('Remove all values equal to `v` from `a`.')
   ('removeValue', (a, v) => {
     nice.eachRight(a, (_v, k) => is(_v, v) && a.splice(k,1));
   });
+Test(removeValue => {
+  expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
+});
 Func.Array.Function(function eachRight(a, f){
   let i = a.length;
   while (i-- > 0)
@@ -2821,18 +2798,18 @@ M.about('Creates new array with aboutseparator between elments.')
   return res;
 });
 M.about('Returns last element of `a`.')
-  .test((last, Arr) => {
-    expect(Arr(1,2,4).last()).is(4);
-  })
-(function last(a) {
+  (function last(a) {
   return a.get(a._size - 1);
 });
+Test((last, Arr) => {
+  expect(Arr(1,2,4).last()).is(4);
+});
 M.about('Returns first element of `a`.')
-  .test((Arr) => {
-    expect(Arr(1,2,4).first()).is(1);
-  })
-(function first(a) {
-  return a.get(0);
+  (function first(a) {
+    return a.get(0);
+  });
+Test((Arr, first) => {
+  expect(Arr(1,2,4).first()).is(1);
 });
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
@@ -2906,12 +2883,7 @@ log10
 log2
 log1pexpm1`.split('\n').forEach(k =>
   M.about('Wrapper for `Math.' + k + '`')(k, (n, ...a) => Math[k](n, ...a)));
-M.test(clamp => {
-  expect(clamp(0, 1, 3)).is(1);
-  expect(clamp(2, 1, 3)).is(2);
-  expect(clamp(10, 1, 3)).is(3);
-})
-('clamp', (n, min, max) => {
+M('clamp', (n, min, max) => {
   if(max === undefined){
     max = min;
     min = 0;
@@ -2922,15 +2894,20 @@ M.test(clamp => {
       ? max
       : n;
 });
-M.test(times => {
-  expect(times(2, () => 1)).deepEqual([1,1]);
-})
-.Function('times', (n, f) => {
+Test(clamp => {
+  expect(clamp(0, 1, 3)).is(1);
+  expect(clamp(2, 1, 3)).is(2);
+  expect(clamp(10, 1, 3)).is(3);
+});
+M.Function('times', (n, f) => {
   let i = 0;
   const res = [];
   while(i < n) res.push(f(i++));
   return res;
 });
+Test(times => {
+  expect(times(2, () => 1)).deepEqual([1,1]);
+})
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
@@ -3185,6 +3162,9 @@ nice.Type({
     });
   });
 const Html = nice.Html;
+Test('Simple html element with string child', Html => {
+  expect(Html().add('qwe').html).is('<div>qwe</div>');
+});
 nice.Type('Style')
   .about('Represents CSS style.');
 const Style = nice.Style;
@@ -3626,10 +3606,6 @@ Input.extend('Checkbox', (z, status) => {
   })
   .arr('options')
   .Action.about('Adds Option HTML element to Select HTML element.')
-    .test((Select) => {
-      expect(Select().id('q').option('v1', 1).html)
-          .is('<select id="q"><option value="1">v1</option></select>');
-    })
     (function option(z, label, value){
       value === undefined && (value = label);
       z.options.push({label, value});

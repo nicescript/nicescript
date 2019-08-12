@@ -1,7 +1,7 @@
-Test = def(nice, 'Test', (f, s) => nice.reflect.emitAndSave('test', {
-  body: f || s,
-  description: (f && f.name) || '',
-}));
+Test = def(nice, 'Test', (...a) => {
+  const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
+  nice.reflect.emitAndSave('test', { body, description });
+});
 
 const colors = {
   blue: s => '\x1b[34m' + s + '\x1b[0m',
@@ -28,8 +28,7 @@ function runTest(t){
     t.body(...nice.argumentNames(t.body).map(n => nice[n]));
     return true;
   } catch (e) {
-    console.log(colors.red('Error while testing ' + (t.name || '') + ' '
-        + (t.description || '')));
+    console.log(colors.red('Error while testing ' + (t.description || '')));
     console.log(t.body.toString());
     console.error('  ', e);
     return false;

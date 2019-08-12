@@ -10,18 +10,6 @@ const configProto = {
   },
 
   about (s) { return this.next({ description: s}); },
-
-  test (s, f) {
-    const z = this;
-    nice.reflect.emitAndSave('test', {
-      body: f || s,
-      description: f ? s : '',
-      get name(){
-        return z.name;
-      }
-    });
-    return z;
-  },
 };
 
 const functionProto = {

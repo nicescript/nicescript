@@ -75,12 +75,7 @@ log1pexpm1`.split('\n').forEach(k =>
   M.about('Wrapper for `Math.' + k + '`')(k, (n, ...a) => Math[k](n, ...a)));
 
 
-M.test(clamp => {
-  expect(clamp(0, 1, 3)).is(1);
-  expect(clamp(2, 1, 3)).is(2);
-  expect(clamp(10, 1, 3)).is(3);
-})
-('clamp', (n, min, max) => {
+M('clamp', (n, min, max) => {
   if(max === undefined){
     max = min;
     min = 0;
@@ -92,16 +87,22 @@ M.test(clamp => {
       : n;
 });
 
-M.test(times => {
-  expect(times(2, () => 1)).deepEqual([1,1]);
-})
-.Function('times', (n, f) => {
+Test(clamp => {
+  expect(clamp(0, 1, 3)).is(1);
+  expect(clamp(2, 1, 3)).is(2);
+  expect(clamp(10, 1, 3)).is(3);
+});
+
+M.Function('times', (n, f) => {
   let i = 0;
   const res = [];
   while(i < n) res.push(f(i++));
   return res;
 });
 
+Test(times => {
+  expect(times(2, () => 1)).deepEqual([1,1]);
+})
 
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));

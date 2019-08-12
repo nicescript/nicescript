@@ -124,18 +124,18 @@ C('has', (o, key) => {
   return false;
 });
 
-A
-  .about(`Set value if it's missing.`)
-  .test((Obj) => {
-    const o = Obj({a:1});
-    o.setDefault('a', 2);
-    expect(o.get('a').is(1));
-    o.setDefault('z', 2);
-    expect(o.get('a').is(2))
-  })
+A.about(`Set value if it's missing.`)
   (function setDefault (i, ...as) {
     this.has(i) || this.set(i, ...as);
   });
+
+Test((Obj, setDefault) => {
+  const o = Obj({a:1});
+  o.setDefault('a', 2);
+  expect(o.get('a').is(1));
+  o.setDefault('z', 2);
+  expect(o.get('a').is(2))
+});
 
 F(function each(z, f){
 //  const parents = nice._db.data._parent;
@@ -151,12 +151,7 @@ F(function each(z, f){
 });
 
 
-Mapping.Object.test(Obj => {
-  const o = Obj({qwe:1});
-//  expect(o.qwe === o.qwe).is(true);
-//  expect(o.asd === o.asd).is(true);
-
-})('get', (o, path) => {
+Mapping.Object('get', (o, path) => {
   if(Array.isArray(path)){
     let k = 0;
     while(k < path.length) {
@@ -172,11 +167,14 @@ Mapping.Object.test(Obj => {
 });
 
 
-M.test((Obj,NotFound) => {
-  const o = Obj({q:1});
-  expect(o.get('q')()).is(1);
-  expect(o.get('z')._type).is(NotFound);
-})('get', (z, key) => {
+Test((Obj, get) => {
+  const o = Obj({qwe:1});
+//  expect(o.qwe === o.qwe).is(true);
+//  expect(o.asd === o.asd).is(true);
+});
+
+
+M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
 
@@ -191,6 +189,11 @@ M.test((Obj,NotFound) => {
   return item;
 });
 
+Test((Obj,NotFound) => {
+  const o = Obj({q:1});
+  expect(o.get('q')()).is(1);
+  expect(o.get('z')._type).is(NotFound);
+})
 
 //M('getDefault', (z, i, v) => {
 //  if(i._isAnything === true)
@@ -300,13 +303,7 @@ A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 //  z._items = nice.reduceTo(o, {}, (res, v, k) => res[k] = v);
 //});
 
-A.test((remove, Obj) => {
-  const o = Obj({ q:1, a:2 });
-  expect( o._size ).is(2);
-  expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
-  expect( o._size ).is(1);
-})
-.about('Remove element at `i`.')
+A.about('Remove element at `i`.')
 ('remove', (z, key) => {
   const db = nice._db;
   const id = db.findKey({_parent: z._id, _name: key});
@@ -320,6 +317,13 @@ A.test((remove, Obj) => {
   } else {
     db.delete(id);
   }
+});
+
+Test((remove, Obj) => {
+  const o = Obj({ q:1, a:2 });
+  expect( o._size ).is(2);
+  expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
+  expect( o._size ).is(1);
 });
 
 //A('removeValue', (o, v) => {
@@ -421,16 +425,16 @@ C.Function(function some(c, f){
 
 
 
-C
-  .about(`Check if every element in colection matches given check`)
-  .test(Obj => {
-    const o = Obj({a:1,b:2});
-    expect(o.every(v => v % 2)).is(false);
-    expect(o.every(v => v < 3)).is(true);
-    expect(o.every(v => v < 0)).is(false);
-  })
+C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
-  return !!c.reduce((res, v, k) => res && f(v, k), true);
+    return !!c.reduce((res, v, k) => res && f(v, k), true);
+  });
+
+Test((Obj, every) => {
+  const o = Obj({a:1,b:2});
+  expect(o.every(v => v % 2)).is(false);
+  expect(o.every(v => v < 3)).is(true);
+  expect(o.every(v => v < 0)).is(false);
 });
 
 
@@ -472,37 +476,37 @@ M.Function(function count(o, f) {
 });
 
 
-Check.Object
-  .test((includes) => {
-    const o = {q:1,z:3};
-    expect(includes(o, 2)).is(false);
-    expect(includes(o, 3)).is(true);
-  })
-  ('includes', (o, t) => {
-    for(let i in o)
-      if(is(o[i], t))
-        return true;
-    return false;
-  });
+Check.Object('includes', (o, t) => {
+  for(let i in o)
+    if(is(o[i], t))
+      return true;
+  return false;
+});
 
-Check.Obj
-  .test((includes, Obj) => {
-    const o = Obj({q:1,z:3});
-    expect(o.includes(2)).is(false);
-    expect(o.includes(3)).is(true);
-    expect(includes(o, 2)).is(false);
-    expect(includes(o, 3)).is(true);
-  })
-  ('includes', (o, t) => {
-    let res = false;
-    o.each(v => {
-      if(v.is(t)){
-        res = true;
-        return nice.Stop();
-      }
-    });
-    return res;
+Test((includes) => {
+  const o = {q:1,z:3};
+  expect(includes(o, 2)).is(false);
+  expect(includes(o, 3)).is(true);
+});
+
+Check.Obj('includes', (o, t) => {
+  let res = false;
+  o.each(v => {
+    if(v.is(t)){
+      res = true;
+      return nice.Stop();
+    }
   });
+  return res;
+});
+
+Test((includes, Obj) => {
+  const o = Obj({q:1,z:3});
+  expect(o.includes(2)).is(false);
+  expect(o.includes(3)).is(true);
+  expect(includes(o, 2)).is(false);
+  expect(includes(o, 3)).is(true);
+});
 
 //M.Function('mapAndFilter', (o, f) => nice.with({}, res => {
 //  for(let i in o){
