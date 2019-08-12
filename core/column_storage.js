@@ -197,7 +197,7 @@ def(nice, '_db', db);
 
 
 db.on('_value', (id, value, oldValue) => {
-  if(!db.hasValue(id, '_transaction'))
+  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_value' in tr || (tr._value = oldValue);
@@ -205,7 +205,7 @@ db.on('_value', (id, value, oldValue) => {
 
 
 db.on('_type', (id, value, oldValue) => {
-  if(!db.hasValue(id, '_transaction'))
+  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
 
   const tr = db.getValue(id, '_transaction');
