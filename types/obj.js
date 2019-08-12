@@ -91,6 +91,35 @@ nice.Type({
     z._itemsType = t;
   });
 
+Test("Obj constructor", (Obj) => {
+  const a = Obj({a: 3});
+  expect(a.get('a')).is(3);
+  expect(a.get('q')).isNotFound();
+});
+
+Test("set / get primitive", (Obj) => {
+  const a = Obj();
+  a.set('a', 1);
+  expect(a.get('a')).is(1);
+  expect(a.get('q')).isNotFound();
+});
+
+Test("set / get with nice.Str as key", (Obj) => {
+  const a = Obj();
+  a.set('qwe', 1);
+  expect(a.get(nice('qwe'))).is(1);
+});
+
+Test("set the same and notify", (Obj, Spy) => {
+  const o = Obj({'qwe': 2});
+  const spy = Spy();
+  o.listenItems(() => spy());
+
+  o.set('qwe', 2);
+
+  expect(spy).calledOnce();
+});
+
 Test((Obj) => {
   const o = Obj();
   let res;
@@ -152,6 +181,15 @@ F(function each(z, f){
   }
 });
 
+Test("each stop", (each, Obj, Spy) => {
+  const spy = Spy();
+  Obj({qwe: 1, asd: 2}).each(n => {
+    spy(n);
+    return nice.Stop();
+  });
+  expect(spy).calledOnce();
+  expect(spy).calledWith(1);
+});
 
 Mapping.Object('get', (o, path) => {
   if(Array.isArray(path)){
@@ -222,11 +260,13 @@ A('set', (z, key, value, ...tale) => {
 
 //  const item = nice._assertItem(z._id, _name);
   const item = z.get(_name);
-  item.transactionStart();
-  const isNice = value._isAnything;
-  item._value = isNice ? value._value : value;
-  item._type = isNice ? value._type : nice.valueType(value);
-  item.transactionEnd();
+  if(!item.is(value)){
+    item.transactionStart();
+    const isNice = value._isAnything;
+    item._value = isNice ? value._value : value;
+    item._type = isNice ? value._type : nice.valueType(value);
+    item.transactionEnd();
+  }
 
 //  const id = db.findKey({_parent, _name});
 //  if (value._isAnything){

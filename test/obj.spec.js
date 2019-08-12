@@ -8,38 +8,6 @@ const even = n => n % 2 === 0;
 
 
 describe("Obj", function() {
-
-  it("constructor", function() {
-    const a = Obj({asd: 3});
-    expect(a.get('asd')).to.equal(3);
-    expect(a.get('qwe').isUndefined()).to.equal(true);
-  });
-
-
-  it("set / get primitive", function() {
-    const a = Obj();
-    a.set('qwe', 1);
-    expect(a.get('qwe')).to.equal(1);
-  });
-
-
-  it("set / get with nice.Str as key", function() {
-    const a = Obj();
-    a.set('qwe', 1);
-    expect(a.get(nice('qwe'))).to.equal(1);
-  });
-
-  it("set the same and notify", function() {
-    const o = Obj({'qwe': 2});
-    const spy = chai.spy();
-    o.listen({onAdd:spy});
-
-    o.set('qwe', 2);
-
-    expect(spy).to.have.been.called.once();
-  });
-
-
 //  it("get deep", function() {
 //    const a = Obj();
 //    const asd = a.getDeep(['qwe', 'asd']);
@@ -293,16 +261,6 @@ describe("Obj", function() {
   it("count", () => {
     const a = nice.Arr(1, 2, 3, 4, 5);
     expect(a.count(n => n % 2)()).to.equal(3);
-  });
-
-
-  it("each stop", () => {
-    let sum = 0;
-    Obj({qwe: 1, asd: 2}).each(n => {
-      sum += n;
-      return nice.Stop();
-    });
-    expect(sum).to.equal(1);
   });
 
 
