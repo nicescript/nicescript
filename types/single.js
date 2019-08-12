@@ -3,7 +3,11 @@ nice.Type({
 
   extends: nice.Value,
 
-  proto: {}
+  proto: {
+    [Symbol.toPrimitive]() {
+      return this.valueOf();
+    }
+  }
 }).about('Parent type for all single value types.');
 
 

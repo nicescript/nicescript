@@ -299,7 +299,7 @@ nice._eachEach = (o, f) => {
 };
 defAll(nice, {
   format (t, ...a) {
-    t = '' + t;
+    t = t ? '' + t : '';
     a.unshift(t.replace(formatRe, (match, ptn, flag) =>
         flag === '%' ? '%' : formatMap[flag](a.shift())));
     return a.join(' ');
@@ -1293,7 +1293,12 @@ nice.registerType({
     },
     
     valueOf () {
-      return '_value' in this ? this._value : undefined;
+      return '_value' in this ? ('' + this._value) : undefined;
+    },
+    toString () {
+      return this._type.name + '('
+        + ('_value' in this ? ('' + this._value) : '')
+        + ')#' + this._id;
     },
     super (...as){
       const type = this._type;
@@ -1400,7 +1405,7 @@ nice.registerType({
       ls.set(key, f);
       this._compute();
       this._set('_isHot', true);
-      this.isPending() || this.each(v => notifyItem(f, v));
+      this.isPending() || this.each(f);
     },
     get _deepListeners(){
       return nice._db.getValue(this._id, '_deepListeners');
@@ -1433,7 +1438,7 @@ nice.registerType({
         const parentId = z._parent;
         if(parentId !== undefined){
           const ls = db.getValue(parentId, '_itemsListeners');
-          ls && ls.forEach(f => notifyItem(f, z));
+          ls && ls.forEach(f => f(z));
         }
         let nextParentId = z._parent;
         let path = [];
@@ -1498,7 +1503,7 @@ nice.registerType({
       }
     },
     [Symbol.toPrimitive]() {
-      return this.jsValue;
+      return this.toString();
     }
   }, proxy),
   configProto: {
@@ -2190,6 +2195,29 @@ nice.jsTypes.isSubType = isSubType;
   .Action(function itemsType(z, t){
     z._itemsType = t;
   });
+Test("Obj constructor", (Obj) => {
+  const a = Obj({a: 3});
+  expect(a.get('a')).is(3);
+  expect(a.get('q')).isNotFound();
+});
+Test("set / get primitive", (Obj) => {
+  const a = Obj();
+  a.set('a', 1);
+  expect(a.get('a')).is(1);
+  expect(a.get('q')).isNotFound();
+});
+Test("set / get with nice.Str as key", (Obj) => {
+  const a = Obj();
+  a.set('qwe', 1);
+  expect(a.get(nice('qwe'))).is(1);
+});
+Test("set the same and notify", (Obj, Spy) => {
+  const o = Obj({'qwe': 2});
+  const spy = Spy();
+  o.listenItems(() => spy());
+  o.set('qwe', 2);
+  expect(spy).calledOnce();
+});
 Test((Obj) => {
   const o = Obj();
   let res;
@@ -2238,6 +2266,15 @@ F(function each(z, f){
         break;
   }
 });
+Test("each stop", (each, Obj, Spy) => {
+  const spy = Spy();
+  Obj({qwe: 1, asd: 2}).each(n => {
+    spy(n);
+    return nice.Stop();
+  });
+  expect(spy).calledOnce();
+  expect(spy).calledWith(1);
+});
 Mapping.Object('get', (o, path) => {
   if(Array.isArray(path)){
     let k = 0;
@@ -2283,11 +2320,13 @@ A('set', (z, key, value, ...tale) => {
   if(value === null)
     return z.remove(_name);
   const item = z.get(_name);
-  item.transactionStart();
-  const isNice = value._isAnything;
-  item._value = isNice ? value._value : value;
-  item._type = isNice ? value._type : nice.valueType(value);
-  item.transactionEnd();
+  if(!item.is(value)){
+    item.transactionStart();
+    const isNice = value._isAnything;
+    item._value = isNice ? value._value : value;
+    item._type = isNice ? value._type : nice.valueType(value);
+    item.transactionEnd();
+  }
   
 });
 function assertChild(parent, name, type){
@@ -2653,7 +2692,11 @@ Err = nice.Err;
 (function(){"use strict";nice.Type({
   name: 'Single',
   extends: nice.Value,
-  proto: {}
+  proto: {
+    [Symbol.toPrimitive]() {
+      return this.valueOf();
+    }
+  }
 }).about('Parent type for all single value types.');
 reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {

@@ -128,7 +128,7 @@ nice._eachEach = (o, f) => {
 
 defAll(nice, {
   format (t, ...a) {
-    t = '' + t;
+    t = t ? '' + t : '';
     a.unshift(t.replace(formatRe, (match, ptn, flag) =>
         flag === '%' ? '%' : formatMap[flag](a.shift())));
     return a.join(' ');

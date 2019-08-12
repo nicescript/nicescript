@@ -117,7 +117,13 @@ nice.registerType({
 //        return target[key];
 
     valueOf () {
-      return '_value' in this ? this._value : undefined;
+      return '_value' in this ? ('' + this._value) : undefined;
+    },
+
+    toString () {
+      return this._type.name + '('
+        + ('_value' in this ? ('' + this._value) : '')
+        + ')#' + this._id;
     },
 
     super (...as){
@@ -257,7 +263,7 @@ nice.registerType({
       ls.set(key, f);
       this._compute();
       this._set('_isHot', true);
-      this.isPending() || this.each(v => notifyItem(f, v));
+      this.isPending() || this.each(f);
     },
 
     get _deepListeners(){
@@ -303,7 +309,7 @@ nice.registerType({
         const parentId = z._parent;
         if(parentId !== undefined){
           const ls = db.getValue(parentId, '_itemsListeners');
-          ls && ls.forEach(f => notifyItem(f, z));
+          ls && ls.forEach(f => f(z));
         }
 
         let nextParentId = z._parent;
@@ -392,7 +398,7 @@ nice.registerType({
       }
     },
     [Symbol.toPrimitive]() {
-      return this.jsValue;
+      return this.toString();
     }
   }, proxy),
 
