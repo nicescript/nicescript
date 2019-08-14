@@ -166,16 +166,11 @@ Test((Obj, setDefault) => {
 });
 
 F(function each(z, f){
-//  const parents = nice._db.data._parent;
-//  const names = nice._db.data._name;
-//  for(let k in parents)
-//    if(parents[k] === id && nice.isStop(f(nice._getItem(k), names[k])))
-//      break;
-  const index = z._value;
+  const index = z._value, db = nice._db;
   for(let i in index){
-    const item = nice._getItem(index[i]);
+    const item = db.getValue(index[i], 'cache');
     if(!item.isNotFound())
-      if(nice.isStop(f(nice._getItem(index[i]), i)))
+      if(nice.isStop(f(item, i)))
         break;
   }
 });
@@ -206,20 +201,13 @@ Mapping.Object('get', (o, path) => {
 });
 
 
-Test((Obj, get) => {
-  const o = Obj({qwe:1});
-//  expect(o.qwe === o.qwe).is(true);
-//  expect(o.asd === o.asd).is(true);
-});
-
-
 M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
 
   const found = nice._db.findKey({_parent: z._id, _name: key});
   if(found !== null)
-    return nice._getItem(found);
+    return nice._db.getValue(found, 'cache');
 
   const type = z._type.types[key];
   const item = nice._createItem(type || nice.NotFound)

@@ -50,7 +50,7 @@ defAll(nice, {
     if(!type._isNiceType)
       throw('Bad type');
     const id = nice._db.push({_type: type}).lastId;
-    const item = this._getItem(id);
+    const item = nice._db.getValue(id, 'cache');
     type.onCreate && type.onCreate(item);
     type.initChildren(item);
     as === undefined
@@ -65,11 +65,10 @@ defAll(nice, {
       db.push({ _parent, _name});
       id = db.lastId;
     }
-    return this._getItem(id);
+    return db.getValue(id, 'cache');
   },
-  _assignType(item, type) {;
+  _assignType(item, type) {
     Object.setPrototypeOf(item, type.proto);
-    
   
   
   
@@ -91,7 +90,7 @@ defAll(nice, {
     };
     f._id = id;
     f._notifing = false;
-    this._assignType(f, type);
+    nice._assignType(f, type);
     return f;
   },
   valueType: v => {
@@ -660,7 +659,7 @@ reflect = nice.reflect;
     if(value === undefined){
       const by = this.defaultBy[column];
       if(by !== undefined){
-        value = by();
+        value = by(id);
         this.update(id, column, value);
       } else {
         value = this.defaults[column];
@@ -751,7 +750,8 @@ const db = new ColumnStorage(
   {name: '_itemsType', defaultValue: null },
   {name: '_subscribers', defaultBy: () => new Map() },
   {name: '_subscriptions', defaultBy: () => [] },
-  {name: '_transaction', defaultBy: () => ({ depth:0 }) }
+  {name: '_transaction', defaultBy: () => ({ depth:0 }) },
+  {name: 'cache', defaultBy: nice._getItem }
 );
 def(nice, '_db', db);
 db.on('_value', (id, value, oldValue) => {
@@ -765,6 +765,9 @@ db.on('_type', (id, value, oldValue) => {
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
+  if(value && db.hasValue(id, 'cache')){
+    nice._assignType(db.getValue(id, 'cache'), value);
+  }
   if(!oldValue || oldValue === nice.NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') + 1);
@@ -2272,11 +2275,11 @@ Test((Obj, setDefault) => {
   expect(o.get('a').is(2))
 });
 F(function each(z, f){
-  const index = z._value;
+  const index = z._value, db = nice._db;
   for(let i in index){
-    const item = nice._getItem(index[i]);
+    const item = db.getValue(index[i], 'cache');
     if(!item.isNotFound())
-      if(nice.isStop(f(nice._getItem(index[i]), i)))
+      if(nice.isStop(f(item, i)))
         break;
   }
 });
@@ -2303,15 +2306,12 @@ Mapping.Object('get', (o, path) => {
     return o[path];
   }
 });
-Test((Obj, get) => {
-  const o = Obj({qwe:1});
-});
 M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
   const found = nice._db.findKey({_parent: z._id, _name: key});
   if(found !== null)
-    return nice._getItem(found);
+    return nice._db.getValue(found, 'cache');
   const type = z._type.types[key];
   const item = nice._createItem(type || nice.NotFound)
   item._parent = z._id;

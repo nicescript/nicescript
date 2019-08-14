@@ -70,7 +70,7 @@ defAll(nice, {
       throw('Bad type');
 
     const id = nice._db.push({_type: type}).lastId;
-    const item = this._getItem(id);
+    const item = nice._db.getValue(id, 'cache');
     type.onCreate && type.onCreate(item);
     type.initChildren(item);
     as === undefined
@@ -87,12 +87,12 @@ defAll(nice, {
 //      db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
       id = db.lastId;
     }
-    return this._getItem(id);
+    return db.getValue(id, 'cache');
   },
 
-  _assignType(item, type) {;
+  _assignType(item, type) {
     Object.setPrototypeOf(item, type.proto);
-    
+
   //  'name' in type.proto && nice.eraseProperty(target, 'name');
   //  nice.eraseProperty(f, 'name');
   //  'length' in type.proto && nice.eraseProperty(target, 'length');
@@ -118,46 +118,10 @@ defAll(nice, {
     };
     f._id = id;
 
-//    const p = new Proxy(f, {
-//      get (target, key, z) {
-//        if(key === '_set' || key === '_get' || key === '_has')
-//          return target[key];
-//
-//        if(key === '_id')
-//          return target[key];
-//
-//        if(key === '_isAnything')
-//          return true;
-//
-//        if(key === '_value' || key === '_type' || key === '_items')
-//          nice.reflect.emit('itemUse', z);
-//
-//        //TODO: forbid public names with _
-//        if(key[0] === '_')
-//          return nice._db.getValue(target._id, key);
-//
-//        const type = target._get('_type');
-//        if(type.types[key])
-//          return f.get(key);
-//
-//        if(type.readOnlys[key])
-//          return type.readOnlys[key](f);
-//
-//        return target[key];
-//      },
-//      set (target, property, value) {
-//        return nice._db.update(target._id, property, value);
-//        return true;
-//      }
-//    });
-
-//    f._transactionDepth = 0;
-//    f._oldValue = undefined;
-//    f._newValue = undefined;
 //  TODO:
     f._notifing = false;
 
-    this._assignType(f, type);
+    nice._assignType(f, type);
 
     return f;
   },

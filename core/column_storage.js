@@ -73,7 +73,7 @@ class ColumnStorage {
     if(value === undefined){
       const by = this.defaultBy[column];
       if(by !== undefined){
-        value = by();
+        value = by(id);
         this.update(id, column, value);
       } else {
         value = this.defaults[column];
@@ -190,7 +190,8 @@ const db = new ColumnStorage(
   {name: '_itemsType', defaultValue: null },
   {name: '_subscribers', defaultBy: () => new Map() },
   {name: '_subscriptions', defaultBy: () => [] },
-  {name: '_transaction', defaultBy: () => ({ depth:0 }) }
+  {name: '_transaction', defaultBy: () => ({ depth:0 }) },
+  {name: 'cache', defaultBy: nice._getItem }
 );
 
 def(nice, '_db', db);
@@ -210,6 +211,10 @@ db.on('_type', (id, value, oldValue) => {
 
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
+
+  if(value && db.hasValue(id, 'cache')){
+    nice._assignType(db.getValue(id, 'cache'), value);
+  }
 
   if(!oldValue || oldValue === nice.NotFound){
     const pId = db.getValue(id, '_parent');
