@@ -92,7 +92,7 @@ defAll(nice, {
 
   _assignType(item, type) {;
     Object.setPrototypeOf(item, type.proto);
-
+    
   //  'name' in type.proto && nice.eraseProperty(target, 'name');
   //  nice.eraseProperty(f, 'name');
   //  'length' in type.proto && nice.eraseProperty(target, 'length');
@@ -154,7 +154,7 @@ defAll(nice, {
 //    f._transactionDepth = 0;
 //    f._oldValue = undefined;
 //    f._newValue = undefined;
-//  TODO: 
+//  TODO:
     f._notifing = false;
 
     this._assignType(f, type);

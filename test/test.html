@@ -13,13 +13,21 @@
 "use strict";
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, 
-   get, expect, Num, Str, Obj, _1, _2, _3 } = nice;
+   get, expect, Num, Str, Obj, _1, _2, _3, Test } = nice;
 const spy = (...a) => console.log('Spy:', ...a);
 
-  const div = Html('li');
-  const div2 = Html('b').add('qwe');
-  div.add(div2);
-  expect(div.html).is('<li><b>qwe</b></li>');
+  const cfg = Obj({a:2});
+  const user = Obj({});
+
+  user.set('q', cfg.get('a'));
+  expect(user.get('q')).is(2);
+
+  cfg.set('a', 3);
+  expect(user.get('q')).is(3);
+
+  user.set('q', 4);
+  cfg.set('a', 5);
+  expect(user.get('q')).is(4);
   
 
 //const o = Obj({ q:1, a:2 });

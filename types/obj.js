@@ -132,7 +132,6 @@ Test((Obj) => {
   expect(name).is(undefined);
   o.set('q', 1);
   expect(res).is(1);
-//  expect(name).is('q');
 });
 
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
@@ -263,8 +262,18 @@ A('set', (z, key, value, ...tale) => {
   if(!item.is(value)){
     item.transactionStart();
     const isNice = value._isAnything;
-    item._value = isNice ? value._value : value;
-    item._type = isNice ? value._type : nice.valueType(value);
+    if(value._isAnything) {
+      if(value._parent){
+        item._value = value;
+        item._type = nice.Reference;
+      } else {
+        item._value = value._value;
+        item._type = value._type;
+      }
+    } else {
+      item._value = value;
+      item._type = nice.valueType(value);
+    }
     item.transactionEnd();
   }
 
@@ -314,6 +323,22 @@ A('set', (z, key, value, ...tale) => {
 //  }
 //  z.transactionEnd();
 });
+
+Test('Set by link', (Obj) => {
+  const cfg = Obj({a:2});
+  const user = Obj({});
+
+  user.set('q', cfg.get('a'));
+  expect(user.get('q')).is(2);
+
+  cfg.set('a', 3);
+  expect(user.get('q')).is(3);
+
+  user.set('q', 4);
+  cfg.set('a', 5);
+  expect(user.get('q')).is(4);
+});
+
 
 function assertChild(parent, name, type){
   let _type, _value = value, _parent = z._id;

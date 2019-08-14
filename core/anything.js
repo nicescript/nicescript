@@ -3,6 +3,9 @@
  * 2. recalculate on each use when not hot?
  * 3.
  */
+
+//TODO: empty transactions on empty values
+
 const proxy = new Proxy({}, {
   get (o, k, receiver) {
     if(k[0] === '_')

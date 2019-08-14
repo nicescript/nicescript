@@ -28,8 +28,8 @@ def(nice, 'expectPrototype', {
 
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
-    if(!f(this.value, ...a)){
-      console.trace();
+    const res = f(this.value, ...a);
+    if(!res || (res && res._isAnything && res._type === nice.Err)){
       throw this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
     }
     return nice.Ok();

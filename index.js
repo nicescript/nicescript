@@ -69,6 +69,7 @@ defAll(nice, {
   },
   _assignType(item, type) {;
     Object.setPrototypeOf(item, type.proto);
+    
   
   
   
@@ -1840,8 +1841,8 @@ function DelayedSwitch(initArgs) {
 });
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
-    if(!f(this.value, ...a)){
-      console.trace();
+    const res = f(this.value, ...a);
+    if(!res || (res && res._isAnything && res._type === nice.Err)){
       throw this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
     }
     return nice.Ok();
@@ -1957,6 +1958,19 @@ nice.getType = v => {
 };
 defGet(Anything, 'help',  function () {
   return this.description;
+});
+})();
+(function(){"use strict";nice.Type({
+  name: 'Reference',
+  extends: 'Anything',
+  itemArgs0: z => z._ref(),
+  proto: new Proxy({}, {
+    get (o, k, receiver) {
+      if(!('_ref' in receiver))
+        def(receiver, '_ref', nice._db.getValue(receiver._id, '_value'));
+      return receiver._ref[k];
+    }
+  })
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2323,11 +2337,32 @@ A('set', (z, key, value, ...tale) => {
   if(!item.is(value)){
     item.transactionStart();
     const isNice = value._isAnything;
-    item._value = isNice ? value._value : value;
-    item._type = isNice ? value._type : nice.valueType(value);
+    if(value._isAnything) {
+      if(value._parent){
+        item._value = value;
+        item._type = nice.Reference;
+      } else {
+        item._value = value._value;
+        item._type = value._type;
+      }
+    } else {
+      item._value = value;
+      item._type = nice.valueType(value);
+    }
     item.transactionEnd();
   }
   
+});
+Test('Set by link', (Obj) => {
+  const cfg = Obj({a:2});
+  const user = Obj({});
+  user.set('q', cfg.get('a'));
+  expect(user.get('q')).is(2);
+  cfg.set('a', 3);
+  expect(user.get('q')).is(3);
+  user.set('q', 4);
+  cfg.set('a', 5);
+  expect(user.get('q')).is(4);
 });
 function assertChild(parent, name, type){
   let _type, _value = value, _parent = z._id;
