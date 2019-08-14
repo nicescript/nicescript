@@ -2,10 +2,8 @@
 nice.Obj.extend({
   name: 'Arr',
   onCreate: z => {
-//    z._items = [];
     z._itemsType = null;
   },
-//  itemArgs0: z => z._items,
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   proto: {
@@ -165,21 +163,6 @@ A.Number('insertAt', (z, i, v) => {
   i = +i;
   z.each((c, k) => k > i && (c._name = k + 1));
   z.set(i, v);
-//  if(z._isHot){
-//    const old = z._items;
-//    z._oldValue = z._oldValue || {};
-//    z._newValue = z._newValue || {};
-//    z._newValue[i] = v;
-//    z._items = [];
-//    nice._each(old, (_v, k) => {
-//      +k === i && z._items.push(v);
-//      z._items.push(_v);
-//    });
-//    if(old.length <= i)
-//      z._items[i] = v;
-//  } else {
-//    z._items.splice(i, 0, v);
-//  }
 });
 
 
@@ -225,8 +208,6 @@ F('callEach', (z, ...a) => {
 A.about('Remove all values equal to `v` from `a`.')
   ('removeValue', (z, target) => {
     z.each((v, k) => v.is(target) && z.remove(k));
-//    for(let i in a._items)
-//      is(v, a._items[i]) && a.removeAt(i);
   });
 
 Test((removeValue, Arr) => {
@@ -242,20 +223,6 @@ Test(removeValue => {
   expect(removeValue([1,2,3], 2)).deepEqual([1,3]);
 });
 
-
-//function _each(z, f){
-//  const a = z._items;
-//  const l = a.length;
-//  for (let i = 0; i < l; i++)
-//    if(nice.isStop(f(z._items[i], i)))
-//      break;
-//
-//  return z;
-//}
-
-//F.Function('each', (z, f) => {
-//
-//});
 
 Func.Array.Function(function eachRight(a, f){
   let i = a.length;

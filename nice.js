@@ -46,16 +46,18 @@ defAll(nice, {
       return nice.Err(e);
     }
   },
-  _createItem(type, as){
+  _createItem(type, args){
     if(!type._isNiceType)
       throw('Bad type');
     const id = nice._db.push({_type: type}).lastId;
     const item = nice._db.getValue(id, 'cache');
     type.onCreate && type.onCreate(item);
     type.initChildren(item);
-    as === undefined
+    args === undefined
       ? type.initBy && type.initBy(item)
-      : type.initBy ? type.initBy(item, ...as) : (as.length && item(...as));
+      : type.initBy
+        ? type.initBy(item, ...args)
+        : (args.length && item(...args));
     return item;
   },
   _assertItem(_parent, _name) {

@@ -2,11 +2,8 @@ nice.Type({
   name: 'Obj',
   extends: nice.Value,
   onCreate: z => {
-//    z._items = {};
     z._itemsType = null;
   },
-
-//  itemArgs0: z => z._items,
 
   itemArgs1: (z, o) => {
     const t = typeof o;
@@ -32,7 +29,6 @@ nice.Type({
   initChildren (item){
     _each(this.defaultArguments, (as, k) => {
       item.set(k, this.types[k](...as));
-//      item._items[k] = this.types[k](...as);
     });
   },
 
@@ -139,13 +135,13 @@ const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 Func.Nothing('each', () => 0);
 
 C('has', (o, key) => {
-  //k in o._items
   if(key._isAnything === true)
     key = key();
   const id = o._id;
   const parents = nice._db.data._parent;
-  const names = nice._db.data._name;
-  const types = nice._db.data._type;
+  const db = nice._db;
+  const names = db.data._name;
+  const types = db.data._type;
   for(let i in parents)
     if(parents[i] === id && names[i] === key && types[i] !== nice.NotFound)
       return true;
@@ -222,13 +218,6 @@ Test((Obj,NotFound) => {
   expect(o.get('z')._type).is(NotFound);
 })
 
-//M('getDefault', (z, i, v) => {
-//  if(i._isAnything === true)
-//    i = i();
-//
-//  return i in z._items ? z._items[i] : z._items[i] = v;
-//});
-
 
 Action.Object('set', (o, i, v) => {
   typeof i === 'function' && (i = i());
@@ -245,7 +234,6 @@ A('set', (z, key, value, ...tale) => {
   if(value === null)
     return z.remove(_name);
 
-//  const item = nice._assertItem(z._id, _name);
   const item = z.get(_name);
   if(!item.is(value)){
     item.transactionStart();
@@ -264,52 +252,6 @@ A('set', (z, key, value, ...tale) => {
     }
     item.transactionEnd();
   }
-
-//  const id = db.findKey({_parent, _name});
-//  if (value._isAnything){
-//    if(!_parent)
-//      throw 'err 94834839';
-//    if(id !== null)
-//      throw 'TODO:0 err 948v43';
-//    if(value._name || value._parent){
-//      throw 'TODO:0 rveo484';
-//    } else {
-//      value._name = _name;
-//      value._parent = _parent;
-//      nice._notify(value, {});
-//    }
-//  } else {
-//    let _type = nice.valueType(_value), _value = value;
-//    if(id === null){
-//      db.push({ _value, _type, _parent, _name});
-//      id = db.lastId;
-//      db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
-//    } else {
-//      db.update(id, { _value, _type });
-//    }
-//  }
-
-  //TODO:0 restore type check
-//  z.transactionStart();
-//  const type = z._itemsType || (z._type.types && z._type.types[key]);
-//  if(type){
-//    if(value && value._isAnything){
-//      if(!value._type.isSubType(type))
-//        throw `Expected item type is ${type.name} but ${value._type.name} is given.`;
-//    } else {
-//      value = type(value, ...tale);
-//    }
-//  }
-//  if(!is(value, z._items[key])){
-//    if(z._isHot){
-//      z._oldValue = z._oldValue || {};
-//      z._oldValue[key] = z._items[key];
-//      z._newValue = z._newValue || {};
-//      z._newValue[key] = value;
-//    }
-//    z._items[key] = value;
-//  }
-//  z.transactionEnd();
 });
 
 Test('Set by link', (Obj) => {
@@ -438,9 +380,6 @@ Mapping.Object('map', (o, f) => nice.apply({}, res => {
 M(function map(c, f){
   const res = c._type();
   c.each((v,k) => res.set(f(v, k)));
-//  const o = c._items;
-//  for(let i in o)
-//    res.set(i, f(o[i], i));
   return res;
 });
 
@@ -472,10 +411,6 @@ C.Function(function some(c, f){
     }
   });
   return res;
-//  for(let i in c._items)
-//    if(f(c._items[i], i))
-//      return true;
-//  return false;
 });
 
 
@@ -502,9 +437,6 @@ M(function find(c, f){
     }
   });
   return res === undefined ? nice.NotFound() : res;
-//  for(let i in c._items)
-//    if(f(c._items[i], i))
-//      return c._items[i];
 });
 
 
@@ -518,9 +450,6 @@ M(function findKey(c, f){
     }
   });
   return res === undefined ? nice.NotFound() : res;
-//  for(let i in c._items)
-//    if(f(c._items[i], i))
-//      return i;
 });
 
 

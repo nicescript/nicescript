@@ -65,7 +65,7 @@ defAll(nice, {
     }
   },
 
-  _createItem(type, as){
+  _createItem(type, args){
     if(!type._isNiceType)
       throw('Bad type');
 
@@ -73,9 +73,11 @@ defAll(nice, {
     const item = nice._db.getValue(id, 'cache');
     type.onCreate && type.onCreate(item);
     type.initChildren(item);
-    as === undefined
+    args === undefined
       ? type.initBy && type.initBy(item)
-      : type.initBy ? type.initBy(item, ...as) : (as.length && item(...as));
+      : type.initBy
+        ? type.initBy(item, ...args)
+        : (args.length && item(...args));
     return item;
   },
 
