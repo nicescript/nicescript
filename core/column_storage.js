@@ -187,7 +187,6 @@ const db = new ColumnStorage(
   '_itemsListeners',
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
-  {name: '_itemsType', defaultValue: null },
   {name: '_subscribers', defaultBy: () => new Map() },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },

@@ -4,7 +4,7 @@ const allowedSources = {boolean: 1, number: 1, string: 1};
 nice.Single.extend({
   name: 'Str',
 
-  onCreate: z => z._value = '',
+  defaultValueBy: () => '',
   itemArgs1: (z, s) => {
     if(s && s._isAnything)
        s = s();

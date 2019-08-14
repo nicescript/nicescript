@@ -1,9 +1,6 @@
 //TODO: change all actions to use insertAt|removeAt
 nice.Obj.extend({
   name: 'Arr',
-  onCreate: z => {
-    z._itemsType = null;
-  },
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   proto: {

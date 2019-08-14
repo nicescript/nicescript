@@ -2,6 +2,7 @@ nice.Type({
   name: 'Reference',
   extends: 'Anything',
   itemArgs0: z => z._ref(),
+  //TODO:0 remove _ref if type or value changes
   proto: new Proxy({}, {
     get (o, k, receiver) {
       if(!('_ref' in receiver))

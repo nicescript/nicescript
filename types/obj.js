@@ -1,9 +1,6 @@
 nice.Type({
   name: 'Obj',
   extends: nice.Value,
-  onCreate: z => {
-    z._itemsType = null;
-  },
 
   itemArgs1: (z, o) => {
     const t = typeof o;
@@ -82,10 +79,7 @@ nice.Type({
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .ReadOnly('size', z => z._size)
-  .Action(function itemsType(z, t){
-    z._itemsType = t;
-  });
+  .ReadOnly('size', z => z._size);
 
 Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});

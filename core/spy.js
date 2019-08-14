@@ -1,7 +1,7 @@
 nice.Type({
   name: 'Spy',
   extends: 'Anything',
-  onCreate: z => z._value = [],
+  defaultValueBy: () => [],
   itemArgs0: call,
   itemArgs1: call,
   itemArgsN: (z, as) => call(z, ...as),

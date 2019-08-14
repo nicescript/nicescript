@@ -247,17 +247,6 @@ describe("Obj", function() {
 //  });
 
 
-  it("itemsType", function() {
-    const a = Obj().itemsType(nice.Num);
-    a.set('qwe', 3);
-    a.set('ad', '2');
-//    expect(() => a.set('zc', {})).to.throw();
-    expect(a._type).to.equal(Obj);
-    expect(a._itemsType).to.equal(nice.Num);
-    expect(a.jsValue).to.deep.equal({qwe:3, ad:2});
-  });
-
-
   it("count", () => {
     const a = nice.Arr(1, 2, 3, 4, 5);
     expect(a.count(n => n % 2)()).to.equal(3);

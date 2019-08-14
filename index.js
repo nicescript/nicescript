@@ -52,6 +52,7 @@ defAll(nice, {
     const id = nice._db.push({_type: type}).lastId;
     const item = nice._db.getValue(id, 'cache');
     type.onCreate && type.onCreate(item);
+    type.defaultValueBy && (item._value = type.defaultValueBy());
     type.initChildren(item);
     args === undefined
       ? type.initBy && type.initBy(item)
@@ -749,7 +750,6 @@ const db = new ColumnStorage(
   '_itemsListeners',
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
-  {name: '_itemsType', defaultValue: null },
   {name: '_subscribers', defaultBy: () => new Map() },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },
@@ -1981,7 +1981,7 @@ defGet(Anything, 'help',  function () {
 (function(){"use strict";nice.Type({
   name: 'Spy',
   extends: 'Anything',
-  onCreate: z => z._value = [],
+  defaultValueBy: () => [],
   itemArgs0: call,
   itemArgs1: call,
   itemArgsN: (z, as) => call(z, ...as),
@@ -2159,9 +2159,6 @@ nice.jsTypes.isSubType = isSubType;
 (function(){"use strict";nice.Type({
   name: 'Obj',
   extends: nice.Value,
-  onCreate: z => {
-    z._itemsType = null;
-  },
   itemArgs1: (z, o) => {
     const t = typeof o;
     if( t !== 'object' )
@@ -2210,10 +2207,7 @@ nice.jsTypes.isSubType = isSubType;
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .ReadOnly('size', z => z._size)
-  .Action(function itemsType(z, t){
-    z._itemsType = t;
-  });
+  .ReadOnly('size', z => z._size);
 Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});
   expect(a.get('a')).is(3);
@@ -2253,13 +2247,13 @@ Test((Obj) => {
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 Func.Nothing('each', () => 0);
 C('has', (o, key) => {
-  
   if(key._isAnything === true)
     key = key();
   const id = o._id;
   const parents = nice._db.data._parent;
-  const names = nice._db.data._name;
-  const types = nice._db.data._type;
+  const db = nice._db;
+  const names = db.data._name;
+  const types = db.data._type;
   for(let i in parents)
     if(parents[i] === id && names[i] === key && types[i] !== nice.NotFound)
       return true;
@@ -2353,7 +2347,6 @@ A('set', (z, key, value, ...tale) => {
     }
     item.transactionEnd();
   }
-  
 });
 Test('Set by link', (Obj) => {
   const cfg = Obj({a:2});
@@ -2967,7 +2960,7 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
 })();
 (function(){"use strict";nice.Single.extend({
   name: 'Num',
-  onCreate: z => z._value = 0,
+  defaultValueBy: () => 0,
   itemArgs1: (z, n) => {
     const res = +n;
     if(Number.isNaN(res))
@@ -3069,7 +3062,7 @@ A('setMin', (z, n) => n < z() && z(n));
 const allowedSources = {boolean: 1, number: 1, string: 1};
 nice.Single.extend({
   name: 'Str',
-  onCreate: z => z._value = '',
+  defaultValueBy: () => '',
   itemArgs1: (z, s) => {
     if(s && s._isAnything)
        s = s();
@@ -3172,7 +3165,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
 })();
 (function(){"use strict";nice.Single.extend({
   name: 'Bool',
-  onCreate: z => z._value = false,
+  defaultValueBy: () => false,
   itemArgs1: (z, v) => z._setValue(!!v),
 }).about('Wrapper for JS boolean.');
 const B = nice.Bool, M = Mapping.Bool;

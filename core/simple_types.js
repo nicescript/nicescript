@@ -3,7 +3,6 @@ function s(name, parent, description, ){
   nice.Type({
     name,
     extends: parent,
-//    onCreate: z => z._value = value,
     description,
     proto: {
     }

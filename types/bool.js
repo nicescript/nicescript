@@ -1,6 +1,6 @@
 nice.Single.extend({
   name: 'Bool',
-  onCreate: z => z._value = false,
+  defaultValueBy: () => false,
   itemArgs1: (z, v) => z._setValue(!!v),
 }).about('Wrapper for JS boolean.');
 

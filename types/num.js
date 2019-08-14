@@ -1,7 +1,7 @@
 nice.Single.extend({
   name: 'Num',
 
-  onCreate: z => z._value = 0,
+  defaultValueBy: () => 0,
   itemArgs1: (z, n) => {
     const res = +n;
     if(Number.isNaN(res))

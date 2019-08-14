@@ -71,7 +71,7 @@ defAll(nice, {
 
     const id = nice._db.push({_type: type}).lastId;
     const item = nice._db.getValue(id, 'cache');
-    type.onCreate && type.onCreate(item);
+    type.defaultValueBy && (item._value = type.defaultValueBy());
     type.initChildren(item);
     args === undefined
       ? type.initBy && type.initBy(item)
