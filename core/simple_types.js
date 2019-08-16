@@ -26,6 +26,10 @@ defGet(nice.Nothing.proto, function jsValue() {
   return {[nice.TYPE_KEY]: this._type.name};
 });
 
+
+nice.Nothing.defaultValueBy = () => null;
+
+
 defGet(nice.Null.proto, function jsValue() {
   return null;
 });

@@ -49,12 +49,22 @@ defAll(nice, {
   _createItem(type, args){
     if(!type._isNiceType)
       throw('Bad type');
-    const id = nice._db.push({_type: type}).lastId;
-    const item = nice._db.getValue(id, 'cache');
-    type.onCreate && type.onCreate(item);
-    type.defaultValueBy && (item._value = type.defaultValueBy());
+    const id = nice._db.push({}).lastId;
+    return nice._assignType(nice._db.getValue(id, 'cache'), type, args);
+  },
+  _assignType(item, type, args) {
+    const db = this._db;
+    
+    const oldType = db.getValue(item._id, '_type');
+    if(oldType === type)
+      return type.setValue(item, args[0]);
+    item._type && item._type.killValue && item._type.killValue(item);
+    db.update(item._id, '_type', type);
+    Object.setPrototypeOf(item, type.proto);
+    type.defaultValueBy
+        && db.update(item._id, '_value', type.defaultValueBy());
     type.initChildren(item);
-    args === undefined
+    args === undefined || args.length === 0
       ? type.initBy && type.initBy(item)
       : type.initBy
         ? type.initBy(item, ...args)
@@ -70,17 +80,7 @@ defAll(nice, {
     }
     return db.getValue(id, 'cache');
   },
-  _assignType(item, type) {
-    Object.setPrototypeOf(item, type.proto);
-  
-  
-  
-  
-  },
   _getItem(id) {
-    const type = nice._db.data._type[id];
-    if(!type._isNiceType)
-      throw('Bad type');
     const f = function(...a){
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -93,7 +93,7 @@ defAll(nice, {
     };
     f._id = id;
     f._notifing = false;
-    nice._assignType(f, type);
+    Object.setPrototypeOf(f, (nice._db.data._type[id] || nice.Anything).proto);
     return f;
   },
   valueType: v => {
@@ -707,7 +707,11 @@ reflect = nice.reflect;
       throw 'No such id ', i;
     const old = this.data[k][i];
     if(old !== v){
-      this.data[k][i] = v;
+      if(v === null){
+        delete this.data[k][i];
+      } else {
+        this.data[k][i] = v;
+      }
       this.emit(k, i, v, old);
       this.emit('update', i, k, v, old);
     }
@@ -767,9 +771,6 @@ db.on('_type', (id, value, oldValue) => {
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
-  if(value && db.hasValue(id, 'cache')){
-    nice._assignType(db.getValue(id, 'cache'), value);
-  }
   if(!oldValue || oldValue === nice.NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') + 1);
@@ -1241,7 +1242,7 @@ nice.registerType({
     return nice.Type(name, by).extends(this);
   },
   itemArgs0: z => z._value,
-  itemArgs1: (z, v) => z._setValue(v),
+  itemArgs1: (z, v) => z._type.setValue(z, v),
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
@@ -1249,10 +1250,10 @@ nice.registerType({
   fromValue (_value){
     return Object.assign(this(), { _value });
   },
-  deserialize (v){
-    const res = this();
-    res._value = nice.deserialize(v);
-    return res;
+  setValue (z, value) {
+    if(value === z._value)
+      return;
+    z.transaction(() => nice._db.update(z._id, '_value', value));
   },
   _isNiceType: true,
   proto: Object.setPrototypeOf({
@@ -1261,35 +1262,20 @@ nice.registerType({
       
       return nice._db.getValue(this._id, '_value');
     },
-    set _value(value) {
-      
-      nice._db.update(this._id, '_value', value);
-      return true;
-    },
     get _type() {
-      
       return nice._db.getValue(this._id, '_type');
     },
-    set _type(type) {
-      
-      return nice._db.update(this._id, '_type', type);
-      return true;
-    },
     get _parent() {
-      
       return nice._db.getValue(this._id, '_parent');
     },
     set _parent(v) {
-      
       return nice._db.update(this._id, '_parent', v);
       return true;
     },
     get _name() {
-      
       return nice._db.getValue(this._id, '_name');
     },
     set _name(v) {
-      
       return nice._db.update(this._id, '_name', v);
       return true;
     },
@@ -1331,33 +1317,6 @@ nice.registerType({
       return defGet(s, 'up', () => {
         s();
         return this;
-      });
-    },
-    _changeValue (v, t){
-      if(v === this._value)
-        return;
-      let value, type;
-      if(v !== null && v !== undefined && v._isAnything){
-        value = v._value;
-        type = t || v._type;
-      } else {
-        value = v;
-        type = nice.getType(v);
-        type = type.niceType ? nice[type.niceType] : type;
-      }
-      if(type !== this._type) {
-        if(!type._isNiceType)
-          throw('Bad type');
-        Object.setPrototypeOf(this, type.proto);
-      }
-      this._setValue(value);
-    },
-    _setValue (v){
-      if(v === this._value)
-        return;
-      this.transaction(() => {
-        !('_oldValue' in this) && (this._oldValue = this._value);
-        this._set('_value', v);
       });
     },
     _compute (){
@@ -1488,11 +1447,13 @@ nice.registerType({
       this._set('_isHot', true);
       return this;
     },
+    
     _get (k) {
       if(k in this)
         return this[k];
       return undefined;
     },
+    
     _set (k, v) {
       this[k] = v;
       return this;
@@ -1916,6 +1877,12 @@ defAll(nice, {
   },
 });
 nice.Check('isType', v => nice.Anything.isPrototypeOf(v));
+Test("named type", (Type) => {
+  Type('Cat').str('name');
+  const cat = nice.Cat().name('Ball');
+  expect(cat._type.name).is('Cat');
+  expect(cat.name()).to.equal('Ball');
+});
 nice.typeOf = v => {
   if(v === undefined)
     return nice.Undefined;
@@ -1969,6 +1936,10 @@ defGet(Anything, 'help',  function () {
   name: 'Reference',
   extends: 'Anything',
   itemArgs0: z => z._ref(),
+  
+  initBy: (z, v) => {
+    nice._db.update(z._id, '_value', v);
+  },
   proto: new Proxy({}, {
     get (o, k, receiver) {
       if(!('_ref' in receiver))
@@ -2062,6 +2033,7 @@ s('Ok', 'Something', 'Empty positive signal.');
 defGet(nice.Nothing.proto, function jsValue() {
   return {[nice.TYPE_KEY]: this._type.name};
 });
+nice.Nothing.defaultValueBy = () => null;
 defGet(nice.Null.proto, function jsValue() {
   return null;
 });
@@ -2171,6 +2143,23 @@ nice.jsTypes.isSubType = isSubType;
       item.set(k, this.types[k](...as));
     });
   },
+  setValue (z, value) {
+    expect(typeof value).is('object');
+    const index = nice._db.getValue(z._id,  '_value');
+    expect(typeof index).is('object');
+    z.transaction(() => {
+      _each(index, (v, k) => k in value
+          || nice._assignType(z.get(k), nice.NotFound));
+      _each(value, (v, k) => z.set(k, v));
+    });
+  },
+  killValue (z) {
+    const index = nice._db.getValue(z._id,  '_value');
+    expect(typeof index).is('object');
+    z.transaction(() => {
+      _each(index, (v, k) => nice._assignType(z.get(k), nice.NotFound));
+    });
+  },
   proto: {
     checkKey (i) {
       if(i._isAnything === true)
@@ -2212,6 +2201,10 @@ Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});
   expect(a.get('a')).is(3);
   expect(a.get('q')).isNotFound();
+});
+Test("Obj deep constructor", Obj => {
+  const o = Obj({a: {b: { c:1 }}});
+  expect(o.jsValue.a.b.c).is(1)
 });
 Test("set / get primitive", (Obj) => {
   const a = Obj();
@@ -2302,6 +2295,24 @@ Mapping.Object('get', (o, path) => {
     return o[path];
   }
 });
+Mapping.Anything('get', (z, key) => {
+  if(key._isAnything === true)
+    key = key();
+  const found = nice._db.findKey({_parent: z._id, _name: key});
+  if(found !== null)
+    return nice._db.getValue(found, 'cache');
+  const item = nice._createItem(nice.NotFound);
+  item._parent = z._id;
+  item._name = key;
+  return item;
+});
+Test((get, Obj, NotFound) => {
+  const a = NotFound();
+  expect(a.get('q')._id).is(a.get('q')._id);
+  const o = Obj({a:1});
+  expect(a.get('a').get('q')._id).is(a.get('a').get('q')._id);
+  expect(a.get('b').get('q')._id).is(a.get('b').get('q')._id);
+})
 M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
@@ -2317,7 +2328,7 @@ M('get', (z, key) => {
 Test((Obj,NotFound) => {
   const o = Obj({q:1});
   expect(o.get('q')()).is(1);
-  expect(o.get('z')._type).is(NotFound);
+  expect(o.get('z')).isNotFound();
 })
 Action.Object('set', (o, i, v) => {
   typeof i === 'function' && (i = i());
@@ -2334,16 +2345,9 @@ A('set', (z, key, value, ...tale) => {
     item.transactionStart();
     const isNice = value._isAnything;
     if(value._isAnything) {
-      if(value._parent){
-        item._value = value;
-        item._type = nice.Reference;
-      } else {
-        item._value = value._value;
-        item._type = value._type;
-      }
+      nice._assignType(item, nice.Reference, [value]);
     } else {
-      item._value = value;
-      item._type = nice.valueType(value);
+      nice._assignType(item, nice.valueType(value), [value, ...tale]);
     }
     item.transactionEnd();
   }
@@ -2359,17 +2363,6 @@ Test('Set by link', (Obj) => {
   cfg.set('a', 5);
   expect(user.get('q')).is(4);
 });
-function assertChild(parent, name, type){
-  let _type, _value = value, _parent = z._id;
-  _type = nice.valueType(_value);
-  if(id === null){
-    db.push({ _value, _type, _parent, _name});
-    id = db.lastId;
-    db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
-  } else {
-    db.update(id, { _value, _type });
-  }
-};
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 A.about('Remove element at `i`.')
 ('remove', (z, key) => {
@@ -2377,18 +2370,22 @@ A.about('Remove element at `i`.')
   const id = db.findKey({_parent: z._id, _name: key});
   if(id === null)
     return;
-  if(db.data._isHot[id]){
-    db.update(id, '_type', nice.NotFound);
-    db.update(id, '_value', null);
-  } else {
-    db.delete(id);
-  }
+  nice._assignType(z.get(key), nice.NotFound);
 });
 Test((remove, Obj) => {
   const o = Obj({ q:1, a:2 });
   expect( o._size ).is(2);
   expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
   expect( o._size ).is(1);
+});
+Test("Obj remove deep", (Obj) => {
+  const o = Obj({a: {b: { c:1 }}});
+  const id = o.get('a').get('b').get('c')._id;
+  expect(o.get('a').get('b').get('c')).is(1);
+  o.get('a').remove('b');
+  expect(o.get('a').get('b')).isNotFound();
+  expect(o.get('a').get('b').get('c')).isNotFound();
+  expect(o.get('a').get('b').get('c')._id).is(id);
 });
 M(function reduce(o, f, res){
   o.each((v,k) => res = f(res, v, k));
@@ -2709,7 +2706,7 @@ nice.Type({
     }
     const a = new Error().stack.split('\n');
     a.splice(0, 4);
-    z._value = { message, trace: a.join('\n') };
+    z._type.setValue(z, { message, trace: a.join('\n') });
   },
   creator: () => ({}),
   proto: {
@@ -2737,9 +2734,6 @@ reflect.on('type', type => {
 (function(){"use strict";
 nice.Obj.extend({
   name: 'Arr',
-  onCreate: z => {
-    z._itemsType = null;
-  },
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   proto: {
@@ -2847,17 +2841,13 @@ A('remove', (z, k) => {
   const id = db.findKey({_parent: z._id, _name: k});
   if(id === null)
     return;
-  if(db.data._isHot[id]){
-    db.update(id, '_type', nice.NotFound);
-    db.update(id, '_value', null);
-  } else {
-    db.delete(id);
-  }
+  nice._assignType(z.get(k), nice.NotFound);
   _each(z._value, (v, _k) => {
+    
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });
 });
-Test(Arr => {
+Test((Arr, remove) => {
   const a = Arr(1,2,3,4);
   expect(a.size).is(4);
   expect(a.get(1)).is(2);
@@ -2965,7 +2955,7 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
     const res = +n;
     if(Number.isNaN(res))
       throw `Can't create Num from ${typeof n}`;
-    z._setValue(+n);
+    z._type.setValue(z, +n);
   },
 }).about('Wrapper for JS number.');
 Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);
@@ -3068,9 +3058,9 @@ nice.Single.extend({
        s = s();
     if(!allowedSources[typeof s])
       throw `Can't create Str from ${typeof s}`;
-    z._setValue('' + s);
+    z._type.setValue(z, '' + s);
   },
-  itemArgsN: (z, a) => z._setValue(nice.format(...a)),
+  itemArgsN: (z, a) => z._type.setValue(z, nice.format(...a)),
 })
   .about('Wrapper for JS string.')
   .ReadOnly('length', z => z._value.length);
@@ -3130,43 +3120,12 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   return { next: () => ({ value: z[i], done: ++i > l }) };
 });
 })();
-(function(){"use strict";nice.Single.extend({
-  name: 'Pointer',
-  initBy: (z, o, key) => {
-    expect(o).isObj();
-    z._object = o;
-    z(key === undefined ? null : key);
-  },
-  itemArgs0: z => {
-    return z._value !== null && z._object.has(z._value)
-      ? z._object.get(z._value)
-      : nice.Null();
-  },
-  itemArgs1: (z, k) => {
-    if(k === null || nice.isNull(k))
-      return z._setValue(null);
-    if(nice.isStr(k))
-      k = k();
-    if(z._object.has(k)) {
-      return z._setValue(k);
-    } else {
-      k = nice.findKey(z._object, v => is(k, v));
-      if(k)
-        return z._setValue(k);
-    }
-    throw `Key ${k} not found.`;
-  },
-  proto: {
-    _notificationValue(){
-      return this();
-    },
-  }
-}).about('Holds key of an object or array.');
+(function(){"use strict";
 })();
 (function(){"use strict";nice.Single.extend({
   name: 'Bool',
   defaultValueBy: () => false,
-  itemArgs1: (z, v) => z._setValue(!!v),
+  itemArgs1: (z, v) => z._type.setValue(z, !!v),
 }).about('Wrapper for JS boolean.');
 const B = nice.Bool, M = Mapping.Bool;
 const A = Action.Bool;

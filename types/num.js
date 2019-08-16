@@ -6,7 +6,7 @@ nice.Single.extend({
     const res = +n;
     if(Number.isNaN(res))
       throw `Can't create Num from ${typeof n}`;
-    z._setValue(+n);
+    z._type.setValue(z, +n);
   },
 }).about('Wrapper for JS number.');
 

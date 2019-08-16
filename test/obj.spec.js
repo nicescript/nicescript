@@ -66,15 +66,6 @@ describe("Obj", function() {
   });
 
 
-  it("named type", function() {
-    nice.Type('Cat').str('name');
-
-    const cat = nice.Cat().name('Ball');
-    expect(cat._type.name).to.equal('Cat');
-    expect(cat.name()).to.equal('Ball');
-  });
-
-
   it("Value", function() {
     const City = nice.Type().single('price')();
     const city = City();

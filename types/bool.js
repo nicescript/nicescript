@@ -1,7 +1,7 @@
 nice.Single.extend({
   name: 'Bool',
   defaultValueBy: () => false,
-  itemArgs1: (z, v) => z._setValue(!!v),
+  itemArgs1: (z, v) => z._type.setValue(z, !!v),
 }).about('Wrapper for JS boolean.');
 
 const B = nice.Bool, M = Mapping.Bool;

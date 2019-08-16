@@ -176,18 +176,20 @@ A('remove', (z, k) => {
   if(id === null)
     return;
 
-  if(db.data._isHot[id]){
-    db.update(id, '_type', nice.NotFound);
-    db.update(id, '_value', null);
-  } else {
-    db.delete(id);
-  }
+  nice._assignType(z.get(k), nice.NotFound);
+//  if(db.data._isHot[id]){
+//    db.update(id, '_type', nice.NotFound);
+//    db.update(id, '_value', null);
+//  } else {
+//    db.delete(id);
+//  }
   _each(z._value, (v, _k) => {
+    
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });
 });
 
-Test(Arr => {
+Test((Arr, remove) => {
   const a = Arr(1,2,3,4);
   expect(a.size).is(4);
   expect(a.get(1)).is(2);

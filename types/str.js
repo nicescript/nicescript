@@ -10,9 +10,9 @@ nice.Single.extend({
        s = s();
     if(!allowedSources[typeof s])
       throw `Can't create Str from ${typeof s}`;
-    z._setValue('' + s);
+    z._type.setValue(z, '' + s);
   },
-  itemArgsN: (z, a) => z._setValue(nice.format(...a)),
+  itemArgsN: (z, a) => z._type.setValue(z, nice.format(...a)),
 })
   .about('Wrapper for JS string.')
   .ReadOnly('length', z => z._value.length);

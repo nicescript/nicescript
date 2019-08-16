@@ -29,6 +29,29 @@ nice.Type({
     });
   },
 
+  setValue (z, value) {
+    expect(typeof value).is('object');
+
+    const index = nice._db.getValue(z._id,  '_value');
+    expect(typeof index).is('object');
+
+    z.transaction(() => {
+      _each(index, (v, k) => k in value
+          || nice._assignType(z.get(k), nice.NotFound));
+
+      _each(value, (v, k) => z.set(k, v));
+    });
+  },
+
+  killValue (z) {
+    const index = nice._db.getValue(z._id,  '_value');
+    expect(typeof index).is('object');
+
+    z.transaction(() => {
+      _each(index, (v, k) => nice._assignType(z.get(k), nice.NotFound));
+    });
+  },
+
   proto: {
 //      getDeep(path) {
 //        let k = 0;
@@ -85,6 +108,11 @@ Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});
   expect(a.get('a')).is(3);
   expect(a.get('q')).isNotFound();
+});
+
+Test("Obj deep constructor", Obj => {
+  const o = Obj({a: {b: { c:1 }}});
+  expect(o.jsValue.a.b.c).is(1)
 });
 
 Test("set / get primitive", (Obj) => {
@@ -190,6 +218,29 @@ Mapping.Object('get', (o, path) => {
   }
 });
 
+Mapping.Anything('get', (z, key) => {
+  if(key._isAnything === true)
+    key = key();
+
+  const found = nice._db.findKey({_parent: z._id, _name: key});
+  if(found !== null)
+    return nice._db.getValue(found, 'cache');
+
+  const item = nice._createItem(nice.NotFound);
+  item._parent = z._id;
+  item._name = key;
+  return item;
+});
+
+Test((get, Obj, NotFound) => {
+  const a = NotFound();
+  expect(a.get('q')._id).is(a.get('q')._id);
+
+  const o = Obj({a:1});
+  expect(a.get('a').get('q')._id).is(a.get('a').get('q')._id);
+  expect(a.get('b').get('q')._id).is(a.get('b').get('q')._id);
+})
+
 
 M('get', (z, key) => {
   if(key._isAnything === true)
@@ -209,7 +260,7 @@ M('get', (z, key) => {
 Test((Obj,NotFound) => {
   const o = Obj({q:1});
   expect(o.get('q')()).is(1);
-  expect(o.get('z')._type).is(NotFound);
+  expect(o.get('z')).isNotFound();
 })
 
 
@@ -233,16 +284,9 @@ A('set', (z, key, value, ...tale) => {
     item.transactionStart();
     const isNice = value._isAnything;
     if(value._isAnything) {
-      if(value._parent){
-        item._value = value;
-        item._type = nice.Reference;
-      } else {
-        item._value = value._value;
-        item._type = value._type;
-      }
+      nice._assignType(item, nice.Reference, [value]);
     } else {
-      item._value = value;
-      item._type = nice.valueType(value);
+      nice._assignType(item, nice.valueType(value), [value, ...tale]);
     }
     item.transactionEnd();
   }
@@ -264,17 +308,17 @@ Test('Set by link', (Obj) => {
 });
 
 
-function assertChild(parent, name, type){
-  let _type, _value = value, _parent = z._id;
-  _type = nice.valueType(_value);
-  if(id === null){
-    db.push({ _value, _type, _parent, _name});
-    id = db.lastId;
-    db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
-  } else {
-    db.update(id, { _value, _type });
-  }
-};
+//function assertChild(parent, name, type){
+//  let _type, _value = value, _parent = z._id;
+//  _type = nice.valueType(_value);
+//  if(id === null){
+//    db.push({ _value, _type, _parent, _name});
+//    id = db.lastId;
+//    db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
+//  } else {
+//    db.update(id, { _value, _type });
+//  }
+//};
 
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
@@ -302,12 +346,7 @@ A.about('Remove element at `i`.')
   if(id === null)
     return;
 
-  if(db.data._isHot[id]){
-    db.update(id, '_type', nice.NotFound);
-    db.update(id, '_value', null);
-  } else {
-    db.delete(id);
-  }
+  nice._assignType(z.get(key), nice.NotFound);
 });
 
 Test((remove, Obj) => {
@@ -315,6 +354,16 @@ Test((remove, Obj) => {
   expect( o._size ).is(2);
   expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
   expect( o._size ).is(1);
+});
+
+Test("Obj remove deep", (Obj) => {
+  const o = Obj({a: {b: { c:1 }}});
+  const id = o.get('a').get('b').get('c')._id;
+  expect(o.get('a').get('b').get('c')).is(1);
+  o.get('a').remove('b');
+  expect(o.get('a').get('b')).isNotFound();
+  expect(o.get('a').get('b').get('c')).isNotFound();
+  expect(o.get('a').get('b').get('c')._id).is(id);
 });
 
 //A('removeValue', (o, v) => {
@@ -518,6 +567,7 @@ reflect.on('type', type => {
 
     as.length && (targetType.defaultArguments[name] = as);
 
+    TODO:
 //    defGet(targetType.proto, name, function(){
 //      const res = this.get(name);
 //

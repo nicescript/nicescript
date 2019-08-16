@@ -137,7 +137,11 @@ class ColumnStorage {
     const old = this.data[k][i];
 
     if(old !== v){
-      this.data[k][i] = v;
+      if(v === null){
+        delete this.data[k][i];
+      } else {
+        this.data[k][i] = v;
+      }
       this.emit(k, i, v, old);
       this.emit('update', i, k, v, old);
     }
@@ -210,10 +214,6 @@ db.on('_type', (id, value, oldValue) => {
 
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
-
-  if(value && db.hasValue(id, 'cache')){
-    nice._assignType(db.getValue(id, 'cache'), value);
-  }
 
   if(!oldValue || oldValue === nice.NotFound){
     const pId = db.getValue(id, '_parent');

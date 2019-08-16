@@ -9,7 +9,7 @@ nice.Type({
     }
     const a = new Error().stack.split('\n');
     a.splice(0, 4);
-    z._value = { message, trace: a.join('\n') };
+    z._type.setValue(z, { message, trace: a.join('\n') });
   },
 
   creator: () => ({}),

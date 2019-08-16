@@ -38,7 +38,7 @@ nice.registerType({
   },
 
   itemArgs0: z => z._value,
-  itemArgs1: (z, v) => z._setValue(v),
+  itemArgs1: (z, v) => z._type.setValue(z, v),
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
@@ -49,11 +49,17 @@ nice.registerType({
     return Object.assign(this(), { _value });
   },
 
-  deserialize (v){
-    const res = this();
-    res._value = nice.deserialize(v);
-    return res;
+  setValue (z, value) {
+    if(value === z._value)
+      return;
+    z.transaction(() => nice._db.update(z._id, '_value', value));
   },
+
+//  deserialize (v){
+//    const res = this();
+//    res._value = nice.deserialize(v);
+//    return res;
+//  },
 
   _isNiceType: true,
 
@@ -65,41 +71,24 @@ nice.registerType({
       return nice._db.getValue(this._id, '_value');
     },
 
-    set _value(value) {
-      //nice.reflect.emit('itemSet', z);
-      nice._db.update(this._id, '_value', value);
-      return true;
-    },
-
     get _type() {
-      //nice.reflect.emit('itemUse', z);
       return nice._db.getValue(this._id, '_type');
     },
 
-    set _type(type) {
-      //nice.reflect.emit('itemSet', z);
-      return nice._db.update(this._id, '_type', type);
-      return true;
-    },
-
     get _parent() {
-      //nice.reflect.emit('itemUse', z);
       return nice._db.getValue(this._id, '_parent');
     },
 
     set _parent(v) {
-      //nice.reflect.emit('itemSet', z);
       return nice._db.update(this._id, '_parent', v);
       return true;
     },
 
     get _name() {
-      //nice.reflect.emit('itemUse', z);
       return nice._db.getValue(this._id, '_name');
     },
 
     set _name(v) {
-      //nice.reflect.emit('itemSet', z);
       return nice._db.update(this._id, '_name', v);
       return true;
     },
@@ -160,36 +149,6 @@ nice.registerType({
       return defGet(s, 'up', () => {
         s();
         return this;
-      });
-    },
-
-    _changeValue (v, t){
-      if(v === this._value)
-        return;
-      let value, type;
-      if(v !== null && v !== undefined && v._isAnything){
-        value = v._value;
-        type = t || v._type;
-      } else {
-        value = v;
-        type = nice.getType(v);
-        type = type.niceType ? nice[type.niceType] : type;
-      }
-      if(type !== this._type) {
-        if(!type._isNiceType)
-          throw('Bad type');
-        Object.setPrototypeOf(this, type.proto);
-      }
-      this._setValue(value);
-    },
-
-
-    _setValue (v){
-      if(v === this._value)
-        return;
-      this.transaction(() => {
-        !('_oldValue' in this) && (this._oldValue = this._value);
-        this._set('_value', v);
       });
     },
 
@@ -377,12 +336,14 @@ nice.registerType({
       return this;
     },
 
+    //TODO:0 remove
     _get (k) {
       if(k in this)
         return this[k];
       return undefined;
     },
 
+    //TODO:0 remove
     _set (k, v) {
       this[k] = v;
       return this;

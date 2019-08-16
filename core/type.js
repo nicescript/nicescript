@@ -59,6 +59,17 @@ defAll(nice, {
 
 nice.Check('isType', v => nice.Anything.isPrototypeOf(v));
 
+Test("named type", (Type) => {
+  Type('Cat').str('name');
+
+  const cat = nice.Cat().name('Ball');
+  expect(cat._type.name).is('Cat');
+  expect(cat.name()).to.equal('Ball');
+});
+
+
+
+
 
 nice.typeOf = v => {
   if(v === undefined)

@@ -69,11 +69,31 @@ defAll(nice, {
     if(!type._isNiceType)
       throw('Bad type');
 
-    const id = nice._db.push({_type: type}).lastId;
-    const item = nice._db.getValue(id, 'cache');
-    type.defaultValueBy && (item._value = type.defaultValueBy());
+    const id = nice._db.push({}).lastId;
+//    const id = nice._db.push({_type: type}).lastId;
+    return nice._assignType(nice._db.getValue(id, 'cache'), type, args);
+  },
+
+//  //  'name' in type.proto && nice.eraseProperty(target, 'name');
+//  //  nice.eraseProperty(f, 'name');
+//  //  'length' in type.proto && nice.eraseProperty(target, 'length');
+//  //  nice.eraseProperty(f, 'length');
+  _assignType(item, type, args) {
+    const db = this._db;
+    
+    const oldType = db.getValue(item._id, '_type');
+    if(oldType === type)
+      return type.setValue(item, args[0]);//TODO: what about a[1]
+
+    item._type && item._type.killValue && item._type.killValue(item);
+
+    db.update(item._id, '_type', type);
+    Object.setPrototypeOf(item, type.proto);
+
+    type.defaultValueBy
+        && db.update(item._id, '_value', type.defaultValueBy());
     type.initChildren(item);
-    args === undefined
+    args === undefined || args.length === 0
       ? type.initBy && type.initBy(item)
       : type.initBy
         ? type.initBy(item, ...args)
@@ -92,22 +112,7 @@ defAll(nice, {
     return db.getValue(id, 'cache');
   },
 
-  _assignType(item, type) {
-    Object.setPrototypeOf(item, type.proto);
-
-  //  'name' in type.proto && nice.eraseProperty(target, 'name');
-  //  nice.eraseProperty(f, 'name');
-  //  'length' in type.proto && nice.eraseProperty(target, 'length');
-  //  nice.eraseProperty(f, 'length');
-
-  },
-
   _getItem(id) {
-    const type = nice._db.data._type[id];
-
-    if(!type._isNiceType)
-      throw('Bad type');
-
     const f = function(...a){
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -123,7 +128,7 @@ defAll(nice, {
 //  TODO:
     f._notifing = false;
 
-    nice._assignType(f, type);
+    Object.setPrototypeOf(f, (nice._db.data._type[id] || nice.Anything).proto);
 
     return f;
   },
