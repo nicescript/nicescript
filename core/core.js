@@ -80,7 +80,7 @@ defAll(nice, {
 //  //  nice.eraseProperty(f, 'length');
   _assignType(item, type, args) {
     const db = this._db;
-    
+
     const oldType = db.getValue(item._id, '_type');
     if(oldType === type)
       return type.setValue(item, args[0]);//TODO: what about a[1]

@@ -112,7 +112,7 @@ Test("Obj constructor", (Obj) => {
 
 Test("Obj deep constructor", Obj => {
   const o = Obj({a: {b: { c:1 }}});
-  expect(o.jsValue.a.b.c).is(1)
+  expect(o.jsValue.a.b.c).is(1);
 });
 
 Test("set / get primitive", (Obj) => {
@@ -180,7 +180,7 @@ Test((Obj, setDefault) => {
   o.setDefault('a', 2);
   expect(o.get('a').is(1));
   o.setDefault('z', 2);
-  expect(o.get('a').is(2))
+  expect(o.get('a').is(2));
 });
 
 F(function each(z, f){
@@ -239,7 +239,7 @@ Test((get, Obj, NotFound) => {
   const o = Obj({a:1});
   expect(a.get('a').get('q')._id).is(a.get('a').get('q')._id);
   expect(a.get('b').get('q')._id).is(a.get('b').get('q')._id);
-})
+});
 
 
 M('get', (z, key) => {
@@ -251,17 +251,17 @@ M('get', (z, key) => {
     return nice._db.getValue(found, 'cache');
 
   const type = z._type.types[key];
-  const item = nice._createItem(type || nice.NotFound)
+  const item = nice._createItem(type || nice.NotFound);
   item._parent = z._id;
   item._name = key;
   return item;
 });
 
-Test((Obj,NotFound) => {
+Test((Obj, NotFound) => {
   const o = Obj({q:1});
   expect(o.get('q')()).is(1);
   expect(o.get('z')).isNotFound();
-})
+});
 
 
 Action.Object('set', (o, i, v) => {
@@ -567,7 +567,7 @@ reflect.on('type', type => {
 
     as.length && (targetType.defaultArguments[name] = as);
 
-    TODO:
+//    TODO:
 //    defGet(targetType.proto, name, function(){
 //      const res = this.get(name);
 //

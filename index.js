@@ -54,7 +54,6 @@ defAll(nice, {
   },
   _assignType(item, type, args) {
     const db = this._db;
-    
     const oldType = db.getValue(item._id, '_type');
     if(oldType === type)
       return type.setValue(item, args[0]);
@@ -194,6 +193,39 @@ defAll(nice, {
 });
 defGet = nice.defineGetter;
 _each = nice._each;
+})();
+(function(){"use strict";class Result {
+  constructor (name, args) {
+    this.name = name;
+    this.args = args && args.length ? args : undefined;
+    this.hot = false;
+    this.result = null;
+  }
+}
+const proxyProto = {
+  get: (target, prop, receiver) => {
+    return (...as) => {
+      return new Proxy(new Result(prop, [receiver, ...as]), proxyProto);
+    }
+  }
+};
+def(nice, '_result', (name, args) => {
+  return new Proxy(new Result(name, args), proxyProto);
+});
+UserBlock.by((z, id) => {
+  const user = site.users[id];
+  z.h1(user.name)
+    .div('Occupation: ', user.occupation)
+    .margin(site.defBlockMargin);
+});
+CompanyTitle.by((z, id) => {
+  const company = site.companies[id];
+  z(company.title, ' ', company.country);
+})
+var ub = UserBlock(23);
+ub.name
+ub.args
+ub.deps
 })();
 (function(){"use strict";const formatRe = /(%([jds%]))/g;
 const formatMap = { s: String, d: Number, j: JSON.stringify };
@@ -2204,7 +2236,7 @@ Test("Obj constructor", (Obj) => {
 });
 Test("Obj deep constructor", Obj => {
   const o = Obj({a: {b: { c:1 }}});
-  expect(o.jsValue.a.b.c).is(1)
+  expect(o.jsValue.a.b.c).is(1);
 });
 Test("set / get primitive", (Obj) => {
   const a = Obj();
@@ -2261,7 +2293,7 @@ Test((Obj, setDefault) => {
   o.setDefault('a', 2);
   expect(o.get('a').is(1));
   o.setDefault('z', 2);
-  expect(o.get('a').is(2))
+  expect(o.get('a').is(2));
 });
 F(function each(z, f){
   const index = z._value, db = nice._db;
@@ -2312,7 +2344,7 @@ Test((get, Obj, NotFound) => {
   const o = Obj({a:1});
   expect(a.get('a').get('q')._id).is(a.get('a').get('q')._id);
   expect(a.get('b').get('q')._id).is(a.get('b').get('q')._id);
-})
+});
 M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
@@ -2320,16 +2352,16 @@ M('get', (z, key) => {
   if(found !== null)
     return nice._db.getValue(found, 'cache');
   const type = z._type.types[key];
-  const item = nice._createItem(type || nice.NotFound)
+  const item = nice._createItem(type || nice.NotFound);
   item._parent = z._id;
   item._name = key;
   return item;
 });
-Test((Obj,NotFound) => {
+Test((Obj, NotFound) => {
   const o = Obj({q:1});
   expect(o.get('q')()).is(1);
   expect(o.get('z')).isNotFound();
-})
+});
 Action.Object('set', (o, i, v) => {
   typeof i === 'function' && (i = i());
   o[i] = v;
