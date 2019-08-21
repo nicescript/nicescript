@@ -74,10 +74,6 @@ defAll(nice, {
     return nice._assignType(nice._db.getValue(id, 'cache'), type, args);
   },
 
-//  //  'name' in type.proto && nice.eraseProperty(target, 'name');
-//  //  nice.eraseProperty(f, 'name');
-//  //  'length' in type.proto && nice.eraseProperty(target, 'length');
-//  //  nice.eraseProperty(f, 'length');
   _assignType(item, type, args) {
     const db = this._db;
 
@@ -124,6 +120,9 @@ defAll(nice, {
       return this || f;
     };
     f._id = id;
+
+    nice.eraseProperty(f, 'name');
+    nice.eraseProperty(f, 'length');
 
 //  TODO:
     f._notifing = false;

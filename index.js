@@ -91,6 +91,8 @@ defAll(nice, {
       return this || f;
     };
     f._id = id;
+    nice.eraseProperty(f, 'name');
+    nice.eraseProperty(f, 'length');
     f._notifing = false;
     Object.setPrototypeOf(f, (nice._db.data._type[id] || nice.Anything).proto);
     return f;
@@ -193,39 +195,6 @@ defAll(nice, {
 });
 defGet = nice.defineGetter;
 _each = nice._each;
-})();
-(function(){"use strict";class Result {
-  constructor (name, args) {
-    this.name = name;
-    this.args = args && args.length ? args : undefined;
-    this.hot = false;
-    this.result = null;
-  }
-}
-const proxyProto = {
-  get: (target, prop, receiver) => {
-    return (...as) => {
-      return new Proxy(new Result(prop, [receiver, ...as]), proxyProto);
-    }
-  }
-};
-def(nice, '_result', (name, args) => {
-  return new Proxy(new Result(name, args), proxyProto);
-});
-UserBlock.by((z, id) => {
-  const user = site.users[id];
-  z.h1(user.name)
-    .div('Occupation: ', user.occupation)
-    .margin(site.defBlockMargin);
-});
-CompanyTitle.by((z, id) => {
-  const company = site.companies[id];
-  z(company.title, ' ', company.country);
-})
-var ub = UserBlock(23);
-ub.name
-ub.args
-ub.deps
 })();
 (function(){"use strict";const formatRe = /(%([jds%]))/g;
 const formatMap = { s: String, d: Number, j: JSON.stringify };
@@ -1913,7 +1882,7 @@ Test("named type", (Type) => {
   Type('Cat').str('name');
   const cat = nice.Cat().name('Ball');
   expect(cat._type.name).is('Cat');
-  expect(cat.name()).to.equal('Ball');
+  expect(cat.name()).is('Ball');
 });
 nice.typeOf = v => {
   if(v === undefined)
@@ -1979,6 +1948,16 @@ defGet(Anything, 'help',  function () {
       return receiver._ref[k];
     }
   })
+});
+Test((Reference, Num) => {
+  const a = Num(5);
+  const b = Num(2);
+  b(a);
+  expect(b()).is(5);
+  b(3);
+  expect(b._type).is(Reference);
+  expect(b()).is(3);
+  expect(b._type).is(Num);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2171,9 +2150,7 @@ nice.jsTypes.isSubType = isSubType;
   },
   itemArgsN: (z, os) => _each(os, o => z(o)),
   initChildren (item){
-    _each(this.defaultArguments, (as, k) => {
-      item.set(k, this.types[k](...as));
-    });
+    _each(this.defaultArguments, (as, k) => item.set(k, ...as));
   },
   setValue (z, value) {
     expect(typeof value).is('object');
@@ -2528,6 +2505,9 @@ reflect.on('type', type => {
             + `"${nice._decapitalize(name)}" not "${name}"`;
     targetType.types[name] = type;
     as.length && (targetType.defaultArguments[name] = as);
+    defGet(targetType.proto, name, function(){
+      return this.get(name);
+    });
     reflect.emitAndSave('Property', { type, name, targetType });
   }
   def(nice.Obj.configProto, smallName, function (name, ...as) {

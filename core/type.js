@@ -64,7 +64,7 @@ Test("named type", (Type) => {
 
   const cat = nice.Cat().name('Ball');
   expect(cat._type.name).is('Cat');
-  expect(cat.name()).to.equal('Ball');
+  expect(cat.name()).is('Ball');
 });
 
 

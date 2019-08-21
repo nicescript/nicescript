@@ -9,7 +9,6 @@ const pachageInfo = JSON.parse(fs.readFileSync('./package.json'));
 
 const order = [
   'core/core',
-  'core/result',
   'core/utils',
   'doc/doc_lib',
   'core/utils_object',

@@ -24,9 +24,7 @@ nice.Type({
 //  },
 
   initChildren (item){
-    _each(this.defaultArguments, (as, k) => {
-      item.set(k, this.types[k](...as));
-    });
+    _each(this.defaultArguments, (as, k) => item.set(k, ...as));
   },
 
   setValue (z, value) {
@@ -567,17 +565,14 @@ reflect.on('type', type => {
 
     as.length && (targetType.defaultArguments[name] = as);
 
-//    TODO:
-//    defGet(targetType.proto, name, function(){
-//      const res = this.get(name);
-//
-////  slows everything but only actual when data was set externaly
-////  could be enabled with debug option
-////      if(!nice.isSubType(res._type, type))
-////        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
-//
-//      return res;
-//    });
+    defGet(targetType.proto, name, function(){
+      return this.get(name);
+
+//  slows everything but only actual when data was set externaly
+//  could be enabled with debug option
+//      if(!nice.isSubType(res._type, type))
+//        throw `Can't create ${type.name} property. Value is ${res._type.name}`;
+    });
 
     reflect.emitAndSave('Property', { type, name, targetType });
   }

@@ -16,16 +16,7 @@ const { Arr, Type, Check, Mapping, Switch, is,
    get, expect, Num, Str, Obj, _1, _2, _3, Test, Spy } = nice;
 //const spy = (...a) => console.log('Spy:', ...a);
 
-  const cfg = Obj({a:2});
-  const user = Obj({});
-  user.set('q', cfg.get('a'));
-  expect(user.get('q')).is(2);
-  cfg.set('a', 3);
-  expect(user.get('q')).is(3);
-  user.set('q', 4);
-  cfg.set('a', 5);
-  expect(user.get('q')).is(4);
-
+var h = nice.Html();//.tag('li').tag();
   
 
 //const o = Obj({ q:1, a:2 });
