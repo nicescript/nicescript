@@ -5,21 +5,9 @@ const expect = chai.expect;
 
 describe("expect", function() {
 
-  it("toBe", function(){
-    expect(() => nice.expect(0).toBe()).to.throw();
-    expect(() => nice.expect(1).toBe()).not.to.throw();
-  });
-
-
   it("function", function(){
     expect(() => nice.expect(1).isFunction()).to.throw();
     expect(() => nice.expect(() => {}).isFunction()).not.to.throw();
-  });
-
-
-  it("toMatch", function(){
-    expect(() => nice.expect(1).toMatch(n => n > 2)).to.throw();
-    expect(() => nice.expect(3).toMatch(n => n > 2)).not.to.throw();
   });
 
 

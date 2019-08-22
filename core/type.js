@@ -15,7 +15,7 @@ defAll(nice, {
   type: t => {
     nice.isString(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
-      '' + t + ' is not a type').toBe();
+      '' + t + ' is not a type').is(true);
     return t;
   },
 

@@ -1,29 +1,4 @@
-def(nice, 'expectPrototype', {
-  toBe (value){
-    if(!value) {
-      if(!this.value)
-        throw this.text || 'Value expected';
-    } else {
-      if(this.value != value)
-        throw this.text || value + ' expected';
-    }
-  },
-
-  notToBe (value){
-    if(!value) {
-      if(this.value)
-        throw this.text || 'No value expected';
-    } else {
-      if(this.value == value)
-        throw this.text || value + ' not expected';
-    }
-  },
-
-  toMatch (f){
-    if(!f(this.value))
-      throw this.text || ('Value does not match function ' + f);
-  }
-});
+def(nice, 'expectPrototype', {});
 
 
 reflect.on('Check', f => {
