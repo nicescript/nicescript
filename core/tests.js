@@ -1,6 +1,7 @@
 Test = def(nice, 'Test', (...a) => {
   const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
-  nice.reflect.emitAndSave('test', { body, description });
+  const position = nice.parseTraceString(Error().stack.split('\n')[2]);
+  nice.reflect.emitAndSave('test', { body, description, ...position });
 });
 
 const colors = {
@@ -29,7 +30,12 @@ function runTest(t){
     return true;
   } catch (e) {
     console.log(colors.red('Error while testing ' + (t.description || '')));
-    console.log(t.body.toString());
+
+    const dh = e.line - t.line;
+    const a = t.body.toString().split('\n');
+
+    a.splice(dh + 1, 0, '-'.repeat(e.symbol - 1) + '^');
+    console.log(a.join('\n'));
     console.error('  ', e);
     return false;
   }

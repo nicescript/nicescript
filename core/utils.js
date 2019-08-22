@@ -113,6 +113,11 @@ defAll(nice, {
       a.push(ID_SYMBOLS[(Math.random() * 32 | 0)]);
     }
     return a.join('');
+  },
+
+  parseTraceString (s) {
+    const a = s.match(/(\d+):(\d+)/);
+    return {line: +a[1], symbol: +a[2]};
   }
 });
 

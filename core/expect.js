@@ -30,9 +30,13 @@ reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     const res = f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
-      throw this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
+      const position = nice.parseTraceString(Error().stack.split('\n')[2]);
+      throw {
+        ...position,
+        message: this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ')
+      };
     }
-    return nice.Ok();
+    return true;
   });
 });
 
