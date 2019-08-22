@@ -55,6 +55,10 @@ nice.registerType({
     z.transaction(() => nice._db.update(z._id, '_value', value));
   },
 
+  toString () {
+    return this.name;
+  },
+
 //  deserialize (v){
 //    const res = this();
 //    res._value = nice.deserialize(v);
