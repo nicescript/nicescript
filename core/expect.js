@@ -5,11 +5,9 @@ reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     const res = f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
-      const position = nice.parseTraceString(Error().stack.split('\n')[2]);
-      throw {
-        ...position,
-        message: this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ')
-      };
+      const e = new Error(this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' '));
+      e.shift = 1;
+      throw e;
     }
     return true;
   });

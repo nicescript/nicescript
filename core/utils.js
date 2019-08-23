@@ -116,8 +116,8 @@ defAll(nice, {
   },
 
   parseTraceString (s) {
-    const a = s.match(/(\d+):(\d+)/);
-    return {line: +a[1], symbol: +a[2]};
+    const a = s.match(/\/(.*):(\d+):(\d+)/);
+    return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
   }
 });
 

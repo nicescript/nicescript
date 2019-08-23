@@ -8,6 +8,7 @@ const colors = {
   blue: s => '\x1b[34m' + s + '\x1b[0m',
   red: s => '\x1b[31m' + s + '\x1b[0m',
   green: s => '\x1b[32m' + s + '\x1b[0m',
+  gray: s => '\x1b[38;5;245m' + s + '\x1b[0m'
 };
 
 
@@ -29,14 +30,20 @@ function runTest(t){
     t.body(...nice.argumentNames(t.body).map(n => nice[n]));
     return true;
   } catch (e) {
+    const k = 1 + (e.shift || 0);
+    const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
     console.log(colors.red('Error while testing ' + (t.description || '')));
 
-    const dh = e.line - t.line;
+    const dh = line - t.line;
     const a = t.body.toString().split('\n');
 
-    a.splice(dh + 1, 0, '-'.repeat(e.symbol - 1) + '^');
+    a.splice(dh + 1, 0,
+      '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
+       e.message,
+       colors.gray(location + ':' + line),
+       '-'.repeat(80));
+
     console.log(a.join('\n'));
-    console.error('  ', e);
     return false;
   }
 }
