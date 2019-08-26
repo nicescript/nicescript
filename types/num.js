@@ -1,14 +1,8 @@
 nice.Single.extend({
   name: 'Num',
-
   defaultValueBy: () => 0,
-  itemArgs1: (z, n) => {
-    const res = +n;
-    if(Number.isNaN(res))
-      throw `Can't create Num from ${typeof n}`;
-    z._type.setValue(z, +n);
-  },
-}).about('Wrapper for JS number.');
+  help: 'Wrapper for JS number.'
+});
 
 
 Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);

@@ -46,11 +46,11 @@ defAll(nice, {
       return nice.Err(e);
     }
   },
-  _createItem(type, args){
+  _createItem(_cellType, type, args){
     if(!type._isNiceType)
       throw('Bad type');
-    const id = nice._db.push({}).lastId;
-    return nice._assignType(nice._db.getValue(id, 'cache'), type, args);
+    const id = nice._db.push({_cellType}).lastId;
+    return nice._setType(nice._db.getValue(id, 'cache'), type, args);
   },
   _assignType(item, type, args) {
     const db = this._db;
@@ -62,6 +62,11 @@ defAll(nice, {
     Object.setPrototypeOf(item, type.proto);
     type.defaultValueBy
         && db.update(item._id, '_value', type.defaultValueBy());
+    return item;
+  },
+  _setType(item, type, args) {
+    nice._assignType(item, type, args);
+    const db = this._db;
     type.initChildren(item);
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(item)
@@ -84,7 +89,7 @@ defAll(nice, {
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        f._type.itemArgs1(f, a[0]);
+        f._cellType.itemArgs1(f, a[0]);
       } else {
         f._type.itemArgsN(f, a);
       }
@@ -292,6 +297,10 @@ defAll(nice, {
       a.push(ID_SYMBOLS[(Math.random() * 32 | 0)]);
     }
     return a.join('');
+  },
+  parseTraceString (s) {
+    const a = s.match(/\/(.*):(\d+):(\d+)/);
+    return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
   }
 });
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
@@ -747,6 +756,7 @@ nice.create(nice.EventEmitter, ColumnStorage.prototype);
 const blackList = ['update', 'push', 'insert', 'ready'];
 const db = new ColumnStorage(
   '_type',
+  '_cellType',
   '_value',
   '_parent',
   '_name',
@@ -755,7 +765,6 @@ const db = new ColumnStorage(
   '_itemsListeners',
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
-  {name: '_subscribers', defaultBy: () => new Map() },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
@@ -1192,12 +1201,14 @@ nice.reflect.on('itemUse', item => {
 })();
 (function(){"use strict";Test = def(nice, 'Test', (...a) => {
   const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
-  nice.reflect.emitAndSave('test', { body, description });
+  const position = nice.parseTraceString(Error().stack.split('\n')[2]);
+  nice.reflect.emitAndSave('test', { body, description, ...position });
 });
 const colors = {
   blue: s => '\x1b[34m' + s + '\x1b[0m',
   red: s => '\x1b[31m' + s + '\x1b[0m',
   green: s => '\x1b[32m' + s + '\x1b[0m',
+  gray: s => '\x1b[38;5;245m' + s + '\x1b[0m'
 };
 def(nice, 'runTests', () => {
   console.log('');
@@ -1215,9 +1226,17 @@ function runTest(t){
     t.body(...nice.argumentNames(t.body).map(n => nice[n]));
     return true;
   } catch (e) {
+    const k = 1 + (e.shift || 0);
+    const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
     console.log(colors.red('Error while testing ' + (t.description || '')));
-    console.log(t.body.toString());
-    console.error('  ', e);
+    const dh = line - t.line;
+    const a = t.body.toString().split('\n');
+    a.splice(dh + 1, 0,
+      '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
+       e.message,
+       colors.gray(location + ':' + line),
+       '-'.repeat(80));
+    console.log(a.join('\n'));
     return false;
   }
 }
@@ -1243,7 +1262,49 @@ nice.registerType({
     return nice.Type(name, by).extends(this);
   },
   itemArgs0: z => z._value,
-  itemArgs1: (z, v) => z._type.setValue(z, v),
+  itemArgs1: (z, v) => {
+    if (v && v._isAnything) {
+      z.transactionStart();
+      nice._setType(z, nice.Reference, [v]);
+      z.transactionEnd();
+    } else {
+      z._cellType.setPrimitive(z, v);
+    }
+  },
+  setPrimitive: (z, v) => {
+    const t = typeof v;
+    let type;
+    if(v === undefined)
+      type = nice.Undefined;
+    if(v === null)
+      type = nice.Null;
+    if(t === 'number')
+      type = Number.isNaN(v) ? nice.NumberError : nice.Num;
+    if(t === 'function')
+      type = nice.Function;
+    if(t === 'string')
+      type = nice.Str;
+    if(t === 'boolean')
+      type = nice.Bool;
+    if(Array.isArray(v))
+      type = nice.Arr;
+    if(v[nice.TYPE_KEY])
+      type = nice[v[nice.TYPE_KEY]];
+    if(t === 'object')
+      type = nice.Obj;
+    if(type !== undefined) {
+      if(type === z._type && !z._isRef)
+        return type.setValue(z, v);
+      const cellType = z._cellType;
+      if(cellType === type || cellType.isPrototypeOf(type))
+        return nice._setType(z, type, [v]);
+      const cast = cellType.castFrom[type.name];
+      if(cast !== undefined)
+        return nice._setType(z, type, [cast(v)]);
+      return nice._setType(z, Err, [type.name, ' to ', cellType.name]);
+    }
+    throw 'Unknown type';
+  },
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
@@ -1256,6 +1317,9 @@ nice.registerType({
       return;
     z.transaction(() => nice._db.update(z._id, '_value', value));
   },
+  toString () {
+    return this.name;
+  },
   _isNiceType: true,
   proto: Object.setPrototypeOf({
     _isAnything: true,
@@ -1265,6 +1329,9 @@ nice.registerType({
     },
     get _type() {
       return nice._db.getValue(this._id, '_type');
+    },
+    get _cellType() {
+      return nice._db.getValue(this._id, '_cellType');
     },
     get _parent() {
       return nice._db.getValue(this._id, '_parent');
@@ -1435,19 +1502,6 @@ nice.registerType({
       this.transactionEnd();
       return this;
     },
-    listenOnce (f, target) {
-      this._isHot || this._compute();
-      if(this._isResolved())
-        return f(this);
-      const key = target || f;
-      const _f = v => {
-        f(v);
-        this.unsubscribe(key);
-      };
-      this._subscribers.set(key, f);
-      this._set('_isHot', true);
-      return this;
-    },
     
     _get (k) {
       if(k in this)
@@ -1461,14 +1515,6 @@ nice.registerType({
     },
     _has (k) {
       return k in this;
-    },
-    unsubscribe (target){
-      this._subscribers.delete(target);
-      if(!this._subscribers.size){
-        this._set('_isHot', false);
-        this._subscriptions &&
-          this._subscriptions.forEach(_s => _s.unsubscribe(this));
-      }
     },
     [Symbol.toPrimitive]() {
       return this.toString();
@@ -1782,37 +1828,16 @@ function DelayedSwitch(initArgs) {
   return create(delayedProto, f);
 };
 })();
-(function(){"use strict";def(nice, 'expectPrototype', {
-  toBe (value){
-    if(!value) {
-      if(!this.value)
-        throw this.text || 'Value expected';
-    } else {
-      if(this.value != value)
-        throw this.text || value + ' expected';
-    }
-  },
-  notToBe (value){
-    if(!value) {
-      if(this.value)
-        throw this.text || 'No value expected';
-    } else {
-      if(this.value == value)
-        throw this.text || value + ' not expected';
-    }
-  },
-  toMatch (f){
-    if(!f(this.value))
-      throw this.text || ('Value does not match function ' + f);
-  }
-});
+(function(){"use strict";def(nice, 'expectPrototype', {});
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     const res = f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
-      throw this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' ');
+      const e = new Error(this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' '));
+      e.shift = 1;
+      throw e;
     }
-    return nice.Ok();
+    return true;
   });
 });
 def(nice, function expect(value, ...texts){
@@ -1844,7 +1869,7 @@ defAll(nice, {
   type: t => {
     nice.isString(t) && (t = nice[t]);
     expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
-      '' + t + ' is not a type').toBe();
+      '' + t + ' is not a type').is(true);
     return t;
   },
   Type: (config = {}, by) => {
@@ -1867,7 +1892,7 @@ defAll(nice, {
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      return nice._createItem(type, a);
+      return nice._createItem(type, type, a);
     };
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
@@ -1943,21 +1968,28 @@ defGet(Anything, 'help',  function () {
   },
   proto: new Proxy({}, {
     get (o, k, receiver) {
+      if(k === '_cellType')
+        return nice._db.getValue(receiver._id, '_cellType');
+      if(k === '_isRef')
+        return true;
+      
       if(!('_ref' in receiver))
         def(receiver, '_ref', nice._db.getValue(receiver._id, '_value'));
       return receiver._ref[k];
     }
   })
 });
-Test((Reference, Num) => {
+Test((Reference, Single, Num) => {
   const a = Num(5);
-  const b = Num(2);
+  const b = Single(2);
   b(a);
   expect(b()).is(5);
-  b(3);
-  expect(b._type).is(Reference);
-  expect(b()).is(3);
   expect(b._type).is(Num);
+  expect(b._cellType).is(Single);
+  b(3);
+  expect(b()).is(3);
+  expect(a()).is(5);
+  expect(b).isNum();
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2039,6 +2071,7 @@ s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.'
 s('Pending', 'Nothing', 'State of the Box when it awaits input.');
 s('Stop', 'Nothing', 'Value used to stop iterationin .each() and similar functions.');
 s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
+s('AssignmentError', 'Nothing', `Can't assign`);
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');
 defGet(nice.Nothing.proto, function jsValue() {
@@ -2155,10 +2188,9 @@ nice.jsTypes.isSubType = isSubType;
   setValue (z, value) {
     expect(typeof value).is('object');
     const index = nice._db.getValue(z._id,  '_value');
-    expect(typeof index).is('object');
     z.transaction(() => {
       _each(index, (v, k) => k in value
-          || nice._assignType(z.get(k), nice.NotFound));
+          || nice._setType(z.get(k), nice.NotFound));
       _each(value, (v, k) => z.set(k, v));
     });
   },
@@ -2166,7 +2198,7 @@ nice.jsTypes.isSubType = isSubType;
     const index = nice._db.getValue(z._id,  '_value');
     expect(typeof index).is('object');
     z.transaction(() => {
-      _each(index, (v, k) => nice._assignType(z.get(k), nice.NotFound));
+      _each(index, (v, k) => nice._setType(z.get(k), nice.NotFound));
     });
   },
   proto: {
@@ -2310,7 +2342,7 @@ Mapping.Anything('get', (z, key) => {
   const found = nice._db.findKey({_parent: z._id, _name: key});
   if(found !== null)
     return nice._db.getValue(found, 'cache');
-  const item = nice._createItem(nice.NotFound);
+  const item = nice._createItem(nice.Anything, nice.NotFound);
   item._parent = z._id;
   item._name = key;
   return item;
@@ -2329,7 +2361,7 @@ M('get', (z, key) => {
   if(found !== null)
     return nice._db.getValue(found, 'cache');
   const type = z._type.types[key];
-  const item = nice._createItem(type || nice.NotFound);
+  const item = nice._createItem(type || nice.Anything, type || nice.NotFound);
   item._parent = z._id;
   item._name = key;
   return item;
@@ -2349,17 +2381,8 @@ A('set', (z, key, value, ...tale) => {
     throw `Can't set ${key} to undefined`;
   if(value === null)
     return z.remove(_name);
-  const item = z.get(_name);
-  if(!item.is(value)){
-    item.transactionStart();
-    const isNice = value._isAnything;
-    if(value._isAnything) {
-      nice._assignType(item, nice.Reference, [value]);
-    } else {
-      nice._assignType(item, nice.valueType(value), [value, ...tale]);
-    }
-    item.transactionEnd();
-  }
+  
+  const item = z.get(_name)(value, ...tale);
 });
 Test('Set by link', (Obj) => {
   const cfg = Obj({a:2});
@@ -2379,7 +2402,7 @@ A.about('Remove element at `i`.')
   const id = db.findKey({_parent: z._id, _name: key});
   if(id === null)
     return;
-  nice._assignType(z.get(key), nice.NotFound);
+  nice._setType(z.get(key), nice.NotFound);
 });
 Test((remove, Obj) => {
   const o = Obj({ q:1, a:2 });
@@ -2712,7 +2735,8 @@ nice.Type({
 (function(){"use strict";nice.Type({
   name: 'Err',
   extends: 'Nothing',
-  initBy: (z, message) => {
+  initBy: (z, ...as) => {
+    const message = nice.format(...as);
     if(message && message.message){
       message = message.message;
     }
@@ -2741,6 +2765,17 @@ reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw "Can't add properties to SingleValue types";
   });
+});
+Test((Single, Num) => {
+  const x = Single();
+  expect(x).isSingle();
+  expect(x._cellType).is(Single);
+  x(2);
+  expect(x).isNum();
+  expect(x._cellType).is(Single);
+  x('qwe')
+  expect(x).isStr();
+  expect(x._cellType).is(Single);
 });
 })();
 (function(){"use strict";
@@ -2853,19 +2888,10 @@ A('remove', (z, k) => {
   const id = db.findKey({_parent: z._id, _name: k});
   if(id === null)
     return;
-  nice._assignType(z.get(k), nice.NotFound);
+  nice._setType(z.get(k), nice.NotFound);
   _each(z._value, (v, _k) => {
-    
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });
-});
-Test((Arr, remove) => {
-  const a = Arr(1,2,3,4);
-  expect(a.size).is(4);
-  expect(a.get(1)).is(2);
-  a.remove(1);
-  expect(a.size).is(3);
-  expect(a.get(1)).is(3);
 });
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
@@ -2963,13 +2989,8 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
 (function(){"use strict";nice.Single.extend({
   name: 'Num',
   defaultValueBy: () => 0,
-  itemArgs1: (z, n) => {
-    const res = +n;
-    if(Number.isNaN(res))
-      throw `Can't create Num from ${typeof n}`;
-    z._type.setValue(z, +n);
-  },
-}).about('Wrapper for JS number.');
+  help: 'Wrapper for JS number.'
+});
 Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);
 _each({
   integer: n => Number.isInteger(n),

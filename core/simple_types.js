@@ -18,6 +18,7 @@ s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.'
 s('Pending', 'Nothing', 'State of the Box when it awaits input.');
 s('Stop', 'Nothing', 'Value used to stop iterationin .each() and similar functions.');
 s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
+s('AssignmentError', 'Nothing', `Can't assign`);
 
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');

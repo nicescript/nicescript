@@ -183,6 +183,7 @@ const blackList = ['update', 'push', 'insert', 'ready'];
 
 const db = new ColumnStorage(
   '_type',
+  '_cellType',
   '_value',
   '_parent',
   '_name',
@@ -191,7 +192,7 @@ const db = new ColumnStorage(
   '_itemsListeners',
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
-  {name: '_subscribers', defaultBy: () => new Map() },
+//  {name: '_subscribers', defaultBy: () => new Map() },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }

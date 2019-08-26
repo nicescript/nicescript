@@ -38,7 +38,63 @@ nice.registerType({
   },
 
   itemArgs0: z => z._value,
-  itemArgs1: (z, v) => z._type.setValue(z, v),
+  itemArgs1: (z, v) => {
+    if (v && v._isAnything) {
+      z.transactionStart();
+      nice._setType(z, nice.Reference, [v]);
+      z.transactionEnd();
+    } else {
+      z._cellType.setPrimitive(z, v);
+    }
+  },
+  setPrimitive: (z, v) => {
+    const t = typeof v;
+    let type;
+
+    if(v === undefined)
+      type = nice.Undefined;
+
+    if(v === null)
+      type = nice.Null;
+
+    if(t === 'number')
+      type = Number.isNaN(v) ? nice.NumberError : nice.Num;
+
+    if(t === 'function')
+      type = nice.Function;
+
+    if(t === 'string')
+      type = nice.Str;
+
+    if(t === 'boolean')
+      type = nice.Bool;
+
+    if(Array.isArray(v))
+      type = nice.Arr;
+
+    if(v[nice.TYPE_KEY])
+      type = nice[v[nice.TYPE_KEY]];
+
+    if(t === 'object')
+      type = nice.Obj;
+
+    if(type !== undefined) {
+      if(type === z._type && !z._isRef)
+        return type.setValue(z, v);
+
+      const cellType = z._cellType;
+      if(cellType === type || cellType.isPrototypeOf(type))
+        return nice._setType(z, type, [v]);
+
+      const cast = cellType.castFrom[type.name];
+      if(cast !== undefined)
+        return nice._setType(z, type, [cast(v)]);
+
+      return nice._setType(z, Err, [type.name, ' to ', cellType.name]);
+    }
+
+    throw 'Unknown type';
+  },
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
@@ -77,6 +133,10 @@ nice.registerType({
 
     get _type() {
       return nice._db.getValue(this._id, '_type');
+    },
+
+    get _cellType() {
+      return nice._db.getValue(this._id, '_cellType');
     },
 
     get _parent() {
@@ -322,23 +382,23 @@ nice.registerType({
       return this;
     },
 
-    listenOnce (f, target) {
-      this._isHot || this._compute();
-
-      if(this._isResolved())
-        return f(this);
-
-      const key = target || f;
-      const _f = v => {
-        f(v);
-        this.unsubscribe(key);
-      };
-
-      this._subscribers.set(key, f);
-      this._set('_isHot', true);
-
-      return this;
-    },
+//    listenOnce (f, target) {
+//      this._isHot || this._compute();
+//
+//      if(this._isResolved())
+//        return f(this);
+//
+//      const key = target || f;
+//      const _f = v => {
+//        f(v);
+//        this.unsubscribe(key);
+//      };
+//
+////      this._subscribers.set(key, f);
+//      this._set('_isHot', true);
+//
+//      return this;
+//    },
 
     //TODO:0 remove
     _get (k) {
@@ -357,14 +417,14 @@ nice.registerType({
       return k in this;
     },
 
-    unsubscribe (target){
-      this._subscribers.delete(target);
-      if(!this._subscribers.size){
-        this._set('_isHot', false);
-        this._subscriptions &&
-          this._subscriptions.forEach(_s => _s.unsubscribe(this));
-      }
-    },
+//    unsubscribe (target){
+//      this._subscribers.delete(target);
+//      if(!this._subscribers.size){
+//        this._set('_isHot', false);
+//        this._subscriptions &&
+//          this._subscriptions.forEach(_s => _s.unsubscribe(this));
+//      }
+//    },
     [Symbol.toPrimitive]() {
       return this.toString();
     }

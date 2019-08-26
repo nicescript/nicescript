@@ -16,3 +16,17 @@ reflect.on('type', type => {
     throw "Can't add properties to SingleValue types";
   });
 });
+
+//TODO:0 test cast errors
+
+Test((Single, Num) => {
+  const x = Single();
+  expect(x).isSingle();
+  expect(x._cellType).is(Single);
+  x(2);
+  expect(x).isNum();
+  expect(x._cellType).is(Single);
+  x('qwe')
+  expect(x).isStr();
+  expect(x._cellType).is(Single);
+});

@@ -31,11 +31,10 @@ nice.Type({
     expect(typeof value).is('object');
 
     const index = nice._db.getValue(z._id,  '_value');
-    expect(typeof index).is('object');
 
     z.transaction(() => {
       _each(index, (v, k) => k in value
-          || nice._assignType(z.get(k), nice.NotFound));
+          || nice._setType(z.get(k), nice.NotFound));
 
       _each(value, (v, k) => z.set(k, v));
     });
@@ -46,7 +45,7 @@ nice.Type({
     expect(typeof index).is('object');
 
     z.transaction(() => {
-      _each(index, (v, k) => nice._assignType(z.get(k), nice.NotFound));
+      _each(index, (v, k) => nice._setType(z.get(k), nice.NotFound));
     });
   },
 
@@ -224,7 +223,7 @@ Mapping.Anything('get', (z, key) => {
   if(found !== null)
     return nice._db.getValue(found, 'cache');
 
-  const item = nice._createItem(nice.NotFound);
+  const item = nice._createItem(nice.Anything, nice.NotFound);
   item._parent = z._id;
   item._name = key;
   return item;
@@ -249,7 +248,7 @@ M('get', (z, key) => {
     return nice._db.getValue(found, 'cache');
 
   const type = z._type.types[key];
-  const item = nice._createItem(type || nice.NotFound);
+  const item = nice._createItem(type || nice.Anything, type || nice.NotFound);
   item._parent = z._id;
   item._name = key;
   return item;
@@ -277,17 +276,17 @@ A('set', (z, key, value, ...tale) => {
   if(value === null)
     return z.remove(_name);
 
-  const item = z.get(_name);
-  if(!item.is(value)){
-    item.transactionStart();
-    const isNice = value._isAnything;
-    if(value._isAnything) {
-      nice._assignType(item, nice.Reference, [value]);
-    } else {
-      nice._assignType(item, nice.valueType(value), [value, ...tale]);
-    }
-    item.transactionEnd();
-  }
+  //TODO:0 change to item(value)
+  const item = z.get(_name)(value, ...tale);
+//  if(!item.is(value)){
+//    item.transactionStart();
+//    if(value._isAnything) {
+//      nice._setType(item, nice.Reference, [value]);
+//    } else {
+//      nice._setType(item, nice.valueType(value), [value, ...tale]);
+//    }
+//    item.transactionEnd();
+//  }
 });
 
 Test('Set by link', (Obj) => {
@@ -344,7 +343,7 @@ A.about('Remove element at `i`.')
   if(id === null)
     return;
 
-  nice._assignType(z.get(key), nice.NotFound);
+  nice._setType(z.get(key), nice.NotFound);
 });
 
 Test((remove, Obj) => {

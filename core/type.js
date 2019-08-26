@@ -43,7 +43,7 @@ defAll(nice, {
           return nice.skip(type, a);
       }
 
-      return nice._createItem(type, a);
+      return nice._createItem(type, type, a);
     };
 
 //    config.proto._type = type;

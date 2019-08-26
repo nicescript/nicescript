@@ -3,7 +3,8 @@ nice.Type({
 
   extends: 'Nothing',
 
-  initBy: (z, message) => {
+  initBy: (z, ...as) => {
+    const message = nice.format(...as);
     if(message && message.message){
       message = message.message;
     }

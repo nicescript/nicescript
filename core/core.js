@@ -65,13 +65,13 @@ defAll(nice, {
     }
   },
 
-  _createItem(type, args){
+  _createItem(_cellType, type, args){
     if(!type._isNiceType)
       throw('Bad type');
 
-    const id = nice._db.push({}).lastId;
+    const id = nice._db.push({_cellType}).lastId;
 //    const id = nice._db.push({_type: type}).lastId;
-    return nice._assignType(nice._db.getValue(id, 'cache'), type, args);
+    return nice._setType(nice._db.getValue(id, 'cache'), type, args);
   },
 
   _assignType(item, type, args) {
@@ -88,6 +88,13 @@ defAll(nice, {
 
     type.defaultValueBy
         && db.update(item._id, '_value', type.defaultValueBy());
+    return item;
+  },
+
+  _setType(item, type, args) {
+    nice._assignType(item, type, args);//, args
+    const db = this._db;
+
     type.initChildren(item);
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(item)
@@ -113,7 +120,7 @@ defAll(nice, {
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        f._type.itemArgs1(f, a[0]);
+        f._cellType.itemArgs1(f, a[0]);
       } else {
         f._type.itemArgsN(f, a);
       }
