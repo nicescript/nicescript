@@ -12,12 +12,16 @@ const colors = {
 };
 
 
-def(nice, 'runTests', () => {
+def(nice, 'runTests', (key) => {
   console.log('');
   console.log(' ', colors.blue('Running tests'));
   console.log('');
   let good = 0, bad = 0, start = Date.now();
-  nice.reflect.on('test', t => runTest(t) ? good++ : bad++);
+  nice.reflect.on('test', t => {
+    const args = nice.argumentNames(t.body);
+    if(!key || args.includes(key))
+      runTest(t, args.map(n => nice[n])) ? good++ : bad++;
+  });
   console.log(' ');
   console.log(colors[bad ? 'red' : 'green']
     (`Tests done. OK: ${good}, Error: ${bad}`), `(${Date.now() - start}ms)`);
@@ -25,9 +29,9 @@ def(nice, 'runTests', () => {
 });
 
 
-function runTest(t){
+function runTest(t, args){
   try {
-    t.body(...nice.argumentNames(t.body).map(n => nice[n]));
+    t.body(...args);
     return true;
   } catch (e) {
     const k = 1 + (e.shift || 0);
