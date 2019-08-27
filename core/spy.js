@@ -59,6 +59,7 @@ Test((Spy, calledTimes) => {
 });
 
 
+//TODO: write actual arguments in error
 Check.Spy('calledWith', (s, ...as) => s._value.some(a => {
   return as.every((v, k) => nice.is(a[k], v));
 }));
