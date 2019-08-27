@@ -153,6 +153,10 @@ nice.registerType({
       return nice._db.getValue(this._id, '_children');
     },
 
+    get _order() {
+      return nice._db.getValue(this._id, '_order');
+    },
+
     get _name() {
       return nice._db.getValue(this._id, '_name');
     },

@@ -1,4 +1,3 @@
-//TODO: select
 const Html = nice.Html;
 
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
@@ -49,10 +48,10 @@ const constructors = {
 //    ? z.children.removeAt(v._name)
 //    : z.children.insertAt(v._name, f(v, v._name))
 //  , z.children),
-    Arr: (z, a, f) => a.listenItems({
-      NotFound: v => z.children.removeAt(v._name),
-      '*': v => z.children.insertAt(v._name, f(v, v._name))
-    }, z.children),
+  Arr: (z, a, f) => a.listenItems({
+    NotFound: v => z.children.removeAt(v._name),
+    '*': v => z.children.insertAt(v._name, f(v, v._name))
+  }, z.children),
 //  Arr: (z, a, f) => a.listen({
 //    onRemove: (v, k) => z.children.removeAt(k),
 //    onAdd: (v, k) => z.children.insertAt(k, f(v, k))

@@ -5,43 +5,6 @@ const expect = chai.expect;
 const { Arr, Obj } = nice;
 
 describe("Arr", function() {
-  let x2 = x => x * 2;
-
-  it("setter", function() {
-    let a = Arr();
-
-    a(2)(3, 4)(5);
-    expect(a.get(1)).to.equal(3);
-    expect(a.get(3)).to.equal(5);
-  });
-
-  it("nice child", function() {
-    let a = Arr();
-    let o = Obj();
-    a(o);
-    expect(a.get(0) === o).to.equal(true);
-  });
-
-
-  it("constructor", function() {
-    let a = Arr(1, 5, 8);
-    a(9);
-    expect(a.get(1)).to.equal(5);
-    expect(a.get(3)).to.equal(9);
-    expect(a.get(4).isUndefined()).to.equal(true);
-  });
-
-
-  it("each", () => {
-    let a = Arr(1, 2);
-    let spy = chai.spy();
-    a.each(v => spy(v));
-    expect(spy).to.have.been.called.twice();
-    expect(spy).to.have.been.called.with(1);
-    expect(spy).to.have.been.called.with(2);
-  });
-
-
   it("eachRight", () => {
     let a = Arr(1, 2);
     let b = [];
@@ -70,11 +33,6 @@ describe("Arr", function() {
   });
 
 
-  it("map", () => {
-    expect(Arr(4, 3, 5).map(x2).jsValue).to.deep.equal([8,6,10]);
-  });
-
-
   it("class property", () => {
     const Car = nice.Type().arr('wheels')();
     const c = Car();
@@ -97,13 +55,6 @@ describe("Arr", function() {
     a.listen({ onAdd });
     a.insertAt(0, 2);
     expect(onAdd).to.have.been.called();
-  });
-
-
-  it("push", () => {
-    let a = Arr(1, 4);
-    a.push(2, 1);
-    expect(a.jsValue).to.deep.equal([1, 4, 2, 1]);
   });
 
 

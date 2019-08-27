@@ -179,15 +179,6 @@ describe("Obj", function() {
   });
 
 
-  it("reduceTo", function() {
-    const c = Obj({qwe: 1, ads: 3});
-    const a = nice.Num();
-
-    expect(c.reduceTo(a, (z, v) => z.inc(v))).to.equal(a);
-    expect(a()).to.equal(4);
-  });
-
-
   it("sum", function() {
     const a = Obj({qwe: 1, ads: 3});
     expect(a.sum()).to.equal(4);

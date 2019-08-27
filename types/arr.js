@@ -5,6 +5,7 @@ nice.Obj.extend({
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   killValue (z) {
     _each(z._order, (v, k) => nice._setType(z.get(k), NotFound));
+    nice._db.update (z._id, '_order', null);
     this.super.killValue(z);
   },
 
@@ -92,9 +93,53 @@ nice.Obj.extend({
     a.forEach(v => z.insertAt(z._size, v));
   });
 
+Test("constructor", function(Arr) {
+  let a = Arr(1, 5, 8);
+  a(9);
+  expect(a.get(1)).is(5);
+  expect(a.get(3)).is(9);
+  expect(a.get(4).isNotFound()).is(true);
+});
+
+Test("setter", function(Arr) {
+  const a = Arr();
+
+  a(2)(3, 4)(5);
+  expect(a.get(1)).is(3);
+  expect(a.get(3)).is(5);
+});
+
+Test("push", (Arr, push) => {
+  const a = Arr(1, 4);
+  a.push(2, 1);
+  expect(a.jsValue).deepEqual([1, 4, 2, 1]);
+});
+
+
+
+
 
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
+
+F('each', (a, f) => {
+  const db = nice._db;
+  a._order.forEach((v, k) => f(db.getValue(v, 'cache'), k));
+});
+
+Test("each", (Arr, Spy) => {
+  const a = Arr(1, 2);
+  const spy = Spy();
+  a.each(spy);
+  expect(spy).calledTwice();
+  expect(spy).calledWith(1, 0);
+  expect(spy).calledWith(2, 1);
+});
+
+
+
+
+
 
 M.Function('reduce', (a, f, res) => {
   _each(a, (v, k) => res = f(res, v, k));
@@ -164,7 +209,9 @@ A('pull', (z, item) => {
 A.Number('insertAt', (z, i, v) => {
   i = +i;
   z.each((c, k) => k > i && (c._name = k + 1));
-  z.set(i, v);
+  const item = z.get(i);
+  z._order.splice(i, 0, item._id);
+  item(v);
 });
 
 
@@ -175,33 +222,26 @@ A('insertAfter', (z, target, v) => {
 
 A('remove', (z, k) => {
   k = +k;
-  const db = nice._db;
-  const id = db.findKey({_parent: z._id, _name: k});
+  const db = nice._db, order = z._order;
 
-  if(id === null)
+  if(k >= order.length)
     return;
 
   nice._setType(z.get(k), NotFound);
-//  if(db.data._isHot[id]){
-//    db.update(id, '_type', NotFound);
-//    db.update(id, '_value', null);
-//  } else {
-//    db.delete(id);
-//  }
-  _each(z._value, (v, _k) => {
+  _each(z._children, (v, _k) => {
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });
+  order.splice(k, 1);
 });
 
-//TODO:0
-//Test((Arr, remove) => {
-//  const a = Arr(1,2,3,4);
-//  expect(a.size).is(4);
-//  expect(a.get(1)).is(2);
-//  a.remove(1);
-//  expect(a.size).is(3);
-//  expect(a.get(1)).is(3);
-//});
+Test((Arr, remove) => {
+  const a = Arr(1,2,3,4);
+  expect(a.size).is(4);
+  expect(a.get(1)).is(2);
+  a.remove(1);
+  expect(a.size).is(3);
+  expect(a.get(1)).is(3);
+});
 
 
 F('callEach', (z, ...a) => {
@@ -242,15 +282,19 @@ A(function fill(z, v, start = 0, end){
   end === undefined && (end = l);
   start < 0 && (start += l);
   end < 0 && (end += l);
-  for(let i = start; i < end; i++){
-    z.set(i, v);
-  }
+  for(let i = start; i < end; i++)
+    z.insertAt(i, v);
 });
 
 
 M.Function(function map(a, f){
   return a.reduceTo(Arr(), (z, v, k) => z.push(f(v, k)));
 });
+
+Test("map", () => {
+  expect(Arr(4, 3, 5).map(x => x * 2).jsValue).deepEqual([8,6,10]);
+});
+
 
 Mapping.Array.Function(function map(a, f){
   return a.reduce((z, v, k) => { z.push(f(v, k)); return z; }, []);

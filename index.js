@@ -1353,6 +1353,9 @@ nice.registerType({
     get _children() {
       return nice._db.getValue(this._id, '_children');
     },
+    get _order() {
+      return nice._db.getValue(this._id, '_order');
+    },
     get _name() {
       return nice._db.getValue(this._id, '_name');
     },
@@ -2377,8 +2380,7 @@ A('set', (z, key, value, ...tale) => {
     throw `Can't set ${key} to undefined`;
   if(value === null)
     return z.remove(_name);
-  
-  const item = z.get(_name)(value, ...tale);
+  z.get(_name)(value, ...tale);
 });
 Test('Set by link', (Obj) => {
   const cfg = Obj({a:2});
@@ -2514,6 +2516,22 @@ M('getProperties',  z => apply([], res => {
 Mapping.Object('reduceTo', (o, res, f) => {
   _each(o, (v, k) => f(res, v, k));
   return res;
+});
+Test("reduceTo", function(reduceTo, Num) {
+  const c = {qwe: 1, ads: 3};
+  const a = nice.Num();
+  expect(reduceTo(c, a, (z, v) => z.inc(v))).is(a);
+  expect(a()).is(4);
+});
+M('reduceTo', (o, res, f) => {
+  o.each((v, k) => f(res, v, k));
+  return res;
+});
+Test("reduceTo", function(Obj, reduceTo, Num) {
+  const c = Obj({qwe: 1, ads: 3});
+  const a = nice.Num();
+  expect(c.reduceTo(a, (z, v) => z.inc(v))).is(a);
+  expect(a()).is(4);
 });
 reflect.on('type', type => {
   const smallName = nice._decapitalize(type.name);
@@ -2781,6 +2799,7 @@ nice.Obj.extend({
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   killValue (z) {
     _each(z._order, (v, k) => nice._setType(z.get(k), NotFound));
+    nice._db.update (z._id, '_order', null);
     this.super.killValue(z);
   },
   proto: {
@@ -2849,8 +2868,38 @@ nice.Obj.extend({
   .Action(function push(z, ...a) {
     a.forEach(v => z.insertAt(z._size, v));
   });
+Test("constructor", function(Arr) {
+  let a = Arr(1, 5, 8);
+  a(9);
+  expect(a.get(1)).is(5);
+  expect(a.get(3)).is(9);
+  expect(a.get(4).isNotFound()).is(true);
+});
+Test("setter", function(Arr) {
+  const a = Arr();
+  a(2)(3, 4)(5);
+  expect(a.get(1)).is(3);
+  expect(a.get(3)).is(5);
+});
+Test("push", (Arr, push) => {
+  const a = Arr(1, 4);
+  a.push(2, 1);
+  expect(a.jsValue).deepEqual([1, 4, 2, 1]);
+});
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
+F('each', (a, f) => {
+  const db = nice._db;
+  a._order.forEach((v, k) => f(db.getValue(v, 'cache'), k));
+});
+Test("each", (Arr, Spy) => {
+  const a = Arr(1, 2);
+  const spy = Spy();
+  a.each(spy);
+  expect(spy).calledTwice();
+  expect(spy).calledWith(1, 0);
+  expect(spy).calledWith(2, 1);
+});
 M.Function('reduce', (a, f, res) => {
   _each(a, (v, k) => res = f(res, v, k));
   return res;
@@ -2877,21 +2926,31 @@ A('pull', (z, item) => {
 A.Number('insertAt', (z, i, v) => {
   i = +i;
   z.each((c, k) => k > i && (c._name = k + 1));
-  z.set(i, v);
+  const item = z.get(i);
+  z._order.splice(i, 0, item._id);
+  item(v);
 });
 A('insertAfter', (z, target, v) => {
   z.each((v, k) => v.is(target) && z.insertAt(+k+1, v) && nice.Stop());
 });
 A('remove', (z, k) => {
   k = +k;
-  const db = nice._db;
-  const id = db.findKey({_parent: z._id, _name: k});
-  if(id === null)
+  const db = nice._db, order = z._order;
+  if(k >= order.length)
     return;
   nice._setType(z.get(k), NotFound);
-  _each(z._value, (v, _k) => {
+  _each(z._children, (v, _k) => {
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });
+  order.splice(k, 1);
+});
+Test((Arr, remove) => {
+  const a = Arr(1,2,3,4);
+  expect(a.size).is(4);
+  expect(a.get(1)).is(2);
+  a.remove(1);
+  expect(a.size).is(3);
+  expect(a.get(1)).is(3);
 });
 F('callEach', (z, ...a) => {
   z().forEach( f => f.apply(z, ...a) );
@@ -2923,12 +2982,14 @@ A(function fill(z, v, start = 0, end){
   end === undefined && (end = l);
   start < 0 && (start += l);
   end < 0 && (end += l);
-  for(let i = start; i < end; i++){
-    z.set(i, v);
-  }
+  for(let i = start; i < end; i++)
+    z.insertAt(i, v);
 });
 M.Function(function map(a, f){
   return a.reduceTo(Arr(), (z, v, k) => z.push(f(v, k)));
+});
+Test("map", () => {
+  expect(Arr(4, 3, 5).map(x => x * 2).jsValue).deepEqual([8,6,10]);
 });
 Mapping.Array.Function(function map(a, f){
   return a.reduce((z, v, k) => { z.push(f(v, k)); return z; }, []);
@@ -3627,8 +3688,7 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
     };
 });
 })();
-(function(){"use strict";
-const Html = nice.Html;
+(function(){"use strict";const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
   const l = t.toLowerCase();
   Html.extend(t).by((z, a, ...as) => {
@@ -3667,10 +3727,10 @@ const constructors = {
     }, z.children);
   },
   Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-    Arr: (z, a, f) => a.listenItems({
-      NotFound: v => z.children.removeAt(v._name),
-      '*': v => z.children.insertAt(v._name, f(v, v._name))
-    }, z.children),
+  Arr: (z, a, f) => a.listenItems({
+    NotFound: v => z.children.removeAt(v._name),
+    '*': v => z.children.insertAt(v._name, f(v, v._name))
+  }, z.children),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
 };
 })();
