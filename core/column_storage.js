@@ -192,7 +192,7 @@ const db = new ColumnStorage(
   '_itemsListeners',
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
-//  {name: '_subscribers', defaultBy: () => new Map() },
+  {name: '_children', defaultBy: () => ({}) },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
@@ -227,13 +227,8 @@ db.on('_type', (id, value, oldValue) => {
 
 
 db.on('_name', (id, value, oldValue) => {
-  const parent = db.getValue(id, '_parent')
-  let index = db.getValue(parent, '_value');
-  if(index === undefined){
-    //TODO: array for arrays db.getValue(parent, '_type').isArr();
-    db.update(parent, '_value', index = {});
-  }
-
+  const parent = db.getValue(id, '_parent');
+  const index = db.getValue(parent, '_children');
   if(oldValue !== null && oldValue !== undefined)
     delete index[oldValue];
   if(value !== null && value !== undefined)

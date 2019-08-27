@@ -14,17 +14,7 @@ const proxy = new Proxy({}, {
     if(k === 'isPrototypeOf')
       return Object.prototype.isPrototypeOf;
 
-    if(k in receiver){
-      return receiver[k];
-    } else {
-      return receiver.get(k);
-//      k.toString && (k = k.toString());
-//      const res = nice.Err(`Property ${k} not found`)
-//        ._set('_functionName', 'get')
-//        ._set('_args', [receiver, k]);
-//      receiver.listen(res);
-//      return res;
-    }
+    return k in receiver ? receiver[k] : receiver.get(k);
   },
 });
 
@@ -38,15 +28,18 @@ nice.registerType({
   },
 
   itemArgs0: z => z._value,
+
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
       z.transactionStart();
-      nice._setType(z, nice.Reference, [v]);
+      nice._setType(z, nice.Reference);
+      nice._initItem(z, nice.Reference, v);
       z.transactionEnd();
     } else {
       z._cellType.setPrimitive(z, v);
     }
   },
+
   setPrimitive: (z, v) => {
     const t = typeof v;
     let type;
@@ -83,18 +76,27 @@ nice.registerType({
         return type.setValue(z, v);
 
       const cellType = z._cellType;
-      if(cellType === type || cellType.isPrototypeOf(type))
-        return nice._setType(z, type, [v]);
+      if(cellType === type || cellType.isPrototypeOf(type)){
+        nice._setType(z, type);
+        nice._initItem(z, type, v);
+        return z;
+      }
 
       const cast = cellType.castFrom[type.name];
-      if(cast !== undefined)
-        return nice._setType(z, type, [cast(v)]);
+      if(cast !== undefined){
+        nice._setType(z, type);
+        nice._initItem(z, type, cast(v));
+        return z
+      };
 
-      return nice._setType(z, Err, [type.name, ' to ', cellType.name]);
+      nice._setType(z, Err);
+      nice._initItem(z, type, type.name, ' to ', cellType.name);
+      return ;
     }
 
     throw 'Unknown type';
   },
+
   itemArgsN: (z, vs) => {
     throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
   },
@@ -127,7 +129,6 @@ nice.registerType({
     _isAnything: true,
 
     get _value() {
-      //nice.reflect.emit('itemUse', z);
       return nice._db.getValue(this._id, '_value');
     },
 
@@ -146,6 +147,10 @@ nice.registerType({
     set _parent(v) {
       return nice._db.update(this._id, '_parent', v);
       return true;
+    },
+
+    get _children() {
+      return nice._db.getValue(this._id, '_children');
     },
 
     get _name() {

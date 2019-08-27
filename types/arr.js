@@ -184,7 +184,6 @@ A('remove', (z, k) => {
 //    db.delete(id);
 //  }
   _each(z._value, (v, _k) => {
-
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });
 });

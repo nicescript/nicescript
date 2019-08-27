@@ -29,24 +29,11 @@ nice.Type({
 
   setValue (z, value) {
     expect(typeof value).is('object');
-
-    const index = nice._db.getValue(z._id,  '_value');
-
-    z.transaction(() => {
-      _each(index, (v, k) => k in value
-          || nice._setType(z.get(k), nice.NotFound));
-
-      _each(value, (v, k) => z.set(k, v));
-    });
+    z.transaction(() => _each(value, (v, k) => z.set(k, v)));
   },
 
   killValue (z) {
-    const index = nice._db.getValue(z._id,  '_value');
-    expect(typeof index).is('object');
-
-    z.transaction(() => {
-      _each(index, (v, k) => nice._setType(z.get(k), nice.NotFound));
-    });
+    _each(z._children, (v, k) => nice._setType(z.get(k), nice.NotFound));
   },
 
   proto: {
@@ -181,7 +168,7 @@ Test((Obj, setDefault) => {
 });
 
 F(function each(z, f){
-  const index = z._value, db = nice._db;
+  const index = z._children, db = nice._db;
   for(let i in index){
     const item = db.getValue(index[i], 'cache');
     if(!item.isNotFound())
@@ -219,14 +206,9 @@ Mapping.Anything('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
 
-  const found = nice._db.findKey({_parent: z._id, _name: key});
-  if(found !== null)
-    return nice._db.getValue(found, 'cache');
-
-  const item = nice._createItem(nice.Anything, nice.NotFound);
-  item._parent = z._id;
-  item._name = key;
-  return item;
+  return key in z._children
+    ? nice._db.getValue(z._children[key], 'cache')
+    : nice._createChild(z._id, key);
 });
 
 Test((get, Obj, NotFound) => {
@@ -243,15 +225,9 @@ M('get', (z, key) => {
   if(key._isAnything === true)
     key = key();
 
-  const found = nice._db.findKey({_parent: z._id, _name: key});
-  if(found !== null)
-    return nice._db.getValue(found, 'cache');
-
-  const type = z._type.types[key];
-  const item = nice._createItem(type || nice.Anything, type || nice.NotFound);
-  item._parent = z._id;
-  item._name = key;
-  return item;
+  return key in z._children
+    ? nice._db.getValue(z._children[key], 'cache')
+    : nice._createChild(z._id, key, z._type.types[key]);
 });
 
 Test((Obj, NotFound) => {

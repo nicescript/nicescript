@@ -30,7 +30,7 @@ Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   }
 
   if(value === undefined)
-    throw 'No value';
+    throw new Error('No value');
 
   Object.defineProperty(target, name, { value });
 
@@ -65,23 +65,42 @@ defAll(nice, {
     }
   },
 
-  _createItem(_cellType, type, args){
+//TODO: check:
+//create guessType -> assignType -> assignValue
+//set tearDown -> guessType -> assignType -> assignValue
+
+  _createItem(_cellType, type, ...args){
     if(!type._isNiceType)
-      throw('Bad type');
+      throw new Error('Bad type');
 
     const id = nice._db.push({_cellType}).lastId;
-//    const id = nice._db.push({_type: type}).lastId;
-    return nice._setType(nice._db.getValue(id, 'cache'), type, args);
+    const item = nice._db.getValue(id, 'cache');
+    nice._setType(item, type);
+    nice._initItem(item, type, ...args);
+    return item;
   },
 
-  _assignType(item, type, args) {
-    const db = this._db;
+  _createChild(parent, key, type) {
+    const item = nice._createItem(type || nice.Anything, type || nice.NotFound);
+    item._parent = parent;
+    item._name = key;
+    return item;
+  },
 
-    const oldType = db.getValue(item._id, '_type');
-    if(oldType === type)
-      return type.setValue(item, args[0]);//TODO: what about a[1]
+  _initItem(z, type, ...args) {
+    type.initChildren(z);
+    args === undefined || args.length === 0
+      ? type.initBy && type.initBy(z)
+      : type.initBy
+        ? type.initBy(z, ...args)
+        : (args.length && z(...args));
+    return z;
+  },
 
-    item._type && item._type.killValue && item._type.killValue(item);
+  _setType(item, type) {
+    const oldType = item._type, db = this._db;
+
+    oldType && oldType.killValue && oldType.killValue(item);
 
     db.update(item._id, '_type', type);
     Object.setPrototypeOf(item, type.proto);
@@ -91,25 +110,11 @@ defAll(nice, {
     return item;
   },
 
-  _setType(item, type, args) {
-    nice._assignType(item, type, args);//, args
-    const db = this._db;
-
-    type.initChildren(item);
-    args === undefined || args.length === 0
-      ? type.initBy && type.initBy(item)
-      : type.initBy
-        ? type.initBy(item, ...args)
-        : (args.length && item(...args));
-    return item;
-  },
-
   _assertItem(_parent, _name) {
     const db = this._db;
     let id = db.findKey({_parent, _name});
     if(id === null){
       db.push({ _parent, _name});
-//      db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
       id = db.lastId;
     }
     return db.getValue(id, 'cache');

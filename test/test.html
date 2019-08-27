@@ -16,9 +16,16 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj, _1, _2, _3, Test, Spy } = nice;
 //const spy = (...a) => console.log('Spy:', ...a);
 
-const o = Obj({a: {b: { c:1 }}});
-  expect(o.jsValue.a.b.c).is(1);
-
+  const a = Num(5);
+  const b = Single(2);
+  b(a);
+  expect(b()).is(5);
+  expect(b._type).is(Num);
+  expect(b._cellType).is(Single);
+  b(3);
+  expect(b()).is(3);
+  expect(a()).is(5);
+  expect(b).isNum();
   
 
 //const o = Obj({ q:1, a:2 });
