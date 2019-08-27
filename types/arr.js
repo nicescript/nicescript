@@ -3,6 +3,11 @@ nice.Obj.extend({
   name: 'Arr',
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
+  killValue (z) {
+    _each(z._order, (v, k) => nice._setType(z.get(k), NotFound));
+    this.super.killValue(z);
+  },
+
   proto: {
   //  _compareItems: (a1, a2, add, del) => {
   //    let i1 = 0, i2 = 0, ii2, n;
@@ -176,9 +181,9 @@ A('remove', (z, k) => {
   if(id === null)
     return;
 
-  nice._setType(z.get(k), nice.NotFound);
+  nice._setType(z.get(k), NotFound);
 //  if(db.data._isHot[id]){
-//    db.update(id, '_type', nice.NotFound);
+//    db.update(id, '_type', NotFound);
 //    db.update(id, '_value', null);
 //  } else {
 //    db.delete(id);

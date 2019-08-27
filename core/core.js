@@ -81,7 +81,7 @@ defAll(nice, {
   },
 
   _createChild(parent, key, type) {
-    const item = nice._createItem(type || nice.Anything, type || nice.NotFound);
+    const item = nice._createItem(type || Anything, type || NotFound);
     item._parent = parent;
     item._name = key;
     return item;
@@ -139,7 +139,7 @@ defAll(nice, {
 //  TODO:
     f._notifing = false;
 
-    Object.setPrototypeOf(f, (nice._db.data._type[id] || nice.Anything).proto);
+    Object.setPrototypeOf(f, (nice._db.data._type[id] || Anything).proto);
 
     return f;
   },

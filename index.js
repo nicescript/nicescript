@@ -1,4 +1,4 @@
-module.exports = function(){;let nice;(function(){let create,Div,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;
+module.exports = function(){;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -56,7 +56,7 @@ defAll(nice, {
     return item;
   },
   _createChild(parent, key, type) {
-    const item = nice._createItem(type || nice.Anything, type || nice.NotFound);
+    const item = nice._createItem(type || Anything, type || NotFound);
     item._parent = parent;
     item._name = key;
     return item;
@@ -103,7 +103,7 @@ defAll(nice, {
     nice.eraseProperty(f, 'name');
     nice.eraseProperty(f, 'length');
     f._notifing = false;
-    Object.setPrototypeOf(f, (nice._db.data._type[id] || nice.Anything).proto);
+    Object.setPrototypeOf(f, (nice._db.data._type[id] || Anything).proto);
     return f;
   },
   valueType: v => {
@@ -770,6 +770,7 @@ const db = new ColumnStorage(
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
   {name: '_children', defaultBy: () => ({}) },
+  {name: '_order', defaultBy: () => [] },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
@@ -786,10 +787,10 @@ db.on('_type', (id, value, oldValue) => {
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
-  if(!oldValue || oldValue === nice.NotFound){
+  if(!oldValue || oldValue === NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') + 1);
-  } else if (!value || value === nice.NotFound){
+  } else if (!value || value === NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') - 1);
   }
@@ -1880,7 +1881,7 @@ expect = nice.expect;
 defAll(nice, {
   type: t => {
     nice.isString(t) && (t = nice[t]);
-    expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
+    expect(Anything.isPrototypeOf(t) || Anything === t,
       '' + t + ' is not a type').is(true);
     return t;
   },
@@ -1914,7 +1915,7 @@ defAll(nice, {
     return cfg;
   },
 });
-nice.Check('isType', v => nice.Anything.isPrototypeOf(v));
+nice.Check('isType', v => Anything.isPrototypeOf(v));
 Test("named type", (Type) => {
   Type('Cat').str('name');
   const cat = nice.Cat().name('Ball');
@@ -2078,6 +2079,7 @@ s('Nothing', 'Anything', 'Parent type for all falsy values.');
 s('Undefined', 'Nothing', 'Wrapper for JS undefined.');
 s('Null', 'Nothing', 'Wrapper for JS null.');
 s('NotFound', 'Nothing', 'Value returned by lookup functions in case nothing is found.');
+NotFound = nice.NotFound;
 s('Fail', 'Nothing', 'Empty negative signal.');
 s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.');
 s('Pending', 'Nothing', 'State of the Box when it awaits input.');
@@ -2140,7 +2142,7 @@ Func.Anything('xor', (...as) => {
   default: () => undefined,
   isSubType,
   creator: () => { throw 'Use Single or Object.' },
-  proto: create(nice.Anything.proto, {
+  proto: create(Anything.proto, {
     valueOf (){ return this._value; }
   }),
   configProto: {
@@ -2202,7 +2204,7 @@ nice.jsTypes.isSubType = isSubType;
     z.transaction(() => _each(value, (v, k) => z.set(k, v)));
   },
   killValue (z) {
-    _each(z._children, (v, k) => nice._setType(z.get(k), nice.NotFound));
+    _each(z._children, (v, k) => nice._setType(z.get(k), NotFound));
   },
   proto: {
     checkKey (i) {
@@ -2292,7 +2294,7 @@ C('has', (o, key) => {
   const names = db.data._name;
   const types = db.data._type;
   for(let i in parents)
-    if(parents[i] === id && names[i] === key && types[i] !== nice.NotFound)
+    if(parents[i] === id && names[i] === key && types[i] !== NotFound)
       return true;
   return false;
 });
@@ -2396,7 +2398,7 @@ A.about('Remove element at `i`.')
   const id = db.findKey({_parent: z._id, _name: key});
   if(id === null)
     return;
-  nice._setType(z.get(key), nice.NotFound);
+  nice._setType(z.get(key), NotFound);
 });
 Test((remove, Obj) => {
   const o = Obj({ q:1, a:2 });
@@ -2460,7 +2462,7 @@ M(function find(c, f){
       return nice.Stop();
     }
   });
-  return res === undefined ? nice.NotFound() : res;
+  return res === undefined ? NotFound() : res;
 });
 M(function findKey(c, f){
   nice.isFunction(f) || (f = is(f, nice));
@@ -2471,7 +2473,7 @@ M(function findKey(c, f){
       return nice.Stop();
     }
   });
-  return res === undefined ? nice.NotFound() : res;
+  return res === undefined ? NotFound() : res;
 });
 M.Function(function count(o, f) {
   let n = 0;
@@ -2777,6 +2779,10 @@ nice.Obj.extend({
   name: 'Arr',
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
+  killValue (z) {
+    _each(z._order, (v, k) => nice._setType(z.get(k), NotFound));
+    this.super.killValue(z);
+  },
   proto: {
   
   
@@ -2882,7 +2888,7 @@ A('remove', (z, k) => {
   const id = db.findKey({_parent: z._id, _name: k});
   if(id === null)
     return;
-  nice._setType(z.get(k), nice.NotFound);
+  nice._setType(z.get(k), NotFound);
   _each(z._value, (v, _k) => {
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });

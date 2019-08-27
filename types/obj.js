@@ -33,7 +33,7 @@ nice.Type({
   },
 
   killValue (z) {
-    _each(z._children, (v, k) => nice._setType(z.get(k), nice.NotFound));
+    _each(z._children, (v, k) => nice._setType(z.get(k), NotFound));
   },
 
   proto: {
@@ -149,7 +149,7 @@ C('has', (o, key) => {
   const names = db.data._name;
   const types = db.data._type;
   for(let i in parents)
-    if(parents[i] === id && names[i] === key && types[i] !== nice.NotFound)
+    if(parents[i] === id && names[i] === key && types[i] !== NotFound)
       return true;
   return false;
 });
@@ -319,7 +319,7 @@ A.about('Remove element at `i`.')
   if(id === null)
     return;
 
-  nice._setType(z.get(key), nice.NotFound);
+  nice._setType(z.get(key), NotFound);
 });
 
 Test((remove, Obj) => {
@@ -452,7 +452,7 @@ M(function find(c, f){
       return nice.Stop();
     }
   });
-  return res === undefined ? nice.NotFound() : res;
+  return res === undefined ? NotFound() : res;
 });
 
 
@@ -465,7 +465,7 @@ M(function findKey(c, f){
       return nice.Stop();
     }
   });
-  return res === undefined ? nice.NotFound() : res;
+  return res === undefined ? NotFound() : res;
 });
 
 

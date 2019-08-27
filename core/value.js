@@ -9,7 +9,7 @@ nice.Type({
 
   creator: () => { throw 'Use Single or Object.' },
 
-  proto: create(nice.Anything.proto, {
+  proto: create(Anything.proto, {
     valueOf (){ return this._value; }
   }),
 

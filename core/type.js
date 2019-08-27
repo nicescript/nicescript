@@ -14,7 +14,7 @@ def(nice, function extend(child, parent){
 defAll(nice, {
   type: t => {
     nice.isString(t) && (t = nice[t]);
-    expect(nice.Anything.isPrototypeOf(t) || nice.Anything === t,
+    expect(Anything.isPrototypeOf(t) || Anything === t,
       '' + t + ' is not a type').is(true);
     return t;
   },
@@ -57,7 +57,7 @@ defAll(nice, {
   },
 });
 
-nice.Check('isType', v => nice.Anything.isPrototypeOf(v));
+nice.Check('isType', v => Anything.isPrototypeOf(v));
 
 Test("named type", (Type) => {
   Type('Cat').str('name');

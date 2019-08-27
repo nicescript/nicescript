@@ -193,6 +193,7 @@ const db = new ColumnStorage(
   '_deepListeners',
   {name: '_size', defaultValue: 0 },
   {name: '_children', defaultBy: () => ({}) },
+  {name: '_order', defaultBy: () => [] },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
@@ -216,10 +217,10 @@ db.on('_type', (id, value, oldValue) => {
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
 
-  if(!oldValue || oldValue === nice.NotFound){
+  if(!oldValue || oldValue === NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') + 1);
-  } else if (!value || value === nice.NotFound){
+  } else if (!value || value === NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') - 1);
   }

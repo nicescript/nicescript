@@ -115,7 +115,7 @@
 //  }
 //});
 //
-//defAll(nice.Anything.proto, nice.observableProto);
+//defAll(Anything.proto, nice.observableProto);
 
 
 //function notify(z){
