@@ -168,6 +168,7 @@ function createMethodBody(type, body) {
 
     let target = fistTarget;
     const l = args.length;
+    let precision = Infinity;
     for(let i = 0; i < l; i++) {
       if(target && target.size){
         let type = nice.getType(args[i]);
@@ -180,7 +181,13 @@ function createMethodBody(type, body) {
             type = Object.getPrototypeOf(type);
           }
         }
-        target = found;
+        if(found){
+          let _t = found.transformations ? found.transformations.length : 0;
+          if(_t <= precision || !target.action){
+            precision = _t;
+            target = found;
+          }
+        }
       }
     }
 
@@ -226,6 +233,7 @@ function createFunctionBody(functionType){
     let target = z.signatures;
 
     const l = args.length;
+    let precision = Infinity;
     for(let i = 0; i < l; i++) {
       if(target && target.size){
         let type = nice.getType(args[i]);
@@ -238,10 +246,15 @@ function createFunctionBody(functionType){
             type = Object.getPrototypeOf(type);
           }
         }
-        target = found;
+        if(found){
+          let _t = found.transformations ? found.transformations.length : 0;
+          if(_t <= precision || !target.action){
+            precision = _t;
+            target = found;
+          }
+        }
       }
     }
-
     if(!target)
       return signatureError(z.name, args);
 

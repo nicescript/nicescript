@@ -116,15 +116,15 @@ Test("push", (Arr, push) => {
 });
 
 
-
-
-
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 
 F('each', (a, f) => {
-  const db = nice._db;
-  a._order.forEach((v, k) => f(db.getValue(v, 'cache'), k));
+  const o = a._order, db = nice._db;
+  for(let i = 0; i < o.length; i++)
+    if(nice.isStop(f(db.getValue(o[i], 'cache'), i)))
+      break;
+  return a;
 });
 
 Test("each", (Arr, Spy) => {
@@ -135,10 +135,6 @@ Test("each", (Arr, Spy) => {
   expect(spy).calledWith(1, 0);
   expect(spy).calledWith(2, 1);
 });
-
-
-
-
 
 
 M.Function('reduce', (a, f, res) => {
@@ -274,6 +270,23 @@ Func.Array.Function(function eachRight(a, f){
     if(nice.isStop(f(a[i], i)))
       break;
   return a;
+});
+
+
+F(function eachRight(a, f){
+  const o = a._order, db = nice._db;
+  for(let i = o.length - 1; i >= 0; i--)
+    if(nice.isStop(f(db.getValue(o[i], 'cache'), i)))
+      break;
+  return a;
+});
+
+
+Test("eachRight", () => {
+  let a = Arr(1, 2);
+  let b = [];
+  a.eachRight(v => b.push(v()));
+  expect(b).deepEqual([2, 1]);
 });
 
 

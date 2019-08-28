@@ -981,6 +981,19 @@ function createFunction({ existing, name, body, signature, type, description }){
 nice.reflect.on('function', (f) =>
   Anything && !(f.name in Anything.proto) &&
       def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
+function qwe(a, f) {
+  const type = a && a._type;
+  if (a.type === 'Arr'){
+    return use(nice.Arr.eachRigth)
+  } else if(a.type === 'Arr') {
+    if(f.isFunction){
+      return use(nice.Array.Function.eachRigth);
+    } else {
+      throw error;
+    }
+  }
+  return error;
+};
 function createMethodBody(type, body) {
   if(!type || !type._isNiceType || (body.name in type.proto))
     return;
@@ -995,6 +1008,7 @@ function createMethodBody(type, body) {
     }
     let target = fistTarget;
     const l = args.length;
+    let precision = Infinity;
     for(let i = 0; i < l; i++) {
       if(target && target.size){
         let type = nice.getType(args[i]);
@@ -1007,7 +1021,13 @@ function createMethodBody(type, body) {
             type = Object.getPrototypeOf(type);
           }
         }
-        target = found;
+        if(found){
+          let _t = found.transformations ? found.transformations.length : 0;
+          if(_t <= precision || !target.action){
+            precision = _t;
+            target = found;
+          }
+        }
       }
     }
     if(!target)
@@ -1045,6 +1065,7 @@ function createFunctionBody(functionType){
     nice.reflect.currentCall = call;
     let target = z.signatures;
     const l = args.length;
+    let precision = Infinity;
     for(let i = 0; i < l; i++) {
       if(target && target.size){
         let type = nice.getType(args[i]);
@@ -1057,7 +1078,13 @@ function createFunctionBody(functionType){
             type = Object.getPrototypeOf(type);
           }
         }
-        target = found;
+        if(found){
+          let _t = found.transformations ? found.transformations.length : 0;
+          if(_t <= precision || !target.action){
+            precision = _t;
+            target = found;
+          }
+        }
       }
     }
     if(!target)
@@ -2889,8 +2916,11 @@ Test("push", (Arr, push) => {
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
 F('each', (a, f) => {
-  const db = nice._db;
-  a._order.forEach((v, k) => f(db.getValue(v, 'cache'), k));
+  const o = a._order, db = nice._db;
+  for(let i = 0; i < o.length; i++)
+    if(nice.isStop(f(db.getValue(o[i], 'cache'), i)))
+      break;
+  return a;
 });
 Test("each", (Arr, Spy) => {
   const a = Arr(1, 2);
@@ -2976,6 +3006,19 @@ Func.Array.Function(function eachRight(a, f){
     if(nice.isStop(f(a[i], i)))
       break;
   return a;
+});
+F(function eachRight(a, f){
+  const o = a._order, db = nice._db;
+  for(let i = o.length - 1; i >= 0; i--)
+    if(nice.isStop(f(db.getValue(o[i], 'cache'), i)))
+      break;
+  return a;
+});
+Test("eachRight", () => {
+  let a = Arr(1, 2);
+  let b = [];
+  a.eachRight(v => b.push(v()));
+  expect(b).deepEqual([2, 1]);
 });
 A(function fill(z, v, start = 0, end){
   const l = z._size;
@@ -3373,9 +3416,6 @@ Test("Html class name", (Html) => {
 });
 Test("Html children array", (Div) => {
   expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');
-});
-Test("Html children Arr", (Div, Arr) => {
-  expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
 });
 Test("item child", function(Num, Html) {
   const n = Num(5);

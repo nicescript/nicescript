@@ -16,9 +16,10 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj, _1, _2, _3, Test, Spy } = nice;
 //const spy = (...a) => console.log('Spy:', ...a);
 
-var a = Arr('qwe', 'asd');
-var div = Div(a);
-expect(div.html).is('<div>qweasd</div>');
+  let a = Arr(1, 2);
+  let b = [];
+  a.eachRight(v => b.push(v));
+  expect(b).deepEqual([2, 1]);
 
 
 //const o = Obj({ q:1, a:2 });
