@@ -210,25 +210,6 @@ describe("Obj", function() {
   });
 
 
-  it("map", function() {
-    const a = Obj();
-    a.set('qwe', 3);
-    a.set('ad', 2);
-    let b = a.map(x2);
-    expect(b._type).to.equal(Obj);
-    expect(b.jsValue).to.deep.equal({qwe:6, ad:4});
-  });
-
-
-//  it("rMap", function() {
-//    const a = Obj({qwe: 1, asd: 3});
-//    const b = a.rMap(x2);
-//    a.set('zxc', 2);
-//    expect(b._type).to.equal(Obj);
-//    expect(b.jsValue).to.deep.equal({qwe:2, asd:6, zxc:4});
-//  });
-
-
   it("count", () => {
     const a = nice.Arr(1, 2, 3, 4, 5);
     expect(a.count(n => n % 2)()).to.equal(3);

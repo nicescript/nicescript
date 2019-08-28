@@ -128,6 +128,15 @@ nice.registerType({
   proto: Object.setPrototypeOf({
     _isAnything: true,
 
+    get (key) {
+      if(key._isAnything === true)
+        key = key();
+
+      return key in this._children
+        ? nice._db.getValue(this._children[key], 'cache')
+        : nice._createChild(this._id, key, this._type.types[key]);
+    },
+
     get _value() {
       return nice._db.getValue(this._id, '_value');
     },

@@ -202,14 +202,14 @@ Mapping.Object('get', (o, path) => {
   }
 });
 
-Mapping.Anything('get', (z, key) => {
-  if(key._isAnything === true)
-    key = key();
-
-  return key in z._children
-    ? nice._db.getValue(z._children[key], 'cache')
-    : nice._createChild(z._id, key);
-});
+//Mapping.Anything('get', (z, key) => {
+//  if(key._isAnything === true)
+//    key = key();
+//
+//  return key in z._children
+//    ? nice._db.getValue(z._children[key], 'cache')
+//    : nice._createChild(z._id, key);
+//});
 
 Test((get, Obj, NotFound) => {
   const a = NotFound();
@@ -221,14 +221,14 @@ Test((get, Obj, NotFound) => {
 });
 
 
-M('get', (z, key) => {
-  if(key._isAnything === true)
-    key = key();
-
-  return key in z._children
-    ? nice._db.getValue(z._children[key], 'cache')
-    : nice._createChild(z._id, key, z._type.types[key]);
-});
+//M('get', (z, key) => {
+//  if(key._isAnything === true)
+//    key = key();
+//
+//  return key in z._children
+//    ? nice._db.getValue(z._children[key], 'cache')
+//    : nice._createChild(z._id, key, z._type.types[key]);
+//});
 
 Test((Obj, NotFound) => {
   const o = Obj({q:1});
@@ -385,8 +385,18 @@ Mapping.Object('map', (o, f) => nice.apply({}, res => {
 
 M(function map(c, f){
   const res = c._type();
-  c.each((v,k) => res.set(f(v, k)));
+  c.each((v,k) => res.set(k, f(v, k)));
   return res;
+});
+
+Test("map", function(Obj, map) {
+  const a = Obj({q: 3, a: 2});
+  const b = a.map(x => x * 2);
+  expect(b._type).is(Obj);
+  expect(b.jsValue).deepEqual({q:6, a:4});
+  //TODO: restore
+//  a.set('z', 1);
+//  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
 });
 
 
