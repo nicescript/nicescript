@@ -235,7 +235,7 @@ function createFunctionBody(functionType){
     const l = args.length;
     let precision = Infinity;
     for(let i = 0; i < l; i++) {
-      if(target && target.size){
+      if(target && target.size) {
         let type = nice.getType(args[i]);
         let found = null;
         while(type){
@@ -429,3 +429,36 @@ nice.reflect.on('itemUse', item => {
   const call = nice.reflect.currentCall;
   call === undefined || call.add(item);
 });
+
+
+//nice.reflect.on('signature', s => {
+////  console.log(s.body);
+//  let res = '';
+//  const a = [];
+//  const b = [];
+//  s.signature.forEach((_s, n) => {
+//    a.push(`if( a${n}.is${_s.type.name} ) { `);
+//    b.unshift(`}`);
+//  });
+//  a.push(s.body.toString())
+//  res = a.join('') + b.join('');
+//  console.log(res);
+//});
+
+
+//Arr -> f
+//Array -> Function -> f
+
+//function qwe(a, f) {
+//  const type = a && a._type;
+//  if (a.type === 'Arr'){
+//    return use(nice.Arr.eachRigth)
+//  } else if(a.type === 'Arr') {
+//    if(f.isFunction){
+//      return use(nice.Array.Function.eachRigth);
+//    } else {
+//      throw error;
+//    }
+//  }
+//  return error;
+//};

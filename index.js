@@ -981,19 +981,6 @@ function createFunction({ existing, name, body, signature, type, description }){
 nice.reflect.on('function', (f) =>
   Anything && !(f.name in Anything.proto) &&
       def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
-function qwe(a, f) {
-  const type = a && a._type;
-  if (a.type === 'Arr'){
-    return use(nice.Arr.eachRigth)
-  } else if(a.type === 'Arr') {
-    if(f.isFunction){
-      return use(nice.Array.Function.eachRigth);
-    } else {
-      throw error;
-    }
-  }
-  return error;
-};
 function createMethodBody(type, body) {
   if(!type || !type._isNiceType || (body.name in type.proto))
     return;
@@ -1067,7 +1054,7 @@ function createFunctionBody(functionType){
     const l = args.length;
     let precision = Infinity;
     for(let i = 0; i < l; i++) {
-      if(target && target.size){
+      if(target && target.size) {
         let type = nice.getType(args[i]);
         let found = null;
         while(type){

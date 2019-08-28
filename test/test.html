@@ -18,7 +18,7 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
 
   let a = Arr(1, 2);
   let b = [];
-  a.eachRight(v => b.push(v));
+  a.eachRight(v => b.push(v()));
   expect(b).deepEqual([2, 1]);
 
 
