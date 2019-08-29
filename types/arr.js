@@ -54,7 +54,10 @@ nice.Obj.extend({
       if(i._isAnything === true)
         i = i();
       if(typeof i !== 'number')
-        throw 'Arr only likes number keys.';
+        if(+i != i)
+          throw 'Arr only likes number keys.';
+      if(i < 0)
+        throw 'Arr only likes positive keys.';
       return i;
     },
 
@@ -115,9 +118,33 @@ Test("push", (Arr, push) => {
   expect(a.jsValue).deepEqual([1, 4, 2, 1]);
 });
 
+Test((Arr) => {
+  const a = nice.Something()([1,2]);
+  expect(a._type).is(Arr);
+  expect(a.jsValue).deepEqual([1, 2]);
+});
 
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
+
+A('set', (a, key, value, ...tale) => {
+  const k = a.checkKey(key);
+
+  if(value === undefined)
+    throw `Can't set ${key} to undefined`;
+
+  const order = a._order;
+  if(k > order.length)
+    throw `Can't set ${key} array has only ${order.length} elements`;
+
+  if(value === null)
+    return a.remove(k);
+
+  const item = a.get(k);
+  item(value, ...tale);
+  order[k] = item._id;
+});
+
 
 F('each', (a, f) => {
   const o = a._order, db = nice._db;
@@ -164,10 +191,17 @@ M.Function('reduceRight', (a, f, res) => {
 //      .about('Delegates to native Array.prototype.' + name)
 //      (name, (z, ...a) => z._items[name](...a)));
 //}
-//apply(M, 'findIndex,indexOf,join,keys,lastIndexOf,values,slice');
+//apply(M, 'findIndex,indexOf,keys,lastIndexOf,values,slice');
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
-//
+
+M('join', (a, s = '') => a.jsValue.join(s));
+
+Test((Arr, join) => {
+  const a = Arr(1,2);
+  expect(a.join(' ')).is('1 2');
+});
+
 
 
 //M.Function('mapAndFilter', (o, f) => nice.with([], a => {

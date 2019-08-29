@@ -44,32 +44,25 @@ nice.registerType({
     const t = typeof v;
     let type;
 
-    if(v === undefined)
+    if(v === undefined) {
       type = nice.Undefined;
-
-    if(v === null)
+    } else if(v === null) {
       type = nice.Null;
-
-    if(t === 'number')
+    } else if(t === 'number') {
       type = Number.isNaN(v) ? nice.NumberError : nice.Num;
-
-    if(t === 'function')
+    } else if(t === 'function') {
       type = nice.Function;
-
-    if(t === 'string')
+    } else if(t === 'string') {
       type = nice.Str;
-
-    if(t === 'boolean')
+    } else if(t === 'boolean') {
       type = nice.Bool;
-
-    if(Array.isArray(v))
+    } else if(Array.isArray(v)) {
       type = nice.Arr;
-
-    if(v[nice.TYPE_KEY])
+    } else if(v[nice.TYPE_KEY]) {
       type = nice[v[nice.TYPE_KEY]];
-
-    if(t === 'object')
+    } else if(t === 'object') {
       type = nice.Obj;
+    }
 
     if(type !== undefined) {
       if(type === z._type && !z._isRef)

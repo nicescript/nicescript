@@ -1018,24 +1018,36 @@ function createMethodBody(type, body) {
       }
     }
     if(!target)
-      return signatureError(body.name, [fistArg].concat(args));
+      return signatureError(body.name, args);
+    return useBody(target, body.functionType, fistArg, ...args);
+  });
+}
+function useBody(target, functionType, ...args){
+  try {
     if(target.transformations)
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
     if(functionType === 'Action'){
-      if('transactionStart' in fistArg && fistArg._isHot){
-        fistArg.transactionStart();
-        target.action(fistArg, ...args);
-        fistArg.transactionEnd();
-        return fistArg;
+      if('transactionStart' in args[0] && args[0]._isHot){
+        args[0].transactionStart();
+        target.action(...args);
+        args[0].transactionEnd();
+        return args[0];
       } else {
-        target.action(fistArg, ...args);
-        return fistArg;
+        target.action(...args);
+        return args[0];
       }
+    } else if(functionType === 'Mapping'){
+      const result = nice._createItem(nice.Anything, nice.Anything);
+      result(target.action(...args));
+      return result;
     } else {
-      return target.action(fistArg, ...args);
+      return target.action(...args);
     }
-  });
+  } catch (e) {
+    return Err(e);
+  }
+  return nice.Undefined();
 }
 function createFunctionBody(functionType){
   const {_1,_2,_3,_$} = nice;
@@ -1076,33 +1088,8 @@ function createFunctionBody(functionType){
     }
     if(!target)
       return signatureError(z.name, args);
-    let result;
-    try {
-      if(target.transformations)
-        for(let i in target.transformations)
-          args[i] = target.transformations[i](args[i]);
-      if(functionType === 'Action'){
-        if('transactionStart' in args[0] && args[0]._isHot){
-          args[0].transactionStart();
-          target.action(...args);
-          args[0].transactionEnd();
-          return args[0];
-        } else {
-          target.action(...args);
-          return args[0];
-        }
-      } else {
-        result = target.action(...args);
-      }
-    } catch (e) {
-      result = Err(e);
-    }
-    if(result === undefined){
-      result = nice.Undefined();
-    }
+    return useBody(target, functionType, ...args);
     
-    nice.reflect.currentCall = call.parentCall;
-    return result;
   });
   z.functionType = functionType;
   return z;
@@ -1291,24 +1278,25 @@ nice.registerType({
   setPrimitive: (z, v) => {
     const t = typeof v;
     let type;
-    if(v === undefined)
+    if(v === undefined) {
       type = nice.Undefined;
-    if(v === null)
+    } else if(v === null) {
       type = nice.Null;
-    if(t === 'number')
+    } else if(t === 'number') {
       type = Number.isNaN(v) ? nice.NumberError : nice.Num;
-    if(t === 'function')
+    } else if(t === 'function') {
       type = nice.Function;
-    if(t === 'string')
+    } else if(t === 'string') {
       type = nice.Str;
-    if(t === 'boolean')
+    } else if(t === 'boolean') {
       type = nice.Bool;
-    if(Array.isArray(v))
+    } else if(Array.isArray(v)) {
       type = nice.Arr;
-    if(v[nice.TYPE_KEY])
+    } else if(v[nice.TYPE_KEY]) {
       type = nice[v[nice.TYPE_KEY]];
-    if(t === 'object')
+    } else if(t === 'object') {
       type = nice.Obj;
+    }
     if(type !== undefined) {
       if(type === z._type && !z._isRef)
         return type.setValue(z, v);
@@ -1348,6 +1336,13 @@ nice.registerType({
   _isNiceType: true,
   proto: Object.setPrototypeOf({
     _isAnything: true,
+    get (key) {
+      if(key._isAnything === true)
+        key = key();
+      return key in this._children
+        ? nice._db.getValue(this._children[key], 'cache')
+        : nice._createChild(this._id, key, this._type.types[key]);
+    },
     get _value() {
       return nice._db.getValue(this._id, '_value');
     },
@@ -2358,26 +2353,12 @@ Mapping.Object('get', (o, path) => {
     return o[path];
   }
 });
-Mapping.Anything('get', (z, key) => {
-  if(key._isAnything === true)
-    key = key();
-  return key in z._children
-    ? nice._db.getValue(z._children[key], 'cache')
-    : nice._createChild(z._id, key);
-});
 Test((get, Obj, NotFound) => {
   const a = NotFound();
   expect(a.get('q')._id).is(a.get('q')._id);
   const o = Obj({a:1});
   expect(a.get('a').get('q')._id).is(a.get('a').get('q')._id);
   expect(a.get('b').get('q')._id).is(a.get('b').get('q')._id);
-});
-M('get', (z, key) => {
-  if(key._isAnything === true)
-    key = key();
-  return key in z._children
-    ? nice._db.getValue(z._children[key], 'cache')
-    : nice._createChild(z._id, key, z._type.types[key]);
 });
 Test((Obj, NotFound) => {
   const o = Obj({q:1});
@@ -2445,8 +2426,15 @@ Mapping.Object('map', (o, f) => nice.apply({}, res => {
 }));
 M(function map(c, f){
   const res = c._type();
-  c.each((v,k) => res.set(f(v, k)));
+  c.each((v,k) => res.set(k, f(v, k)));
   return res;
+});
+Test("map", function(Obj, map) {
+  const a = Obj({q: 3, a: 2});
+  const b = a.map(x => x * 2);
+  expect(b._type).is(Obj);
+  expect(b.jsValue).deepEqual({q:6, a:4});
+  
 });
 M('filter', (c, f) => c.reduceTo(c._type(), (z, v, k) => f(v,k) && z.set(k, v)));
 M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
@@ -2462,7 +2450,7 @@ C.Function(function some(c, f){
 });
 C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
-    return !!c.reduce((res, v, k) => res && f(v, k), true);
+    return !!c.reduce((res, v, k) => res && f(v, k), true)();
   });
 Test((Obj, every) => {
   const o = Obj({a:1,b:2});
@@ -2845,7 +2833,10 @@ nice.Obj.extend({
       if(i._isAnything === true)
         i = i();
       if(typeof i !== 'number')
-        throw 'Arr only likes number keys.';
+        if(+i != i)
+          throw 'Arr only likes number keys.';
+      if(i < 0)
+        throw 'Arr only likes positive keys.';
       return i;
     },
     _itemsListener (o) {
@@ -2900,8 +2891,26 @@ Test("push", (Arr, push) => {
   a.push(2, 1);
   expect(a.jsValue).deepEqual([1, 4, 2, 1]);
 });
+Test((Arr) => {
+  const a = nice.Something()([1,2]);
+  expect(a._type).is(Arr);
+  expect(a.jsValue).deepEqual([1, 2]);
+});
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
+A('set', (a, key, value, ...tale) => {
+  const k = a.checkKey(key);
+  if(value === undefined)
+    throw `Can't set ${key} to undefined`;
+  const order = a._order;
+  if(k > order.length)
+    throw `Can't set ${key} array has only ${order.length} elements`;
+  if(value === null)
+    return a.remove(k);
+  const item = a.get(k);
+  item(value, ...tale);
+  order[k] = item._id;
+});
 F('each', (a, f) => {
   const o = a._order, db = nice._db;
   for(let i = 0; i < o.length; i++)
@@ -2924,6 +2933,13 @@ M.Function('reduce', (a, f, res) => {
 M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
+});
+M('join', (a, s = '') => {
+  return a.jsValue.join(s);
+});
+Test((Arr, join) => {
+  const a = Arr(1,2);
+  expect(a.join(' ')).is('1 2');
 });
 M('sum', (a, f) => a.reduce(f ? (sum, n) => sum + f(n) : (sum, n) => sum + n, 0));
 A('unshift', (z, ...a) => a.reverse().forEach(v => z.insertAt(0, v)));
@@ -3161,8 +3177,8 @@ M.Function('times', (n, f) => {
   return res;
 });
 Test(times => {
-  expect(times(2, () => 1)).deepEqual([1,1]);
-})
+  expect(times(2, () => 1).jsValue).deepEqual([1,1]);
+});
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));

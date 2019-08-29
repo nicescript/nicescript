@@ -433,7 +433,7 @@ C.Function(function some(c, f){
 
 C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
-    return !!c.reduce((res, v, k) => res && f(v, k), true);
+    return !!c.reduce((res, v, k) => res && f(v, k), true)();
   });
 
 Test((Obj, every) => {

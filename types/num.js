@@ -95,8 +95,8 @@ M.Function('times', (n, f) => {
 });
 
 Test(times => {
-  expect(times(2, () => 1)).deepEqual([1,1]);
-})
+  expect(times(2, () => 1).jsValue).deepEqual([1,1]);
+});
 
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));

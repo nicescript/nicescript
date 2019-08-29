@@ -190,28 +190,41 @@ function createMethodBody(type, body) {
         }
       }
     }
-
     if(!target)
-      return signatureError(body.name, [fistArg].concat(args));
+      return signatureError(body.name, args);
 
+    return useBody(target, body.functionType, fistArg, ...args);
+  });
+}
+
+function useBody(target, functionType, ...args){
+  try {
     if(target.transformations)
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action'){
-      if('transactionStart' in fistArg && fistArg._isHot){
-        fistArg.transactionStart();
-        target.action(fistArg, ...args);
-        fistArg.transactionEnd();
-        return fistArg;
+      if('transactionStart' in args[0] && args[0]._isHot){
+        args[0].transactionStart();
+        target.action(...args);
+        args[0].transactionEnd();
+        return args[0];
       } else {
-        target.action(fistArg, ...args);
-        return fistArg;
+        target.action(...args);
+        return args[0];
       }
+    } else if(functionType === 'Mapping'){
+      const result = nice._createItem(nice.Anything, nice.Anything);
+      result(target.action(...args));
+      return result;
+//      return target.action(...args);
     } else {
-      return target.action(fistArg, ...args);
+      return target.action(...args);
     }
-  });
+  } catch (e) {
+    return Err(e);
+  }
+  return nice.Undefined();
 }
 
 
@@ -258,38 +271,24 @@ function createFunctionBody(functionType){
     if(!target)
       return signatureError(z.name, args);
 
-    let result;
-    try {
-      if(target.transformations)
-        for(let i in target.transformations)
-          args[i] = target.transformations[i](args[i]);
+    return useBody(target, functionType, ...args);
 
-      if(functionType === 'Action'){
-        if('transactionStart' in args[0] && args[0]._isHot){
-          args[0].transactionStart();
-          target.action(...args);
-          args[0].transactionEnd();
-          return args[0];
-        } else {
-          target.action(...args);
-          return args[0];
-        }
-      } else {
-        result = target.action(...args);
-      }
-    } catch (e) {
-      result = Err(e);
-    }
-    if(result === undefined){
-      result = nice.Undefined();
-    }
+//    let result;
+//    try {
+
+//    } catch (e) {
+//      result = Err(e);
+//    }
+//    if(result === undefined){
+//      result = nice.Undefined();
+//    }
     //TODO:0 restore:
 //    if(result._isAnything){
 //      result._functionName = z.name;
 //      result._args = args;
 //    }
-    nice.reflect.currentCall = call.parentCall;
-    return result;
+//    nice.reflect.currentCall = call.parentCall;
+//    return result;
   });
 
   z.functionType = functionType;
