@@ -431,7 +431,7 @@ Mapping.Array.Array('intersection', (a, b) => {
 //}));
 
 
-M.about('Creates new array with aboutseparator between elments.')
+M.about('Creates new array with `separator` between elments.')
 (function intersperse(a, separator) {
   const res = Arr();
   const last = a.size - 1;
