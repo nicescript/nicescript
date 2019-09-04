@@ -34,20 +34,25 @@ function runTest(t, args){
     t.body(...args);
     return true;
   } catch (e) {
-    const k = 1 + (e.shift || 0);
-    const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
-    console.log(colors.red('Error while testing ' + (t.description || '')));
+    if(typeof e === 'string') {
+      console.log(colors.red('Error while testing ' + (t.description || '')));
+      console.log(e);
+    } else {
+      const k = 1 + (e.shift || 0);
+      const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
+      console.log(colors.red('Error while testing ' + (t.description || '')));
 
-    const dh = line - t.line;
-    const a = t.body.toString().split('\n');
+      const dh = line - t.line;
+      const a = t.body.toString().split('\n');
 
-    a.splice(dh + 1, 0,
-      '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
-       e.message,
-       colors.gray(location + ':' + line),
-       '-'.repeat(80));
+      a.splice(dh + 1, 0,
+        '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
+         e.message,
+         colors.gray(location + ':' + line),
+         '-'.repeat(80));
 
-    console.log(a.join('\n'));
+      console.log(a.join('\n'));
+    }
     return false;
   }
 }

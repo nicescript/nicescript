@@ -13,7 +13,7 @@ nice.Type({
 
 reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {
-    throw "Can't add properties to SingleValue types";
+    throw new Error("Can't add properties to SingleValue types");
   });
 });
 
