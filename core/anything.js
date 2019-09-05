@@ -27,7 +27,10 @@ nice.registerType({
     return nice.Type(name, by).extends(this);
   },
 
-  itemArgs0: z => z._value,
+  itemArgs0: z => {
+    z._compute();
+    return z._value;
+  },
 
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
@@ -91,7 +94,7 @@ nice.registerType({
   },
 
   itemArgsN: (z, vs) => {
-    throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
+    throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
   },
 
   initChildren: () => 0,
@@ -227,35 +230,29 @@ nice.registerType({
       });
     },
 
-    _compute (){
+    _compute (follow = false){
 //      if(this._transactionDepth)
 //        return;
 
-      if(!this._functionName || this._isHot)
+      if(!this._by || this._isHot)
         return;
 
-      this._doCompute();
+      this._doCompute(follow);
     },
-//    _compute () {
-////      return !nice.isNeedComputing(this._value) || this._transactionDepth
-////        ? this._value : this._doCompute();
-//    },
 
-    _doCompute () {
+    _doCompute (follow = false) {
+      let ready = true;
       this._args.forEach(a => {
         if(a._isAnything){
-          a._isHot || a._compute();
-          a.listen(this);
+          a._compute();
+          ready &= !a.isPending();
+          follow && a.listen(this);
         }
       });
 
-      try {
-        const result = nice[this._functionName](...this._args);
-        this._changeValue(result);
-      } catch (e) {
-        this._changeValue('Error while _doCompute', Err)
-      }
-
+      ready
+        ? this(nice[this._by](...this._args))
+        : nice._setType(this, nice.Pending);
     },
 
     listen (f, key) {
@@ -279,8 +276,7 @@ nice.registerType({
 
       ls.set(key, f);
       if(isHot){
-        this._compute();
-        this._set('_isHot', true);
+        this._compute(true);
         this.isPending() || notifyItem(f, this);
       }
     },
@@ -299,7 +295,7 @@ nice.registerType({
 
       ls.set(key, f);
       this._compute();
-      this._set('_isHot', true);
+      this._isHot = true;
       this.isPending() || this.each(f);
     },
 
@@ -372,13 +368,11 @@ nice.registerType({
 //    },
 
     get _isHot() {
-      if(this._has('_hot'))
-        return this._has('_hot');
-      return false;
+      return nice._db.getValue(this._id, '_isHot');
     },
 
     set _isHot(v) {
-      this._set('_hot', !!v);
+      return nice._db.update(this._id, '_isHot', !!v);
     },
 
      _isResolved (){
@@ -521,3 +515,11 @@ defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 //Anything.proto._type = Anything;
 
+
+reflect.on('type', t =>
+  t.name && Mapping.Anything('to' + t.name, function (...as) {
+    nice._setType(this, t);
+    nice._initItem(this, t, ...as);
+    return this;
+  })
+);

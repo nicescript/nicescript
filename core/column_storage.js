@@ -191,6 +191,8 @@ const db = new ColumnStorage(
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
+  '_by',
+  '_args',
   {name: '_size', defaultValue: 0 },
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },

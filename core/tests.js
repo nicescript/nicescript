@@ -36,6 +36,7 @@ function runTest(t, args){
   } catch (e) {
     if(typeof e === 'string') {
       console.log(colors.red('Error while testing ' + (t.description || '')));
+      console.log(t.body.toString());
       console.log(e);
     } else {
       const k = 1 + (e.shift || 0);

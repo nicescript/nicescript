@@ -16,13 +16,12 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj, _1, _2, _3, Test, Spy } = nice;
 //const spy = (...a) => console.log('Spy:', ...a);
 
-nice.Something()([1,2]).jsValue
-
-
-//const o = Obj({ q:1, a:2 });
-//o.each(spy);
-//o.jsValue;
-//
+  const a = Obj({q: 3, a: 2});
+  const b = a.map(x => x * 2);
+  expect(b._type).is(Obj);
+  expect(b.jsValue).deepEqual({q:6, a:4});
+  a.set('z', 1);
+  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
 //
 //
 //spy(nice.remove(o, 'q').jsValue);

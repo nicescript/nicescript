@@ -81,6 +81,8 @@ defAll(nice, {
   },
 
   _createChild(parent, key, type) {
+
+    //TODO:0 isHot??
     const item = nice._createItem(type || Anything, type || NotFound);
     item._parent = parent;
     item._name = key;

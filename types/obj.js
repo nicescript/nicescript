@@ -5,7 +5,7 @@ nice.Type({
   itemArgs1: (z, o) => {
     const t = typeof o;
     if( t !== 'object' )
-      throw z._type.name + ` doesn't know what to do with ` + t;
+      throw new Error(z._type.name + ` doesn't know what to do with ` + t);
     _each(o, (v, k) => z.set(k, v));
   },
 
@@ -394,9 +394,8 @@ Test("map", function(Obj, map) {
   const b = a.map(x => x * 2);
   expect(b._type).is(Obj);
   expect(b.jsValue).deepEqual({q:6, a:4});
-  //TODO: restore
-//  a.set('z', 1);
-//  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
+  a.set('z', 1);
+  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
 });
 
 
@@ -555,8 +554,8 @@ reflect.on('type', type => {
     const targetType = z.target;
 
     if(name[0] !== name[0].toLowerCase())
-      throw "Property name should start with lowercase letter. "
-            + `"${nice._decapitalize(name)}" not "${name}"`;
+      throw new Error("Property name should start with lowercase letter. "
+            + `"${nice._decapitalize(name)}" not "${name}"`);
 
     targetType.types[name] = type;
 

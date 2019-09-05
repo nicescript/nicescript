@@ -56,6 +56,7 @@ defAll(nice, {
     return item;
   },
   _createChild(parent, key, type) {
+    
     const item = nice._createItem(type || Anything, type || NotFound);
     item._parent = parent;
     item._name = key;
@@ -768,6 +769,8 @@ const db = new ColumnStorage(
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
+  '_by',
+  '_args',
   {name: '_size', defaultValue: 0 },
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
@@ -956,12 +959,12 @@ function configurator(...a){
 };
 function createFunction({ existing, name, body, signature, type, description }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
-    throw "Function name should start with lowercase letter. "
-          + `"${nice._decapitalize(name)}" not "${name}"`;
+    throw new Error("Function name should start with lowercase letter. "
+          + `"${nice._decapitalize(name)}" not "${name}"`);
   existing = existing || (name && nice[name]);
-  const f = existing || createFunctionBody(type);
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
+  const f = existing || createFunctionBody(type);
   
   const types = signature.map(v => v.type);
   body && f.addSignature(body, types, name);
@@ -1017,12 +1020,13 @@ function createMethodBody(type, body) {
         }
       }
     }
-    if(!target)
-      return signatureError(body.name, args);
-    return useBody(target, body.functionType, fistArg, ...args);
+    return useBody(target, body.name, body.functionType, fistArg, ...args);
   });
 }
-function useBody(target, functionType, ...args){
+function useBody(target, name, functionType, ...args){
+  if(!target || !target.action)
+    return signatureError(name, args);
+  args.forEach(a => a !== undefined && a._isAnything && a._compute());
   try {
     if(target.transformations)
       for(let i in target.transformations)
@@ -1038,8 +1042,15 @@ function useBody(target, functionType, ...args){
         return args[0];
       }
     } else if(functionType === 'Mapping'){
-      const result = nice._createItem(nice.Anything, nice.Anything);
-      result(target.action(...args));
+      let result = target.action(...args);
+      if(!result._isAnything || result._parent){
+        result = nice(result);
+      } else {
+        ;
+      }
+      result._args = args;
+      result._by = name;
+      result._isHot = false;
       return result;
     } else {
       return target.action(...args);
@@ -1086,10 +1097,7 @@ function createFunctionBody(functionType){
         }
       }
     }
-    if(!target)
-      return signatureError(z.name, args);
-    return useBody(target, functionType, ...args);
-    
+    return useBody(target, z.name, functionType, ...args);
   });
   z.functionType = functionType;
   return z;
@@ -1233,17 +1241,23 @@ function runTest(t, args){
     t.body(...args);
     return true;
   } catch (e) {
-    const k = 1 + (e.shift || 0);
-    const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
-    console.log(colors.red('Error while testing ' + (t.description || '')));
-    const dh = line - t.line;
-    const a = t.body.toString().split('\n');
-    a.splice(dh + 1, 0,
-      '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
-       e.message,
-       colors.gray(location + ':' + line),
-       '-'.repeat(80));
-    console.log(a.join('\n'));
+    if(typeof e === 'string') {
+      console.log(colors.red('Error while testing ' + (t.description || '')));
+      console.log(t.body.toString());
+      console.log(e);
+    } else {
+      const k = 1 + (e.shift || 0);
+      const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
+      console.log(colors.red('Error while testing ' + (t.description || '')));
+      const dh = line - t.line;
+      const a = t.body.toString().split('\n');
+      a.splice(dh + 1, 0,
+        '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
+         e.message,
+         colors.gray(location + ':' + line),
+         '-'.repeat(80));
+      console.log(a.join('\n'));
+    }
     return false;
   }
 }
@@ -1264,7 +1278,10 @@ nice.registerType({
   extend (name, by){
     return nice.Type(name, by).extends(this);
   },
-  itemArgs0: z => z._value,
+  itemArgs0: z => {
+    z._compute();
+    return z._value;
+  },
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
       z.transactionStart();
@@ -1319,7 +1336,7 @@ nice.registerType({
     throw 'Unknown type';
   },
   itemArgsN: (z, vs) => {
-    throw `${z._type.name} doesn't know what to do with ${vs.length} arguments.`;
+    throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
   },
   initChildren: () => 0,
   fromValue (_value){
@@ -1412,24 +1429,23 @@ nice.registerType({
         return this;
       });
     },
-    _compute (){
-      if(!this._functionName || this._isHot)
+    _compute (follow = false){
+      if(!this._by || this._isHot)
         return;
-      this._doCompute();
+      this._doCompute(follow);
     },
-    _doCompute () {
+    _doCompute (follow = false) {
+      let ready = true;
       this._args.forEach(a => {
         if(a._isAnything){
-          a._isHot || a._compute();
-          a.listen(this);
+          a._compute();
+          ready &= !a.isPending();
+          follow && a.listen(this);
         }
       });
-      try {
-        const result = nice[this._functionName](...this._args);
-        this._changeValue(result);
-      } catch (e) {
-        this._changeValue('Error while _doCompute', Err)
-      }
+      ready
+        ? this(nice[this._by](...this._args))
+        : nice._setType(this, nice.Pending);
     },
     listen (f, key) {
       key === undefined && (key = f);
@@ -1447,8 +1463,7 @@ nice.registerType({
       }
       ls.set(key, f);
       if(isHot){
-        this._compute();
-        this._set('_isHot', true);
+        this._compute(true);
         this.isPending() || notifyItem(f, this);
       }
     },
@@ -1462,7 +1477,7 @@ nice.registerType({
       typeof f === 'function' || (f = objectListener(f));
       ls.set(key, f);
       this._compute();
-      this._set('_isHot', true);
+      this._isHot = true;
       this.isPending() || this.each(f);
     },
     get _deepListeners(){
@@ -1511,12 +1526,10 @@ nice.registerType({
       delete this._transaction;
     },
     get _isHot() {
-      if(this._has('_hot'))
-        return this._has('_hot');
-      return false;
+      return nice._db.getValue(this._id, '_isHot');
     },
     set _isHot(v) {
-      this._set('_hot', !!v);
+      return nice._db.update(this._id, '_isHot', !!v);
     },
      _isResolved (){
       return !this.isPending() && !this.isNeedComputing();
@@ -1598,6 +1611,13 @@ Anything = nice.Anything;
 defGet(Anything.proto, function jsValue() { return this._value; });
 defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
+reflect.on('type', t =>
+  t.name && Mapping.Anything('to' + t.name, function (...as) {
+    nice._setType(this, t);
+    nice._initItem(this, t, ...as);
+    return this;
+  })
+);
 })();
 (function(){"use strict";const { _1, _2, _3, _$ } = nice;
 ['Check', 'Action', 'Mapping'].forEach(t => Check
@@ -1917,7 +1937,9 @@ defAll(nice, {
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      return nice._createItem(type, type, ...a);
+      const item = nice._createItem(type, type, ...a);
+      item._isHot = true;
+      return item;
     };
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
@@ -1993,8 +2015,8 @@ defGet(Anything, 'help',  function () {
   },
   proto: new Proxy({}, {
     get (o, k, receiver) {
-      if(k === '_cellType')
-        return nice._db.getValue(receiver._id, '_cellType');
+      if(k === '_cellType' || k === '_isHot')
+        return nice._db.getValue(receiver._id, k);
       if(k === '_isRef')
         return true;
       
@@ -2204,7 +2226,7 @@ nice.jsTypes.isSubType = isSubType;
   itemArgs1: (z, o) => {
     const t = typeof o;
     if( t !== 'object' )
-      throw z._type.name + ` doesn't know what to do with ` + t;
+      throw new Error(z._type.name + ` doesn't know what to do with ` + t);
     _each(o, (v, k) => z.set(k, v));
   },
   itemArgsN: (z, os) => _each(os, o => z(o)),
@@ -2434,7 +2456,8 @@ Test("map", function(Obj, map) {
   const b = a.map(x => x * 2);
   expect(b._type).is(Obj);
   expect(b.jsValue).deepEqual({q:6, a:4});
-  
+  a.set('z', 1);
+  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
 });
 M('filter', (c, f) => c.reduceTo(c._type(), (z, v, k) => f(v,k) && z.set(k, v)));
 M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
@@ -2540,8 +2563,8 @@ reflect.on('type', type => {
   function createProperty(z, name, ...as){
     const targetType = z.target;
     if(name[0] !== name[0].toLowerCase())
-      throw "Property name should start with lowercase letter. "
-            + `"${nice._decapitalize(name)}" not "${name}"`;
+      throw new Error("Property name should start with lowercase letter. "
+            + `"${nice._decapitalize(name)}" not "${name}"`);
     targetType.types[name] = type;
     as.length && (targetType.defaultArguments[name] = as);
     defGet(targetType.proto, name, function(){
@@ -2779,7 +2802,7 @@ Err = nice.Err;
 }).about('Parent type for all single value types.');
 reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {
-    throw "Can't add properties to SingleValue types";
+    throw new Error("Can't add properties to SingleValue types");
   });
 });
 Test((Single, Num) => {
@@ -2934,9 +2957,7 @@ M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
-M('join', (a, s = '') => {
-  return a.jsValue.join(s);
-});
+M('join', (a, s = '') => a.jsValue.join(s));
 Test((Arr, join) => {
   const a = Arr(1,2);
   expect(a.join(' ')).is('1 2');
@@ -3066,7 +3087,7 @@ Mapping.Array.Array('intersection', (a, b) => {
   a.forEach(v => is.includes(b, v) && res.push(v));
   return res;
 });
-M.about('Creates new array with aboutseparator between elments.')
+M.about('Creates new array with `separator` between elments.')
 (function intersperse(a, separator) {
   const res = Arr();
   const last = a.size - 1;

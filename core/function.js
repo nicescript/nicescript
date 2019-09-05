@@ -118,14 +118,15 @@ function configurator(...a){
 //optimization: create function that don't check fist argument for type.proto
 function createFunction({ existing, name, body, signature, type, description }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
-    throw "Function name should start with lowercase letter. "
-          + `"${nice._decapitalize(name)}" not "${name}"`;
+    throw new Error("Function name should start with lowercase letter. "
+          + `"${nice._decapitalize(name)}" not "${name}"`);
 
   existing = existing || (name && nice[name]);
-  const f = existing || createFunctionBody(type);
 
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
+
+  const f = existing || createFunctionBody(type);
 
   //optimization: maybe signature might be just an array of types??
   const types = signature.map(v => v.type);
@@ -190,14 +191,16 @@ function createMethodBody(type, body) {
         }
       }
     }
-    if(!target)
-      return signatureError(body.name, args);
-
-    return useBody(target, body.functionType, fistArg, ...args);
+    return useBody(target, body.name, body.functionType, fistArg, ...args);
   });
 }
 
-function useBody(target, functionType, ...args){
+function useBody(target, name, functionType, ...args){
+  if(!target || !target.action)
+    return signatureError(name, args);
+
+  args.forEach(a => a !== undefined && a._isAnything && a._compute());
+
   try {
     if(target.transformations)
       for(let i in target.transformations)
@@ -214,10 +217,17 @@ function useBody(target, functionType, ...args){
         return args[0];
       }
     } else if(functionType === 'Mapping'){
-      const result = nice._createItem(nice.Anything, nice.Anything);
-      result(target.action(...args));
+
+      let result = target.action(...args);
+      if(!result._isAnything || result._parent){
+        result = nice(result);
+      } else {
+        ;
+      }
+      result._args = args;
+      result._by = name;
+      result._isHot = false;
       return result;
-//      return target.action(...args);
     } else {
       return target.action(...args);
     }
@@ -268,27 +278,9 @@ function createFunctionBody(functionType){
         }
       }
     }
-    if(!target)
-      return signatureError(z.name, args);
 
-    return useBody(target, functionType, ...args);
-
-//    let result;
-//    try {
-
-//    } catch (e) {
-//      result = Err(e);
-//    }
-//    if(result === undefined){
-//      result = nice.Undefined();
-//    }
-    //TODO:0 restore:
-//    if(result._isAnything){
-//      result._functionName = z.name;
-//      result._args = args;
-//    }
+    return useBody(target, z.name, functionType, ...args);
 //    nice.reflect.currentCall = call.parentCall;
-//    return result;
   });
 
   z.functionType = functionType;
