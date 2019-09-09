@@ -1,11 +1,13 @@
 def(nice, 'expectPrototype', {});
 
+const toString = v => JSON.stringify(v);
 
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     const res = f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
-      const e = new Error(this.text || ['Expected', this.value, 'to be', f.name, ...a].join(' '));
+      const e = new Error(this.text || ['Expected', toString(this.value),
+            'to be', f.name, ...a.map(toString)].join(' '));
       e.shift = 1;
       throw e;
     }
