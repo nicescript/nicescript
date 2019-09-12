@@ -134,3 +134,5 @@ nice.getType = v => {
 defGet(Anything, 'help',  function () {
   return this.description;
 });
+
+nice.ReadOnly.Anything(function jsValue(z) { return z._value; });

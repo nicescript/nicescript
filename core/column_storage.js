@@ -4,7 +4,7 @@ class ColumnStorage {
     this.defaultBy = {};
     this.defaults = {};
     this.size = 0;
-    this.lastId = 1;
+    this.lastId = 0;
     columns.forEach(c => this.addColumn(c));
   }
 

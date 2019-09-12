@@ -124,13 +124,19 @@ nice.registerType({
   proto: Object.setPrototypeOf({
     _isAnything: true,
 
+    to (type, ...as){
+      nice._setType(this, type);
+      nice._initItem(this, type, ...as);
+      return this;
+    },
+
     get (key) {
       if(key._isAnything === true)
         key = key();
 
       return key in this._children
         ? nice._db.getValue(this._children[key], 'cache')
-        : nice._createChild(this._id, key, this._type.types[key]);
+        : nice._createChild(this._id, key, this._type && this._type.types[key]);
     },
 
     get _value() {
@@ -241,18 +247,7 @@ nice.registerType({
     },
 
     _doCompute (follow = false) {
-      let ready = true;
-      this._args.forEach(a => {
-        if(a._isAnything){
-          a._compute();
-          ready &= !a.isPending();
-          follow && a.listen(this);
-        }
-      });
-
-      ready
-        ? this(nice[this._by](...this._args))
-        : nice._setType(this, nice.Pending);
+      this._by(nice, this, follow, ...this._args);
     },
 
     listen (f, key) {
@@ -449,15 +444,10 @@ nice.registerType({
       return this;
     },
 
-    //TODO: replace with Mapping??
     ReadOnly (...a){
-      const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
-      expect(f).isFunction();
-      defGet(this.target.proto, name, function() {
-        return f(this);
-      });
+      nice.ReadOnly[this.target.name](...a);
       return this;
-  },
+    },
   },
 
   types: {},
@@ -507,8 +497,11 @@ function objectListener(o){
 
 Anything = nice.Anything;
 
+//const coreId = nice._db.push({}).lastId;
+//nice._db.core = nice._db.getValue(coreId, 'cache');
 
-defGet(Anything.proto, function jsValue() { return this._value; });
+
+//defGet(Anything.proto, function jsValue(z) { return z._value; });
 defGet(Anything.proto, 'switch', function () { return Switch(this); });
 
 
@@ -518,8 +511,6 @@ nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 
 reflect.on('type', t =>
   t.name && Mapping.Anything('to' + t.name, function (...as) {
-    nice._setType(this, t);
-    nice._initItem(this, t, ...as);
-    return this;
+    return this.to(t, ...as);
   })
 );

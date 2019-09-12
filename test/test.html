@@ -13,17 +13,15 @@
 "use strict";
 const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
-   get, expect, Num, Str, Obj, _1, _2, _3, Test, Spy } = nice;
-//const spy = (...a) => console.log('Spy:', ...a);
+   get, expect, Num, Str, Obj,Test, Spy } = nice;
 
   const a = Obj({q: 3, a: 2});
   const b = a.map(x => x * 2);
-  expect(b._type).is(Obj);
   expect(b.jsValue).deepEqual({q:6, a:4});
   a.set('z', 1);
   expect(b.jsValue).deepEqual({q:6, a:4, z:2});
-//
-//
+
+  
 //spy(nice.remove(o, 'q').jsValue);
 //
 //var { Company } = nice;

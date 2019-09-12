@@ -195,11 +195,11 @@ M.Function('reduceRight', (a, f, res) => {
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
 
-M('join', (a, s = '') => a.jsValue.join(s));
+M.rStr('join', (a, s = '') => a.jsValue.join(s));
 
 Test((Arr, join) => {
   const a = Arr(1,2);
-  expect(a.join(' ')).is('1 2');
+  expect(a.join(' ')()).is('1 2');
 });
 
 
@@ -334,9 +334,7 @@ A(function fill(z, v, start = 0, end){
 });
 
 
-M.Function(function map(a, f){
-  return a.reduceTo(Arr(), (z, v, k) => z.push(f(v, k)));
-});
+M.Function.rArr('map', (r, a, f) => a.each((v, k) => r.push(f(v, k))));
 
 Test("map", () => {
   expect(Arr(4, 3, 5).map(x => x * 2).jsValue).deepEqual([8,6,10]);
@@ -445,7 +443,7 @@ M.about('Returns last element of `a`.')
 });
 
 Test((last, Arr) => {
-  expect(Arr(1,2,4).last()).is(4);
+  expect(Arr(1,2,4).last()()).is(4);
 });
 
 

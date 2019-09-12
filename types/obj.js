@@ -383,29 +383,20 @@ Mapping.Object('map', (o, f) => nice.apply({}, res => {
 }));
 
 
-M(function map(c, f){
-  const res = c._type();
-  c.each((v,k) => res.set(k, f(v, k)));
-  return res;
+M.rObj(function map(r, c, f){
+  c.each((v,k) => r.set(k, f(v, k)));
 });
 
 Test("map", function(Obj, map) {
   const a = Obj({q: 3, a: 2});
   const b = a.map(x => x * 2);
-  expect(b._type).is(Obj);
   expect(b.jsValue).deepEqual({q:6, a:4});
   a.set('z', 1);
   expect(b.jsValue).deepEqual({q:6, a:4, z:2});
 });
 
 
-//M('rMap', (c, f) => c._type().apply(res => c.listen({
-//  onAdd: (v, k) => res.set(k, f(v, k)),
-//  onRemove: (v, k) => res.remove(k)
-//})));
-
-
-M('filter', (c, f) => c.reduceTo(c._type(), (z, v, k) => f(v,k) && z.set(k, v)));
+M.rObj('filter', (r, c, f) => c.each((v, k) => f(v,k) && r.set(k, v)));
 
 
 //M('rFilter', (c, f) => c._type().apply(z => c.listen({
@@ -528,21 +519,18 @@ Test("reduceTo", function(reduceTo, Num) {
   const c = {qwe: 1, ads: 3};
   const a = nice.Num();
 
-  expect(reduceTo(c, a, (z, v) => z.inc(v))).is(a);
+//  expect(reduceTo(c, a, (z, v) => z.inc(v))).is(a);
   expect(a()).is(4);
 });
 
 
-M('reduceTo', (o, res, f) => {
-  o.each((v, k) => f(res, v, k));
-  return res;
-});
+M('reduceTo', (o, res, f) => o.each((v, k) => f(res, v, k)));
 
 Test("reduceTo", function(Obj, reduceTo, Num) {
   const c = Obj({qwe: 1, ads: 3});
   const a = nice.Num();
 
-  expect(c.reduceTo(a, (z, v) => z.inc(v))).is(a);
+//  expect(c.reduceTo(a, (z, v) => z.inc(v))).is(a);
   expect(a()).is(4);
 });
 

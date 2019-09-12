@@ -24,12 +24,11 @@ s('AssignmentError', 'Nothing', `Can't assign`);
 s('Something', 'Anything', 'Parent type for all non falsy values.');
 s('Ok', 'Something', 'Empty positive signal.');
 
-defGet(nice.Nothing.proto, function jsValue() {
-  return {[nice.TYPE_KEY]: this._type.name};
-});
-
-
 nice.Nothing.defaultValueBy = () => null;
+
+nice.ReadOnly.Nothing(function jsValue(z) {
+  return {[nice.TYPE_KEY]: z._type.name};
+});
 
 
 defGet(nice.Null.proto, function jsValue() {

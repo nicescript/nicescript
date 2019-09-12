@@ -32,6 +32,12 @@ _each({
   previous: n => n - 1
 }, (f, name) => M(name, f));
 
+Test((sum, Num) => {
+  var a = Num(1);
+  var b = a.sum(2);
+  expect(b).is(3);
+});
+
 
 `acos
 asin

@@ -3,7 +3,7 @@ const configProto = {
     const c = Configurator(this.name || o.name);
 
     c.signature = (this.signature || []).concat(o.signature || []);
-    ['existing', 'functionType', 'returnValue', 'description']
+    ['existing', 'functionType', 'returnValue', 'description', 'returns']
       .forEach(k => c[k] = o[k] || this[k]);
 
     return c;
@@ -13,7 +13,7 @@ const configProto = {
 };
 
 const functionProto = {
-  addSignature (body, signature, name){
+  addSignature (body, signature, name, returns){
     const ss = 'signatures' in this
       ? this.signatures
       : this.signatures = new Map();
@@ -45,9 +45,11 @@ const functionProto = {
           _ss.action = body;
           _ss.transformations = combination.transformations;
         }
+        returns && (_ss.returns = returns);
       });
     } else {
       ss.action = body;
+      returns && (ss.returns = returns);
     }
     return this;
   },
@@ -94,6 +96,7 @@ function Configurator(name){
   const z = create(configProto, (...a) => {
     const { name, body, signature } = parseParams(...a);
     const res = createFunction({
+      returns: z.returns,
       description: z.description,
       type: z.functionType,
       existing: z.existing,
@@ -114,14 +117,36 @@ function configurator(...a){
   return Configurator(cfg.name).next(cfg);
 };
 
+//function compileFunction(cfg) {
+//  return  () => console.log('Yo!', cfg.type);
+//}
 
 //optimization: create function that don't check fist argument for type.proto
-function createFunction({ existing, name, body, signature, type, description }){
+function createFunction({ name, body, signature, type, description, returns }){//existing,
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw new Error("Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`);
+//  const db = nice._db;
+//  const index = db.core._children;
+//  const id = index[name];
+//  if(id) {
+////    const cfg = nice._db.getValue(id, '_args');
+////    check type match
+//  } else {
+//    const cfg = { body, signatures: [{signature, description}], type };
+//    const id = nice._db.push({
+//      _args: [cfg],
+//      _parent: db.core._id,
+//      _name: name,
+//      _cellType: 'Func',
+//      _by: compileFunction
+//    }).lastId;
+//    defGet(nice, name, () => {
+//
+//    });
+//  }
 
-  existing = existing || (name && nice[name]);
+  const existing = (name && nice[name]);
 
   if(existing && existing.functionType !== type)
     throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
@@ -130,7 +155,7 @@ function createFunction({ existing, name, body, signature, type, description }){
 
   //optimization: maybe signature might be just an array of types??
   const types = signature.map(v => v.type);
-  body && f.addSignature(body, types, name);
+  body && f.addSignature(body, types, name, returns);
   createMethodBody(types[0], f);
 
 //  f.maxLength >= signature.length || (f.maxLength = signature.length);
@@ -197,9 +222,9 @@ function createMethodBody(type, body) {
 
 function useBody(target, name, functionType, ...args){
   if(!target || !target.action)
-    return signatureError(name, args);
+    return Err(signatureError(name, args));
 
-  args.forEach(a => a !== undefined && a._isAnything && a._compute());
+  args.forEach(a => a !== undefined && a._isAnything && a._type === nice.Pending && a._compute());
 
   try {
     if(target.transformations)
@@ -207,6 +232,8 @@ function useBody(target, name, functionType, ...args){
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action'){
+      if(args[0]._by)
+        throw `Cant't ${name} on reactive item.`;
       if('transactionStart' in args[0] && args[0]._isHot){
         args[0].transactionStart();
         target.action(...args);
@@ -216,18 +243,6 @@ function useBody(target, name, functionType, ...args){
         target.action(...args);
         return args[0];
       }
-    } else if(functionType === 'Mapping'){
-
-      let result = target.action(...args);
-      if(!result._isAnything || result._parent){
-        result = nice(result);
-      } else {
-        ;
-      }
-      result._args = args;
-      result._by = name;
-      result._isHot = false;
-      return result;
     } else {
       return target.action(...args);
     }
@@ -237,8 +252,100 @@ function useBody(target, name, functionType, ...args){
   return nice.Undefined();
 }
 
+const _check = `
+const {_1,_2,_3,_$} = z.nice;
+for(let a of args){
+      if(a === _1 || a === _2 || a === _3 || a === _$)
+        return skip(z, args);
+    }`;
 
-function createFunctionBody(functionType){
+const targetLookup = `
+    let target = z.signatures;
+
+    const l = args.length;
+    let precision = Infinity;
+    for(let i = 0; i < l; i++) {
+      if(target && target.size) {
+        let type = nice.getType(args[i]);
+        let found = null;
+        while(type){
+          found = target.get(type);
+          if(found){
+            break;
+          } else {
+            type = Object.getPrototypeOf(type);
+          }
+        }
+        if(found){
+          let _t = found.transformations ? found.transformations.length : 0;
+          if(_t <= precision || !target.action){
+            precision = _t;
+            target = found;
+          }
+        }
+      }
+    }
+`;
+
+const applyTransformations = `
+if(target.transformations)
+  for(let i in target.transformations)
+    args[i] = target.transformations[i](args[i]);
+`;
+
+
+function createMappingBody(){
+  const {_1,_2,_3,_$} = nice;
+  const by = new Function('nice', 'result', 'follow', 'z', '...args', `
+    const call = new Set();
+
+    ${targetLookup}
+
+    if(!target || !target.action)
+      return result.toErr(signatureError(z.name, args));
+
+    let ready = true;
+    this._args.forEach(a => {
+      if(a._isAnything){
+        a._compute();
+        ready &= !a.isPending();
+        follow && a.listen(this);
+      }
+    });
+
+    if(!ready)
+      return result.toPending();
+
+    try {
+      ${applyTransformations}
+      const argNames = nice.argumentNames(target.action);
+      if(argNames[0] === 'r'){
+        result.to(target.returns || nice.Anything);
+        target.action(result, ...args);
+      } else {
+        result(target.action(...args));
+      }
+    } catch (e) {
+      result.toErr(e);
+    }
+    return result;
+  `);
+  const z = create(functionProto, (...args) => {
+    for(let a of args){
+      if(a === _1 || a === _2 || a === _3 || a === _$)
+        return skip(z, args);
+    }
+    const result = nice._createItem(Anything, nice.Pending);
+    result._args = [z, ...args];
+    result._by = by;
+    result._isHot = false;
+    return result;
+  });
+  return z;
+}
+
+//state = needComputing | computing | pending | hot //?resolved
+function createCheckBody(){
   const {_1,_2,_3,_$} = nice;
   const z = create(functionProto, (...args) => {
     for(let a of args){
@@ -246,12 +353,72 @@ function createFunctionBody(functionType){
         return skip(z, args);
     }
 
-    const call = new Set();
-    const existing = nice.reflect.currentCall;
-    if(existing !== undefined) {
-      call.parentCall = existing;
+    let target = z.signatures;
+
+    const l = args.length;
+    let precision = Infinity;
+
+    args.forEach(a => a !== undefined && a._isAnything && a._type === nice.Pending && a._compute());
+
+    for(let i = 0; i < l; i++) {
+      if(target && target.size) {
+        let type = nice.getType(args[i]);
+        let found = null;
+        while(type){
+          found = target.get(type);
+          if(found){
+            break;
+          } else {
+            type = Object.getPrototypeOf(type);
+          }
+        }
+        if(found){
+          let _t = found.transformations ? found.transformations.length : 0;
+          if(_t <= precision || !target.action){
+            precision = _t;
+            target = found;
+          }
+        }
+      }
     }
-    nice.reflect.currentCall = call;
+
+    if(!target || !target.action)
+      return false;
+
+    try {
+      if(target.transformations)
+        for(let i in target.transformations)
+          args[i] = target.transformations[i](args[i]);
+
+      return target.action(...args);
+    } catch (e) {
+      return false;
+    }
+  });
+
+  return z;
+}
+
+
+
+function createFunctionBody(functionType){
+  if(functionType === 'Mapping'){
+    const f = createMappingBody();
+    f.functionType = 'Mapping';
+    return f;
+  }
+  if(functionType === 'Check'){
+    const f = createCheckBody();
+    f.functionType = 'Check';
+    return f;
+  }
+
+  const {_1,_2,_3,_$} = nice;
+  const z = create(functionProto, (...args) => {
+    for(let a of args){
+      if(a === _1 || a === _2 || a === _3 || a === _$)
+        return skip(z, args);
+    }
 
     let target = z.signatures;
 
@@ -280,7 +447,6 @@ function createFunctionBody(functionType){
     }
 
     return useBody(target, z.name, functionType, ...args);
-//    nice.reflect.currentCall = call.parentCall;
   });
 
   z.functionType = functionType;
@@ -338,20 +504,24 @@ function allSignatureCombinations (ts) {
 
 
 function signatureError(name, a){
-  return Err(`Function ${name} can't handle (${a.map(v =>
-      nice.typeOf(v).name).join(',')})`);
+  return `Function ${name} can't handle (${a.map(v =>
+      nice.typeOf(v).name).join(',')})`;
 }
 
 
 function handleType(type){
   type.name === 'Something' && create(type.proto, functionProto);
 
-  defGet(functionProto, type.name, function() {
-    return configurator({ signature: [{type}], existing: this });
-  });
+//  defGet(functionProto, type.name, function() {
+//    return configurator({ signature: [{type}], existing: this });
+//  });
 
   defGet(configProto, type.name, function() {
     return this.next({signature: [{type}]});
+  });
+
+  defGet(configProto, 'r' + type.name, function() {
+    return this.next({returns: type});
   });
 };
 
@@ -361,7 +531,7 @@ const skipedProto = {};
 _1 = nice._1;
 _2 = nice._2;
 _3 = nice._3;
-nice._$ = a => a;
+_$ = nice._$ = a => a;
 
 function _skipArgs(init, called) {
   const {_1,_2,_3,_$} = nice;
@@ -411,7 +581,19 @@ reflect.on('type', type => {
   ro[type.name] = function (...a) {
     const [name, f] = a.length === 2 ? a : [a[0].name, a[0]];
     expect(f).isFunction();
-    defGet(type.proto, name, function() { return f(this); } );
+    defGet(type.proto, name, function() {
+      const initType = this._type;
+      this._compute();
+      if(initType !== this._type){
+//        if(this._type !== nice.Pending){
+          return this[name];
+//        }
+      } else {
+        return f(this);
+      }
+    });
+
+    //TODO: replace with Mapping??
     return this;
   };
 });

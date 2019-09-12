@@ -31,6 +31,7 @@ def(nice, 'runTests', (key) => {
 
 function runTest(t, args){
   try {
+//    console.log('Running', t.description || t.body.toString());
     t.body(...args);
     return true;
   } catch (e) {

@@ -217,8 +217,9 @@ defAll(nice, {
     if(o)
       for(let i in o)
         if(i !== nice.TYPE_KEY)
-          if(nice.isStop(f(o[i], i)))
-            break;
+          f(o[i], i)
+//          if(nice.isStop(f(o[i], i)))
+//            break;
     return o;
   },
 
