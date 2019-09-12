@@ -43,7 +43,7 @@ nice.Type({
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className').or('');
+    const current = z.attributes.get('className')() || '';
     if(!vs.length)
       return current;
 
@@ -263,7 +263,7 @@ function html(z){
   style && (as = ' style="' + style + '"');
 
   z.attributes.each((v, k) => {
-    k === 'className' && (k = 'class', v = v.trim());
+    k === 'className' && (k = 'class', v().trim());
     as += ` ${k}="${v}"`;
   });
 
