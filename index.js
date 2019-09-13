@@ -56,10 +56,10 @@ defAll(nice, {
     return item;
   },
   _createChild(parent, key, type) {
-    
     const item = nice._createItem(type || Anything, type || NotFound);
     item._parent = parent;
     item._name = key;
+    item._status = 'hot';
     return item;
   },
   _initItem(z, type, ...args) {
@@ -1662,17 +1662,6 @@ nice.registerType({
       this.transactionStart();
       f(this);
       this.transactionEnd();
-      return this;
-    },
-    
-    _get (k) {
-      if(k in this)
-        return this[k];
-      return undefined;
-    },
-    
-    _set (k, v) {
-      this[k] = v;
       return this;
     },
     _has (k) {

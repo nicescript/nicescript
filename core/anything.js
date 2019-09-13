@@ -391,19 +391,6 @@ nice.registerType({
 //      return this;
 //    },
 
-    //TODO:0 remove
-    _get (k) {
-      if(k in this)
-        return this[k];
-      return undefined;
-    },
-
-    //TODO:0 remove
-    _set (k, v) {
-      this[k] = v;
-      return this;
-    },
-
     _has (k) {
       return k in this;
     },
