@@ -363,6 +363,8 @@ nice.registerType({
     },
 
     set _status(v) {
+      if(!(v === 'hot' || v === 'cold' || v === 'cooking'))
+        throw 'Bad status ' + v;
       return nice._db.update(this._id, '_status', v);
     },
 

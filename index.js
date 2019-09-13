@@ -1656,6 +1656,8 @@ nice.registerType({
       return nice._db.getValue(this._id, '_status');
     },
     set _status(v) {
+      if(!(v === 'hot' || v === 'cold' || v === 'cooking'))
+        throw 'Bad status ' + v;
       return nice._db.update(this._id, '_status', v);
     },
     transaction (f) {
