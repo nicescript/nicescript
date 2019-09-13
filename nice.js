@@ -2652,19 +2652,14 @@ Test((includes, Obj) => {
 M('getProperties',  z => apply([], res => {
   for(let i in z) z[i]._isProperty && res.push(z[i]);
 }));
-Mapping.Object('reduceTo', (o, res, f) => {
+Func.Object('reduceTo', (o, res, f) => {
   _each(o, (v, k) => f(res, v, k));
   return res;
 });
 Test("reduceTo", function(reduceTo, Num) {
   const c = {qwe: 1, ads: 3};
   const a = nice.Num();
-  expect(a()).is(4);
-});
-M('reduceTo', (o, res, f) => o.each((v, k) => f(res, v, k)));
-Test("reduceTo", function(Obj, reduceTo, Num) {
-  const c = Obj({qwe: 1, ads: 3});
-  const a = nice.Num();
+  expect(reduceTo(c, a, (z, v) => z.inc(v))).is(a);
   expect(a()).is(4);
 });
 reflect.on('type', type => {
