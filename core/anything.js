@@ -237,17 +237,13 @@ nice.registerType({
     },
 
     _compute (follow = false){
-//      if(this._transactionDepth)
-//        return;
-
-      if(!this._by || this._isHot)
-        return;
-
-      this._doCompute(follow);
+      this._status === 'cold' && this._doCompute(follow);
     },
 
     _doCompute (follow = false) {
+      this._status = 'cooking';
       this._by(nice, this, follow, ...this._args);
+      this._status = follow ? 'cooking' : 'cold';
     },
 
     listen (f, key) {
@@ -260,17 +256,17 @@ nice.registerType({
       if(ls.has(key))
         return;
 
-      let isHot = false;
+      let needHot = false;
 
       if(f._isAnything){
-        isHot = f._isHot;
+        needHot = f._istatus === 'hot';
       } else {
         typeof f === 'function' || (f = objectListener(f));
-        isHot = true;
+        needHot = true;
       }
 
       ls.set(key, f);
-      if(isHot){
+      if(needHot){
         this._compute(true);
         this.isPending() || notifyItem(f, this);
       }
@@ -290,7 +286,7 @@ nice.registerType({
 
       ls.set(key, f);
       this._compute();
-      this._isHot = true;
+      this._status = 'hot';
       this.isPending() || this.each(f);
     },
 
@@ -362,18 +358,13 @@ nice.registerType({
 //      return this;
 //    },
 
-    get _isHot() {
-      return nice._db.getValue(this._id, '_isHot');
+    get _status() {
+      return nice._db.getValue(this._id, '_status');
     },
 
-    set _isHot(v) {
-      return nice._db.update(this._id, '_isHot', !!v);
+    set _status(v) {
+      return nice._db.update(this._id, '_status', v);
     },
-
-     _isResolved (){
-      return !this.isPending() && !this.isNeedComputing();
-    },
-
 
     transaction (f) {
       this.transactionStart();

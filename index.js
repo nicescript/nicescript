@@ -1,4 +1,4 @@
-module.exports = function(){;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Box,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
+module.exports = function(){;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -764,12 +764,12 @@ const db = new ColumnStorage(
   '_value',
   '_parent',
   '_name',
-  '_isHot',
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
   '_by',
   '_args',
+  {name: '_status', defaultValue: 'cooking' },
   {name: '_size', defaultValue: 0 },
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
@@ -779,13 +779,13 @@ const db = new ColumnStorage(
 );
 def(nice, '_db', db);
 db.on('_value', (id, value, oldValue) => {
-  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
+  if(db.getValue(id, '_status') === 'hot'  && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_value' in tr || (tr._value = oldValue);
 });
 db.on('_type', (id, value, oldValue) => {
-  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
+  if(db.getValue(id, '_status') === 'hot' && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_type' in tr || (tr._type = oldValue);
@@ -1034,9 +1034,9 @@ function useBody(target, name, functionType, ...args){
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
     if(functionType === 'Action'){
-      if(args[0]._by)
+      if(args[0]._by && args[0]._status !== 'cooking')
         throw `Cant't ${name} on reactive item.`;
-      if('transactionStart' in args[0] && args[0]._isHot){
+      if('transactionStart' in args[0] && args[0]._status === 'hot'){
         args[0].transactionStart();
         target.action(...args);
         args[0].transactionEnd();
@@ -1126,10 +1126,10 @@ function createMappingBody(){
       if(a === _1 || a === _2 || a === _3 || a === _$)
         return skip(z, args);
     }
-    const result = nice._createItem(Anything, nice.Pending);
+    const result = nice._createItem(Anything, Anything);
     result._args = [z, ...args];
     result._by = by;
-    result._isHot = false;
+    result._status = 'cold';
     return result;
   });
   return z;
@@ -1144,7 +1144,7 @@ function createCheckBody(){
     let target = z.signatures;
     const l = args.length;
     let precision = Infinity;
-    args.forEach(a => a !== undefined && a._isAnything && a._type === nice.Pending && a._compute());
+    args.forEach(a => a !== undefined && a._isAnything && a._status === 'cold' && a._compute());
     for(let i = 0; i < l; i++) {
       if(target && target.size) {
         let type = nice.getType(args[i]);
@@ -1328,7 +1328,7 @@ reflect.on('type', type => {
       const initType = this._type;
       this._compute();
       if(initType !== this._type){
-          return this[name];
+        return this[name];
       } else {
         return f(this);
       }
@@ -1567,12 +1567,12 @@ nice.registerType({
       });
     },
     _compute (follow = false){
-      if(!this._by || this._isHot)
-        return;
-      this._doCompute(follow);
+      this._status === 'cold' && this._doCompute(follow);
     },
     _doCompute (follow = false) {
+      this._status = 'cooking';
       this._by(nice, this, follow, ...this._args);
+      this._status = follow ? 'cooking' : 'cold';
     },
     listen (f, key) {
       key === undefined && (key = f);
@@ -1581,15 +1581,15 @@ nice.registerType({
       ls === undefined && db.update(z._id, '_listeners', ls = new Map());
       if(ls.has(key))
         return;
-      let isHot = false;
+      let needHot = false;
       if(f._isAnything){
-        isHot = f._isHot;
+        needHot = f._istatus === 'hot';
       } else {
         typeof f === 'function' || (f = objectListener(f));
-        isHot = true;
+        needHot = true;
       }
       ls.set(key, f);
-      if(isHot){
+      if(needHot){
         this._compute(true);
         this.isPending() || notifyItem(f, this);
       }
@@ -1604,7 +1604,7 @@ nice.registerType({
       typeof f === 'function' || (f = objectListener(f));
       ls.set(key, f);
       this._compute();
-      this._isHot = true;
+      this._status = 'hot';
       this.isPending() || this.each(f);
     },
     get _deepListeners(){
@@ -1652,14 +1652,11 @@ nice.registerType({
       }
       delete this._transaction;
     },
-    get _isHot() {
-      return nice._db.getValue(this._id, '_isHot');
+    get _status() {
+      return nice._db.getValue(this._id, '_status');
     },
-    set _isHot(v) {
-      return nice._db.update(this._id, '_isHot', !!v);
-    },
-     _isResolved (){
-      return !this.isPending() && !this.isNeedComputing();
+    set _status(v) {
+      return nice._db.update(this._id, '_status', v);
     },
     transaction (f) {
       this.transactionStart();
@@ -2019,8 +2016,6 @@ def(nice.expectPrototype, function message(...a){
 });
 expect = nice.expect;
 })();
-(function(){"use strict";
-})();
 (function(){"use strict";def(nice, function extend(child, parent){
   if(parent.extensible === false)
     throw `Type ${parent.name} is not extensible.`;
@@ -2060,7 +2055,7 @@ defAll(nice, {
           return nice.skip(type, a);
       }
       const item = nice._createItem(type, type, ...a);
-      item._isHot = true;
+      item._status = 'hot';
       return item;
     };
     Object.defineProperty(type, 'name', { writable: true });
@@ -2138,7 +2133,7 @@ nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
   },
   proto: new Proxy({}, {
     get (o, k, receiver) {
-      if(k === '_cellType' || k === '_isHot' || k === '_by')
+      if(k === '_cellType' || k === '_status' || k === '_by')
         return nice._db.getValue(receiver._id, k);
       if(k === '_isRef')
         return true;
@@ -2238,8 +2233,7 @@ s('Null', 'Nothing', 'Wrapper for JS null.');
 s('NotFound', 'Nothing', 'Value returned by lookup functions in case nothing is found.');
 NotFound = nice.NotFound;
 s('Fail', 'Nothing', 'Empty negative signal.');
-s('NeedComputing', 'Nothing', 'State of the Box in case it need some computing.');
-s('Pending', 'Nothing', 'State of the Box when it awaits input.');
+s('Pending', 'Nothing', 'State when item awaits input.');
 s('Stop', 'Nothing', 'Value used to stop iterationin .each() and similar functions.');
 s('NumberError', 'Nothing', 'Wrapper for JS NaN.');
 s('AssignmentError', 'Nothing', `Can't assign`);
@@ -2692,199 +2686,6 @@ reflect.on('type', type => {
     return this;
   });
 });
-})();
-(function(){"use strict";const PENDING = nice.Pending(), NEED_COMPUTING = nice.NeedComputing();
-nice.Type({
-  name: 'Box',
-  extends: 'Something',
-  onCreate: z => {
-    z._value = PENDING;
-    z._isReactive = false;
-  },
-  itemArgs0: z => z.compute(),
-  itemArgs1: (z, v) => z._setValue(v),
-  initBy: (z, ...a) => a.length && z(...a),
-  async (f){
-    const b = Box();
-    b._asyncBy = f;
-    b._value = NEED_COMPUTING;
-    return b;
-  },
-  proto: {
-    interval (f, t = 200) {
-      setInterval(() => this.setState(f(this._value)), t);
-      return this;
-    },
-    timeout (f, t = 200) {
-      setTimeout(() => f(this), t);
-      return this;
-    },
-    setState (v){
-      if(v === undefined)
-        throw `Can't set result of the box to undefined.`;
-      if(v === this)
-        throw `Can't set result of the box to box itself.`;
-      while(v && v._up_)
-        v = v._up_;
-      if(this._value !== v) {
-        this.transactionStart();
-        '_oldValue' in this || (this._oldValue = this._value);
-        this._value = v;
-        this.transactionEnd();
-      }
-      return this._value;
-    },
-    _notificationValue () {
-      let res = this._value;
-      return res && res._notificationValue ? res._notificationValue() : res;
-    },
-    _isHot (){
-      return this._transactionDepth
-        || (this._subscribers && this._subscribers.size);
-    },
-    _isResolved (){
-      return !nice.isPending(this._value) && !nice.isNeedComputing(this._value);
-    },
-    lock (){
-      this._locked = true;
-      return this;
-    },
-    unlock (){
-      this._locked = false;
-      return this;
-    },
-    error (e) {
-      return this.setState(nice.isErr(e) ? e : nice.Err(e));
-    },
-    getPromise () {
-      return new Promise((resolve, reject) => {
-        this.listenOnce(v => (nice.isErr(v) ? reject : resolve)(v));
-      });
-    },
-    follow (s){
-      if(s.__proto__ === Promise.prototype) {
-        this.doCompute = () => {
-          this.transactionStart();
-          s.then(v => {
-            this(v);
-            this.transactionEnd();
-            delete this.doCompute;
-          }, e => this.error(e));
-        };
-      } else {
-        expect(s !== this, `Box can't follow itself`).toBe();
-        this._subscriptions = [s];
-        this._isReactive = true;
-      }
-      this._value = NEED_COMPUTING;
-      this._isHot && this.compute();
-      return this;
-    },
-    doCompute (){
-      this.transactionStart();
-      '_oldValue' in this || (this._oldValue = this._value);
-      this._value = PENDING;
-      let _value;
-      const ss = this._subscriptions || [];
-      ss.forEach(s => {
-        s._subscribers = s._subscribers || new Map();
-        if(!s._subscribers.has(this)){
-          s._isResolved() || s.compute();
-          s._subscribers.set(this, () => this._notifing || this.doCompute());
-        }
-      });
-      const _results = ss.map(s =>
-          s._notificationValue ? s._notificationValue() : s);
-      if(ss.some(s => !s._isResolved())){
-        _value = PENDING;
-      } else if(_results.find(nice.isErr)){
-        _value = nice.Err(`Dependency error`);
-      }
-      try {
-        if(_value){
-          this._simpleSetState(_value);
-        } else if(this._by){
-          this._simpleSetState(this._by(..._results));
-        } else if(this._asyncBy){
-          
-          this._isReactive = false;
-          this._asyncBy(this, ..._results);
-          return;
-        } else {
-          this._simpleSetState(_results[0]);
-        }
-      } catch (e) {
-        console.log('ups', e);
-        this.error(e);
-        this._simpleSetState(Err('Error while doCompute'));
-        return this._value;
-      } finally {
-        this.transactionEnd();
-      }
-      return this._value;
-    },
-    compute () {
-      return !nice.isNeedComputing(this._value) || this._transactionDepth
-        ? this._value : this.doCompute();
-    },
-    _simpleSetState (v){
-      if(v === undefined)
-        throw `Can't set result of the box to undefined.`;
-      if(v === this)
-        throw `Can't set result of the box to box itself.`;
-      while(v && v._up_)
-        v = v._up_;
-      this._value = v;
-    }
-  }
-})
-  .ReadOnly('jsValue', ({_value}) => _value._isAnything ? _value.jsValue : _value)
-  .about('Observable component.');
-Box = nice.Box;
-def(nice, 'resolveChildren', (v, f) => {
-  if(!v)
-    return f(v);
-  if(nice.isBox(v))
-    return v.listenOnce(_v => nice.resolveChildren(_v, f));
-  if(nice.isObj(v)){
-    let count = v.size;
-    const next = () => {
-      count--;
-      count === 0 && f(v);
-    };
-    !count ? f(v) : _each(v._items, (vv, kk) => {
-      nice.resolveChildren(vv, _v => {
-        next();
-      });
-    });
-  } else {
-    f(v);
-  }
-});
-})();
-(function(){"use strict";const PENDING = nice.Pending(), NEED_COMPUTING = nice.NeedComputing();
-nice.Type({
-  name: 'RBox',
-  extends: 'Box',
-  itemArgs1: () => {
-    throw `This box uses subscriptions you can't change it's value.`;
-  },
-  initBy: (z, ...inputs) => {
-    z._by = inputs.pop();
-    z._subscriptions = [];
-    z._value = NEED_COMPUTING;
-    z._isReactive = true;
-    inputs.forEach(s => {
-      if(s.__proto__ === Promise.prototype)
-        s = Box().follow(s);
-      expect(s.listen, `Bad source`).toBe();
-      z._subscriptions.push(s);
-    });
-    return z;
-  },
-  proto: {}
-})
-  .about('Reactive observable component.');
 })();
 (function(){"use strict";nice.Type({
   name: 'Err',
@@ -3602,19 +3403,11 @@ reflect.on('extension', ({child, parent}) => {
     addCreator(child);
   }
 });
-addCreator(nice.RBox);
-Html.proto.Box = function(...a) {
-  const res = Box(...a);
-  res.up = this;
-  this.add(res);
-  return res;
-};
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       const s = this.style;
       nice.Switch(a[0])
-        .isBox().use(b => s.set(property, b))
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
@@ -3659,7 +3452,6 @@ function compileSelectors (h){
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
-nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
 nice.ReadOnly.Single('html', z => _html(z._value));
 nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
     .map(_html).join(''));
@@ -3757,29 +3549,6 @@ if(nice.isEnvBrowser()){
     subscription();
     killNode(node);
   });
-  Func.Box('show', (e, parentNode = document.body, position) => {
-    let node;
-    e._shownNodes = e._shownNodes || new WeakMap();
-    const f = (v, oldValue) => {
-      const oldNode = node;
-      node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
-      if(v !== null){
-        node = nice.show(v, parentNode, position);
-        e._shownNodes.set(node, f);
-      } else {
-        node = undefined;
-      }
-      if(oldNode){
-        oldValue && oldValue.hide ? oldValue.hide(oldNode) : killNode(oldNode);
-      }
-    };
-    e.listen(f);
-  });
-  Func.Box('hide', (e, node) => {
-    e.unsubscribe(e._shownNodes.get(node));
-    e._shownNodes.delete(node);
-    e._value && e._value.hide && e._value.hide(node);
-  });
   Func.Nothing('show', (e, parentNode = document.body, position) => {
     return insertAt(parentNode, document.createTextNode(''), position);
   });
@@ -3808,9 +3577,7 @@ if(nice.isEnvBrowser()){
       ),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => nice.isBox(v)
-          ? ss.push(v.listen(_v => node.style[k] = _v))
-          : node.style[k] = v
+        onAdd: (v, k) => node.style[k] = v
       }),
       e.attributes.listen({
         onRemove: (v, k) => delete node[k],

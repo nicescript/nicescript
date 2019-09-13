@@ -17,12 +17,6 @@ describe("is", function() {
   });
 
 
-  it("is Box", function(){
-    expect(nice.isBox(nice.Box())).to.equal(true);
-    expect(nice.Box().isBox()).to.equal(true);
-  });
-
-
   it("isAnyOf", function(){
     expect(nice.isAnyOf(1, 2, 3, 4)).to.equal(false);
     expect(nice.isAnyOf(3, 2, 3, 4)).to.equal(true);

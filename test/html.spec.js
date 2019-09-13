@@ -1,5 +1,5 @@
 const nice = require('../index.js')();
-const { Html, B, Div, Span, I, Box, Arr, Obj } = nice;
+const { Html, B, Div, Span, I, Arr, Obj } = nice;
 const chai = require('chai');
 const expect = chai.expect;
 

@@ -232,9 +232,9 @@ function useBody(target, name, functionType, ...args){
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action'){
-      if(args[0]._by)
+      if(args[0]._by && args[0]._status !== 'cooking')
         throw `Cant't ${name} on reactive item.`;
-      if('transactionStart' in args[0] && args[0]._isHot){
+      if('transactionStart' in args[0] && args[0]._status === 'hot'){
         args[0].transactionStart();
         target.action(...args);
         args[0].transactionEnd();
@@ -335,10 +335,10 @@ function createMappingBody(){
       if(a === _1 || a === _2 || a === _3 || a === _$)
         return skip(z, args);
     }
-    const result = nice._createItem(Anything, nice.Pending);
+    const result = nice._createItem(Anything, Anything);
     result._args = [z, ...args];
     result._by = by;
-    result._isHot = false;
+    result._status = 'cold';
     return result;
   });
   return z;
@@ -358,7 +358,7 @@ function createCheckBody(){
     const l = args.length;
     let precision = Infinity;
 
-    args.forEach(a => a !== undefined && a._isAnything && a._type === nice.Pending && a._compute());
+    args.forEach(a => a !== undefined && a._isAnything && a._status === 'cold' && a._compute());
 
     for(let i = 0; i < l; i++) {
       if(target && target.size) {
@@ -585,9 +585,7 @@ reflect.on('type', type => {
       const initType = this._type;
       this._compute();
       if(initType !== this._type){
-//        if(this._type !== nice.Pending){
-          return this[name];
-//        }
+        return this[name];
       } else {
         return f(this);
       }

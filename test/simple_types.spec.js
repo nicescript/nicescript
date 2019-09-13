@@ -27,20 +27,6 @@ describe("Simple types", function() {
   });
 
 
-  it("Pending", () => {
-    expect(nice.Pending().isNothing()).to.equal(true);
-    expect(nice.Pending().isPending()).to.equal(true);
-    expect(nice.Pending().isSomething()).to.equal(false);
-  });
-
-
-  it("Need computing", () => {
-    expect(nice.NeedComputing().isNothing()).to.equal(true);
-    expect(nice.NeedComputing().isNeedComputing()).to.equal(true);
-    expect(nice.NeedComputing().isSomething()).to.equal(false);
-  });
-
-
   it("Something", () => {
     expect(nice.Something().isNothing()).to.equal(false);
   });

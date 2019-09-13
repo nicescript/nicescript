@@ -132,13 +132,6 @@ describe("Func", function() {
   });
 
 
-  it("throw for unknown signature", () => {
-    nice.Func.Box(function ffff(){return 1;});
-    //TODO: check for error
-//    expect(() => nice.ffff(nice.Func())).to.throw();
-  });
-
-
   it("overload by item", () => {
     nice.Func.AAA(function ggg(){return 3;});
     nice.Func.BBB(function ggg(){return 1;});

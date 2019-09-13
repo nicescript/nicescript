@@ -2,7 +2,7 @@ const nice = require('../index.js')();
 const chai = require('chai');
 chai.use(require('chai-spies'));
 const expect = chai.expect;
-const { is, Box } = nice;
+const { is } = nice;
 
 describe("Interface", () => {
 

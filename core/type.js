@@ -43,7 +43,7 @@ defAll(nice, {
           return nice.skip(type, a);
       }
       const item = nice._createItem(type, type, ...a);
-      item._isHot = true;
+      item._status = 'hot';
       return item;
     };
 

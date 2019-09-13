@@ -187,12 +187,12 @@ const db = new ColumnStorage(
   '_value',
   '_parent',
   '_name',
-  '_isHot',
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
   '_by',
   '_args',
+  {name: '_status', defaultValue: 'cooking' },
   {name: '_size', defaultValue: 0 },
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
@@ -205,7 +205,7 @@ def(nice, '_db', db);
 
 
 db.on('_value', (id, value, oldValue) => {
-  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
+  if(db.getValue(id, '_status') === 'hot'  && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
   const tr = db.getValue(id, '_transaction');
   '_value' in tr || (tr._value = oldValue);
@@ -213,7 +213,7 @@ db.on('_value', (id, value, oldValue) => {
 
 
 db.on('_type', (id, value, oldValue) => {
-  if(db.hasValue(id, '_isHot') && !db.hasValue(id, '_transaction'))
+  if(db.getValue(id, '_status') === 'hot' && !db.hasValue(id, '_transaction'))
     return console.log('NO TRANSACTION!');
 
   const tr = db.getValue(id, '_transaction');

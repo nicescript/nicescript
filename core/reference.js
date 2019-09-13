@@ -8,7 +8,7 @@ nice.Type({
   },
   proto: new Proxy({}, {
     get (o, k, receiver) {
-      if(k === '_cellType' || k === '_isHot' || k === '_by')
+      if(k === '_cellType' || k === '_status' || k === '_by')
         return nice._db.getValue(receiver._id, k);
       if(k === '_isRef')
         return true;

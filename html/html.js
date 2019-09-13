@@ -180,15 +180,6 @@ reflect.on('extension', ({child, parent}) => {
     addCreator(child);
   }
 });
-addCreator(nice.RBox);
-
-
-Html.proto.Box = function(...a) {
-  const res = Box(...a);
-  res.up = this;
-  this.add(res);
-  return res;
-};
 
 
 'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
@@ -196,7 +187,7 @@ Html.proto.Box = function(...a) {
     def(Html.proto, property, function(...a) {
       const s = this.style;
       nice.Switch(a[0])
-        .isBox().use(b => s.set(property, b))
+//        .isBox().use(b => s.set(property, b))
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
@@ -250,7 +241,7 @@ function compileSelectors (h){
 };
 
 const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
-nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
+//nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
 nice.ReadOnly.Single('html', z => _html(z._value));
 nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
     .map(_html).join(''));
@@ -424,31 +415,31 @@ if(nice.isEnvBrowser()){
   });
 
 
-  Func.Box('show', (e, parentNode = document.body, position) => {
-    let node;
-    e._shownNodes = e._shownNodes || new WeakMap();
-    const f = (v, oldValue) => {
-      const oldNode = node;
-      node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
-      if(v !== null){
-        node = nice.show(v, parentNode, position);
-        e._shownNodes.set(node, f);
-      } else {
-        node = undefined;
-      }
-      if(oldNode){
-        oldValue && oldValue.hide ? oldValue.hide(oldNode) : killNode(oldNode);
-      }
-    };
-    e.listen(f);
-  });
+//  Func.Box('show', (e, parentNode = document.body, position) => {
+//    let node;
+//    e._shownNodes = e._shownNodes || new WeakMap();
+//    const f = (v, oldValue) => {
+//      const oldNode = node;
+//      node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
+//      if(v !== null){
+//        node = nice.show(v, parentNode, position);
+//        e._shownNodes.set(node, f);
+//      } else {
+//        node = undefined;
+//      }
+//      if(oldNode){
+//        oldValue && oldValue.hide ? oldValue.hide(oldNode) : killNode(oldNode);
+//      }
+//    };
+//    e.listen(f);
+//  });
 
 
-  Func.Box('hide', (e, node) => {
-    e.unsubscribe(e._shownNodes.get(node));
-    e._shownNodes.delete(node);
-    e._value && e._value.hide && e._value.hide(node);
-  });
+//  Func.Box('hide', (e, node) => {
+//    e.unsubscribe(e._shownNodes.get(node));
+//    e._shownNodes.delete(node);
+//    e._value && e._value.hide && e._value.hide(node);
+//  });
 
 
   Func.Nothing('show', (e, parentNode = document.body, position) => {
@@ -485,9 +476,10 @@ if(nice.isEnvBrowser()){
       ),
       e.style.listen({
         onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => nice.isBox(v)
-          ? ss.push(v.listen(_v => node.style[k] = _v))//TODO: unsubscribe
-          : node.style[k] = v
+        onAdd: (v, k) => node.style[k] = v
+//        onAdd: (v, k) => nice.isBox(v)
+//          ? ss.push(v.listen(_v => node.style[k] = _v))//TODO: unsubscribe
+//          : node.style[k] = v
       }),
       e.attributes.listen({
         onRemove: (v, k) => delete node[k],
