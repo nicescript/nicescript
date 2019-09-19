@@ -8,8 +8,11 @@ nice.Type({
 });
 
 function call(spy, ...a){
+  spy._logCalls && console.log('Spy called with:', ...a);
   spy._value.push(a);
 };
+
+Action.Spy('logCalls', z => z._logCalls = true);
 
 Check.Spy('called', s => s._value.length > 0);
 

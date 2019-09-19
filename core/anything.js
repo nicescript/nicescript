@@ -299,8 +299,22 @@ nice.registerType({
       return true;
     },
 
-    listenDeep (f) {
-      typeof f === 'function' || (f = objectListener(f));
+    listenDeep (f, key) {
+      key === undefined && (key = f);
+
+      const db = nice._db;
+      let ls = db.getValue(this._id, '_deepListeners');
+      ls === undefined && db.update(this._id, '_deepListeners', ls = new Map());
+
+      if(ls.has(key))
+        return;
+
+      expect(typeof f).is('function');
+
+      ls.set(key, f);
+      this._compute();
+      this._status = 'hot';
+      notifyDown(f, this);
     },
 
     get _transaction () {
@@ -333,7 +347,7 @@ nice.registerType({
         const parentId = z._parent;
         if(parentId !== undefined){
           const ls = db.getValue(parentId, '_itemsListeners');
-          ls && ls.forEach(f => f(z));
+          ls && ls.forEach(f => f(z, z._name));
         }
 
         let nextParentId = z._parent;
@@ -342,7 +356,7 @@ nice.registerType({
         while(nextParentId !== undefined){
           const ls = db.getValue(nextParentId, '_deepListeners');
           path.unshift(nextParentId);
-          ls && ls.forEach(f => f(z, path));
+          ls && ls.forEach(f => f(z, path) && console.log('TRRRRRRRRRR'));
           nextParentId = db.getValue(nextParentId, '_parent');
         }
       }
@@ -447,6 +461,40 @@ Test(function listen(Num){
   expect(res).is(0);
   n(1);
   expect(res).is(1);
+});
+
+
+Test(function listenItems(Obj, Spy){
+  const o = Obj({q:1});
+  const spy = Spy();
+  o.listenItems(spy);
+  expect(spy).calledWith(1, 'q');
+  o.set('a', 2);
+  expect(spy).calledWith(2, 'a');
+});
+
+
+function notifyDown(f, o){
+  if(o.isPending())
+    return;
+  f(o);
+  o.isObj() && o.each(v => notifyDown(f, v));
+}
+
+
+Test(function listenDeep(Obj, Spy){
+  const o = Obj({q:{a:2}});
+  const spy = Spy().logCalls();
+  o.listenDeep(spy);
+  expect(spy).calledWith(o);
+  expect(spy).calledWith(o.q);
+  expect(spy).calledWith(2);
+  o.set('z', 1);
+  expect(spy).calledWith(1);
+  expect(spy).calledTimes(4);
+  o.q.set('x', 3);
+  expect(spy).calledWith(3);
+  expect(spy).calledTimes(5);
 });
 
 //function notify(z){

@@ -26,7 +26,7 @@ Test((Single, Num) => {
   x(2);
   expect(x).isNum();
   expect(x._cellType).is(Single);
-  x('qwe')
+  x('qwe');
   expect(x).isStr();
   expect(x._cellType).is(Single);
 });
