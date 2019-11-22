@@ -12,9 +12,6 @@ nice.Type({
         return nice._db.getValue(receiver._id, k);
       if(k === '_isRef')
         return true;
-      //TODO:
-//      if(k === 'transaction')
-//        throw 'Link is read only';
       if(!('_ref' in receiver))
         def(receiver, '_ref', nice._db.getValue(receiver._id, '_value'));
       return receiver._ref[k];

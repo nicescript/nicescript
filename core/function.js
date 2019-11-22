@@ -234,15 +234,8 @@ function useBody(target, name, functionType, ...args){
     if(functionType === 'Action'){
       if(args[0]._by && args[0]._status !== 'cooking')
         throw `Cant't ${name} on reactive item.`;
-      if('transactionStart' in args[0] && args[0]._status === 'hot'){
-        args[0].transactionStart();
-        target.action(...args);
-        args[0].transactionEnd();
-        return args[0];
-      } else {
-        target.action(...args);
-        return args[0];
-      }
+      target.action(...args);
+      return args[0];
     } else {
       return target.action(...args);
     }

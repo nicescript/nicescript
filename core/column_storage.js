@@ -197,7 +197,6 @@ const db = new ColumnStorage(
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
   {name: '_subscriptions', defaultBy: () => [] },
-//  {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
 );
 
@@ -234,12 +233,6 @@ function notifyItem(f, value){
 
 
 db.on('_type', (id, value, oldValue) => {
-//  if(db.getValue(id, '_status') === 'hot' && !db.hasValue(id, '_transaction'))
-//    return console.log('NO TRANSACTION!');
-
-//  const tr = db.getValue(id, '_transaction');
-//  '_type' in tr || (tr._type = oldValue);
-
   if(!oldValue || oldValue === NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') + 1);
