@@ -197,7 +197,7 @@ const db = new ColumnStorage(
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
   {name: '_subscriptions', defaultBy: () => [] },
-  {name: '_transaction', defaultBy: () => ({ depth:0 }) },
+//  {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
 );
 
@@ -205,19 +205,40 @@ def(nice, '_db', db);
 
 
 db.on('_value', (id, value, oldValue) => {
-  if(db.getValue(id, '_status') === 'hot'  && !db.hasValue(id, '_transaction'))
-    return console.log('NO TRANSACTION!');
-  const tr = db.getValue(id, '_transaction');
-  '_value' in tr || (tr._value = oldValue);
+  const ls = db.getValue(id, '_listeners');
+  const z = db.getValue(id, 'cache')
+  ls && ls.forEach(f => notifyItem(f, z));//TODO: oldValue
+
+  const parentId = db.getValue(id, '_parent');
+  if(parentId !== undefined){
+    const ls = db.getValue(parentId, '_itemsListeners');
+    const name = db.getValue(id, '_name');
+    ls && ls.forEach(f => f(z, name));
+  }
+
+  let nextParentId = parentId;
+  let path = [];
+  //TODO: protection from loop
+  while(nextParentId !== undefined){
+    const ls = db.getValue(nextParentId, '_deepListeners');
+    path.unshift(nextParentId);
+    ls && ls.forEach(f => f(z, path) && console.log('TRRRRRRRRRR'));
+    nextParentId = db.getValue(nextParentId, '_parent');
+  }
 });
 
 
-db.on('_type', (id, value, oldValue) => {
-  if(db.getValue(id, '_status') === 'hot' && !db.hasValue(id, '_transaction'))
-    return console.log('NO TRANSACTION!');
+function notifyItem(f, value){
+  f._isAnything ? f._doCompute() : f(value);
+}
 
-  const tr = db.getValue(id, '_transaction');
-  '_type' in tr || (tr._type = oldValue);
+
+db.on('_type', (id, value, oldValue) => {
+//  if(db.getValue(id, '_status') === 'hot' && !db.hasValue(id, '_transaction'))
+//    return console.log('NO TRANSACTION!');
+
+//  const tr = db.getValue(id, '_transaction');
+//  '_type' in tr || (tr._type = oldValue);
 
   if(!oldValue || oldValue === NotFound){
     const pId = db.getValue(id, '_parent');

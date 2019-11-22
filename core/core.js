@@ -122,6 +122,7 @@ defAll(nice, {
   },
 
   _getItem(id) {
+    //change: try to cast otherwise change item type //exceptions: functions
     const f = function(...a){
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -157,7 +158,7 @@ defAll(nice, {
       return Number.isNaN(v) ? nice.NumberError : nice.Num;
 
     if(t === 'function')
-      return nice.Function;
+      return nice.Func;
 
     if(t === 'string')
       return nice.Str;

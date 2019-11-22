@@ -3,10 +3,7 @@
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
 
-nice.Type({
-  name: 'Html',
-  itemArgs1: (z, ...as) => z.add(...as)
-}, (z, tag) => tag && z.tag(tag))
+nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .str('tag', 'div')
   .obj('eventHandlers')
@@ -19,7 +16,7 @@ nice.Type({
       el && f(el);
     }
     const handlers = e.eventHandlers.get(name);
-    handlers ? handlers.push(f) : e.eventHandlers.set(name, [f]);
+    handlers.isArr() ? handlers.push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
   .Action.about('Removes event handler from an element.')(function off(e, name, f){
@@ -35,7 +32,7 @@ nice.Type({
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className').or('');
+    const s = z.attributes.get('className')() || '';
     if(s.indexOf(AUTO_PREFIX) < 0){
       const c = AUTO_PREFIX + autoId++;
       z.attributes.set('className', s + ' ' + c);
@@ -121,9 +118,9 @@ Test("Html children array", (Div) => {
 });
 
 //TODO:0
-//Test("Html children Arr", (Div, Arr) => {
-//  expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
-//});
+Test("Html children Arr", (Div, Arr) => {
+  expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
+});
 
 Test("item child", function(Num, Html) {
   const n = Num(5);
@@ -186,6 +183,8 @@ reflect.on('extension', ({child, parent}) => {
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       const s = this.style;
+      if(!a[0])
+        return s[property]();
       nice.Switch(a[0])
 //        .isBox().use(b => s.set(property, b))
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
@@ -474,41 +473,30 @@ if(nice.isEnvBrowser()){
         ? removeNode(node.childNodes[k], v._name)
         : nice.show(v, node, v._name)
       ),
-      e.style.listen({
-        onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => node.style[k] = v
-//        onAdd: (v, k) => nice.isBox(v)
-//          ? ss.push(v.listen(_v => node.style[k] = _v))//TODO: unsubscribe
-//          : node.style[k] = v
+      e.style.listenItems((v, k) => v.isSomething()
+          ? node.style[k] = v
+          : delete node.style[k]
+      ),
+      e.attributes.listenItems((v, k) => v.isSomething()
+          ? node[k] = v
+          : delete node[k]
+      ),
+      e.cssSelectors.listenItems((v, k) => {
+        e._autoClass();
+        (v.isSomething() ? addRules : killRules)
+            (v, k, getAutoClass(node.className));
       }),
-      e.attributes.listen({
-        onRemove: (v, k) => delete node[k],
-        onAdd: (v, k) => node[k] = v
-      }),
-//      e.attributes.listen(v => {
-//        v._type === NotFound
-//          ? delete node[v._name]
-//          : node[v._name] = v
-//      }),
-      e.cssSelectors.listen({
-        onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
-        onAdd: (v, k) => addRules(v, k, getAutoClass(node.className))
-      }),
-      e.eventHandlers.listen({
-        onAdd: (hs, k) => {
-          hs.forEach(f => {
+      e.eventHandlers.listenItems((hs, k) => v.isSomething()
+        ? hs.forEach(f => {
             if(k === 'domNode')
               return f(node);
             node.addEventListener(k, f, true);
             node.__niceListeners = node.__niceListeners || {};
             node.__niceListeners[k] = node.__niceListeners[k] || [];
             node.__niceListeners[k].push(f);
-          });
-        },
-        onRemove: (hs, k) => {
-          console.log('TODO: Remove, ', k);
-        }
-      })
+          })
+        : console.log('TODO: Remove, ', k)
+      )
     );
     e._shownNodes.set(node, ss);
   });

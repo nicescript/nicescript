@@ -90,6 +90,7 @@ defAll(nice, {
     return db.getValue(id, 'cache');
   },
   _getItem(id) {
+    
     const f = function(...a){
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -116,7 +117,7 @@ defAll(nice, {
     if(t === 'number')
       return Number.isNaN(v) ? nice.NumberError : nice.Num;
     if(t === 'function')
-      return nice.Function;
+      return nice.Func;
     if(t === 'string')
       return nice.Str;
     if(t === 'boolean')
@@ -774,21 +775,33 @@ const db = new ColumnStorage(
   {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
   {name: '_subscriptions', defaultBy: () => [] },
-  {name: '_transaction', defaultBy: () => ({ depth:0 }) },
   {name: 'cache', defaultBy: nice._getItem }
 );
 def(nice, '_db', db);
 db.on('_value', (id, value, oldValue) => {
-  if(db.getValue(id, '_status') === 'hot'  && !db.hasValue(id, '_transaction'))
-    return console.log('NO TRANSACTION!');
-  const tr = db.getValue(id, '_transaction');
-  '_value' in tr || (tr._value = oldValue);
+  const ls = db.getValue(id, '_listeners');
+  const z = db.getValue(id, 'cache')
+  ls && ls.forEach(f => notifyItem(f, z));
+  const parentId = db.getValue(id, '_parent');
+  if(parentId !== undefined){
+    const ls = db.getValue(parentId, '_itemsListeners');
+    const name = db.getValue(id, '_name');
+    ls && ls.forEach(f => f(z, name));
+  }
+  let nextParentId = parentId;
+  let path = [];
+  
+  while(nextParentId !== undefined){
+    const ls = db.getValue(nextParentId, '_deepListeners');
+    path.unshift(nextParentId);
+    ls && ls.forEach(f => f(z, path) && console.log('TRRRRRRRRRR'));
+    nextParentId = db.getValue(nextParentId, '_parent');
+  }
 });
+function notifyItem(f, value){
+  f._isAnything ? f._doCompute() : f(value);
+}
 db.on('_type', (id, value, oldValue) => {
-  if(db.getValue(id, '_status') === 'hot' && !db.hasValue(id, '_transaction'))
-    return console.log('NO TRANSACTION!');
-  const tr = db.getValue(id, '_transaction');
-  '_type' in tr || (tr._type = oldValue);
   if(!oldValue || oldValue === NotFound){
     const pId = db.getValue(id, '_parent');
     db.update(pId, '_size', db.getValue(pId, '_size') + 1);
@@ -819,7 +832,7 @@ const jsTypesMap = {
   Number: 'Num',
   Boolean: 'Bool',
   String: 'Str',
-  function: 'Func',
+  Function: 'Func',
   'undefined': 'Undefined',
   'null': 'Null'
 };
@@ -1416,10 +1429,8 @@ nice.registerType({
   },
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
-      z.transactionStart();
       nice._setType(z, nice.Reference);
       nice._initItem(z, nice.Reference, v);
-      z.transactionEnd();
     } else {
       z._cellType.setPrimitive(z, v);
     }
@@ -1434,7 +1445,7 @@ nice.registerType({
     } else if(t === 'number') {
       type = Number.isNaN(v) ? nice.NumberError : nice.Num;
     } else if(t === 'function') {
-      type = nice.Function;
+      type = nice.Func;
     } else if(t === 'string') {
       type = nice.Str;
     } else if(t === 'boolean') {
@@ -1477,7 +1488,7 @@ nice.registerType({
   setValue (z, value) {
     if(value === z._value)
       return;
-    z.transaction(() => nice._db.update(z._id, '_value', value));
+    nice._db.update(z._id, '_value', value);
   },
   toString () {
     return this.name;
@@ -1627,41 +1638,6 @@ nice.registerType({
       this._status = 'hot';
       notifyDown(f, this);
     },
-    get _transaction () {
-      return nice._db.getValue(this._id, '_transaction');
-    },
-    transactionStart (){
-      if('_locked' in this)
-        throw nice.LOCKED_ERROR;
-      this._transaction.depth++;
-      return this;
-    },
-    transactionEnd (){
-      const tr = this._transaction;
-      if(--tr.depth > 0)
-        return false;
-      const db = nice._db, z = this;
-      tr.depth = 0;
-      if('_value' in tr || '_type' in tr){
-        const ls = db.getValue(z._id, '_listeners');
-        ls && ls.forEach(f => notifyItem(f, z));
-        const parentId = z._parent;
-        if(parentId !== undefined){
-          const ls = db.getValue(parentId, '_itemsListeners');
-          ls && ls.forEach(f => f(z, z._name));
-        }
-        let nextParentId = z._parent;
-        let path = [];
-        
-        while(nextParentId !== undefined){
-          const ls = db.getValue(nextParentId, '_deepListeners');
-          path.unshift(nextParentId);
-          ls && ls.forEach(f => f(z, path) && console.log('TRRRRRRRRRR'));
-          nextParentId = db.getValue(nextParentId, '_parent');
-        }
-      }
-      delete this._transaction;
-    },
     get _status() {
       return nice._db.getValue(this._id, '_status');
     },
@@ -1669,12 +1645,6 @@ nice.registerType({
       if(!(v === 'hot' || v === 'cold' || v === 'cooking'))
         throw 'Bad status ' + v;
       return nice._db.update(this._id, '_status', v);
-    },
-    transaction (f) {
-      this.transactionStart();
-      f(this);
-      this.transactionEnd();
-      return this;
     },
     _has (k) {
       return k in this;
@@ -1719,6 +1689,7 @@ Test(function listenItems(Obj, Spy){
   const o = Obj({q:1});
   const spy = Spy();
   o.listenItems(spy);
+  expect(spy).calledOnce();
   expect(spy).calledWith(1, 'q');
   o.set('a', 2);
   expect(spy).calledWith(2, 'a');
@@ -1738,10 +1709,8 @@ Test(function listenDeep(Obj, Spy){
   expect(spy).calledWith(2);
   o.set('z', 1);
   expect(spy).calledWith(1);
-  expect(spy).calledTimes(4);
   o.q.set('x', 3);
   expect(spy).calledWith(3);
-  expect(spy).calledTimes(5);
 });
 function notifyItem(f, value){
   f._isAnything ? f._doCompute() : f(value);
@@ -1828,7 +1797,9 @@ for(let i in nice.jsTypes){
 reflect.on('type', function defineReducer(type) {
   type.name && Check
     .about('Checks if `v` has type `' + type.name + '`')
-    ('is' + type.name, v => v && v._type ? type.proto.isPrototypeOf(v) : false);
+    ('is' + type.name, v => v && v._type
+        ? (type === v._type || type.isPrototypeOf(v._type))
+        : false);
 });
 const throwF = function(...as) {
   return this.use(() => {
@@ -2383,7 +2354,7 @@ nice.jsTypes.isSubType = isSubType;
   },
   setValue (z, value) {
     expect(typeof value).is('object');
-    z.transaction(() => _each(value, (v, k) => z.set(k, v)));
+    _each(value, (v, k) => z.set(k, v));
   },
   killValue (z) {
     _each(z._children, (v, k) => nice._setType(z.get(k), NotFound));
@@ -3286,10 +3257,7 @@ Func.Number.Range(function within(v, r){
 (function(){"use strict";
 let autoId = 0;
 const AUTO_PREFIX = '_nn_'
-nice.Type({
-  name: 'Html',
-  itemArgs1: (z, ...as) => z.add(...as)
-}, (z, tag) => tag && z.tag(tag))
+nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .str('tag', 'div')
   .obj('eventHandlers')
@@ -3302,7 +3270,7 @@ nice.Type({
       el && f(el);
     }
     const handlers = e.eventHandlers.get(name);
-    handlers ? handlers.push(f) : e.eventHandlers.set(name, [f]);
+    handlers.isArr() ? handlers.push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
   .Action.about('Removes event handler from an element.')(function off(e, name, f){
@@ -3318,7 +3286,7 @@ nice.Type({
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className').or('');
+    const s = z.attributes.get('className')() || '';
     if(s.indexOf(AUTO_PREFIX) < 0){
       const c = AUTO_PREFIX + autoId++;
       z.attributes.set('className', s + ' ' + c);
@@ -3386,6 +3354,9 @@ Test("Html class name", (Html) => {
 Test("Html children array", (Div) => {
   expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');
 });
+Test("Html children Arr", (Div, Arr) => {
+  expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
+});
 Test("item child", function(Num, Html) {
   const n = Num(5);
   const n2 = Num(7);
@@ -3433,6 +3404,8 @@ reflect.on('extension', ({child, parent}) => {
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       const s = this.style;
+      if(!a[0])
+        return s[property]();
       nice.Switch(a[0])
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
@@ -3601,33 +3574,30 @@ if(nice.isEnvBrowser()){
         ? removeNode(node.childNodes[k], v._name)
         : nice.show(v, node, v._name)
       ),
-      e.style.listen({
-        onRemove: (v, k) => delete node.style[k],
-        onAdd: (v, k) => node.style[k] = v
+      e.style.listenItems((v, k) => v.isSomething()
+          ? node.style[k] = v
+          : delete node.style[k]
+      ),
+      e.attributes.listenItems((v, k) => v.isSomething()
+          ? node[k] = v
+          : delete node[k]
+      ),
+      e.cssSelectors.listenItems((v, k) => {
+        e._autoClass();
+        (v.isSomething() ? addRules : killRules)
+            (v, k, getAutoClass(node.className));
       }),
-      e.attributes.listen({
-        onRemove: (v, k) => delete node[k],
-        onAdd: (v, k) => node[k] = v
-      }),
-      e.cssSelectors.listen({
-        onRemove: (v, k) => killRules(v, k, getAutoClass(className)),
-        onAdd: (v, k) => addRules(v, k, getAutoClass(node.className))
-      }),
-      e.eventHandlers.listen({
-        onAdd: (hs, k) => {
-          hs.forEach(f => {
+      e.eventHandlers.listenItems((hs, k) => v.isSomething()
+        ? hs.forEach(f => {
             if(k === 'domNode')
               return f(node);
             node.addEventListener(k, f, true);
             node.__niceListeners = node.__niceListeners || {};
             node.__niceListeners[k] = node.__niceListeners[k] || [];
             node.__niceListeners[k].push(f);
-          });
-        },
-        onRemove: (hs, k) => {
-          console.log('TODO: Remove, ', k);
-        }
-      })
+          })
+        : console.log('TODO: Remove, ', k)
+      )
     );
     e._shownNodes.set(node, ss);
   });

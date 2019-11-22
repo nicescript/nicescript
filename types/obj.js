@@ -29,7 +29,8 @@ nice.Type({
 
   setValue (z, value) {
     expect(typeof value).is('object');
-    z.transaction(() => _each(value, (v, k) => z.set(k, v)));
+//    z.transaction(() => );
+    _each(value, (v, k) => z.set(k, v));
   },
 
   killValue (z) {
@@ -243,6 +244,7 @@ Action.Object('set', (o, i, v) => {
 });
 
 
+//optimization: get rid of the tale
 A('set', (z, key, value, ...tale) => {
   const _name = z.checkKey(key);
 

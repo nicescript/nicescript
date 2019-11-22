@@ -14,7 +14,7 @@ const jsTypesMap = {
   Number: 'Num',
   Boolean: 'Bool',
   String: 'Str',
-  function: 'Func',
+  Function: 'Func',
   'undefined': 'Undefined',
   'null': 'Null'
 };

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="../nice.js"></script>
-    <script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>
+    <!--<script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>-->
 <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js"></script>-->
   </head>
   <body>
@@ -15,13 +15,29 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy } = nice;
 
-  const a = Obj({q: 3, a: 2});
-  const b = a.map(x => x * 2);
-  expect(b.jsValue).deepEqual({q:6, a:4});
-  a.set('z', 1);
-  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
+const n = Num();
 
-  
+Div()
+    .position('absolute')
+    .top('0px')
+    .left(n)
+    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
+    .borderRadius('50%')
+    .width('30px').height('30px')
+    .show();
+    
+setInterval(() => n() > 0 ? n(0) : n(100), 1000);
+
+
+var div = Div('qwer').color('red')
+//    .A('qwe', 'qwe').on('click', () => console.log(11)).up
+    .Css('a').color('red').font('bold').up
+div.show();
+div.color('green');
+
+//var a = div.cssSelectors.a;
+//a.isSomething();
+
 //spy(nice.remove(o, 'q').jsValue);
 //
 //var { Company } = nice;
@@ -46,18 +62,6 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
 //});
 
 //people.push('Jane');
-
-//(async () => {
-//    let p = new Proxy({ then: undefined }, {
-//        get: (target, prop, self) => {
-//            return (prop in target) ? target[prop] : (...args) => self;
-//        },
-//    });
-//
-//    let example = await p.myChainable().awaitable().method();
-//
-//    console.log("Result: ", example);
-//})();
 
 
 //const CDN = s => `https://cdnjs.cloudflare.com/ajax/libs/${s}`;
@@ -92,5 +96,6 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
 
 </script>
   
+
   </body>
 </html>
