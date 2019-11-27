@@ -267,17 +267,6 @@
 ////  });
 ////
 ////
-////  it("transaction", function(){
-////    let a = Box();
-////    let spy = chai.spy();
-////    a.listen(spy);
-////
-////    a.transaction(() => a(5)(6));
-////
-////    expect(spy).to.have.been.called.once();
-////    expect(a()).to.equal(6);
-////  });
-////
 ////
 ////  it("transactionRollback", function(){
 ////    let a = Box(4);

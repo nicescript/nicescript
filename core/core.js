@@ -75,8 +75,13 @@ defAll(nice, {
 
     const id = nice._db.push({_cellType}).lastId;
     const item = nice._db.getValue(id, 'cache');
-    nice._setType(item, type);
-    nice._initItem(item, type, ...args);
+    try {
+      nice._setType(item, type);
+      nice._initItem(item, type, ...args);
+    } catch (e) {
+      nice._setType(item, nice.Err);
+      nice._initItem(item, type, e);
+    }
     return item;
   },
 

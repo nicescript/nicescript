@@ -246,6 +246,8 @@ nice.registerType({
 
     listen (f, key) {
       key === undefined && (key = f);
+      if(f === undefined)
+        throw `Undefined can't listen`;
 
       const z = this, db = nice._db;
       let ls = db.getValue(z._id, '_listeners');
@@ -257,7 +259,7 @@ nice.registerType({
       let needHot = false;
 
       if(f._isAnything){
-        needHot = f._istatus === 'hot';
+        needHot = f._status === 'hot';
       } else {
         typeof f === 'function' || (f = objectListener(f));
         needHot = true;
@@ -400,6 +402,14 @@ Test(function listen(Num){
 });
 
 
+Test(function listen(Num, Spy){
+  const n = Num();
+  const spy = Spy();
+  n.listen(spy);
+  expect(spy).calledWith(0);
+});
+
+
 Test(function listenItems(Obj, Spy){
   const o = Obj({q:1});
   const spy = Spy();
@@ -422,7 +432,7 @@ function notifyDown(f, o){
 
 Test(function listenDeep(Obj, Spy){
   const o = Obj({q:{a:2}});
-  const spy = Spy().logCalls();
+  const spy = Spy();
   o.listenDeep(spy);
   expect(spy).calledWith(o);
   expect(spy).calledWith(o.q);

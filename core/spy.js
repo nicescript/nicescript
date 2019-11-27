@@ -1,3 +1,5 @@
+//TODO: spy should extend function
+
 nice.Type({
   name: 'Spy',
   extends: 'Anything',
@@ -5,6 +7,9 @@ nice.Type({
   itemArgs0: call,
   itemArgs1: call,
   itemArgsN: (z, as) => call(z, ...as),
+//  initBy: (z, f) => {
+//    z._status = 'hot';
+//  }
 });
 
 function call(spy, ...a){

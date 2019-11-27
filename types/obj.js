@@ -29,7 +29,6 @@ nice.Type({
 
   setValue (z, value) {
     expect(typeof value).is('object');
-//    z.transaction(() => );
     _each(value, (v, k) => z.set(k, v));
   },
 
@@ -99,6 +98,12 @@ Test("Obj deep constructor", Obj => {
   const o = Obj({a: {b: { c:1 }}});
   expect(o.jsValue.a.b.c).is(1);
 });
+
+Test('Obj constructor error', Obj => {
+  const a = Obj(5);
+  expect(a).isErr();
+});
+
 
 Test("set / get primitive", (Obj) => {
   const a = Obj();

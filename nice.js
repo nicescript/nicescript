@@ -51,8 +51,13 @@ defAll(nice, {
       throw new Error('Bad type');
     const id = nice._db.push({_cellType}).lastId;
     const item = nice._db.getValue(id, 'cache');
-    nice._setType(item, type);
-    nice._initItem(item, type, ...args);
+    try {
+      nice._setType(item, type);
+      nice._initItem(item, type, ...args);
+    } catch (e) {
+      nice._setType(item, nice.Err);
+      nice._initItem(item, type, e);
+    }
     return item;
   },
   _createChild(parent, key, type) {
@@ -794,7 +799,7 @@ db.on('_value', (id, value, oldValue) => {
   while(nextParentId !== undefined){
     const ls = db.getValue(nextParentId, '_deepListeners');
     path.unshift(nextParentId);
-    ls && ls.forEach(f => f(z, path) && console.log('TRRRRRRRRRR'));
+    ls && ls.forEach(f => f(z, path));
     nextParentId = db.getValue(nextParentId, '_parent');
   }
 });
@@ -1049,15 +1054,8 @@ function useBody(target, name, functionType, ...args){
     if(functionType === 'Action'){
       if(args[0]._by && args[0]._status !== 'cooking')
         throw `Cant't ${name} on reactive item.`;
-      if('transactionStart' in args[0] && args[0]._status === 'hot'){
-        args[0].transactionStart();
-        target.action(...args);
-        args[0].transactionEnd();
-        return args[0];
-      } else {
-        target.action(...args);
-        return args[0];
-      }
+      target.action(...args);
+      return args[0];
     } else {
       return target.action(...args);
     }
@@ -1587,6 +1585,8 @@ nice.registerType({
     },
     listen (f, key) {
       key === undefined && (key = f);
+      if(f === undefined)
+        throw `Undefined can't listen`;
       const z = this, db = nice._db;
       let ls = db.getValue(z._id, '_listeners');
       ls === undefined && db.update(z._id, '_listeners', ls = new Map());
@@ -1594,7 +1594,7 @@ nice.registerType({
         return;
       let needHot = false;
       if(f._isAnything){
-        needHot = f._istatus === 'hot';
+        needHot = f._status === 'hot';
       } else {
         typeof f === 'function' || (f = objectListener(f));
         needHot = true;
@@ -1685,6 +1685,12 @@ Test(function listen(Num){
   n(1);
   expect(res).is(1);
 });
+Test(function listen(Num, Spy){
+  const n = Num();
+  const spy = Spy();
+  n.listen(spy);
+  expect(spy).calledWith(0);
+});
 Test(function listenItems(Obj, Spy){
   const o = Obj({q:1});
   const spy = Spy();
@@ -1702,7 +1708,7 @@ function notifyDown(f, o){
 }
 Test(function listenDeep(Obj, Spy){
   const o = Obj({q:{a:2}});
-  const spy = Spy().logCalls();
+  const spy = Spy();
   o.listenDeep(spy);
   expect(spy).calledWith(o);
   expect(spy).calledWith(o.q);
@@ -2137,14 +2143,13 @@ nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
         return nice._db.getValue(receiver._id, k);
       if(k === '_isRef')
         return true;
-      
       if(!('_ref' in receiver))
         def(receiver, '_ref', nice._db.getValue(receiver._id, '_value'));
       return receiver._ref[k];
     }
   })
 });
-Test((Reference, Single, Num) => {
+Test('Reference of subtype', (Reference, Single, Num) => {
   const a = Num(5);
   const b = Single(2);
   b(a);
@@ -2155,6 +2160,32 @@ Test((Reference, Single, Num) => {
   expect(b()).is(3);
   expect(a()).is(5);
   expect(b).isNum();
+});
+Test('Reference of the same type', (Num, Spy) => {
+  const spy = Spy();
+  const a = Num(1);
+  const b = Num(2);
+  a.listen(spy);
+  a(b);
+});
+Test('Reference type error', (Reference, Obj, Num) => {
+  const a = Obj();
+  const b = Single(2);
+  b(a);
+  expect(b).isError();
+});
+Test('Unfollow Reference', (Reference, Single, Num) => {
+  const a = Num(5);
+  const b = Single(2);
+  const c = Num(3);
+  b(a);
+  expect(b()).is(5);
+  b(c);
+  expect(b()).is(3);
+  a(7);
+  expect(b()).is(3);
+  c(4);
+  expect(b()).is(3);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2404,6 +2435,10 @@ Test("Obj constructor", (Obj) => {
 Test("Obj deep constructor", Obj => {
   const o = Obj({a: {b: { c:1 }}});
   expect(o.jsValue.a.b.c).is(1);
+});
+Test('Obj constructor error', Obj => {
+  const a = Obj(5);
+  expect(a).isErr();
 });
 Test("set / get primitive", (Obj) => {
   const a = Obj();
@@ -2687,12 +2722,21 @@ reflect.on('type', type => {
 (function(){"use strict";nice.Type({
   name: 'Err',
   extends: 'Nothing',
-  initBy: (z, ...as) => {
-    const message = nice.format(...as);
-    if(message && message.message){
-      message = message.message;
+  initBy: (z, e, ...as) => {
+    const type = typeof e;
+    let stack, message;
+    if(type  === 'object') {
+      if(e.stack){
+        ({ stack, message } = e);
+      } else {
+        throw `Can't create error from ` + JSON.stringify(e);
+      }
+    } else if (type  === 'string') {
+      message = as.length ? nice.format(e, ...as) : e;
     }
-    const a = new Error().stack.split('\n');
+    if(!stack)
+      stack = new Error().stack;
+    const a = stack.split('\n');
     a.splice(0, 4);
     z._type.setValue(z, { message, trace: a.join('\n') });
   },

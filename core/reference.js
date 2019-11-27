@@ -20,7 +20,7 @@ nice.Type({
 });
 
 
-Test((Reference, Single, Num) => {
+Test('Reference of subtype', (Reference, Single, Num) => {
   const a = Num(5);
   const b = Single(2);
   b(a);
@@ -31,4 +31,48 @@ Test((Reference, Single, Num) => {
   expect(b()).is(3);
   expect(a()).is(5);
   expect(b).isNum();
+});
+
+
+Test('Reference of the same type', (Num, Spy) => {
+  const spy = Spy();
+  const a = Num(1);
+  const b = Num(2);
+  a.listen(spy);
+
+  a(b);
+//  expect(a).is(2);
+//  b(3);
+//  expect(spy).calledWith(3);
+//  expect(a).is(3);
+});
+
+
+Test('Reference type error', (Reference, Obj, Num) => {
+  const a = Obj();
+  const b = Single(2);
+  b(a);
+  expect(b).isError();
+//  expect(b._type).is(Num);
+//  expect(b._cellType).is(Single);
+//  b(3);
+//  expect(b()).is(3);
+//  expect(a()).is(5);
+//  expect(b).isNum();
+});
+
+
+Test('Unfollow Reference', (Reference, Single, Num) => {
+  const a = Num(5);
+  const b = Single(2);
+  const c = Num(3);
+  b(a);
+  expect(b()).is(5);
+
+  b(c);
+  expect(b()).is(3);
+  a(7);
+  expect(b()).is(3);
+  c(4);
+  expect(b()).is(3);
 });

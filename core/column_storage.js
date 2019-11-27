@@ -221,7 +221,7 @@ db.on('_value', (id, value, oldValue) => {
   while(nextParentId !== undefined){
     const ls = db.getValue(nextParentId, '_deepListeners');
     path.unshift(nextParentId);
-    ls && ls.forEach(f => f(z, path) && console.log('TRRRRRRRRRR'));
+    ls && ls.forEach(f => f(z, path));// && console.log('TRRRRRRRRRR'));
     nextParentId = db.getValue(nextParentId, '_parent');
   }
 });

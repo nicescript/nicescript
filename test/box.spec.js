@@ -138,33 +138,6 @@
 ////  });
 ////
 ////
-////  it("transaction", function(){
-////    let a = Box();
-////    let spy = chai.spy();
-////    a.listen(spy);
-////
-////    a.transaction(() => a(5)(6));
-////
-////    expect(spy).to.have.been.called.once();
-////    expect(a()).to.equal(6);
-////  });
-////
-////
-////  it("transactionRollback", function(){
-////    let a = Box(4);
-////    let spy = chai.spy();
-////    a.listen(spy);
-////
-////    a.transactionStart();
-////    a(5);
-////    expect(a()).to.equal(5);
-////    a.transactionRollback();
-////
-////    expect(spy).to.have.been.called.once();
-////    expect(a()).to.equal(4);
-////  });
-////
-////
 ////  it("lock", function(){
 ////    let a = Box(5);
 ////
