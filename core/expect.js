@@ -12,7 +12,9 @@ reflect.on('Check', f => {
       e.shift = 1;
       throw e;
     }
-    return true;
+    delete this._preF;
+    delete this._preMessage;
+    return this;
   });
 });
 
@@ -37,3 +39,9 @@ def(nice.expectPrototype, function message(...a){
 });
 
 expect = nice.expect;
+
+Test('Not expect followed by expect.', () => {
+  expect(1).not.is(3).is(1);
+  expect(1).is(1).not.is(3);
+});
+
