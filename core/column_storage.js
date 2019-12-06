@@ -190,6 +190,7 @@ const db = new ColumnStorage(
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
+  '_links',
   '_by',
   '_args',
   {name: '_status', defaultValue: 'cooking' },
@@ -203,10 +204,19 @@ const db = new ColumnStorage(
 def(nice, '_db', db);
 
 
-db.on('_value', (id, value, oldValue) => {
+db.on('_value', notifyItem);
+
+
+function notifyItem(id, value, oldValue) {
+  const z = db.getValue(id, 'cache');
+
   const ls = db.getValue(id, '_listeners');
-  const z = db.getValue(id, 'cache')
-  ls && ls.forEach(f => notifyItem(f, z));//TODO: oldValue
+  //TODO: oldValue
+//  ls && ls.forEach(f => notifyItem(f, z));
+  ls && ls.forEach(f => f(z));
+
+  const links = db.getValue(id, '_links');
+  links && links.forEach(notifyItem);
 
   const parentId = db.getValue(id, '_parent');
   if(parentId !== undefined){
@@ -219,16 +229,17 @@ db.on('_value', (id, value, oldValue) => {
   let path = [];
   //TODO: protection from loop
   while(nextParentId !== undefined){
-    const ls = db.getValue(nextParentId, '_deepListeners');
     path.unshift(nextParentId);
-    ls && ls.forEach(f => f(z, path));// && console.log('TRRRRRRRRRR'));
+
+    const ls = db.getValue(nextParentId, '_deepListeners');
+    ls && ls.forEach(f => f(z, path));
+
+    const links = db.getValue(nextParentId, '_links');
+    //TODO: test
+    links && links.forEach(link => notifyItem(db.getValue(link, 'cache').getDeep(...path)._id));
+
     nextParentId = db.getValue(nextParentId, '_parent');
   }
-});
-
-
-function notifyItem(f, value){
-  f._isAnything ? f._doCompute() : f(value);
 }
 
 

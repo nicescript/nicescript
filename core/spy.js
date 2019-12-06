@@ -4,9 +4,10 @@ nice.Type({
   name: 'Spy',
   extends: 'Anything',
   defaultValueBy: () => [],
-  itemArgs0: call,
-  itemArgs1: call,
-  itemArgsN: (z, as) => call(z, ...as),
+  customCall: call
+//  itemArgs0: call,
+//  itemArgs1: call,
+//  itemArgsN: (z, as) => call(z, ...as),
 //  initBy: (z, f) => {
 //    z._status = 'hot';
 //  }
@@ -28,6 +29,13 @@ Test((Spy, called) => {
   expect(spy.called()).is(true);
 });
 
+
+Test(function listen(Num, Spy){
+  const n = Num();
+  const spy = Spy();
+  n.listen(spy);
+  expect(spy).calledWith(0);
+});
 
 Check.Spy('calledOnce', s => s._value.length === 1);
 

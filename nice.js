@@ -1,4 +1,4 @@
-;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
+;let nice;(function(){let create,Reference,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -97,6 +97,8 @@ defAll(nice, {
   _getItem(id) {
     
     const f = function(...a){
+      if('customCall' in f._type)
+        return f._type.customCall(f, ...a);
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
@@ -773,6 +775,7 @@ const db = new ColumnStorage(
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
+  '_links',
   '_by',
   '_args',
   {name: '_status', defaultValue: 'cooking' },
@@ -783,10 +786,14 @@ const db = new ColumnStorage(
   {name: 'cache', defaultBy: nice._getItem }
 );
 def(nice, '_db', db);
-db.on('_value', (id, value, oldValue) => {
+db.on('_value', notifyItem);
+function notifyItem(id, value, oldValue) {
+  const z = db.getValue(id, 'cache');
   const ls = db.getValue(id, '_listeners');
-  const z = db.getValue(id, 'cache')
-  ls && ls.forEach(f => notifyItem(f, z));
+  
+  ls && ls.forEach(f => f(z));
+  const links = db.getValue(id, '_links');
+  links && links.forEach(notifyItem);
   const parentId = db.getValue(id, '_parent');
   if(parentId !== undefined){
     const ls = db.getValue(parentId, '_itemsListeners');
@@ -797,14 +804,14 @@ db.on('_value', (id, value, oldValue) => {
   let path = [];
   
   while(nextParentId !== undefined){
-    const ls = db.getValue(nextParentId, '_deepListeners');
     path.unshift(nextParentId);
+    const ls = db.getValue(nextParentId, '_deepListeners');
     ls && ls.forEach(f => f(z, path));
+    const links = db.getValue(nextParentId, '_links');
+    
+    links && links.forEach(link => notifyItem(db.getValue(link, 'cache').getDeep(...path)._id));
     nextParentId = db.getValue(nextParentId, '_parent');
   }
-});
-function notifyItem(f, value){
-  f._isAnything ? f._doCompute() : f(value);
 }
 db.on('_type', (id, value, oldValue) => {
   if(!oldValue || oldValue === NotFound){
@@ -1427,11 +1434,19 @@ nice.registerType({
   },
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
-      nice._setType(z, nice.Reference);
-      nice._initItem(z, nice.Reference, v);
+      if(z._isRef){
+        if(z._ref !== v._id){
+          unfollow(z._ref, z._id);
+        }
+      } else {
+        nice._setType(z, Reference);
+      }
+      nice._initItem(z, Reference, v);
     } else {
+      z._isRef && unfollow(z._ref, z._id);
       z._cellType.setPrimitive(z, v);
     }
+    return z;
   },
   setPrimitive: (z, v) => {
     const t = typeof v;
@@ -1464,14 +1479,14 @@ nice.registerType({
         nice._initItem(z, type, v);
         return z;
       }
-      const cast = cellType.castFrom[type.name];
+      const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
         nice._setType(z, type);
         nice._initItem(z, type, cast(v));
         return z
       };
       nice._setType(z, Err);
-      nice._initItem(z, type, type.name, ' to ', cellType.name);
+      nice._initItem(z, Err, type.name, ' to ', cellType.name);
       return ;
     }
     throw 'Unknown type';
@@ -1505,6 +1520,11 @@ nice.registerType({
       return key in this._children
         ? nice._db.getValue(this._children[key], 'cache')
         : nice._createChild(this._id, key, this._type && this._type.types[key]);
+    },
+    getDeep (...path) {
+      let res = this, i = 0;
+      while(i < path.length) res = res.get(path[i++]);
+      return res;
     },
     get _value() {
       return nice._db.getValue(this._id, '_value');
@@ -1602,7 +1622,7 @@ nice.registerType({
       ls.set(key, f);
       if(needHot){
         this._compute(true);
-        this.isPending() || notifyItem(f, this);
+        this.isPending() || f(this);
       }
     },
     listenItems (f, key) {
@@ -1617,6 +1637,16 @@ nice.registerType({
       this._compute();
       this._status = 'hot';
       this.isPending() || this.each(f);
+    },
+    _follow (target) {
+      expect(typeof target).is('number');
+      const db = nice._db;
+      let ls = db.getValue(this._id, '_links');
+      ls === undefined && db.update(this._id, '_links', ls = new Set());
+      if(ls.has(target))
+        return;
+      ls.add(target);
+      
     },
     get _deepListeners(){
       return nice._db.getValue(this._id, '_deepListeners');
@@ -1677,6 +1707,12 @@ nice.registerType({
     return this;
   }
 });
+Test(function getDeep(Obj){
+  const o = Obj({q:{a:2}});
+  expect(o.getDeep('q', 'a')).is(2);
+  expect(o.getDeep('q', 'z')).isNotFound();
+  expect(o.getDeep() === o).isTrue();
+});
 Test(function listen(Num){
   const n = Num();
   let res;
@@ -1685,20 +1721,22 @@ Test(function listen(Num){
   n(1);
   expect(res).is(1);
 });
-Test(function listen(Num, Spy){
-  const n = Num();
-  const spy = Spy();
-  n.listen(spy);
-  expect(spy).calledWith(0);
-});
 Test(function listenItems(Obj, Spy){
   const o = Obj({q:1});
   const spy = Spy();
   o.listenItems(spy);
-  expect(spy).calledOnce();
-  expect(spy).calledWith(1, 'q');
+  expect(spy).calledOnce().calledWith(1, 'q');
   o.set('a', 2);
   expect(spy).calledWith(2, 'a');
+});
+Test(function listenItems(Obj, Num, Spy){
+  const n = Num();
+  const o = Obj({z: n});
+  const spy = Spy().logCalls();
+  o.listenItems(spy);
+  expect(spy).calledOnce().calledWith(0, 'z').calledWith(n, 'z');
+  n(2);
+  expect(spy).calledTwice().calledWith(2, 'z');
 });
 function notifyDown(f, o){
   if(o.isPending())
@@ -1710,17 +1748,19 @@ Test(function listenDeep(Obj, Spy){
   const o = Obj({q:{a:2}});
   const spy = Spy();
   o.listenDeep(spy);
-  expect(spy).calledWith(o);
-  expect(spy).calledWith(o.q);
-  expect(spy).calledWith(2);
+  expect(spy).calledWith(o).calledWith(o.q).calledWith(2);
   o.set('z', 1);
   expect(spy).calledWith(1);
   o.q.set('x', 3);
   expect(spy).calledWith(3);
 });
-function notifyItem(f, value){
-  f._isAnything ? f._doCompute() : f(value);
-}
+function unfollow (sourceId, targetId) {
+  expect(typeof sourceId).is('number');
+  expect(typeof targetId).is('number');
+  const db = nice._db;
+  let ls = db.getValue(sourceId, '_links');
+  ls && ls.delete(targetId);
+};
 function objectListener(o){
   return v => {
     for(let i in o){
@@ -1996,18 +2036,20 @@ function DelayedSwitch(initArgs) {
 };
 })();
 (function(){"use strict";def(nice, 'expectPrototype', {});
-const toString = v => JSON.stringify(v);
+const toString = v => v.toString ? v.toString() : JSON.stringify(v);
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     this.value && this.value._compute && this.value._compute();
-    const res = f(this.value, ...a);
+    const res = this._preF ? this._preF(f(this.value, ...a)) : f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
       const e = new Error(this.text || ['Expected', toString(this.value),
-            'to be', f.name, ...a.map(toString)].join(' '));
+        this._preMessage || '', 'to be', f.name, ...a.map(toString)].join(' '));
       e.shift = 1;
       throw e;
     }
-    return true;
+    delete this._preF;
+    delete this._preMessage;
+    return this;
   });
 });
 def(nice, function expect(value, ...texts){
@@ -2016,11 +2058,20 @@ def(nice, function expect(value, ...texts){
 defGet(nice.expectPrototype, function text(){
   return nice.format(...this.texts);
 });
+defGet(nice.expectPrototype, function not(){
+  this._preF = v => !v;
+  this._preMessage = 'not';
+  return this;
+});
 def(nice.expectPrototype, function message(...a){
   this.texts = a;
   return this;
 });
 expect = nice.expect;
+Test('Not expect followed by expect.', () => {
+  expect(1).not.is(3).is(1);
+  expect(1).is(1).not.is(3);
+});
 })();
 (function(){"use strict";def(nice, function extend(child, parent){
   if(parent.extensible === false)
@@ -2129,26 +2180,36 @@ defGet(Anything, 'help',  function () {
 });
 nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";const db = nice._db;
+nice.Type({
   name: 'Reference',
   extends: 'Anything',
-  itemArgs0: z => z._ref(),
+  itemArgs0: z => '#' + z._ref,
   
   initBy: (z, v) => {
-    nice._db.update(z._id, '_value', v);
+    db.update(z._id, '_value', v._id);
+    v._follow(z._id);
   },
-  proto: new Proxy({}, {
-    get (o, k, receiver) {
-      if(k === '_cellType' || k === '_status' || k === '_by')
-        return nice._db.getValue(receiver._id, k);
-      if(k === '_isRef')
-        return true;
-      if(!('_ref' in receiver))
-        def(receiver, '_ref', nice._db.getValue(receiver._id, '_value'));
-      return receiver._ref[k];
-    }
-  })
+  proto: {
+    _isRef: true,
+    get _ref() {
+      return db.getValue(this._id, '_value');
+    },
+    get _value(){
+      return db.getValue(this._ref, '_value');
+    },
+    get _type(){
+      return db.getValue(this._ref, '_type');
+    },
+    get _order(){
+      return db.getValue(this._ref, '_order');
+    },
+    get _size(){
+      return db.getValue(this._ref, '_size');
+    },
+  }
 });
+Reference = nice.Reference;
 Test('Reference of subtype', (Reference, Single, Num) => {
   const a = Num(5);
   const b = Single(2);
@@ -2161,40 +2222,56 @@ Test('Reference of subtype', (Reference, Single, Num) => {
   expect(a()).is(5);
   expect(b).isNum();
 });
+Test('Reference().get', (Reference, Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  a(b);
+  expect(a.get('q') === b.get('q')).isFalse();
+  expect(a.get('z') === b.get('z')).isFalse();
+});
 Test('Reference of the same type', (Num, Spy) => {
-  const spy = Spy();
+  const spy = Spy().logCalls();
   const a = Num(1);
   const b = Num(2);
   a.listen(spy);
   a(b);
+  expect(a).is(2);
+  expect(spy).calledTwice();
+  b(3);
+  expect(spy).calledTimes(3).calledWith(3);
+  expect(a).is(3);
 });
-Test('Reference type error', (Reference, Obj, Num) => {
-  const a = Obj();
+Test('Follow Reference', (Reference, Single, Num, Spy) => {
+  const a = Num(5);
   const b = Single(2);
+  const spy = Spy();
   b(a);
-  expect(b).isError();
+  b.listen(spy);
+  a(4);
+  expect(spy).calledWith(4);
 });
-Test('Unfollow Reference', (Reference, Single, Num) => {
+Test('Unfollow Reference', (Reference, Single, Num, Spy) => {
   const a = Num(5);
   const b = Single(2);
   const c = Num(3);
-  b(a);
-  expect(b()).is(5);
+  const spy = Spy();
+  b(a).listen(spy);
   b(c);
   expect(b()).is(3);
   a(7);
   expect(b()).is(3);
   c(4);
-  expect(b()).is(3);
+  expect(b()).is(4);
+  expect(spy).calledWith(4);
+  expect(spy).not.calledWith(7);
 });
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";
+nice.Type({
   name: 'Spy',
   extends: 'Anything',
   defaultValueBy: () => [],
-  itemArgs0: call,
-  itemArgs1: call,
-  itemArgsN: (z, as) => call(z, ...as),
+  customCall: call
 });
 function call(spy, ...a){
   spy._logCalls && console.log('Spy called with:', ...a);
@@ -2207,6 +2284,12 @@ Test((Spy, called) => {
   expect(spy.called()).is(false);
   spy();
   expect(spy.called()).is(true);
+});
+Test(function listen(Num, Spy){
+  const n = Num();
+  const spy = Spy();
+  n.listen(spy);
+  expect(spy).calledWith(0);
 });
 Check.Spy('calledOnce', s => s._value.length === 1);
 Test((Spy, calledOnce) => {
@@ -2373,12 +2456,6 @@ nice.jsTypes.isSubType = isSubType;
 (function(){"use strict";nice.Type({
   name: 'Obj',
   extends: nice.Value,
-  itemArgs1: (z, o) => {
-    const t = typeof o;
-    if( t !== 'object' )
-      throw new Error(z._type.name + ` doesn't know what to do with ` + t);
-    _each(o, (v, k) => z.set(k, v));
-  },
   itemArgsN: (z, os) => _each(os, o => z(o)),
   initChildren (item){
     _each(this.defaultArguments, (as, k) => item.set(k, ...as));
@@ -3394,6 +3471,9 @@ Test("Html tag name", (Html) => {
 });
 Test("Html class name", (Html) => {
   expect(Html().class('qwe').html).is('<div class="qwe"></div>');
+});
+Test("Html of single value", (Single) => {
+  expect(Single(5).html).is('5');
 });
 Test("Html children array", (Div) => {
   expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');

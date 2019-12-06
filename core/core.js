@@ -129,6 +129,18 @@ defAll(nice, {
   _getItem(id) {
     //change: try to cast otherwise change item type //exceptions: functions
     const f = function(...a){
+      if('customCall' in f._type)
+        return f._type.customCall(f, ...a);
+
+//      if(a.length === 0){
+//        z._compute();
+//        return z._value;
+//      } else if (a.length === 1){
+//        z.setValue(a[0]);
+//      } else {
+//        throw new Error(`${z._type.name} doesn't know what to do with ${a.length} arguments.`);
+//      }
+
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
@@ -136,6 +148,7 @@ defAll(nice, {
       } else {
         f._type.itemArgsN(f, a);
       }
+
       return this || f;
     };
     f._id = id;

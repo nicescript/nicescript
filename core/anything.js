@@ -32,13 +32,23 @@ nice.registerType({
     return z._value;
   },
 
+//set tearDown -> guessType -> assignType -> assignValue
+
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
-      nice._setType(z, nice.Reference);
-      nice._initItem(z, nice.Reference, v);
+      if(z._isRef){
+        if(z._ref !== v._id){
+          unfollow(z._ref, z._id);
+        }
+      } else {
+        nice._setType(z, Reference);
+      }
+      nice._initItem(z, Reference, v);
     } else {
+      z._isRef && unfollow(z._ref, z._id);
       z._cellType.setPrimitive(z, v);
     }
+    return z;
   },
 
   setPrimitive: (z, v) => {
@@ -76,7 +86,7 @@ nice.registerType({
         return z;
       }
 
-      const cast = cellType.castFrom[type.name];
+      const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
         nice._setType(z, type);
         nice._initItem(z, type, cast(v));
@@ -84,7 +94,8 @@ nice.registerType({
       };
 
       nice._setType(z, Err);
-      nice._initItem(z, type, type.name, ' to ', cellType.name);
+      nice._initItem(z, Err, type.name, ' to ', cellType.name);
+//      nice._initItem(z, type, type.name, ' to ', cellType.name);
       return ;
     }
 
@@ -135,6 +146,12 @@ nice.registerType({
       return key in this._children
         ? nice._db.getValue(this._children[key], 'cache')
         : nice._createChild(this._id, key, this._type && this._type.types[key]);
+    },
+
+    getDeep (...path) {
+      let res = this, i = 0;
+      while(i < path.length) res = res.get(path[i++]);
+      return res;
     },
 
     get _value() {
@@ -234,6 +251,16 @@ nice.registerType({
       });
     },
 
+//    setValue (v) {
+//      const z = this;
+//      if (v && v._isAnything) {
+//        nice._setType(z, nice.Reference);
+//        nice._initItem(z, nice.Reference, v);
+//      } else {
+//        z._cellType.setPrimitive(z, v);
+//      }
+//    },
+
     _compute (follow = false){
       this._status === 'cold' && this._doCompute(follow);
     },
@@ -268,7 +295,7 @@ nice.registerType({
       ls.set(key, f);
       if(needHot){
         this._compute(true);
-        this.isPending() || notifyItem(f, this);
+        this.isPending() || f(this);//notifyItem(f, this);
       }
     },
 
@@ -288,6 +315,23 @@ nice.registerType({
       this._compute();
       this._status = 'hot';
       this.isPending() || this.each(f);
+    },
+
+    _follow (target) {
+      expect(typeof target).is('number');
+      const db = nice._db;
+      let ls = db.getValue(this._id, '_links');
+      ls === undefined && db.update(this._id, '_links', ls = new Set());
+
+      if(ls.has(target))
+        return;
+
+      ls.add(target);
+      //TODO:
+//      this._compute();
+//      this._status = 'hot';
+//      this.isPending() || this.each(f);
+
     },
 
     get _deepListeners(){
@@ -392,6 +436,14 @@ nice.registerType({
 });
 
 
+Test(function getDeep(Obj){
+  const o = Obj({q:{a:2}});
+  expect(o.getDeep('q', 'a')).is(2);
+  expect(o.getDeep('q', 'z')).isNotFound();
+  expect(o.getDeep() === o).isTrue();
+});
+
+
 Test(function listen(Num){
   const n = Num();
   let res;
@@ -402,23 +454,26 @@ Test(function listen(Num){
 });
 
 
-Test(function listen(Num, Spy){
-  const n = Num();
-  const spy = Spy();
-  n.listen(spy);
-  expect(spy).calledWith(0);
-});
-
-
 Test(function listenItems(Obj, Spy){
   const o = Obj({q:1});
   const spy = Spy();
   o.listenItems(spy);
-  expect(spy).calledOnce();
-  expect(spy).calledWith(1, 'q');
+  expect(spy).calledOnce().calledWith(1, 'q');
   o.set('a', 2);
 //  expect(spy).calledTwice(); //TODO: avoud call with  (0, a)
   expect(spy).calledWith(2, 'a');
+});
+
+Test(function listenItems(Obj, Num, Spy){
+  const n = Num();
+  const o = Obj({z: n});
+  const spy = Spy().logCalls();
+
+  o.listenItems(spy);
+  expect(spy).calledOnce().calledWith(0, 'z').calledWith(n, 'z');
+
+  n(2);
+  expect(spy).calledTwice().calledWith(2, 'z');
 });
 
 
@@ -434,9 +489,7 @@ Test(function listenDeep(Obj, Spy){
   const o = Obj({q:{a:2}});
   const spy = Spy();
   o.listenDeep(spy);
-  expect(spy).calledWith(o);
-  expect(spy).calledWith(o.q);
-  expect(spy).calledWith(2);
+  expect(spy).calledWith(o).calledWith(o.q).calledWith(2);
   o.set('z', 1);
   expect(spy).calledWith(1);
 //  expect(spy).calledTimes(4);
@@ -457,9 +510,18 @@ Test(function listenDeep(Obj, Spy){
 //  delete z._oldValue;
 //};
 
-function notifyItem(f, value){
-  f._isAnything ? f._doCompute() : f(value);
-}
+//function notifyItem(f, value){
+//  f._isAnything ? f._doCompute() : f(value);
+//}
+
+function unfollow (sourceId, targetId) {
+  expect(typeof sourceId).is('number');
+  expect(typeof targetId).is('number');
+  const db = nice._db;
+  let ls = db.getValue(sourceId, '_links');
+  ls && ls.delete(targetId);
+};
+
 
 function objectListener(o){
   return v => {
@@ -490,3 +552,4 @@ reflect.on('type', t =>
     return this.to(t, ...as);
   })
 );
+

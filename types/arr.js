@@ -1,6 +1,15 @@
 //TODO: change all actions to use insertAt|removeAt
 nice.Obj.extend({
   name: 'Arr',
+//  customCall: (...vs) => {
+//    if(vs.length === 0){
+//      return 'TODO';
+//    } else if (vs.length === 1){
+//      this.push(vs[0]);
+//    } else {
+//      vs.forEach( v => this.push(v));
+//    }
+//  },
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   killValue (z) {

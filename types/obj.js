@@ -2,12 +2,12 @@ nice.Type({
   name: 'Obj',
   extends: nice.Value,
 
-  itemArgs1: (z, o) => {
-    const t = typeof o;
-    if( t !== 'object' )
-      throw new Error(z._type.name + ` doesn't know what to do with ` + t);
-    _each(o, (v, k) => z.set(k, v));
-  },
+//  itemArgs1: (z, o) => {
+//    const t = typeof o;
+//    if( t !== 'object' )
+//      throw new Error(z._type.name + ` doesn't know what to do with ` + t);
+//    _each(o, (v, k) => z.set(k, v));
+//  },
 
   itemArgsN: (z, os) => _each(os, o => z(o)),
 

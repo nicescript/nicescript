@@ -15,44 +15,34 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy } = nice;
 
-
-//  const n = Num();
-//  let res;
-//  n.listen(v => res = v());
-//  expect(res).is(0);
-//  n(1);
-//  expect(res).is(1);
+ const n = Num(5);
+  const n2 = Num(7);
+  const div = Html().add(n, n2);
+  expect(div.html).is('<div>57</div>');
   
-
-  const spy = Spy().logCalls();
-  const a = Num(1);
-//  const b = Num(2);
-//  a(b);
-  a.listen(spy);
-  expect(spy).calledOnce();
-  
-
-
-
 //const n = Num();
+//
+//const ball = Div()
+//    .position('absolute')
+//    .top('0px')
+//    .left(n)
+//    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
+//    .borderRadius('50%')
+//    .width('30px').height('30px');
+//    
+//ball.show();
+////    
+//setInterval(() => {
+//  n() > 0 ? n(0) : n(100);
+////  ball.left(500);
+//}, 1000);
 
-Div()
-    .position('absolute')
-    .top('0px')
-    .left(n)
-    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
-    .borderRadius('50%')
-    .width('30px').height('30px')
-    .show();
-    
-//setInterval(() => n() > 0 ? n(0) : n(100), 1000);
 
-
-var div = Div('qwer').color('red')
-//    .A('qwe', 'qwe').on('click', () => console.log(11)).up
-    .Css('a').color('red').font('bold').up
-div.show();
-div.color('green');
+//var div = Div('qwer').color('red')
+////    .A('qwe', 'qwe').on('click', () => console.log(11)).up
+//    .Css('a').color('red').font('bold').up
+//div.show();
+//div.color('green');
 
 //var a = div.cssSelectors.a;
 //a.isSomething();

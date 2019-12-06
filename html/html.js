@@ -113,6 +113,10 @@ Test("Html class name", (Html) => {
   expect(Html().class('qwe').html).is('<div class="qwe"></div>');
 });
 
+Test("Html of single value", (Single) => {
+  expect(Single(5).html).is('5');
+});
+
 Test("Html children array", (Div) => {
   expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');
 });
