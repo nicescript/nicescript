@@ -192,6 +192,7 @@ const db = new ColumnStorage(
   '_deepListeners',
   '_links',
   '_by',
+  '_isRef',
   '_args',
   {name: '_status', defaultValue: 'cooking' },
   {name: '_size', defaultValue: 0 },
@@ -207,16 +208,29 @@ def(nice, '_db', db);
 db.on('_value', notifyItem);
 
 
-function notifyItem(id, value, oldValue) {
+function notifyLink(id){
+  const item = db.data.cache[id];
+
+  //TODO: make sure there is parent for every child
+  if(!item)
+    return;
+
+  const type = item._type;
+  Object.setPrototypeOf(item, type.proto);
+  db.emit('_type', id, type);//TODO:, old??
+  notifyItem(id);
+}
+
+
+function notifyItem(id) {
   const z = db.getValue(id, 'cache');
 
   const ls = db.getValue(id, '_listeners');
-  //TODO: oldValue
 //  ls && ls.forEach(f => notifyItem(f, z));
   ls && ls.forEach(f => f(z));
 
   const links = db.getValue(id, '_links');
-  links && links.forEach(notifyItem);
+  links && links.forEach(notifyLink);
 
   const parentId = db.getValue(id, '_parent');
   if(parentId !== undefined){
@@ -226,7 +240,7 @@ function notifyItem(id, value, oldValue) {
   }
 
   let nextParentId = parentId;
-  let path = [];
+  const path = [];
   //TODO: protection from loop
   while(nextParentId !== undefined){
     path.unshift(nextParentId);
@@ -235,21 +249,25 @@ function notifyItem(id, value, oldValue) {
     ls && ls.forEach(f => f(z, path));
 
     const links = db.getValue(nextParentId, '_links');
+    //TODO: do not create childeren, only notify existing
     //TODO: test
-    links && links.forEach(link => notifyItem(db.getValue(link, 'cache').getDeep(...path)._id));
+    links && links.forEach(link => notifyLink(db.getValue(link, 'cache').getDeep(...path)._id));
 
     nextParentId = db.getValue(nextParentId, '_parent');
   }
 }
 
 
-db.on('_type', (id, value, oldValue) => {
-  if(!oldValue || oldValue === NotFound){
+db.on('_type', (id, type, oldType) => {
+  const on = type && type !== NotFound;
+  const off = oldType && oldType !== NotFound;
+
+  if(on && !off){
     const pId = db.getValue(id, '_parent');
-    db.update(pId, '_size', db.getValue(pId, '_size') + 1);
-  } else if (!value || value === NotFound){
+    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') + 1);
+  } else if (off && !on){
     const pId = db.getValue(id, '_parent');
-    db.update(pId, '_size', db.getValue(pId, '_size') - 1);
+    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') - 1);
   }
 });
 

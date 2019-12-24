@@ -5,6 +5,7 @@
  */
 
 //TODO: empty transactions on empty values
+const db = nice._db;
 
 const proxy = new Proxy({}, {
   get (o, k, receiver) {
@@ -37,15 +38,19 @@ nice.registerType({
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
       if(z._isRef){
-        if(z._ref !== v._id){
-          unfollow(z._ref, z._id);
-        }
+        const ref = db.getValue(z._id, '_value');
+        ref !== v._id && unfollow(ref, z._id);
       } else {
-        nice._setType(z, Reference);
+        z._isRef = true;
       }
-      nice._initItem(z, Reference, v);
+      db.update(z._id, '_value', v._id);
+      Object.setPrototypeOf(z, v._type.proto);
+      v._follow(z._id);
     } else {
-      z._isRef && unfollow(z._ref, z._id);
+      if(z._isRef) {
+        unfollow(db.getValue(z._id, '_value'), z._id);
+        (z._isRef = false);
+      }
       z._cellType.setPrimitive(z, v);
     }
     return z;
@@ -155,46 +160,71 @@ nice.registerType({
     },
 
     get _value() {
-      return nice._db.getValue(this._id, '_value');
+      const value = db.getValue(this._id, '_value');
+      return this._isRef
+        ? nice._db.getValue(value, '_value')
+        : value;
     },
 
     get _type() {
-      return nice._db.getValue(this._id, '_type');
+      return this._isRef
+        ? db.getValue(db.getValue(this._id, '_value'), '_type')
+        : db.getValue(this._id, '_type');
     },
 
     get _cellType() {
-      return nice._db.getValue(this._id, '_cellType');
+      return db.getValue(this._id, '_cellType');
+    },
+
+    set _cellType(v) {
+      return db.update(this._id, '_cellType', v);
+      return true;
     },
 
     get _parent() {
-      return nice._db.getValue(this._id, '_parent');
+      return db.getValue(this._id, '_parent');
     },
 
     set _parent(v) {
-      return nice._db.update(this._id, '_parent', v);
+      return db.update(this._id, '_parent', v);
+      return true;
+    },
+
+    get _isRef() {
+      return db.getValue(this._id, '_isRef');
+    },
+
+    set _isRef(v) {
+      return db.update(this._id, '_isRef', v);
       return true;
     },
 
     get _children() {
-      return nice._db.getValue(this._id, '_children');
+      return db.getValue(this._id, '_children');
     },
 
     get _order() {
-      return nice._db.getValue(this._id, '_order');
+      return this._isRef
+        ? db.getValue(db.getValue(this._id, '_value'), '_order')
+        : db.getValue(this._id, '_order');
+//      return db.getValue(this._id, '_order');
     },
 
     get _name() {
-      return nice._db.getValue(this._id, '_name');
+      return db.getValue(this._id, '_name');
     },
 
     set _name(v) {
-      return nice._db.update(this._id, '_name', v);
+      return db.update(this._id, '_name', v);
       return true;
     },
 
     get _size() {
+      return this._isRef
+        ? db.getValue(db.getValue(this._id, '_value'), '_size')
+        : db.getValue(this._id, '_size');
       //nice.reflect.emit('itemUse', z);
-      return nice._db.getValue(this._id, '_size');
+      return db.getValue(this._id, '_size');
     },
 
     //TODO: forbid public names with _
@@ -276,7 +306,7 @@ nice.registerType({
       if(f === undefined)
         throw `Undefined can't listen`;
 
-      const z = this, db = nice._db;
+      const z = this;
       let ls = db.getValue(z._id, '_listeners');
       ls === undefined && db.update(z._id, '_listeners', ls = new Map());
 
@@ -319,7 +349,6 @@ nice.registerType({
 
     _follow (target) {
       expect(typeof target).is('number');
-      const db = nice._db;
       let ls = db.getValue(this._id, '_links');
       ls === undefined && db.update(this._id, '_links', ls = new Set());
 
@@ -467,7 +496,7 @@ Test(function listenItems(Obj, Spy){
 Test(function listenItems(Obj, Num, Spy){
   const n = Num();
   const o = Obj({z: n});
-  const spy = Spy().logCalls();
+  const spy = Spy();
 
   o.listenItems(spy);
   expect(spy).calledOnce().calledWith(0, 'z').calledWith(n, 'z');

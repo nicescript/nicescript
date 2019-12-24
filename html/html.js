@@ -71,19 +71,19 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return;
 
       if(typeof c === 'string' || nice.isStr(c))
-        return z.children(c);
+        return z.children.push(c);
 
       if(nice.isNumber(c) || nice.isNum(c))
-        return z.children(c);
+        return z.children.push(c);
 
       if(c === z)
-        return z.children(`Errro: Can't add element to itself.`);
+        return z.children.push(`Errro: Can't add element to itself.`);
 
       if(c.isErr())
-        return z.children(c.toString());
+        return z.children.push(c.toString());
 
       if(!c || !nice.isAnything(c))
-        return z.children('Bad child: ' + c);
+        return z.children.push('Bad child: ' + c);
 
       c.up = z;
       c._up_ = z;

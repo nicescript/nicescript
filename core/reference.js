@@ -42,7 +42,7 @@ nice.Type({
 //    }
 //  })
 });
-Reference = nice.Reference;
+//Reference = nice.Reference;
 
 
 Test('Reference of subtype', (Reference, Single, Num) => {
@@ -69,7 +69,7 @@ Test('Reference().get', (Reference, Obj) => {
 
 
 Test('Reference of the same type', (Num, Spy) => {
-  const spy = Spy().logCalls();
+  const spy = Spy();
   const a = Num(1);
   const b = Num(2);
   a.listen(spy);

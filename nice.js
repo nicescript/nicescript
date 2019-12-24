@@ -1,4 +1,4 @@
-;let nice;(function(){let create,Reference,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
+;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice.Single();
@@ -46,6 +46,10 @@ defAll(nice, {
       return nice.Err(e);
     }
   },
+  _createEmptyId (_parent, _name) {
+    const cfg = _parent === undefined ? {} : {_parent, _name};
+    return nice._db.push(cfg).lastId;
+  },
   _createItem(_cellType, type, ...args){
     if(!type._isNiceType)
       throw new Error('Bad type');
@@ -61,10 +65,11 @@ defAll(nice, {
     return item;
   },
   _createChild(parent, key, type) {
-    const item = nice._createItem(type || Anything, type || NotFound);
-    item._parent = parent;
-    item._name = key;
+    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+    item._cellType = type || Anything;
     item._status = 'hot';
+    nice._setType(item, type || NotFound);
+    nice._initItem(item, type || NotFound);
     return item;
   },
   _initItem(z, type, ...args) {
@@ -777,6 +782,7 @@ const db = new ColumnStorage(
   '_deepListeners',
   '_links',
   '_by',
+  '_isRef',
   '_args',
   {name: '_status', defaultValue: 'cooking' },
   {name: '_size', defaultValue: 0 },
@@ -787,13 +793,22 @@ const db = new ColumnStorage(
 );
 def(nice, '_db', db);
 db.on('_value', notifyItem);
-function notifyItem(id, value, oldValue) {
+function notifyLink(id){
+  const item = db.data.cache[id];
+  
+  if(!item)
+    return;
+  const type = item._type;
+  Object.setPrototypeOf(item, type.proto);
+  db.emit('_type', id, type);
+  notifyItem(id);
+}
+function notifyItem(id) {
   const z = db.getValue(id, 'cache');
   const ls = db.getValue(id, '_listeners');
-  
   ls && ls.forEach(f => f(z));
   const links = db.getValue(id, '_links');
-  links && links.forEach(notifyItem);
+  links && links.forEach(notifyLink);
   const parentId = db.getValue(id, '_parent');
   if(parentId !== undefined){
     const ls = db.getValue(parentId, '_itemsListeners');
@@ -801,7 +816,7 @@ function notifyItem(id, value, oldValue) {
     ls && ls.forEach(f => f(z, name));
   }
   let nextParentId = parentId;
-  let path = [];
+  const path = [];
   
   while(nextParentId !== undefined){
     path.unshift(nextParentId);
@@ -809,17 +824,20 @@ function notifyItem(id, value, oldValue) {
     ls && ls.forEach(f => f(z, path));
     const links = db.getValue(nextParentId, '_links');
     
-    links && links.forEach(link => notifyItem(db.getValue(link, 'cache').getDeep(...path)._id));
+    
+    links && links.forEach(link => notifyLink(db.getValue(link, 'cache').getDeep(...path)._id));
     nextParentId = db.getValue(nextParentId, '_parent');
   }
 }
-db.on('_type', (id, value, oldValue) => {
-  if(!oldValue || oldValue === NotFound){
+db.on('_type', (id, type, oldType) => {
+  const on = type && type !== NotFound;
+  const off = oldType && oldType !== NotFound;
+  if(on && !off){
     const pId = db.getValue(id, '_parent');
-    db.update(pId, '_size', db.getValue(pId, '_size') + 1);
-  } else if (!value || value === NotFound){
+    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') + 1);
+  } else if (off && !on){
     const pId = db.getValue(id, '_parent');
-    db.update(pId, '_size', db.getValue(pId, '_size') - 1);
+    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') - 1);
   }
 });
 db.on('_name', (id, value, oldValue) => {
@@ -1413,6 +1431,7 @@ function runTest(t, args){
 }
 })();
 (function(){"use strict";
+const db = nice._db;
 const proxy = new Proxy({}, {
   get (o, k, receiver) {
     if(k[0] === '_')
@@ -1435,15 +1454,19 @@ nice.registerType({
   itemArgs1: (z, v) => {
     if (v && v._isAnything) {
       if(z._isRef){
-        if(z._ref !== v._id){
-          unfollow(z._ref, z._id);
-        }
+        const ref = db.getValue(z._id, '_value');
+        ref !== v._id && unfollow(ref, z._id);
       } else {
-        nice._setType(z, Reference);
+        z._isRef = true;
       }
-      nice._initItem(z, Reference, v);
+      db.update(z._id, '_value', v._id);
+      Object.setPrototypeOf(z, v._type.proto);
+      v._follow(z._id);
     } else {
-      z._isRef && unfollow(z._ref, z._id);
+      if(z._isRef) {
+        unfollow(db.getValue(z._id, '_value'), z._id);
+        (z._isRef = false);
+      }
       z._cellType.setPrimitive(z, v);
     }
     return z;
@@ -1527,37 +1550,58 @@ nice.registerType({
       return res;
     },
     get _value() {
-      return nice._db.getValue(this._id, '_value');
+      const value = db.getValue(this._id, '_value');
+      return this._isRef
+        ? nice._db.getValue(value, '_value')
+        : value;
     },
     get _type() {
-      return nice._db.getValue(this._id, '_type');
+      return this._isRef
+        ? db.getValue(db.getValue(this._id, '_value'), '_type')
+        : db.getValue(this._id, '_type');
     },
     get _cellType() {
-      return nice._db.getValue(this._id, '_cellType');
+      return db.getValue(this._id, '_cellType');
+    },
+    set _cellType(v) {
+      return db.update(this._id, '_cellType', v);
+      return true;
     },
     get _parent() {
-      return nice._db.getValue(this._id, '_parent');
+      return db.getValue(this._id, '_parent');
     },
     set _parent(v) {
-      return nice._db.update(this._id, '_parent', v);
+      return db.update(this._id, '_parent', v);
+      return true;
+    },
+    get _isRef() {
+      return db.getValue(this._id, '_isRef');
+    },
+    set _isRef(v) {
+      return db.update(this._id, '_isRef', v);
       return true;
     },
     get _children() {
-      return nice._db.getValue(this._id, '_children');
+      return db.getValue(this._id, '_children');
     },
     get _order() {
-      return nice._db.getValue(this._id, '_order');
+      return this._isRef
+        ? db.getValue(db.getValue(this._id, '_value'), '_order')
+        : db.getValue(this._id, '_order');
     },
     get _name() {
-      return nice._db.getValue(this._id, '_name');
+      return db.getValue(this._id, '_name');
     },
     set _name(v) {
-      return nice._db.update(this._id, '_name', v);
+      return db.update(this._id, '_name', v);
       return true;
     },
     get _size() {
+      return this._isRef
+        ? db.getValue(db.getValue(this._id, '_value'), '_size')
+        : db.getValue(this._id, '_size');
       
-      return nice._db.getValue(this._id, '_size');
+      return db.getValue(this._id, '_size');
     },
     
     valueOf () {
@@ -1607,7 +1651,7 @@ nice.registerType({
       key === undefined && (key = f);
       if(f === undefined)
         throw `Undefined can't listen`;
-      const z = this, db = nice._db;
+      const z = this;
       let ls = db.getValue(z._id, '_listeners');
       ls === undefined && db.update(z._id, '_listeners', ls = new Map());
       if(ls.has(key))
@@ -1640,7 +1684,6 @@ nice.registerType({
     },
     _follow (target) {
       expect(typeof target).is('number');
-      const db = nice._db;
       let ls = db.getValue(this._id, '_links');
       ls === undefined && db.update(this._id, '_links', ls = new Set());
       if(ls.has(target))
@@ -1732,7 +1775,7 @@ Test(function listenItems(Obj, Spy){
 Test(function listenItems(Obj, Num, Spy){
   const n = Num();
   const o = Obj({z: n});
-  const spy = Spy().logCalls();
+  const spy = Spy();
   o.listenItems(spy);
   expect(spy).calledOnce().calledWith(0, 'z').calledWith(n, 'z');
   n(2);
@@ -2209,7 +2252,6 @@ nice.Type({
     },
   }
 });
-Reference = nice.Reference;
 Test('Reference of subtype', (Reference, Single, Num) => {
   const a = Num(5);
   const b = Single(2);
@@ -2230,7 +2272,7 @@ Test('Reference().get', (Reference, Obj) => {
   expect(a.get('z') === b.get('z')).isFalse();
 });
 Test('Reference of the same type', (Num, Spy) => {
-  const spy = Spy().logCalls();
+  const spy = Spy();
   const a = Num(1);
   const b = Num(2);
   a.listen(spy);
@@ -3020,6 +3062,24 @@ Test("push", (Arr, push) => {
   a.push(2, 1);
   expect(a.jsValue).deepEqual([1, 4, 2, 1]);
 });
+Test("push links", (Arr, push, Num) => {
+  const a = Arr();
+  const n = Num(5);
+  const n2 = Num(7);
+  a.push(n, n2);
+  expect(a.jsValue).deepEqual([5,7]);
+});
+Test("size", (Arr, push, Num) => {
+  const a = Arr(2);
+  const n = Num(5);
+  const n2 = Num(7);
+  a.push(3, n2);
+  expect(a._size).is(3);
+  a.removeAt(2);
+  expect(a._size).is(2);
+  a.removeAt(0);
+  expect(a._size).is(1);
+});
 Test((Arr) => {
   const a = nice.Something()([1,2]);
   expect(a._type).is(Arr);
@@ -3442,15 +3502,15 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(c === undefined || c === null)
         return;
       if(typeof c === 'string' || nice.isStr(c))
-        return z.children(c);
+        return z.children.push(c);
       if(nice.isNumber(c) || nice.isNum(c))
-        return z.children(c);
+        return z.children.push(c);
       if(c === z)
-        return z.children(`Errro: Can't add element to itself.`);
+        return z.children.push(`Errro: Can't add element to itself.`);
       if(c.isErr())
-        return z.children(c.toString());
+        return z.children.push(c.toString());
       if(!c || !nice.isAnything(c))
-        return z.children('Bad child: ' + c);
+        return z.children.push('Bad child: ' + c);
       c.up = z;
       c._up_ = z;
       z.children.push(c);

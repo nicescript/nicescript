@@ -68,6 +68,10 @@ defAll(nice, {
 //TODO: check:
 //create guessType -> assignType -> assignValue
 //set tearDown -> guessType -> assignType -> assignValue
+  _createEmptyId (_parent, _name) {
+    const cfg = _parent === undefined ? {} : {_parent, _name};
+    return nice._db.push(cfg).lastId;
+  },
 
   _createItem(_cellType, type, ...args){
     if(!type._isNiceType)
@@ -86,10 +90,12 @@ defAll(nice, {
   },
 
   _createChild(parent, key, type) {
-    const item = nice._createItem(type || Anything, type || NotFound);
-    item._parent = parent;
-    item._name = key;
+    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+    item._cellType = type || Anything;
+//    const item = nice._createItem(type || Anything, type || NotFound);
     item._status = 'hot';
+    nice._setType(item, type || NotFound);
+    nice._initItem(item, type || NotFound);
     return item;
   },
 

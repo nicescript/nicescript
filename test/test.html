@@ -15,11 +15,12 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy } = nice;
 
- const n = Num(5);
-  const n2 = Num(7);
-  const div = Html().add(n, n2);
-  expect(div.html).is('<div>57</div>');
-  
+const a = Arr();
+const n2 = Num(7);
+a.push(n2);
+expect(a._size).is(1);
+
+
 //const n = Num();
 //
 //const ball = Div()

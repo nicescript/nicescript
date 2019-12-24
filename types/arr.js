@@ -121,11 +121,35 @@ Test("setter", function(Arr) {
   expect(a.get(3)).is(5);
 });
 
+
 Test("push", (Arr, push) => {
   const a = Arr(1, 4);
   a.push(2, 1);
   expect(a.jsValue).deepEqual([1, 4, 2, 1]);
 });
+
+
+Test("push links", (Arr, push, Num) => {
+  const a = Arr();
+  const n = Num(5);
+  const n2 = Num(7);
+  a.push(n, n2);
+  expect(a.jsValue).deepEqual([5,7]);
+});
+
+
+Test("size", (Arr, push, Num) => {
+  const a = Arr(2);
+  const n = Num(5);
+  const n2 = Num(7);
+  a.push(3, n2);
+  expect(a._size).is(3);
+  a.removeAt(2);
+  expect(a._size).is(2);
+  a.removeAt(0);
+  expect(a._size).is(1);
+});
+
 
 Test((Arr) => {
   const a = nice.Something()([1,2]);
