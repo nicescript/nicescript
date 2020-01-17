@@ -102,7 +102,7 @@ nice.Obj.extend({
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => z._size)
   .Action(function push(z, ...a) {
-    a.forEach(v => z.insertAt(z._size, v));
+    a.forEach(v => z.insertAt(z._order.length, v));
   });
 
 Test("constructor", function(Arr) {
@@ -144,9 +144,9 @@ Test("size", (Arr, push, Num) => {
   const n2 = Num(7);
   a.push(3, n2);
   expect(a._size).is(3);
-  a.removeAt(2);
+  a.remove(2);
   expect(a._size).is(2);
-  a.removeAt(0);
+  a.remove(0);
   expect(a._size).is(1);
 });
 
@@ -265,7 +265,7 @@ A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
     : z.findKey(v => item === v());
-  (k === -1 || k === undefined) || z.removeAt(k);
+  (k === -1 || k === undefined) || z.remove(k);
 });
 
 
@@ -394,7 +394,7 @@ M.Function(function filter(a, f){
 
 
 M(function random(a){
-  return a.get(Math.random() * a._size | 0);
+  return a.get(Math.random() * a._order.length | 0);
 });
 
 

@@ -27,7 +27,7 @@ const search = Input("search").placeholder('Type to search or add tasks')
   .on('keyup', e => e.keyCode === 13 && create(e))
   .focus();
 
-const deleteButton = (state, k) => state && A(() => tasks.removeAt(k), 'x')
+const deleteButton = (state, k) => state && A(() => tasks.remove(k), 'x')
     .textDecoration('none').color('#E33').marginLeft('.5em');
 
 const TaskView = (task, k) => {

@@ -2573,9 +2573,10 @@ Test("set / get with nice.Str as key", (Obj) => {
 Test("set the same and notify", (Obj, Spy) => {
   const o = Obj({'qwe': 2});
   const spy = Spy();
-  o.listenItems(() => spy());
+  o.listenItems((v, k) => spy(v, k));
   o.set('qwe', 2);
   expect(spy).calledOnce();
+  expect(spy).calledWith(2, 'qwe');
 });
 Test((Obj) => {
   const o = Obj();
@@ -3042,7 +3043,7 @@ nice.Obj.extend({
 }).about('Ordered list of elements.')
   .ReadOnly('size', z => z._size)
   .Action(function push(z, ...a) {
-    a.forEach(v => z.insertAt(z._size, v));
+    a.forEach(v => z.insertAt(z._order.length, v));
   });
 Test("constructor", function(Arr) {
   let a = Arr(1, 5, 8);
@@ -3075,9 +3076,9 @@ Test("size", (Arr, push, Num) => {
   const n2 = Num(7);
   a.push(3, n2);
   expect(a._size).is(3);
-  a.removeAt(2);
+  a.remove(2);
   expect(a._size).is(2);
-  a.removeAt(0);
+  a.remove(0);
   expect(a._size).is(1);
 });
 Test((Arr) => {
@@ -3141,7 +3142,7 @@ A('pull', (z, item) => {
   const k = is.Value(item)
     ? z.items.indexOf(item)
     : z.findKey(v => item === v());
-  (k === -1 || k === undefined) || z.removeAt(k);
+  (k === -1 || k === undefined) || z.remove(k);
 });
 A.Number('insertAt', (z, i, v) => {
   i = +i;
@@ -3229,7 +3230,7 @@ M.Function(function filter(a, f){
   return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
 });
 M(function random(a){
-  return a.get(Math.random() * a._size | 0);
+  return a.get(Math.random() * a._order.length | 0);
 });
 M('sortedIndex', (a, v, f = (a, b) => a - b) => {
   let i = a.size;
@@ -3378,7 +3379,38 @@ A('negate', z => z(-z()));
 A('setMax', (z, n) => n > z() && z(n));
 A('setMin', (z, n) => n < z() && z(n));
 })();
-(function(){"use strict";
+(function(){"use strict";nice.Single.extend({
+  name: 'Pointer',
+  initBy: (z, o, key) => {
+    expect(o).isObj();
+    z._object = o;
+    z(key === undefined ? null : key);
+  },
+  itemArgs0: z => {
+    return z._value !== null && z._object.has(z._value)
+      ? z._object.get(z._value)
+      : nice.Null();
+  },
+  itemArgs1: (z, k) => {
+    if(k === null || nice.isNull(k))
+      return z._setValue(null);
+    if(nice.isStr(k))
+      k = k();
+    if(z._object.has(k)) {
+      return z._setValue(k);
+    } else {
+      k = nice.findKey(z._object, v => is(k, v));
+      if(k)
+        return z._setValue(k);
+    }
+    throw `Key ${k} not found.`;
+  },
+  proto: {
+    _notificationValue(){
+      return this();
+    },
+  }
+}).about('Holds key of an object or array.');
 })();
 (function(){"use strict";nice.Single.extend({
   name: 'Bool',
@@ -3754,9 +3786,9 @@ if(nice.isEnvBrowser()){
   Func.Html('attachNode', (e, node) => {
     e._shownNodes = e._shownNodes || new WeakMap();
     const ss = [];
-    ss.push(e.children.listenItems(v => v.isNothing()
-        ? removeNode(node.childNodes[k], v._name)
-        : nice.show(v, node, v._name)
+    ss.push(e.children.listenItems((v, k) => v.isNothing()
+        ? removeNode(node.childNodes[k], k)
+        : nice.show(v, node, k)
       ),
       e.style.listenItems((v, k) => v.isSomething()
           ? node.style[k] = v
@@ -3795,11 +3827,6 @@ if(nice.isEnvBrowser()){
   function removeNode(node, v){
     node && node.parentNode.removeChild(node);
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
-  }
-  function removeAt(parent, position){
-    const c = parent.childNodes[position];
-    parent.removeChild(parent.childNodes[position]);
-    
   }
   function insertAt(parent, node, position){
     parent.insertBefore(node, parent.childNodes[position]);
@@ -3847,7 +3874,7 @@ const constructors = {
   Obj: (z, o, f) => {
     const positions = {};
     o.listen({
-      onRemove: (v, k) => z.children.removeAt(positions[k]),
+      onRemove: (v, k) => z.children.remove(positions[k]),
       onAdd: (v, k) => {
         const i = Object.keys(o()).indexOf(k);
         positions[k] = i;
@@ -3857,7 +3884,7 @@ const constructors = {
   },
   Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
   Arr: (z, a, f) => a.listenItems({
-    NotFound: v => z.children.removeAt(v._name),
+    NotFound: v => z.children.remove(v._name),
     '*': v => z.children.insertAt(v._name, f(v, v._name))
   }, z.children),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
@@ -3959,4 +3986,13 @@ Input.extend('Checkbox', (z, status) => {
       z.options.push({label, value});
     })
   .about('Represents HTML <select> element.');
+})();
+(function(){"use strict";Test('reactive mapping', (Num) => {
+  var n = Num(2);
+  nice.Mapping('x2', n => n * 2);
+  var n2 = n.x2();
+  expect(n2).is(4);
+  n(3);
+  expect(n2).is(6);
+});
 })();;nice.version = "0.3.3";})();

@@ -15,28 +15,34 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy } = nice;
 
-const a = Arr();
-const n2 = Num(7);
-a.push(n2);
-expect(a._size).is(1);
+//  var n = Num(2);
+//  nice.Mapping('x2', n => n * 2);
+//  var n2 = n.x2();
+//  expect(n2).is(4);
 
 
-//const n = Num();
-//
-//const ball = Div()
-//    .position('absolute')
-//    .top('0px')
-//    .left(n)
-//    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
-//    .borderRadius('50%')
-//    .width('30px').height('30px');
+//const a = Arr();
+//const n2 = Num(7);
+//a.push(n2);
+//expect(a._size).is(1);
+
+
+const n = Num();
+
+const ball = Div()
+    .position('absolute')
+    .top('0px')
+    .left(n)
+    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
+    .borderRadius('50%')
+    .width('30px').height('30px');
+    
+ball.show();
 //    
-//ball.show();
-////    
-//setInterval(() => {
-//  n() > 0 ? n(0) : n(100);
-////  ball.left(500);
-//}, 1000);
+setInterval(() => {
+  n() > 0 ? n(0) : n(100);
+//  ball.left(500);
+}, 1000);
 
 
 //var div = Div('qwer').color('red')

@@ -38,7 +38,8 @@ const order = [
   'types/range',
   'html/html',
   'html/tags',
-  'html/inputs'
+  'html/inputs',
+  'core/core_tests'
 ];
 
 

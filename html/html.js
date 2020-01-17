@@ -473,9 +473,9 @@ if(nice.isEnvBrowser()){
   Func.Html('attachNode', (e, node) => {
     e._shownNodes = e._shownNodes || new WeakMap();
     const ss = [];
-    ss.push(e.children.listenItems(v => v.isNothing()
-        ? removeNode(node.childNodes[k], v._name)
-        : nice.show(v, node, v._name)
+    ss.push(e.children.listenItems((v, k) => v.isNothing()
+        ? removeNode(node.childNodes[k], k)
+        : nice.show(v, node, k)
       ),
       e.style.listenItems((v, k) => v.isSomething()
           ? node.style[k] = v
@@ -521,11 +521,11 @@ if(nice.isEnvBrowser()){
   }
 
 
-  function removeAt(parent, position){
-    const c = parent.childNodes[position];
-    parent.removeChild(parent.childNodes[position]);
-    //TODO: ?? clean cssSelectors
-  }
+//  function removeAt(parent, position){
+//    const c = parent.childNodes[position];
+//    parent.removeChild(parent.childNodes[position]);
+//    //TODO: ?? clean cssSelectors
+//  }
 
   function insertAt(parent, node, position){
     parent.insertBefore(node, parent.childNodes[position]);

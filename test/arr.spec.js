@@ -90,14 +90,6 @@ describe("Arr", function() {
   });
 
 
-  Test("removeAt", () => {
-    let a = Arr(1, 2, 3, 4);
-    a.removeAt(1);
-    a.removeAt(1);
-    expect(a.jsValue).deepEqual([1, 4]);
-  });
-
-
   Test("fill", () => {
     expect(Arr(1, 2, 3).fill(6).jsValue).deepEqual([6, 6, 6]);
     expect(Arr(1, 2, 3).fill(6, 1, 2).jsValue).deepEqual([1, 6, 3]);

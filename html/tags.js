@@ -35,7 +35,7 @@ const constructors = {
   Obj: (z, o, f) => {
     const positions = {};
     o.listen({
-      onRemove: (v, k) => z.children.removeAt(positions[k]),
+      onRemove: (v, k) => z.children.remove(positions[k]),
       onAdd: (v, k) => {
         const i = Object.keys(o()).indexOf(k);
         positions[k] = i;
@@ -45,11 +45,11 @@ const constructors = {
   },
   Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
 //  Arr: (z, a, f) => a.listenItems(v => v.isNotFound()
-//    ? z.children.removeAt(v._name)
+//    ? z.children.remove(v._name)
 //    : z.children.insertAt(v._name, f(v, v._name))
 //  , z.children),
   Arr: (z, a, f) => a.listenItems({
-    NotFound: v => z.children.removeAt(v._name),
+    NotFound: v => z.children.remove(v._name),
     '*': v => z.children.insertAt(v._name, f(v, v._name))
   }, z.children),
 //  Arr: (z, a, f) => a.listen({

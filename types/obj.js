@@ -121,11 +121,12 @@ Test("set / get with nice.Str as key", (Obj) => {
 Test("set the same and notify", (Obj, Spy) => {
   const o = Obj({'qwe': 2});
   const spy = Spy();
-  o.listenItems(() => spy());
+  o.listenItems((v, k) => spy(v, k));
 
   o.set('qwe', 2);
 
   expect(spy).calledOnce();
+  expect(spy).calledWith(2, 'qwe');
 });
 
 Test((Obj) => {
