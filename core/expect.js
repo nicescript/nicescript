@@ -1,6 +1,13 @@
 def(nice, 'expectPrototype', {});
 
-const toString = v => v.toString ? v.toString() : JSON.stringify(v);
+const toString = v => {
+  if(v === undefined) return "undefined";
+
+  const s = v.toString ? v.toString() : JSON.stringify(v);
+
+  return typeof s === 'string' ? s : '' + s;
+}
+
 
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
