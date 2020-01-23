@@ -1,47 +1,47 @@
 const db = nice._db;
 
-nice.Type({
-  name: 'Reference',
-  extends: 'Anything',
-//  customCall: function(...as) {
-//    return as.length === 0 ? this._ref() : this.setValue(...as);
+//nice.Type({
+//  name: 'Reference',
+//  extends: 'Anything',
+////  customCall: function(...as) {
+////    return as.length === 0 ? this._ref() : this.setValue(...as);
+////  },
+//  itemArgs0: z => '#' + z._ref,
+//  //TODO:0 remove _ref if type or value changes
+//  initBy: (z, v) => {
+//    db.update(z._id, '_value', v._id);
+//    v._follow(z._id);
 //  },
-  itemArgs0: z => '#' + z._ref,
-  //TODO:0 remove _ref if type or value changes
-  initBy: (z, v) => {
-    db.update(z._id, '_value', v._id);
-    v._follow(z._id);
-  },
-  proto: {
-    _isRef: true,
-    get _ref() {
-      return db.getValue(this._id, '_value');
-    },
-    get _value(){
-      return db.getValue(this._ref, '_value');
-    },
-    get _type(){
-      return db.getValue(this._ref, '_type');
-    },
-    get _order(){
-      return db.getValue(this._ref, '_order');
-    },
-    get _size(){
-      return db.getValue(this._ref, '_size');
-    },
-  }
-//  proto: new Proxy({}, {
-//    get (o, k, receiver) {
-//      if(k === '_cellType' || k === '_status' || k === '_by')
-//        return nice._db.getValue(receiver._id, k);
-//      if(k === '_isRef')
-//        return true;
-//      if(!('_ref' in receiver))
-//        defGet(receiver, '_ref', () => nice._db.getValue(receiver._id, '_value'));
-//      return receiver._ref[k];
-//    }
-//  })
-});
+//  proto: {
+//    _isRef: true,
+//    get _ref() {
+//      return db.getValue(this._id, '_value');
+//    },
+//    get _value(){
+//      return db.getValue(this._ref, '_value');
+//    },
+//    get _type(){
+//      return db.getValue(this._ref, '_type');
+//    },
+//    get _order(){
+//      return db.getValue(this._ref, '_order');
+//    },
+//    get _size(){
+//      return db.getValue(this._ref, '_size');
+//    },
+//  }
+////  proto: new Proxy({}, {
+////    get (o, k, receiver) {
+////      if(k === '_cellType' || k === '_status' || k === '_by')
+////        return nice._db.getValue(receiver._id, k);
+////      if(k === '_isRef')
+////        return true;
+////      if(!('_ref' in receiver))
+////        defGet(receiver, '_ref', () => nice._db.getValue(receiver._id, '_value'));
+////      return receiver._ref[k];
+////    }
+////  })
+//});
 //Reference = nice.Reference;
 
 

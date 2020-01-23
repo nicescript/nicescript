@@ -23,10 +23,6 @@ nice.Type({
 //    return res;
 //  },
 
-  initChildren (item){
-    _each(this.defaultArguments, (as, k) => item.set(k, ...as));
-  },
-
   setValue (z, value) {
     expect(typeof value).is('object');
     _each(value, (v, k) => z.set(k, v));

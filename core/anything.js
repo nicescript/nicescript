@@ -87,19 +87,19 @@ nice.registerType({
       const cellType = z._cellType;
       if(cellType === type || cellType.isPrototypeOf(type)){
         nice._setType(z, type);
-        nice._initItem(z, type, v);
+        nice._initItem(z, type, [v]);
         return z;
       }
 
       const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
         nice._setType(z, type);
-        nice._initItem(z, type, cast(v));
+        nice._initItem(z, type, [cast(v)]);
         return z
       };
 
       nice._setType(z, Err);
-      nice._initItem(z, Err, type.name, ' to ', cellType.name);
+      nice._initItem(z, Err, [type.name, ' to ', cellType.name]);
 //      nice._initItem(z, type, type.name, ' to ', cellType.name);
       return ;
     }
@@ -110,8 +110,6 @@ nice.registerType({
   itemArgsN: (z, vs) => {
     throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
   },
-
-  initChildren: () => 0,
 
   fromValue (_value){
     return Object.assign(this(), { _value });
@@ -140,7 +138,7 @@ nice.registerType({
 
     to (type, ...as){
       nice._setType(this, type);
-      nice._initItem(this, type, ...as);
+      nice._initItem(this, type, as);
       return this;
     },
 
@@ -148,9 +146,16 @@ nice.registerType({
       if(key._isAnything === true)
         key = key();
 
-      return key in this._children
-        ? nice._db.getValue(this._children[key], 'cache')
-        : nice._createChild(this._id, key, this._type && this._type.types[key]);
+      if(key in this._children)
+        return nice._db.getValue(this._children[key], 'cache');
+
+      const type = this._type;
+
+      if(key in type.defaultArguments)
+        return nice._createChildArgs(this._id, key,
+          type && type.types[key], type.defaultArguments[key]);
+
+      return nice._createChild(this._id, key, type && type.types[key]);
     },
 
     getDeep (...path) {

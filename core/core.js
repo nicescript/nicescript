@@ -73,7 +73,8 @@ defAll(nice, {
     return nice._db.push(cfg).lastId;
   },
 
-  _createItem(_cellType, type, ...args){
+  _createItem(_cellType, type, args){
+    //TODO: kill ...
     if(!type._isNiceType)
       throw new Error('Bad type');
 
@@ -81,10 +82,10 @@ defAll(nice, {
     const item = nice._db.getValue(id, 'cache');
     try {
       nice._setType(item, type);
-      nice._initItem(item, type, ...args);
+      nice._initItem(item, type, args);
     } catch (e) {
       nice._setType(item, nice.Err);
-      nice._initItem(item, type, e);
+      nice._initItem(item, type, [e]);
     }
     return item;
   },
@@ -99,8 +100,16 @@ defAll(nice, {
     return item;
   },
 
-  _initItem(z, type, ...args) {
-    type.initChildren(z);
+  _createChildArgs(parent, key, type, args) {
+    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+    item._cellType = type;
+    item._status = 'hot';
+    nice._setType(item, type);
+    nice._initItem(item, type, args);
+    return item;
+  },
+
+  _initItem(z, type, args) {
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(z)
       : type.initBy

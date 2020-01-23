@@ -50,17 +50,18 @@ defAll(nice, {
     const cfg = _parent === undefined ? {} : {_parent, _name};
     return nice._db.push(cfg).lastId;
   },
-  _createItem(_cellType, type, ...args){
+  _createItem(_cellType, type, args){
+    
     if(!type._isNiceType)
       throw new Error('Bad type');
     const id = nice._db.push({_cellType}).lastId;
     const item = nice._db.getValue(id, 'cache');
     try {
       nice._setType(item, type);
-      nice._initItem(item, type, ...args);
+      nice._initItem(item, type, args);
     } catch (e) {
       nice._setType(item, nice.Err);
-      nice._initItem(item, type, e);
+      nice._initItem(item, type, [e]);
     }
     return item;
   },
@@ -72,8 +73,15 @@ defAll(nice, {
     nice._initItem(item, type || NotFound);
     return item;
   },
-  _initItem(z, type, ...args) {
-    type.initChildren(z);
+  _createChildArgs(parent, key, type, args) {
+    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+    item._cellType = type;
+    item._status = 'hot';
+    nice._setType(item, type);
+    nice._initItem(item, type, args);
+    return item;
+  },
+  _initItem(z, type, args) {
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(z)
       : type.initBy
@@ -1499,17 +1507,17 @@ nice.registerType({
       const cellType = z._cellType;
       if(cellType === type || cellType.isPrototypeOf(type)){
         nice._setType(z, type);
-        nice._initItem(z, type, v);
+        nice._initItem(z, type, [v]);
         return z;
       }
       const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
         nice._setType(z, type);
-        nice._initItem(z, type, cast(v));
+        nice._initItem(z, type, [cast(v)]);
         return z
       };
       nice._setType(z, Err);
-      nice._initItem(z, Err, type.name, ' to ', cellType.name);
+      nice._initItem(z, Err, [type.name, ' to ', cellType.name]);
       return ;
     }
     throw 'Unknown type';
@@ -1517,7 +1525,6 @@ nice.registerType({
   itemArgsN: (z, vs) => {
     throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
   },
-  initChildren: () => 0,
   fromValue (_value){
     return Object.assign(this(), { _value });
   },
@@ -1534,15 +1541,19 @@ nice.registerType({
     _isAnything: true,
     to (type, ...as){
       nice._setType(this, type);
-      nice._initItem(this, type, ...as);
+      nice._initItem(this, type, as);
       return this;
     },
     get (key) {
       if(key._isAnything === true)
         key = key();
-      return key in this._children
-        ? nice._db.getValue(this._children[key], 'cache')
-        : nice._createChild(this._id, key, this._type && this._type.types[key]);
+      if(key in this._children)
+        return nice._db.getValue(this._children[key], 'cache');
+      const type = this._type;
+      if(key in type.defaultArguments)
+        return nice._createChildArgs(this._id, key,
+          type && type.types[key], type.defaultArguments[key]);
+      return nice._createChild(this._id, key, type && type.types[key]);
     },
     getDeep (...path) {
       let res = this, i = 0;
@@ -2079,7 +2090,11 @@ function DelayedSwitch(initArgs) {
 };
 })();
 (function(){"use strict";def(nice, 'expectPrototype', {});
-const toString = v => v.toString ? v.toString() : JSON.stringify(v);
+const toString = v => {
+  if(v === undefined) return "undefined";
+  const s = v.toString ? v.toString() : JSON.stringify(v);
+  return typeof s === 'string' ? s : '' + s;
+}
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
     this.value && this.value._compute && this.value._compute();
@@ -2154,7 +2169,7 @@ defAll(nice, {
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      const item = nice._createItem(type, type, ...a);
+      const item = nice._createItem(type, type, a);
       item._status = 'hot';
       return item;
     };
@@ -2224,34 +2239,6 @@ defGet(Anything, 'help',  function () {
 nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
 })();
 (function(){"use strict";const db = nice._db;
-nice.Type({
-  name: 'Reference',
-  extends: 'Anything',
-  itemArgs0: z => '#' + z._ref,
-  
-  initBy: (z, v) => {
-    db.update(z._id, '_value', v._id);
-    v._follow(z._id);
-  },
-  proto: {
-    _isRef: true,
-    get _ref() {
-      return db.getValue(this._id, '_value');
-    },
-    get _value(){
-      return db.getValue(this._ref, '_value');
-    },
-    get _type(){
-      return db.getValue(this._ref, '_type');
-    },
-    get _order(){
-      return db.getValue(this._ref, '_order');
-    },
-    get _size(){
-      return db.getValue(this._ref, '_size');
-    },
-  }
-});
 Test('Reference of subtype', (Reference, Single, Num) => {
   const a = Num(5);
   const b = Single(2);
@@ -2499,9 +2486,6 @@ nice.jsTypes.isSubType = isSubType;
   name: 'Obj',
   extends: nice.Value,
   itemArgsN: (z, os) => _each(os, o => z(o)),
-  initChildren (item){
-    _each(this.defaultArguments, (as, k) => item.set(k, ...as));
-  },
   setValue (z, value) {
     expect(typeof value).is('object');
     _each(value, (v, k) => z.set(k, v));
@@ -3383,27 +3367,16 @@ A('setMin', (z, n) => n < z() && z(n));
   name: 'Pointer',
   initBy: (z, o, key) => {
     expect(o).isObj();
+    
     z._object = o;
-    z(key === undefined ? null : key);
   },
-  itemArgs0: z => {
-    return z._value !== null && z._object.has(z._value)
-      ? z._object.get(z._value)
-      : nice.Null();
-  },
-  itemArgs1: (z, k) => {
-    if(k === null || nice.isNull(k))
-      return z._setValue(null);
-    if(nice.isStr(k))
-      k = k();
-    if(z._object.has(k)) {
-      return z._setValue(k);
-    } else {
-      k = nice.findKey(z._object, v => is(k, v));
-      if(k)
-        return z._setValue(k);
+  itemArgs1: (z, v) => {
+    if(typeof v === 'string'){
+      v = z._object[v];
     }
-    throw `Key ${k} not found.`;
+    
+    
+    return z._type.super.itemArgs1(z, v);
   },
   proto: {
     _notificationValue(){
@@ -3411,6 +3384,13 @@ A('setMin', (z, n) => n < z() && z(n));
     },
   }
 }).about('Holds key of an object or array.');
+Test("Create Pointer", function(Pointer, Obj){
+  const o = Obj({qwe:1});
+  const p = Pointer(o);
+  expect(p._type.name).is('Pointer');
+  expect(p('qwe')).is(p);
+  expect(p()).is(1);
+});
 })();
 (function(){"use strict";nice.Single.extend({
   name: 'Bool',

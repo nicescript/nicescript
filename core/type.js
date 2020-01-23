@@ -1,3 +1,5 @@
+//TODO: make type name creation independent
+
 def(nice, function extend(child, parent){
   if(parent.extensible === false)
     throw `Type ${parent.name} is not extensible.`;
@@ -42,7 +44,7 @@ defAll(nice, {
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      const item = nice._createItem(type, type, ...a);
+      const item = nice._createItem(type, type, a);
       item._status = 'hot';
       return item;
     };
