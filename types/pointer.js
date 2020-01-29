@@ -77,6 +77,18 @@ Test("Create Pointer", function(Pointer, Obj){
 });
 
 
+//TODO: think if comparing by name is a good idea
+//Test("Compare by name", function(Pointer, Obj){
+//  const o = Obj({qwe:1});
+//  const p = Pointer(o);
+//  expect(p._type.name).is('Pointer');
+////  expect(p.isPointer()).to.equal(true);
+////  expect(p().isNull()).to.equal(true);
+//  expect(p('qwe')).is(p);
+//  expect(p()).is(1);
+//});
+
+
 //Test("set Pointer value", function(Pointer){
 //  const o = nice.Obj({qwe:1});
 //  const p = nice.Pointer(o);

@@ -2131,7 +2131,8 @@ Test('Not expect followed by expect.', () => {
   expect(1).is(1).not.is(3);
 });
 })();
-(function(){"use strict";def(nice, function extend(child, parent){
+(function(){"use strict";
+def(nice, function extend(child, parent){
   if(parent.extensible === false)
     throw `Type ${parent.name} is not extensible.`;
   create(parent, child);
@@ -3385,6 +3386,13 @@ A('setMin', (z, n) => n < z() && z(n));
   }
 }).about('Holds key of an object or array.');
 Test("Create Pointer", function(Pointer, Obj){
+  const o = Obj({qwe:1});
+  const p = Pointer(o);
+  expect(p._type.name).is('Pointer');
+  expect(p('qwe')).is(p);
+  expect(p()).is(1);
+});
+Test("Compare by name", function(Pointer, Obj){
   const o = Obj({qwe:1});
   const p = Pointer(o);
   expect(p._type.name).is('Pointer');
