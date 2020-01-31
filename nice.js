@@ -57,11 +57,9 @@ defAll(nice, {
     const id = nice._db.push({_cellType}).lastId;
     const item = nice._db.getValue(id, 'cache');
     try {
-      nice._setType(item, type);
       nice._initItem(item, type, args);
     } catch (e) {
-      nice._setType(item, nice.Err);
-      nice._initItem(item, type, [e]);
+      nice._initItem(item, nice.Err, [e]);
     }
     return item;
   },
@@ -69,7 +67,6 @@ defAll(nice, {
     const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
     item._cellType = type || Anything;
     item._status = 'hot';
-    nice._setType(item, type || NotFound);
     nice._initItem(item, type || NotFound);
     return item;
   },
@@ -77,11 +74,11 @@ defAll(nice, {
     const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
     item._cellType = type;
     item._status = 'hot';
-    nice._setType(item, type);
     nice._initItem(item, type, args);
     return item;
   },
   _initItem(z, type, args) {
+    nice._setType(z, type);
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(z)
       : type.initBy
@@ -1509,18 +1506,15 @@ nice.registerType({
         return type.setValue(z, v);
       const cellType = z._cellType;
       if(cellType === type || cellType.isPrototypeOf(type)){
-        nice._setType(z, type);
         nice._initItem(z, type, [v]);
         return z;
       }
       const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
-        nice._setType(z, type);
         nice._initItem(z, type, [cast(v)]);
-        return z
+        return z;
       };
-      nice._setType(z, Err);
-      nice._initItem(z, Err, [type.name, ' to ', cellType.name]);
+      nice._initItem(z, Err, [`Can't cast`, type.name, 'to', cellType.name]);
       return ;
     }
     throw 'Unknown type';
@@ -1543,7 +1537,6 @@ nice.registerType({
   proto: Object.setPrototypeOf({
     _isAnything: true,
     to (type, ...as){
-      nice._setType(this, type);
       nice._initItem(this, type, as);
       return this;
     },

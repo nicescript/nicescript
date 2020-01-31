@@ -86,21 +86,17 @@ nice.registerType({
 
       const cellType = z._cellType;
       if(cellType === type || cellType.isPrototypeOf(type)){
-        nice._setType(z, type);
         nice._initItem(z, type, [v]);
         return z;
       }
 
       const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
-        nice._setType(z, type);
         nice._initItem(z, type, [cast(v)]);
-        return z
+        return z;
       };
 
-      nice._setType(z, Err);
-      nice._initItem(z, Err, [type.name, ' to ', cellType.name]);
-//      nice._initItem(z, type, type.name, ' to ', cellType.name);
+      nice._initItem(z, Err, [`Can't cast`, type.name, 'to', cellType.name]);
       return ;
     }
 
@@ -137,7 +133,6 @@ nice.registerType({
     _isAnything: true,
 
     to (type, ...as){
-      nice._setType(this, type);
       nice._initItem(this, type, as);
       return this;
     },
@@ -285,16 +280,6 @@ nice.registerType({
         return this;
       });
     },
-
-//    setValue (v) {
-//      const z = this;
-//      if (v && v._isAnything) {
-//        nice._setType(z, nice.Reference);
-//        nice._initItem(z, nice.Reference, v);
-//      } else {
-//        z._cellType.setPrimitive(z, v);
-//      }
-//    },
 
     _compute (follow = false){
       this._status === 'cold' && this._doCompute(follow);
