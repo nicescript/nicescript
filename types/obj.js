@@ -29,7 +29,7 @@ nice.Type({
   },
 
   killValue (z) {
-    _each(z._children, (v, k) => nice._setType(z.get(k), NotFound));
+    _each(z._children, (v, k) => z.get(k).toNotFound());
   },
 
   proto: {
@@ -313,7 +313,7 @@ A.about('Remove element at `i`.')
   if(id === null)
     return;
 
-  nice._setType(z.get(key), NotFound);
+  z.get(key).toNotFound();
 });
 
 Test((remove, Obj) => {

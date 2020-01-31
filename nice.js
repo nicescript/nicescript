@@ -1514,7 +1514,7 @@ nice.registerType({
         nice._initItem(z, type, [cast(v)]);
         return z;
       };
-      nice._initItem(z, Err, [`Can't cast`, type.name, 'to', cellType.name]);
+      z.toErr(`Can't cast`, type.name, 'to', cellType.name);
       return ;
     }
     throw 'Unknown type';
@@ -1824,7 +1824,7 @@ Anything = nice.Anything;
 defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 reflect.on('type', t =>
-  t.name && Mapping.Anything('to' + t.name, function (...as) {
+  t.name && def(Anything.proto, 'to' + t.name, function (...as) {
     return this.to(t, ...as);
   })
 );
@@ -2488,7 +2488,7 @@ nice.jsTypes.isSubType = isSubType;
     _each(value, (v, k) => z.set(k, v));
   },
   killValue (z) {
-    _each(z._children, (v, k) => nice._setType(z.get(k), NotFound));
+    _each(z._children, (v, k) => z.get(k).toNotFound());
   },
   proto: {
     checkKey (i) {
@@ -2672,7 +2672,7 @@ A.about('Remove element at `i`.')
   const id = db.findKey({_parent: z._id, _name: key});
   if(id === null)
     return;
-  nice._setType(z.get(key), NotFound);
+  z.get(key).toNotFound();
 });
 Test((remove, Obj) => {
   const o = Obj({ q:1, a:2 });
@@ -2953,7 +2953,7 @@ nice.Obj.extend({
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   killValue (z) {
-    _each(z._order, (v, k) => nice._setType(z.get(k), NotFound));
+    _each(z._order, (v, k) => z.get(k).toNotFound());
     nice._db.update (z._id, '_order', null);
     this.super.killValue(z);
   },
@@ -3140,7 +3140,7 @@ A('remove', (z, k) => {
   const db = nice._db, order = z._order;
   if(k >= order.length)
     return;
-  nice._setType(z.get(k), NotFound);
+  z.get(k).toNotFound();
   _each(z._children, (v, _k) => {
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });

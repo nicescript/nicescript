@@ -13,7 +13,7 @@ nice.Obj.extend({
   itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
   killValue (z) {
-    _each(z._order, (v, k) => nice._setType(z.get(k), NotFound));
+    _each(z._order, (v, k) => z.get(k).toNotFound());
     nice._db.update (z._id, '_order', null);
     this.super.killValue(z);
   },
@@ -290,7 +290,7 @@ A('remove', (z, k) => {
   if(k >= order.length)
     return;
 
-  nice._setType(z.get(k), NotFound);
+  z.get(k).toNotFound();
   _each(z._children, (v, _k) => {
     _k > k && db.update(v, '_name', db.getValue(v, '_name') - 1);
   });

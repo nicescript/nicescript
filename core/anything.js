@@ -96,7 +96,7 @@ nice.registerType({
         return z;
       };
 
-      nice._initItem(z, Err, [`Can't cast`, type.name, 'to', cellType.name]);
+      z.toErr(`Can't cast`, type.name, 'to', cellType.name);
       return ;
     }
 
@@ -567,8 +567,8 @@ nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 
 
 reflect.on('type', t =>
-  t.name && Mapping.Anything('to' + t.name, function (...as) {
-    return this.to(t, ...as);
+  t.name && def(Anything.proto, 'to' + t.name, function (...as) {
+    return nice._initItem(this, t, as);
   })
 );
 
