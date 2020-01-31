@@ -228,7 +228,7 @@ M.Function('reduceRight', (a, f, res) => {
 //apply(F, 'entries,splice,pop,forEach');
 //apply(A, 'copyWithin,fill,unshift,shift,sort,reverse');
 
-M.rStr('join', (a, s = '') => a.jsValue.join(s));
+M.rStr('join', (r, a, s = '') => r(a.jsValue.join(s)));
 
 Test((Arr, join) => {
   const a = Arr(1,2);

@@ -1020,6 +1020,7 @@ function createFunction({ name, body, signature, type, description, returns }){
   const f = existing || createFunctionBody(type);
   
   const types = signature.map(v => v.type);
+  returns && (body.returnType = returns);
   body && f.addSignature(body, types, name, returns);
   createMethodBody(types[0], f);
   if(name){
@@ -1128,19 +1129,15 @@ const targetLookup = `
         }
       }
     }
+    if(!target || !target.action)
+      return result.toErr(signatureError(z.name, args));
 `;
 const applyTransformations = `
 if(target.transformations)
   for(let i in target.transformations)
     args[i] = target.transformations[i](args[i]);
 `;
-function createMappingBody(){
-  const {_1,_2,_3,_$} = nice;
-  const by = new Function('nice', 'result', 'follow', 'z', '...args', `
-    const call = new Set();
-    ${targetLookup}
-    if(!target || !target.action)
-      return result.toErr(signatureError(z.name, args));
+const warmupArgs = `
     let ready = true;
     this._args.forEach(a => {
       if(a._isAnything){
@@ -1151,11 +1148,17 @@ function createMappingBody(){
     });
     if(!ready)
       return result.toPending();
+`;
+function createMappingBody(){
+  const {_1,_2,_3,_$} = nice;
+  const by = new Function('nice', 'result', 'follow', 'z', '...args', `
+    const call = new Set();
+    ${targetLookup}
+    ${warmupArgs}
     try {
       ${applyTransformations}
-      const argNames = nice.argumentNames(target.action);
-      if(argNames[0] === 'r'){
-        result.to(target.returns || nice.Anything);
+      if('returnType' in target.action){
+        result.to(target.action.returnType);
         target.action(result, ...args);
       } else {
         result(target.action(...args));
@@ -1223,13 +1226,13 @@ function createCheckBody(){
   });
   return z;
 }
-function createFunctionBody(functionType){
-  if(functionType === 'Mapping'){
+function createFunctionBody(type){
+  if(type === 'Mapping'){
     const f = createMappingBody();
     f.functionType = 'Mapping';
     return f;
   }
-  if(functionType === 'Check'){
+  if(type === 'Check'){
     const f = createCheckBody();
     f.functionType = 'Check';
     return f;
@@ -1264,9 +1267,9 @@ function createFunctionBody(functionType){
         }
       }
     }
-    return useBody(target, z.name, functionType, ...args);
+    return useBody(target, z.name, type, ...args);
   });
-  z.functionType = functionType;
+  z.functionType = type;
   return z;
 }
 function mirrorType (t) {
@@ -3109,7 +3112,7 @@ M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
   return res;
 });
-M.rStr('join', (a, s = '') => a.jsValue.join(s));
+M.rStr('join', (r, a, s = '') => r(a.jsValue.join(s)));
 Test((Arr, join) => {
   const a = Arr(1,2);
   expect(a.join(' ')()).is('1 2');
@@ -3386,13 +3389,6 @@ A('setMin', (z, n) => n < z() && z(n));
   }
 }).about('Holds key of an object or array.');
 Test("Create Pointer", function(Pointer, Obj){
-  const o = Obj({qwe:1});
-  const p = Pointer(o);
-  expect(p._type.name).is('Pointer');
-  expect(p('qwe')).is(p);
-  expect(p()).is(1);
-});
-Test("Compare by name", function(Pointer, Obj){
   const o = Obj({qwe:1});
   const p = Pointer(o);
   expect(p._type.name).is('Pointer');

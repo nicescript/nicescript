@@ -155,6 +155,7 @@ function createFunction({ name, body, signature, type, description, returns }){/
 
   //optimization: maybe signature might be just an array of types??
   const types = signature.map(v => v.type);
+  returns && (body.returnType = returns);
   body && f.addSignature(body, types, name, returns);
   createMethodBody(types[0], f);
 
@@ -278,6 +279,9 @@ const targetLookup = `
         }
       }
     }
+
+    if(!target || !target.action)
+      return result.toErr(signatureError(z.name, args));
 `;
 
 const applyTransformations = `
@@ -287,16 +291,7 @@ if(target.transformations)
 `;
 
 
-function createMappingBody(){
-  const {_1,_2,_3,_$} = nice;
-  const by = new Function('nice', 'result', 'follow', 'z', '...args', `
-    const call = new Set();
-
-    ${targetLookup}
-
-    if(!target || !target.action)
-      return result.toErr(signatureError(z.name, args));
-
+const warmupArgs = `
     let ready = true;
     this._args.forEach(a => {
       if(a._isAnything){
@@ -309,11 +304,20 @@ function createMappingBody(){
     if(!ready)
       return result.toPending();
 
+`;
+
+function createMappingBody(){
+  const {_1,_2,_3,_$} = nice;
+  const by = new Function('nice', 'result', 'follow', 'z', '...args', `
+    const call = new Set();
+
+    ${targetLookup}
+    ${warmupArgs}
+
     try {
       ${applyTransformations}
-      const argNames = nice.argumentNames(target.action);
-      if(argNames[0] === 'r'){
-        result.to(target.returns || nice.Anything);
+      if('returnType' in target.action){
+        result.to(target.action.returnType);
         target.action(result, ...args);
       } else {
         result(target.action(...args));
@@ -394,13 +398,14 @@ function createCheckBody(){
 
 
 
-function createFunctionBody(functionType){
-  if(functionType === 'Mapping'){
+function createFunctionBody(type){
+  if(type === 'Mapping'){
     const f = createMappingBody();
     f.functionType = 'Mapping';
     return f;
   }
-  if(functionType === 'Check'){
+
+  if(type === 'Check'){
     const f = createCheckBody();
     f.functionType = 'Check';
     return f;
@@ -439,10 +444,10 @@ function createFunctionBody(functionType){
       }
     }
 
-    return useBody(target, z.name, functionType, ...args);
+    return useBody(target, z.name, type, ...args);
   });
 
-  z.functionType = functionType;
+  z.functionType = type;
 
   return z;
 }
