@@ -1,51 +1,19 @@
 const db = nice._db;
 
-//nice.Type({
-//  name: 'Reference',
-//  extends: 'Anything',
-////  customCall: function(...as) {
-////    return as.length === 0 ? this._ref() : this.setValue(...as);
-////  },
-//  itemArgs0: z => '#' + z._ref,
-//  //TODO:0 remove _ref if type or value changes
-//  initBy: (z, v) => {
-//    db.update(z._id, '_value', v._id);
-//    v._follow(z._id);
-//  },
-//  proto: {
-//    _isRef: true,
-//    get _ref() {
-//      return db.getValue(this._id, '_value');
-//    },
-//    get _value(){
-//      return db.getValue(this._ref, '_value');
-//    },
-//    get _type(){
-//      return db.getValue(this._ref, '_type');
-//    },
-//    get _order(){
-//      return db.getValue(this._ref, '_order');
-//    },
-//    get _size(){
-//      return db.getValue(this._ref, '_size');
-//    },
-//  }
-////  proto: new Proxy({}, {
-////    get (o, k, receiver) {
-////      if(k === '_cellType' || k === '_status' || k === '_by')
-////        return nice._db.getValue(receiver._id, k);
-////      if(k === '_isRef')
-////        return true;
-////      if(!('_ref' in receiver))
-////        defGet(receiver, '_ref', () => nice._db.getValue(receiver._id, '_value'));
-////      return receiver._ref[k];
-////    }
-////  })
-//});
-//Reference = nice.Reference;
+/* reference child should:
+
+- pull values by reference
+
+- notify subscribers when reference child changes
+
+- keep own subscription
+
+- on any action throw error
+
+ */
 
 
-Test('Reference of subtype', (Reference, Single, Num) => {
+Test('Reference of subtype', (Single, Num) => {
   const a = Num(5);
   const b = Single(2);
   b(a);
@@ -59,12 +27,20 @@ Test('Reference of subtype', (Reference, Single, Num) => {
 });
 
 
-Test('Reference().get', (Reference, Obj) => {
+Test('Reference .get', (Obj) => {
   const a = Obj();
   const b = Obj({q:1});
   a(b);
   expect(a.get('q') === b.get('q')).isFalse();
   expect(a.get('z') === b.get('z')).isFalse();
+});
+
+
+Test('Reference jsValue', (Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  a(b);
+  expect(a.jsValue).deepEqual({q:1});
 });
 
 
@@ -85,7 +61,7 @@ Test('Reference of the same type', (Num, Spy) => {
 
 
 //TODO:
-//Test('Reference type error', (Reference, Obj, Num) => {
+//Test('Reference type error', (Obj, Num) => {
 //  const a = Obj();
 //  const b = Num(2);
 //  b(a);
@@ -99,7 +75,7 @@ Test('Reference of the same type', (Num, Spy) => {
 //});
 
 
-Test('Follow Reference', (Reference, Single, Num, Spy) => {
+Test('Follow reference', (Single, Num, Spy) => {
   const a = Num(5);
   const b = Single(2);
   const spy = Spy();
@@ -110,7 +86,7 @@ Test('Follow Reference', (Reference, Single, Num, Spy) => {
 });
 
 
-Test('Unfollow Reference', (Reference, Single, Num, Spy) => {
+Test('Unfollow reference', (Single, Num, Spy) => {
   const a = Num(5);
   const b = Single(2);
   const c = Num(3);
