@@ -45,12 +45,10 @@ nice.registerType({
       }
       db.update(z._id, '_value', v._id);
       Object.setPrototypeOf(z, v._type.proto);
+      redirectExistingChildren(z, v);
       v._follow(z._id);
     } else {
-      if(z._isRef) {
-        unfollow(db.getValue(z._id, '_value'), z._id);
-        (z._isRef = false);
-      }
+      tearDown(z);
       z._cellType.setPrimitive(z, v);
     }
     return z;
@@ -86,12 +84,14 @@ nice.registerType({
 
       const cellType = z._cellType;
       if(cellType === type || cellType.isPrototypeOf(type)){
+        tearDown(z);
         nice._initItem(z, type, [v]);
         return z;
       }
 
       const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
+        tearDown(z);
         nice._initItem(z, type, [cast(v)]);
         return z;
       };
@@ -133,16 +133,25 @@ nice.registerType({
     _isAnything: true,
 
     to (type, ...as){
+      tearDown(this);
       nice._initItem(this, type, as);
       return this;
     },
 
+    //TODO:0 don't allow to edit ref's children
     get (key) {
       if(key._isAnything === true)
         key = key();
 
       if(key in this._children)
         return nice._db.getValue(this._children[key], 'cache');
+
+      if(this._isRef){
+        const res = nice._createChild(this._id, key);
+        const ref = db.getValue(db.getValue(this._id, '_value'), 'cache');
+        res(ref.get(key));
+        return res;
+      }
 
       const type = this._type;
 
@@ -193,6 +202,11 @@ nice.registerType({
     get _isRef() {
       return db.getValue(this._id, '_isRef');
     },
+
+//    get _isRefsChild() {
+//      const parent = this._parent;
+//      return db.getValue(this._id, '_isRef');
+//    },
 
     set _isRef(v) {
       return db.update(this._id, '_isRef', v);
@@ -552,13 +566,28 @@ function objectListener(o){
   };
 }
 
+
+function redirectExistingChildren(z, v) {
+  //optimization: maby check if child is used before creating one at `v`
+  for(let k in z._children){
+    z.get(k)(v.get(k));
+  }
+};
+
+
+function tearDown (z) {
+  if(z._isRef){
+    unfollow(db.getValue(z._id, '_value'), z._id);
+    z._isRef = false;
+  }
+  for(let k in z._children){
+    z.get(k).toNotFound();
+  }
+}
+
+
 Anything = nice.Anything;
 
-//const coreId = nice._db.push({}).lastId;
-//nice._db.core = nice._db.getValue(coreId, 'cache');
-
-
-//defGet(Anything.proto, function jsValue(z) { return z._value; });
 defGet(Anything.proto, 'switch', function () { return Switch(this); });
 
 
@@ -568,6 +597,7 @@ nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 
 reflect.on('type', t =>
   t.name && def(Anything.proto, 'to' + t.name, function (...as) {
+    tearDown(this);
     return nice._initItem(this, t, as);
   })
 );

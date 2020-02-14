@@ -14,8 +14,9 @@ reflect.on('Check', f => {
     this.value && this.value._compute && this.value._compute();
     const res = this._preF ? this._preF(f(this.value, ...a)) : f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
-      const e = new Error(this.text || ['Expected', toString(this.value),
-        this._preMessage || '', 'to be', f.name, ...a.map(toString)].join(' '));
+      const e = new Error(this.text || ['Expected (', toString(this.value), ')',
+        this._preMessage || '', 'to be (',
+        f.name, ...a.map(toString), ')'].join(' '));
       e.shift = 1;
       throw e;
     }

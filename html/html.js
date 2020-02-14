@@ -490,8 +490,8 @@ if(nice.isEnvBrowser()){
         (v.isSomething() ? addRules : killRules)
             (v, k, getAutoClass(node.className));
       }),
-      e.eventHandlers.listenItems((hs, k) => v.isSomething()
-        ? hs.forEach(f => {
+      e.eventHandlers.listenItems((hs, k) => hs.isSomething()
+        ? hs.each(f => {
             if(k === 'domNode')
               return f(node);
             node.addEventListener(k, f, true);

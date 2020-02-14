@@ -2,6 +2,11 @@ nice.Type({
   name: 'Obj',
   extends: nice.Value,
 
+//   initBy: (z, o) => {
+//     if(typeof o === 'object')
+//       nice._each(o, (v, k) => z.set(k, v));
+//   },
+
 //  itemArgs1: (z, o) => {
 //    const t = typeof o;
 //    if( t !== 'object' )
@@ -171,7 +176,10 @@ Test((Obj, setDefault) => {
 });
 
 F(function each(z, f){
-  const index = z._children, db = nice._db;
+  const db = nice._db;
+  const index = z._isRef
+        ? db.getValue(db.getValue(z._id, '_value'), '_children')
+        : z._children;
   for(let i in index){
     const item = db.getValue(index[i], 'cache');
     if(!item.isNotFound())

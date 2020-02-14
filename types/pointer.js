@@ -2,6 +2,7 @@ nice.Single.extend({
   name: 'Pointer',
 
   initBy: (z, o, key) => {
+    //TODO: use key
     expect(o).isObj();
     //TODO: write _object to _db
     z._object = o;

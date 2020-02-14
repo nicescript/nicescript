@@ -27,12 +27,37 @@ Test('Reference of subtype', (Single, Num) => {
 });
 
 
-Test('Reference .get', (Obj) => {
+Test('Reference .get new child', (Obj) => {
   const a = Obj();
   const b = Obj({q:1});
   a(b);
   expect(a.get('q') === b.get('q')).isFalse();
+  expect(a.get('q')).is(1);
   expect(a.get('z') === b.get('z')).isFalse();
+});
+
+
+Test('Reference .get old child', (Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  const c = a.get('q');
+  expect(c).isNotFound();
+  a(b);
+  expect(a.get('q') === c).isTrue();
+  expect(c).is(1);
+});
+
+
+Test('Reference .get dead child', (Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  const c = a.get('q');
+  expect(c).isNotFound();
+  a(b);
+  expect(a.get('q') === c).isTrue();
+  expect(c).is(1);
+  a({});
+  expect(c).isNotFound();
 });
 
 

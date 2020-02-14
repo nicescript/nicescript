@@ -907,7 +907,8 @@ nice.jsBasicTypes = {
   function: nice.jsTypes.Function
 };
 })();
-(function(){"use strict";const configProto = {
+(function(){"use strict";
+const configProto = {
   next (o) {
     const c = Configurator(this.name || o.name);
     c.signature = (this.signature || []).concat(o.signature || []);
@@ -1469,12 +1470,10 @@ nice.registerType({
       }
       db.update(z._id, '_value', v._id);
       Object.setPrototypeOf(z, v._type.proto);
+      redirectExistingChildren(z, v);
       v._follow(z._id);
     } else {
-      if(z._isRef) {
-        unfollow(db.getValue(z._id, '_value'), z._id);
-        (z._isRef = false);
-      }
+      tearDown(z);
       z._cellType.setPrimitive(z, v);
     }
     return z;
@@ -1506,11 +1505,13 @@ nice.registerType({
         return type.setValue(z, v);
       const cellType = z._cellType;
       if(cellType === type || cellType.isPrototypeOf(type)){
+        tearDown(z);
         nice._initItem(z, type, [v]);
         return z;
       }
       const cast = cellType.castFrom && cellType.castFrom[type.name];
       if(cast !== undefined){
+        tearDown(z);
         nice._initItem(z, type, [cast(v)]);
         return z;
       };
@@ -1537,14 +1538,22 @@ nice.registerType({
   proto: Object.setPrototypeOf({
     _isAnything: true,
     to (type, ...as){
+      tearDown(this);
       nice._initItem(this, type, as);
       return this;
     },
+    
     get (key) {
       if(key._isAnything === true)
         key = key();
       if(key in this._children)
         return nice._db.getValue(this._children[key], 'cache');
+      if(this._isRef){
+        const res = nice._createChild(this._id, key);
+        const ref = db.getValue(db.getValue(this._id, '_value'), 'cache');
+        res(ref.get(key));
+        return res;
+      }
       const type = this._type;
       if(key in type.defaultArguments)
         return nice._createChildArgs(this._id, key,
@@ -1820,12 +1829,28 @@ function objectListener(o){
     o['*'] && o['*'](v);
   };
 }
+function redirectExistingChildren(z, v) {
+  
+  for(let k in z._children){
+    z.get(k)(v.get(k));
+  }
+};
+function tearDown (z) {
+  if(z._isRef){
+    unfollow(db.getValue(z._id, '_value'), z._id);
+    z._isRef = false;
+  }
+  for(let k in z._children){
+    z.get(k).toNotFound();
+  }
+}
 Anything = nice.Anything;
 defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
 reflect.on('type', t =>
   t.name && def(Anything.proto, 'to' + t.name, function (...as) {
-    return this.to(t, ...as);
+    tearDown(this);
+    return nice._initItem(this, t, as);
   })
 );
 })();
@@ -1843,6 +1868,7 @@ const basicChecks = {
       b = b._value;
     return a === b;
   },
+  isExactly: (a, b) => a === b,
   deepEqual: (a, b) => nice.diff(a, b) === false,
   isTrue: v => v === true,
   isFalse: v => v === false,
@@ -2096,8 +2122,9 @@ reflect.on('Check', f => {
     this.value && this.value._compute && this.value._compute();
     const res = this._preF ? this._preF(f(this.value, ...a)) : f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
-      const e = new Error(this.text || ['Expected', toString(this.value),
-        this._preMessage || '', 'to be', f.name, ...a.map(toString)].join(' '));
+      const e = new Error(this.text || ['Expected (', toString(this.value), ')',
+        this._preMessage || '', 'to be (',
+        f.name, ...a.map(toString), ')'].join(' '));
       e.shift = 1;
       throw e;
     }
@@ -2236,7 +2263,7 @@ defGet(Anything, 'help',  function () {
 nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
 })();
 (function(){"use strict";const db = nice._db;
-Test('Reference of subtype', (Reference, Single, Num) => {
+Test('Reference of subtype', (Single, Num) => {
   const a = Num(5);
   const b = Single(2);
   b(a);
@@ -2248,12 +2275,39 @@ Test('Reference of subtype', (Reference, Single, Num) => {
   expect(a()).is(5);
   expect(b).isNum();
 });
-Test('Reference().get', (Reference, Obj) => {
+Test('Reference .get new child', (Obj) => {
   const a = Obj();
   const b = Obj({q:1});
   a(b);
   expect(a.get('q') === b.get('q')).isFalse();
+  expect(a.get('q')).is(1);
   expect(a.get('z') === b.get('z')).isFalse();
+});
+Test('Reference .get old child', (Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  const c = a.get('q');
+  expect(c).isNotFound();
+  a(b);
+  expect(a.get('q') === c).isTrue();
+  expect(c).is(1);
+});
+Test('Reference .get dead child', (Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  const c = a.get('q');
+  expect(c).isNotFound();
+  a(b);
+  expect(a.get('q') === c).isTrue();
+  expect(c).is(1);
+  a({});
+  expect(c).isNotFound();
+});
+Test('Reference jsValue', (Obj) => {
+  const a = Obj();
+  const b = Obj({q:1});
+  a(b);
+  expect(a.jsValue).deepEqual({q:1});
 });
 Test('Reference of the same type', (Num, Spy) => {
   const spy = Spy();
@@ -2267,7 +2321,7 @@ Test('Reference of the same type', (Num, Spy) => {
   expect(spy).calledTimes(3).calledWith(3);
   expect(a).is(3);
 });
-Test('Follow Reference', (Reference, Single, Num, Spy) => {
+Test('Follow reference', (Single, Num, Spy) => {
   const a = Num(5);
   const b = Single(2);
   const spy = Spy();
@@ -2276,7 +2330,7 @@ Test('Follow Reference', (Reference, Single, Num, Spy) => {
   a(4);
   expect(spy).calledWith(4);
 });
-Test('Unfollow Reference', (Reference, Single, Num, Spy) => {
+Test('Unfollow reference', (Single, Num, Spy) => {
   const a = Num(5);
   const b = Single(2);
   const c = Num(3);
@@ -2599,7 +2653,10 @@ Test((Obj, setDefault) => {
   expect(o.get('a').is(2));
 });
 F(function each(z, f){
-  const index = z._children, db = nice._db;
+  const db = nice._db;
+  const index = z._isRef
+        ? db.getValue(db.getValue(z._id, '_value'), '_children')
+        : z._children;
   for(let i in index){
     const item = db.getValue(index[i], 'cache');
     if(!item.isNotFound())
@@ -2840,6 +2897,7 @@ reflect.on('type', type => {
     const a = stack.split('\n');
     a.splice(0, 4);
     z._type.setValue(z, { message, trace: a.join('\n') });
+    console.log('Error created:', message);
   },
   creator: () => ({}),
   proto: {
@@ -3363,6 +3421,7 @@ A('setMin', (z, n) => n < z() && z(n));
 (function(){"use strict";nice.Single.extend({
   name: 'Pointer',
   initBy: (z, o, key) => {
+    
     expect(o).isObj();
     
     z._object = o;
@@ -3780,8 +3839,8 @@ if(nice.isEnvBrowser()){
         (v.isSomething() ? addRules : killRules)
             (v, k, getAutoClass(node.className));
       }),
-      e.eventHandlers.listenItems((hs, k) => v.isSomething()
-        ? hs.forEach(f => {
+      e.eventHandlers.listenItems((hs, k) => hs.isSomething()
+        ? hs.each(f => {
             if(k === 'domNode')
               return f(node);
             node.addEventListener(k, f, true);
@@ -3965,11 +4024,32 @@ Input.extend('Checkbox', (z, status) => {
   .about('Represents HTML <select> element.');
 })();
 (function(){"use strict";Test('reactive mapping', (Num) => {
-  var n = Num(2);
+  const n = Num(2);
   nice.Mapping('x2', n => n * 2);
-  var n2 = n.x2();
+  const n2 = n.x2();
   expect(n2).is(4);
   n(3);
   expect(n2).is(6);
+});
+Test('kill child', (Obj) => {
+  const o = Obj({q:1});
+  const q = o.get('q');
+  expect(q).is(1);
+  o({});
+  expect(q).isNotFound();
+  expect(o.get('q')).isExactly(q);
+});
+Test('crete function', (Function) => {
+  const x = Function(() => 1);
+  expect(x).not.isErr();
+  expect(x).isFunction();
+  expect(x()).is(1);
+});
+Test('storing function', (Func) => {
+  const x = nice();
+  x(() => 1);
+  expect(x).not.isErr();
+  expect(x).isFunction();
+  expect(x()()).is(1);
 });
 })();;nice.version = "0.3.3";})();

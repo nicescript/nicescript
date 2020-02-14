@@ -23,6 +23,7 @@ nice.Type({
     const a = stack.split('\n');
     a.splice(0, 4);
     z._type.setValue(z, { message, trace: a.join('\n') });
+    console.log('Error created:', message);
   },
 
   creator: () => ({}),

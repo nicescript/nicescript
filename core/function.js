@@ -1,3 +1,15 @@
+/*
+
+ Functions requiermants:
+
+ - Store and use simple js function
+
+ - Use function as a dependence for items created with it
+
+ - 
+
+ */
+
 const configProto = {
   next (o) {
     const c = Configurator(this.name || o.name);
