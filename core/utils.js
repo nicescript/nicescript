@@ -274,10 +274,11 @@ defAll(nice, {
   },
 
   prototypes: o => {
-    const parent = Object.getPrototypeOf(o);
-    return parent
-      ? [parent].concat(nice.prototypes(parent))
-      : [];
+    const res = [];
+    let parent = o;
+    while(parent = Object.getPrototypeOf(parent))
+      res.push(parent);
+    return res;
   },
 
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
