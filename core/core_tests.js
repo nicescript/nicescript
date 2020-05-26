@@ -9,6 +9,28 @@ Test('reactive mapping', (Num) => {
 });
 
 
+Test('listenItems', (listenItems, Spy, Obj) => {
+  const a = Obj({q:1});
+  const spy = Spy();
+  a.listenItems(spy);
+  expect(spy).calledOnce().calledWith(1, 'q');
+  a.set('z', 3);
+  expect(spy).calledTimes(2).calledWith(3, 2);
+});
+
+
+Test('notify links children', (listenItems, Spy, Arr) => {
+  const a = Arr(1,2);
+  const b = nice();
+  b(a);
+  const spy = Spy();
+  b.listenItems(spy);
+  expect(spy).calledTwice().calledWith(1, 0).calledWith(2, 1);
+  a.push(3);
+  expect(spy).calledTimes(3).calledWith(3, 2);
+});
+
+
 Test('kill child', (Obj) => {
   const o = Obj({q:1});
   const q = o.get('q');

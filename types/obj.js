@@ -14,7 +14,7 @@ nice.Type({
 //    _each(o, (v, k) => z.set(k, v));
 //  },
 
-  itemArgsN: (z, os) => _each(os, o => z(o)),
+//  itemArgsN: (z, os) => _each(os, o => z(o)),
 
 //  fromValue (v) {
 //    const res = this();
@@ -360,11 +360,11 @@ Test("Obj remove deep", (Obj) => {
 //  for(let i in o)
 //    is(v, o[i]) && delete o[i];
 //}));
-//
-//A('removeAll', z => {
-//  z._isHot && (z._oldValue = z._items);
-//  z._type.onCreate(z);
-//});
+
+
+A('removeAll', z => {
+  _each(z._children, (v, k) => z.get(k).toNotFound());
+});
 
 
 //['max','min','hypot'].forEach(name => {

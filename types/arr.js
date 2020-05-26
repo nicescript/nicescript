@@ -10,8 +10,11 @@ nice.Obj.extend({
 //      vs.forEach( v => this.push(v));
 //    }
 //  },
-  itemArgs1: (z, v) => z.push(v),
-  itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
+//  itemArgs1: (z, v) => z.push(v),
+  itemArgsN: (z, vs) => {
+    z.removeAll();
+    vs.forEach( v => z.push(v));
+  },
   killValue (z) {
     _each(z._order, (v, k) => z.get(k).toNotFound());
     nice._db.update (z._id, '_order', null);
@@ -107,7 +110,7 @@ nice.Obj.extend({
 
 Test("constructor", function(Arr) {
   let a = Arr(1, 5, 8);
-  a(9);
+  a.push(9);
   expect(a.get(1)).is(5);
   expect(a.get(3)).is(9);
   expect(a.get(4).isNotFound()).is(true);
@@ -116,9 +119,10 @@ Test("constructor", function(Arr) {
 Test("setter", function(Arr) {
   const a = Arr();
 
-  a(2)(3, 4)(5);
-  expect(a.get(1)).is(3);
-  expect(a.get(3)).is(5);
+  a.push(2)(3, 4).push(5);
+  expect(a.get(0)).is(3);
+  expect(a.get(2)).is(5);
+  expect(a.get(3)).isNotFound();
 });
 
 
@@ -498,6 +502,19 @@ M.about('Returns first element of `a`.')
 
 Test((Arr, first) => {
   expect(Arr(1,2,4).first()).is(1);
+});
+
+
+A('removeAll', z => {
+  _each(z._children, (v, k) => z.get(k).toNotFound());
+  z._order.length = 0;
+});
+
+
+Test("removeAll", (Arr, removeAll) => {
+  let a = Arr(1, 4);
+  a.removeAll();
+  expect(a.jsValue).deepEqual([]);
 });
 
 

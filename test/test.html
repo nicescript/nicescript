@@ -15,10 +15,25 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy, Pointer } = nice;
 
+  const a = Obj({q:1});
+  const spy = Spy();
+  a.listenItems((...as) => spy(...as));
+//  expect(spy).calledOnce().calledWith(1, 'q');
+  a.set('z', 3);
+//  expect(spy).calledTimes(2).calledWith(3, 2);
 
-  const a = Arr(1,2);
-const div = Div().children(a);
-div.show();
+//  const a = Arr(1,2);
+//  const b = nice();
+//  b(a);
+//  const spy = Spy();
+//  a.listenItems(spy);
+//  expect(spy).calledTwice().calledWith(1, 0).calledWith(2, 1);
+//  a.push(3);
+//  expect(spy).calledTimes(3).calledWith(3, 2);
+
+//const a = Arr(1,2);
+//const div = Div().children(a).fontSize('50px');
+//div.show();
 //a.push(3);
   
 
@@ -33,7 +48,7 @@ const ball = Div()
     .borderRadius('50%')
     .width('30px').height('30px');
     
-ball.show();
+//ball.show();
 //    
 setInterval(() => {
   n() > 0 ? n(0) : n(100);

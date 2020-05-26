@@ -221,7 +221,6 @@ nice.registerType({
       return this._isRef
         ? db.getValue(db.getValue(this._id, '_value'), '_order')
         : db.getValue(this._id, '_order');
-//      return db.getValue(this._id, '_order');
     },
 
     get _name() {

@@ -423,10 +423,11 @@ defAll(nice, {
     }
   },
   prototypes: o => {
-    const parent = Object.getPrototypeOf(o);
-    return parent
-      ? [parent].concat(nice.prototypes(parent))
-      : [];
+    const res = [];
+    let parent = o;
+    while(parent = Object.getPrototypeOf(parent))
+      res.push(parent);
+    return res;
   },
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
@@ -830,7 +831,10 @@ function notifyItem(id) {
     const links = db.getValue(nextParentId, '_links');
     
     
-    links && links.forEach(link => notifyLink(db.getValue(link, 'cache').getDeep(...path)._id));
+    links &&
+      links.forEach(link =>
+        notifyLink(db.getValue(link, 'cache')
+          .getDeep(...path)._id));
     nextParentId = db.getValue(nextParentId, '_parent');
   }
 }
@@ -2536,7 +2540,6 @@ nice.jsTypes.isSubType = isSubType;
 (function(){"use strict";nice.Type({
   name: 'Obj',
   extends: nice.Value,
-  itemArgsN: (z, os) => _each(os, o => z(o)),
   setValue (z, value) {
     expect(typeof value).is('object');
     _each(value, (v, k) => z.set(k, v));
@@ -2745,6 +2748,9 @@ Test("Obj remove deep", (Obj) => {
   expect(o.get('a').get('b')).isNotFound();
   expect(o.get('a').get('b').get('c')).isNotFound();
   expect(o.get('a').get('b').get('c')._id).is(id);
+});
+A('removeAll', z => {
+  _each(z._children, (v, k) => z.get(k).toNotFound());
 });
 M(function reduce(o, f, res){
   o.each((v,k) => res = f(res, v, k));
@@ -3008,8 +3014,10 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
 (function(){"use strict";
 nice.Obj.extend({
   name: 'Arr',
-  itemArgs1: (z, v) => z.push(v),
-  itemArgsN: (z, vs) => vs.forEach( v => z.push(v)),
+  itemArgsN: (z, vs) => {
+    z.removeAll();
+    vs.forEach( v => z.push(v));
+  },
   killValue (z) {
     _each(z._order, (v, k) => z.get(k).toNotFound());
     nice._db.update (z._id, '_order', null);
@@ -3086,16 +3094,17 @@ nice.Obj.extend({
   });
 Test("constructor", function(Arr) {
   let a = Arr(1, 5, 8);
-  a(9);
+  a.push(9);
   expect(a.get(1)).is(5);
   expect(a.get(3)).is(9);
   expect(a.get(4).isNotFound()).is(true);
 });
 Test("setter", function(Arr) {
   const a = Arr();
-  a(2)(3, 4)(5);
-  expect(a.get(1)).is(3);
-  expect(a.get(3)).is(5);
+  a.push(2)(3, 4).push(5);
+  expect(a.get(0)).is(3);
+  expect(a.get(2)).is(5);
+  expect(a.get(3)).isNotFound();
 });
 Test("push", (Arr, push) => {
   const a = Arr(1, 4);
@@ -3311,6 +3320,15 @@ M.about('Returns first element of `a`.')
   });
 Test((Arr, first) => {
   expect(Arr(1,2,4).first()).is(1);
+});
+A('removeAll', z => {
+  _each(z._children, (v, k) => z.get(k).toNotFound());
+  z._order.length = 0;
+});
+Test("removeAll", (Arr, removeAll) => {
+  let a = Arr(1, 4);
+  a.removeAll();
+  expect(a.jsValue).deepEqual([]);
 });
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
@@ -3652,7 +3670,7 @@ reflect.on('extension', ({child, parent}) => {
     addCreator(child);
   }
 });
-'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
+'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyItems,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       const s = this.style;
@@ -4030,6 +4048,24 @@ Input.extend('Checkbox', (z, status) => {
   expect(n2).is(4);
   n(3);
   expect(n2).is(6);
+});
+Test('listenItems', (listenItems, Spy, Obj) => {
+  const a = Obj({q:1});
+  const spy = Spy();
+  a.listenItems(spy);
+  expect(spy).calledOnce().calledWith(1, 'q');
+  a.set('z', 3);
+  expect(spy).calledTimes(2).calledWith(3, 2);
+});
+Test('notify links children', (listenItems, Spy, Arr) => {
+  const a = Arr(1,2);
+  const b = nice();
+  b(a);
+  const spy = Spy();
+  b.listenItems(spy);
+  expect(spy).calledTwice().calledWith(1, 0).calledWith(2, 1);
+  a.push(3);
+  expect(spy).calledTimes(3).calledWith(3, 2);
 });
 Test('kill child', (Obj) => {
   const o = Obj({q:1});

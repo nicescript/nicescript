@@ -251,7 +251,10 @@ function notifyItem(id) {
     const links = db.getValue(nextParentId, '_links');
     //TODO: do not create childeren, only notify existing
     //TODO: test
-    links && links.forEach(link => notifyLink(db.getValue(link, 'cache').getDeep(...path)._id));
+    links &&
+      links.forEach(link =>
+        notifyLink(db.getValue(link, 'cache')
+          .getDeep(...path)._id));
 
     nextParentId = db.getValue(nextParentId, '_parent');
   }

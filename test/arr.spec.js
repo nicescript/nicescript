@@ -83,13 +83,6 @@ describe("Arr", function() {
 //  });
 
 
-  Test("removeAll", () => {
-    let a = Arr(1, 4);
-    a.removeAll();
-    expect(a.jsValue).deepEqual([]);
-  });
-
-
   Test("fill", () => {
     expect(Arr(1, 2, 3).fill(6).jsValue).deepEqual([6, 6, 6]);
     expect(Arr(1, 2, 3).fill(6, 1, 2).jsValue).deepEqual([1, 6, 3]);
