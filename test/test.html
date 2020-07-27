@@ -15,111 +15,109 @@ const { Box, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy, Pointer } = nice;
 
-  const a = Obj({q:1});
-  const spy = Spy();
-  a.listenItems((...as) => spy(...as));
-//  expect(spy).calledOnce().calledWith(1, 'q');
-  a.set('z', 3);
-//  expect(spy).calledTimes(2).calledWith(3, 2);
+class Storage{
+  constructor(){
+    this.version = 0;
+    this.messages = [];
+    this.rows = [];
+    this.sessions = {};
+    this.filters = {};
 
-//  const a = Arr(1,2);
-//  const b = nice();
-//  b(a);
-//  const spy = Spy();
-//  a.listenItems(spy);
-//  expect(spy).calledTwice().calledWith(1, 0).calledWith(2, 1);
-//  a.push(3);
-//  expect(spy).calledTimes(3).calledWith(3, 2);
+  }
 
-//const a = Arr(1,2);
-//const div = Div().children(a).fontSize('50px');
-//div.show();
-//a.push(3);
-  
+  insert (row) {
+    const id = this.rows.length;
+    this.rows.push(row);
 
+    Object.values(this.filters).forEach(f => {
+      if(lib.match(f.query, row)){
+        f.data.push(id);
+        f.emit('data', f.data);
+      }
+    });
 
-const n = Num();
+    return {
+      id,
+      ok: true
+    };
+  }
 
-const ball = Div()
-    .position('absolute')
-    .top('0px')
-    .left(n)
-    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
-    .borderRadius('50%')
-    .width('30px').height('30px');
+  update (id, row) {
+    if(!this.checkId(id))
+      return { ok: false, message: 'Bad id.'};
     
-//ball.show();
-//    
-setInterval(() => {
-  n() > 0 ? n(0) : n(100);
-//  ball.left(500);
-}, 1000);
+    //TODO: lookup filters
+    Object.assign(this.rows[id], row);  
+    //TODO: lookup filters
+    
+    //TODO: notify
+    
+    return { ok: true, newRow: this.rows[id] };
+  }
+
+  get ({query, cb, version}) {
+    const filter = this.assertFilter(query);
+    
+    cb(filter.data);
+  }
+  
+  subscribe ({query, cb, version}) {
+    const filter = this.assertFilter(query);
+    cb(filter.data);
+    filter.on('data', data => cb(data));
+  }
+  
+  assertFilter (query){
+    const key = lib.normalizeQuery(query);
+    const filters = this.filters;
+    
+    //TODO:  version,
+    return filters[key] || (filters[key] = nice.eventEmitter({
+      query,
+      key,
+      data: this.rows.reduce((a, row, id) => {
+        if(lib.match(query, row)) 
+          a.push(id);
+        return a;
+      }, [])
+    }));
+  }
+  
+  checkId(id){
+    return id in this.rows;
+  }
+}
 
 
-//var div = Div('qwer').color('red')
-////    .A('qwe', 'qwe').on('click', () => console.log(11)).up
-//    .Css('a').color('red').font('bold').up
-//div.show();
-//div.color('green');
-
-//var a = div.cssSelectors.a;
-//a.isSomething();
-
-//spy(nice.remove(o, 'q').jsValue);
-//
-//var { Company } = nice;
-//
-////var c = Company();
-//var c = Obj();
-//var people = Arr('Joe');
-////var people = Arr(Obj({name:'Joe'}));
-//
-//var div = Div()
-//  .h1(c.title.or('No name'))
-//  .p(c.about.or('No description'))
-//  .div(people, p => nice.Li(p));
-//div.show();
-//
-//c.set('title', 'Cool company');
-//c.set('about', `Some wordy description`);
-
-//people.listen({
-//  onAdd: v => spy('add', v.name),
-//  onRemove: v => spy('del', v.name)
-//});
-
-//people.push('Jane');
+const lib = {
+  normalizeQuery(q){
+    return Object.keys(q).sort().map(k => `${k}:${q[k]}`).join('/');
+  },
+  
+  match (query, row) {
+    for (const [key, value] of Object.entries(query)) {
+      if(row[key] !== value)
+        return false;
+    }
+    return true;
+  }};
 
 
-//const CDN = s => `https://cdnjs.cloudflare.com/ajax/libs/${s}`;
-//const ramda = CDN('ramda/0.21.0/ramda.min');
-//const jquery = CDN('jquery/3.0.0-rc1/jquery.min');
-//requirejs.config({ paths: { ramda, jquery } });
-//require(['jquery', 'ramda'], ($, { compose, curry, map, prop }) => {
-//// -- Utils ----------------------------------------------------------
-//const Impure = {
-//trace: curry((tag, x) => { console.log(tag, x); return x; }), // eslint-disable-line no-console
-//getJSON: curry((callback, url) => $.getJSON(url, callback)),
-//setHtml: curry((sel, html) => $(sel).html(html)),
-//};
-//// -- Pure -----------------------------------------------------------
-//const host = 'api.flickr.com';
-//const path = '/services/feeds/photos_public.gne';
-//const query = t => `?tags=${t}&format=json&jsoncallback=?`;
-//const url = t => `https://${host}${path}${query(t)}`;
-//const img = src => $('<img />', { src });
-//const mediaUrl = compose(prop('m'), prop('media'));
-//const mediaUrls = compose(map(mediaUrl), prop('items'));
-//const images = compose(map(img), mediaUrls);
-// -- Impure ---------------------------------------------------------
-//const render = compose(Impure.setHtml('#js-main'), images);
-//const app = compose(Impure.getJSON(render), url);
-//const app = t => $.getJSON(
-//  `https://${host}${path}${query(t)}`, 
-//  o => Div(o.items.map(get(_1, ['media', 'm'])), Img(_1)).show()
-//);
-//app('capybara');
-//});
+const s = new Storage();
+s.insert({type:'user', name:'Jim'});
+s.insert({type:'user', name:'Jane'});
+
+
+const q = {
+  query: {type: 'user'},
+  cb: data => console.log(data)
+};
+
+s.subscribe(q);
+
+s.insert({type:'user', name:'Joe'});
+
+
 
 </script>
   

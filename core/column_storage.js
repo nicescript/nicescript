@@ -186,7 +186,7 @@ const db = new ColumnStorage(
   '_cellType',
   '_value',
   '_parent',
-  '_name',
+//  '_name',
   '_listeners',
   '_itemsListeners',
   '_deepListeners',
@@ -194,21 +194,22 @@ const db = new ColumnStorage(
   '_by',
   '_isRef',
   '_args',
-  {name: '_status', defaultValue: 'cooking' },
-  {name: '_size', defaultValue: 0 },
-  {name: '_children', defaultBy: () => ({}) },
+//  {name: '_status', defaultValue: 'cooking' },
+//  {name: '_size', defaultValue: 0 },
+//  {name: '_children', defaultBy: () => ({}) },
   {name: '_order', defaultBy: () => [] },
   {name: '_subscriptions', defaultBy: () => [] },
   {name: 'cache', defaultBy: nice._getItem }
 );
 
-def(nice, '_db', db);
+//def(nice, '_db', db);
 
 
-db.on('_value', notifyItem);
+//db.on('_value', notifyItem);
 
 
 function notifyLink(id){
+  throw 'TODO'
   const item = db.data.cache[id];
 
   //TODO: make sure there is parent for every child
@@ -217,69 +218,69 @@ function notifyLink(id){
 
   const type = item._type;
   Object.setPrototypeOf(item, type.proto);
-  db.emit('_type', id, type);//TODO:, old??
+//  db.emit('_type', id, type);//TODO:, old??
   notifyItem(id);
 }
 
 
-function notifyItem(id) {
-  const z = db.getValue(id, 'cache');
-
-  const ls = db.getValue(id, '_listeners');
-//  ls && ls.forEach(f => notifyItem(f, z));
-  ls && ls.forEach(f => f(z));
-
-  const links = db.getValue(id, '_links');
-  links && links.forEach(notifyLink);
-
-  const parentId = db.getValue(id, '_parent');
-  if(parentId !== undefined){
-    const ls = db.getValue(parentId, '_itemsListeners');
-    const name = db.getValue(id, '_name');
-    ls && ls.forEach(f => f(z, name));
-  }
-
-  let nextParentId = parentId;
-  const path = [];
-  //TODO: protection from loop
-  while(nextParentId !== undefined){
-    path.unshift(nextParentId);
-
-    const ls = db.getValue(nextParentId, '_deepListeners');
-    ls && ls.forEach(f => f(z, path));
-
-    const links = db.getValue(nextParentId, '_links');
-    //TODO: do not create childeren, only notify existing
-    //TODO: test
-    links &&
-      links.forEach(link =>
-        notifyLink(db.getValue(link, 'cache')
-          .getDeep(...path)._id));
-
-    nextParentId = db.getValue(nextParentId, '_parent');
-  }
-}
-
-
-db.on('_type', (id, type, oldType) => {
-  const on = type && type !== NotFound;
-  const off = oldType && oldType !== NotFound;
-
-  if(on && !off){
-    const pId = db.getValue(id, '_parent');
-    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') + 1);
-  } else if (off && !on){
-    const pId = db.getValue(id, '_parent');
-    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') - 1);
-  }
-});
+//function notifyItem(id) {
+//  const z = db.getValue(id, 'cache');
+//
+//  const ls = db.getValue(id, '_listeners');
+////  ls && ls.forEach(f => notifyItem(f, z));
+//  ls && ls.forEach(f => f(z));
+//
+//  const links = db.getValue(id, '_links');
+//  links && links.forEach(notifyLink);
+//
+//  const parentId = db.getValue(id, '_parent');
+//  if(parentId !== undefined){
+//    const ls = db.getValue(parentId, '_itemsListeners');
+//    const name = db.getValue(id, '_name');
+//    ls && ls.forEach(f => f(z, name));
+//  }
+//
+//  let nextParentId = parentId;
+//  const path = [];
+//  //TODO: protection from loop
+//  while(nextParentId !== undefined){
+//    path.unshift(nextParentId);
+//
+//    const ls = db.getValue(nextParentId, '_deepListeners');
+//    ls && ls.forEach(f => f(z, path));
+//
+//    const links = db.getValue(nextParentId, '_links');
+//    //TODO: do not create childeren, only notify existing
+//    //TODO: test
+//    links &&
+//      links.forEach(link =>
+//        notifyLink(db.getValue(link, 'cache')
+//          .getDeep(...path)._id));
+//
+//    nextParentId = db.getValue(nextParentId, '_parent');
+//  }
+//}
 
 
-db.on('_name', (id, value, oldValue) => {
-  const parent = db.getValue(id, '_parent');
-  const index = db.getValue(parent, '_children');
-  if(oldValue !== null && oldValue !== undefined)
-    delete index[oldValue];
-  if(value !== null && value !== undefined)
-    index[value] = id;
-});
+//db.on('_type', (id, type, oldType) => {
+//  const on = type && type !== NotFound;
+//  const off = oldType && oldType !== NotFound;
+//
+//  if(on && !off){
+//    const pId = db.getValue(id, '_parent');
+//    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') + 1);
+//  } else if (off && !on){
+//    const pId = db.getValue(id, '_parent');
+//    pId === undefined || db.update(pId, '_size', db.getValue(pId, '_size') - 1);
+//  }
+//});
+
+
+//db.on('_name', (id, value, oldValue) => {
+//  const parent = db.getValue(id, '_parent');
+//  const index = db.getValue(parent, '_children');
+//  if(oldValue !== null && oldValue !== undefined)
+//    delete index[oldValue];
+//  if(value !== null && value !== undefined)
+//    index[value] = id;
+//});

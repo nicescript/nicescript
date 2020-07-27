@@ -21,6 +21,7 @@ nice = (...a) => {
 };
 
 nice._counter = 0;
+nice._items = [];
 
 
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
@@ -68,18 +69,20 @@ defAll(nice, {
 //TODO: check:
 //create guessType -> assignType -> assignValue
 //set tearDown -> guessType -> assignType -> assignValue
-  _createEmptyId (_parent, _name) {
-    const cfg = _parent === undefined ? {} : {_parent, _name};
-    return nice._db.push(cfg).lastId;
-  },
+//  _createEmptyId (_parent, _name) {
+//    const cfg = _parent === undefined ? {} : {_parent, _name};
+//    return nice._db.push(cfg).lastId;
+//  },
 
   _createItem(_cellType, type, args){
     //TODO: kill ...
     if(!type._isNiceType)
       throw new Error('Bad type');
 
-    const id = nice._db.push({_cellType}).lastId;
-    const item = nice._db.getValue(id, 'cache');
+//    const id = nice._db.push({_cellType}).lastId;
+    const item = nice._newItem();
+    item._cellType = _cellType;
+//            nice._db.getValue(id, 'cache');
     try {
       nice._initItem(item, type, args);
     } catch (e) {
@@ -89,16 +92,23 @@ defAll(nice, {
   },
 
   _createChild(parent, key, type) {
-    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+    const item = nice._newItem();
+    parent._children[key] = item;
+    item._parent = parent;
+    item._key = key;
+//    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
     item._cellType = type || Anything;
-//    const item = nice._createItem(type || Anything, type || NotFound);
     item._status = 'hot';
     nice._initItem(item, type || NotFound);
     return item;
   },
 
   _createChildArgs(parent, key, type, args) {
-    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+//    const item = nice._db.getValue(nice._createEmptyId(parent, key), 'cache');
+    const item = nice._newItem();
+    parent._children[key] = item;
+    item._parent = parent;
+    item._key = key;
     item._cellType = type;
     item._status = 'hot';
     nice._initItem(item, type, args);
@@ -116,42 +126,37 @@ defAll(nice, {
   },
 
   _setType(item, type) {
-    const oldType = item._type, db = this._db;
+    const oldType = item._type;//, db = this._db;
 
     oldType && oldType.killValue && oldType.killValue(item);
 
-    db.update(item._id, '_type', type);
+//    db.update(item._id, '_type', type);
     Object.setPrototypeOf(item, type.proto);
+    expect(type).isType();
+    item.__type = type;
 
-    type.defaultValueBy
-        && db.update(item._id, '_value', type.defaultValueBy());
+    type.defaultValueBy && (item._value = type.defaultValueBy());
+
+    item._parent && refreshSize(item, oldType, type);
+
     return item;
   },
 
-  _assertItem(_parent, _name) {
-    const db = this._db;
-    let id = db.findKey({_parent, _name});
-    if(id === null){
-      db.push({ _parent, _name});
-      id = db.lastId;
-    }
-    return db.getValue(id, 'cache');
-  },
+//  _assertItem(_parent, _name) {
+//    const db = this._db;
+//    let id = db.findKey({_parent, _name});
+//    if(id === null){
+//      db.push({ _parent, _name});
+//      id = db.lastId;
+//    }
+//    return db.getValue(id, 'cache');
+//  },
 
-  _getItem(id) {
+  _newItem() {
     //change: try to cast otherwise change item type //exceptions: functions
     const f = function(...a){
       if('customCall' in f._type)
         return f._type.customCall(f, ...a);
-
-//      if(a.length === 0){
-//        z._compute();
-//        return z._value;
-//      } else if (a.length === 1){
-//        z.setValue(a[0]);
-//      } else {
-//        throw new Error(`${z._type.name} doesn't know what to do with ${a.length} arguments.`);
-//      }
 
       if(a.length === 0){
         return f._type.itemArgs0(f);
@@ -163,18 +168,56 @@ defAll(nice, {
 
       return this || f;
     };
-    f._id = id;
 
     nice.eraseProperty(f, 'name');
     nice.eraseProperty(f, 'length');
 
-//  TODO:
     f._notifing = false;
 
-    Object.setPrototypeOf(f, (nice._db.data._type[id] || Anything).proto);
+//    Object.setPrototypeOf(f, (nice._db.data._type[id] || Anything).proto);
+
+    f._id = nice._items.length;
+    nice._items.push(f);
 
     return f;
   },
+//  _getItem(id) {
+//    //change: try to cast otherwise change item type //exceptions: functions
+//    const f = function(...a){
+//      if('customCall' in f._type)
+//        return f._type.customCall(f, ...a);
+//
+////      if(a.length === 0){
+////        z._compute();
+////        return z._value;
+////      } else if (a.length === 1){
+////        z.setValue(a[0]);
+////      } else {
+////        throw new Error(`${z._type.name} doesn't know what to do with ${a.length} arguments.`);
+////      }
+//
+//      if(a.length === 0){
+//        return f._type.itemArgs0(f);
+//      } else if (a.length === 1){
+//        f._cellType.itemArgs1(f, a[0]);
+//      } else {
+//        f._type.itemArgsN(f, a);
+//      }
+//
+//      return this || f;
+//    };
+//    f._id = id;
+//
+//    nice.eraseProperty(f, 'name');
+//    nice.eraseProperty(f, 'length');
+//
+////  TODO:
+//    f._notifing = false;
+//
+//    Object.setPrototypeOf(f, (nice._db.data._type[id] || Anything).proto);
+//
+//    return f;
+//  },
 
   valueType: v => {
     const t = typeof v;
@@ -298,3 +341,17 @@ defAll(nice, {
 });
 defGet = nice.defineGetter;
 _each = nice._each;
+
+
+function refreshSize(item, oldType, type){
+  const on = type && type !== NotFound;
+  const off = oldType && oldType !== NotFound;
+  const parent = item._parent;
+
+  if(on && !off){
+    parent._size = parent._size + 1;
+  } else if (off && !on){
+    parent._size = parent._size - 1;
+  }
+}
+

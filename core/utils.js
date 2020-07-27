@@ -24,13 +24,15 @@ defAll(nice, {
     return res;
   },
 
-  orderedStringify: o => !nice.isObject(o)
-    ? JSON.stringify(o)
-    : Array.isArray(o)
-      ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
-      : '{' + nice.reduceTo((a, key) => {
-          a.push("\"" + key + '\":' + nice.orderedStringify(o[key]));
-        }, [], Object.keys(o).sort()).join(',') + '}',
+  orderedStringify: o => o === null
+    ? 'null'
+    : !nice.isObject(o)
+      ? JSON.stringify(o)
+      : Array.isArray(o)
+        ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
+        : '{' + nice.reduceTo((a, key) => {
+            a.push("\"" + key + '\":' + nice.orderedStringify(o[key]));
+          }, [], Object.keys(o).sort()).join(',') + '}',
 
   objDiggDefault (o, ...a) {
     const v = a.pop(), l = a.length;

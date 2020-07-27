@@ -34,7 +34,7 @@ nice.Type({
   },
 
   killValue (z) {
-    _each(z._children, (v, k) => z.get(k).toNotFound());
+    _each(z._children, (v, k) => v.toNotFound());
   },
 
   proto: {
@@ -151,16 +151,20 @@ Func.Nothing('each', () => 0);
 C('has', (o, key) => {
   if(key._isAnything === true)
     key = key();
-  const id = o._id;
-  const parents = nice._db.data._parent;
-  const db = nice._db;
-  const names = db.data._name;
-  const types = db.data._type;
-  for(let i in parents)
-    if(parents[i] === id && names[i] === key && types[i] !== NotFound)
-      return true;
+  const children = o._children;
+  if(key in children){
+    return children[key]._type !== NotFound;
+  }
   return false;
 });
+
+
+Test((Obj, has) => {
+  const o = Obj({q:1,z:3});
+  expect(o.has('a')).is(false);
+  expect(o.has('q')).is(true);
+});
+
 
 A.about(`Set value if it's missing.`)
   (function setDefault (i, ...as) {
@@ -178,10 +182,10 @@ Test((Obj, setDefault) => {
 F(function each(z, f){
   const db = nice._db;
   const index = z._isRef
-        ? db.getValue(db.getValue(z._id, '_value'), '_children')
+        ? z.__value._children
         : z._children;
   for(let i in index){
-    const item = db.getValue(index[i], 'cache');
+    const item = index[i];
     if(!item.isNotFound())
       if(nice.isStop(f(item, i)))
         break;
@@ -315,10 +319,10 @@ A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 
 A.about('Remove element at `i`.')
 ('remove', (z, key) => {
-  const db = nice._db;
-  const id = db.findKey({_parent: z._id, _name: key});
+  if(key._isAnything === true)
+    key = key();
 
-  if(id === null)
+  if(!(key in z._children))
     return;
 
   z.get(key).toNotFound();

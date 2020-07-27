@@ -60,7 +60,7 @@ defAll(nice, {
   },
 });
 
-nice.Check('isType', v => Anything.isPrototypeOf(v));
+nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);
 
 Test("named type", (Type) => {
   Type('Cat').str('name');
