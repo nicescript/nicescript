@@ -1,6 +1,7 @@
 nice.Type({
   name: 'Obj',
   extends: nice.Value,
+  defaultValueBy: () => ({}),
 
 //   initBy: (z, o) => {
 //     if(typeof o === 'object')
@@ -29,12 +30,9 @@ nice.Type({
 //  },
 
   setValue (z, value) {
+    z._value = z._type.defaultValueBy();
     expect(typeof value).is('object');
     _each(value, (v, k) => z.set(k, v));
-  },
-
-  killValue (z) {
-    _each(z._children, (v, k) => v.toNotFound());
   },
 
   proto: {
@@ -57,21 +55,48 @@ nice.Type({
       return i;
     },
 
-    _itemsListener (o) {
-      const { onRemove, onAdd, onChange } = o;
-      return v => {
-        if(v._oldValue === undefined){
-          onAdd && v.each(onAdd);
-          onChange && v.each((_v, k) => onChange(k, _v));
-        } else {
-          _each(v._oldValue, (c, k) => {
-            onRemove && c !== undefined && onRemove(c, k);
-            onAdd && k in v._items && onAdd(v._items[k], k);
-            onChange && onChange(k, v._items[k], c);
-          });
-        }
-      };
-    }
+    get (key) {
+      if(key._isAnything === true)
+        key = key();
+
+      if(key in this._value)
+        return this._value[key];
+
+      const type = this._type;
+      const childType = type && type.types[key]
+
+      if(childType){
+        const child = key in type.defaultArguments
+         ? nice._createItem(childType, childType, type.defaultArguments[key])
+         : nice._createItem(childType, childType);
+
+        this._value[key] = child;
+        return child;
+      }
+      //TODO:0 make NotFount readonly
+      return nice._createItem(NotFound, NotFound);
+    },
+
+    assert (key) {
+      if(key._isAnything === true)
+        key = key();
+
+      const type = this._type;
+      const childType = (type && type.types[key]) || Anything;
+
+      const child = key in type.defaultArguments
+       ? nice._createItem(childType, childType, type.defaultArguments[key])
+       : nice._createItem(childType, childType);
+
+      this._value[key] = child;
+      return child;
+    },
+
+    getDeep (...path) {
+      let res = this, i = 0;
+      while(i < path.length) res = res.get(path[i++]);
+      return res;
+    },
   }
 })
   .about('Parent type for all composite types.')
@@ -87,7 +112,7 @@ nice.Type({
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
     return o;
   })
-  .ReadOnly('size', z => z._size);
+  .Mapping('size', z => Object.keys(z._value).length);
 
 Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});
@@ -119,31 +144,6 @@ Test("set / get with nice.Str as key", (Obj) => {
   expect(a.get(nice('qwe'))).is(1);
 });
 
-Test("set the same and notify", (Obj, Spy) => {
-  const o = Obj({'qwe': 2});
-  const spy = Spy();
-  o.listenItems((v, k) => spy(v, k));
-
-  o.set('qwe', 2);
-
-  expect(spy).calledOnce();
-  expect(spy).calledWith(2, 'qwe');
-});
-
-Test((Obj) => {
-  const o = Obj();
-  let res;
-  let name;
-  o.listenItems(v => {
-    res = v();
-    name = v._name;
-  });
-  expect(res).is(undefined);
-  expect(name).is(undefined);
-  o.set('q', 1);
-  expect(res).is(1);
-});
-
 const F = Func.Obj, M = Mapping.Obj, A = Action.Obj, C = Check.Obj;
 
 Func.Nothing('each', () => 0);
@@ -151,7 +151,7 @@ Func.Nothing('each', () => 0);
 C('has', (o, key) => {
   if(key._isAnything === true)
     key = key();
-  const children = o._children;
+  const children = o._value;
   if(key in children){
     return children[key]._type !== NotFound;
   }
@@ -167,8 +167,8 @@ Test((Obj, has) => {
 
 
 A.about(`Set value if it's missing.`)
-  (function setDefault (i, ...as) {
-    this.has(i) || this.set(i, ...as);
+  (function setDefault (z, i, ...as) {
+    z.has(i) || z.set(i, ...as);
   });
 
 Test((Obj, setDefault) => {
@@ -180,18 +180,15 @@ Test((Obj, setDefault) => {
 });
 
 F(function each(z, f){
-  const db = nice._db;
-  const index = z._isRef
-        ? z.__value._children
-        : z._children;
+  const index = z._value;
   for(let i in index){
     const item = index[i];
-    if(!item.isNotFound())
-      if(nice.isStop(f(item, i)))
-        break;
+    if(nice.isStop(f(item, i)))
+      break;
   }
 });
 
+//TODO: replace nice.Stop() with nice.STOP
 Test("each stop", (each, Obj, Spy) => {
   const spy = Spy();
   Obj({qwe: 1, asd: 2}).each(n => {
@@ -217,33 +214,6 @@ Mapping.Object('get', (o, path) => {
   }
 });
 
-//Mapping.Anything('get', (z, key) => {
-//  if(key._isAnything === true)
-//    key = key();
-//
-//  return key in z._children
-//    ? nice._db.getValue(z._children[key], 'cache')
-//    : nice._createChild(z._id, key);
-//});
-
-Test((get, Obj, NotFound) => {
-  const a = NotFound();
-  expect(a.get('q')._id).is(a.get('q')._id);
-
-  const o = Obj({a:1});
-  expect(a.get('a').get('q')._id).is(a.get('a').get('q')._id);
-  expect(a.get('b').get('q')._id).is(a.get('b').get('q')._id);
-});
-
-
-//M('get', (z, key) => {
-//  if(key._isAnything === true)
-//    key = key();
-//
-//  return key in z._children
-//    ? nice._db.getValue(z._children[key], 'cache')
-//    : nice._createChild(z._id, key, z._type.types[key]);
-//});
 
 Test((Obj, NotFound) => {
   const o = Obj({q:1});
@@ -268,36 +238,15 @@ A('set', (z, key, value, ...tale) => {
   if(value === null)
     return z.remove(_name);
 
-  z.get(_name)(value, ...tale);
+  if(!z._value[_name]){
+    const type = z._type;
+    const childType = (type && type.types[key]) || Anything;
+    const child = nice._createItem(childType, childType);
+    z._value[_name] = child;
+  }
+
+  z._value[_name](value, ...tale);
 });
-
-Test('Set by link', (Obj) => {
-  const cfg = Obj({a:2});
-  const user = Obj({});
-
-  user.set('q', cfg.get('a'));
-  expect(user.get('q')).is(2);
-
-  cfg.set('a', 3);
-  expect(user.get('q')).is(3);
-
-  user.set('q', 4);
-  cfg.set('a', 5);
-  expect(user.get('q')).is(4);
-});
-
-
-//function assertChild(parent, name, type){
-//  let _type, _value = value, _parent = z._id;
-//  _type = nice.valueType(_value);
-//  if(id === null){
-//    db.push({ _value, _type, _parent, _name});
-//    id = db.lastId;
-//    db.update(_parent, '_size', db.getValue(_parent, '_size') + 1);
-//  } else {
-//    db.update(id, { _value, _type });
-//  }
-//};
 
 
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
@@ -322,17 +271,17 @@ A.about('Remove element at `i`.')
   if(key._isAnything === true)
     key = key();
 
-  if(!(key in z._children))
+  if(!(key in z._value))
     return;
 
-  z.get(key).toNotFound();
+  delete z._value[key];
 });
 
 Test((remove, Obj) => {
   const o = Obj({ q:1, a:2 });
-  expect( o._size ).is(2);
+  expect( o.size() ).is(2);
   expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
-  expect( o._size ).is(1);
+  expect( o.size() ).is(1);
 });
 
 Test("Obj remove deep", (Obj) => {
@@ -342,7 +291,6 @@ Test("Obj remove deep", (Obj) => {
   o.get('a').remove('b');
   expect(o.get('a').get('b')).isNotFound();
   expect(o.get('a').get('b').get('c')).isNotFound();
-  expect(o.get('a').get('b').get('c')._id).is(id);
 });
 
 //A('removeValue', (o, v) => {
@@ -367,7 +315,7 @@ Test("Obj remove deep", (Obj) => {
 
 
 A('removeAll', z => {
-  _each(z._children, (v, k) => z.get(k).toNotFound());
+  _each(z._value, (v, k) => z.get(k).toNotFound());
 });
 
 
@@ -407,18 +355,16 @@ Test("map", function(Obj, map) {
   const a = Obj({q: 3, a: 2});
   const b = a.map(x => x * 2);
   expect(b.jsValue).deepEqual({q:6, a:4});
-  a.set('z', 1);
-  expect(b.jsValue).deepEqual({q:6, a:4, z:2});
 });
 
 
 M.rObj('filter', (r, c, f) => c.each((v, k) => f(v,k) && r.set(k, v)));
 
-
-//M('rFilter', (c, f) => c._type().apply(z => c.listen({
-//  onAdd: (v, k) => f(v, k) && z.set(k, v),
-//  onRemove: (v, k) => z.remove(k)
-//})));
+Test("filter", function(Obj, filter) {
+  const a = Obj({q: 3, a: 2, z:5});
+  const b = a.filter(n => n % 2);
+  expect(b.jsValue).deepEqual({q:3, z:5});
+});
 
 
 M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
@@ -439,7 +385,7 @@ C.Function(function some(c, f){
 
 C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
-    return !!c.reduce((res, v, k) => res && f(v, k), true)();
+    return !!c.reduce((res, v, k) => res && f(v, k), true);
   });
 
 Test((Obj, every) => {
@@ -498,7 +444,7 @@ Test((includes) => {
 Check.Obj('includes', (o, t) => {
   let res = false;
   o.each(v => {
-    if(v.is(t)){
+    if(nice.is(v, t)){
       res = true;
       return nice.Stop();
     }

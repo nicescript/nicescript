@@ -67,11 +67,18 @@ is = nice.is;
 
 const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
-  const low = i.toLowerCase();
-  Check.about(`Checks if \`v\` is \`${i}\`.`)
-    ('is' + i, basicJS.includes(low)
-    ? v => typeof v === low
-    : v => v && typeof v === 'object' ? v.constructor.name === i : false);
+  if(i === 'Function'){
+    Check.about(`Checks if \`v\` is \`function\`.`)
+      ('is' + i, v => v._isAnything
+        ? v._type === nice.Func || v._type === nice.jsType.Function
+        : typeof v === 'function');
+  } else {
+    const low = i.toLowerCase();
+    Check.about(`Checks if \`v\` is \`${i}\`.`)
+      ('is' + i, basicJS.includes(low)
+      ? v => typeof v === low//BUG: always true for function since every nice item is function
+      : v => v && typeof v === 'object' ? v.constructor.name === i : false);
+  }
 };
 
 
@@ -312,3 +319,9 @@ function DelayedSwitch(initArgs) {
 
   return create(delayedProto, f);
 };
+
+Test((is) => {
+  const n = nice.Num(1);
+  expect(n.is(1)).is(true);
+  expect(n.is(2)).is(false);
+});

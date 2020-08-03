@@ -255,7 +255,6 @@ Stateful observable components.
 ```javascript
 const { Box, RBox } = nice;
 const b = Box(1);       // create box with 1 in it
-b.listen(console.log) // listen for updates
 b(2);                 // write value
 b();                  // read value
 
@@ -277,7 +276,6 @@ square.x(10).y(b)();       // 30
 Calling [mapping](#mapping) on box will create new box that follows changes in the original.
 ```javascript
 const a = nice.Box('qwe');
-const b = a.concat('!').listen(console.log);
 // qwe!
 a('asd');
 // asd!

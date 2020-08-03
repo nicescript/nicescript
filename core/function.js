@@ -6,7 +6,7 @@
 
  - Use function as a dependence for items created with it
 
- - 
+ -
 
  */
 
@@ -129,34 +129,12 @@ function configurator(...a){
   return Configurator(cfg.name).next(cfg);
 };
 
-//function compileFunction(cfg) {
-//  return  () => console.log('Yo!', cfg.type);
-//}
 
 //optimization: create function that don't check fist argument for type.proto
 function createFunction({ name, body, signature, type, description, returns }){//existing,
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw new Error("Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`);
-//  const db = nice._db;
-//  const index = db.core._children;
-//  const id = index[name];
-//  if(id) {
-////    const cfg = nice._db.getValue(id, '_args');
-////    check type match
-//  } else {
-//    const cfg = { body, signatures: [{signature, description}], type };
-//    const id = nice._db.push({
-//      _args: [cfg],
-//      _parent: db.core._id,
-//      _name: name,
-//      _cellType: 'Func',
-//      _by: compileFunction
-//    }).lastId;
-//    defGet(nice, name, () => {
-//
-//    });
-//  }
 
   const existing = (name && nice[name]);
 
@@ -186,10 +164,21 @@ function createFunction({ name, body, signature, type, description, returns }){/
   return f;
 };
 
+nice.reflect.on('signature', s => {
+  if(!Anything)
+    return;
 
-nice.reflect.on('function', (f) =>
-  Anything && !(f.name in Anything.proto) &&
-      def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
+  const first = s.signature[0];
+  const type = first ? first.type : Anything;
+//  !first && console.log(s.name);
+  if(!(s.name in type.proto))
+    def(type.proto, s.name, function(...a) { return s.f(this, ...a); });
+});
+
+
+//nice.reflect.on('function', (f) =>
+//  Anything && !(f.name in Anything.proto) &&
+//      def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
 
 
 function createMethodBody(type, body) {
@@ -237,21 +226,21 @@ function useBody(target, name, functionType, ...args){
   if(!target || !target.action)
     return Err(signatureError(name, args));
 
-  args.forEach(a => a !== undefined && a._isAnything && a._type === nice.Pending && a._compute());
-
   try {
     if(target.transformations)
       for(let i in target.transformations)
         args[i] = target.transformations[i](args[i]);
 
     if(functionType === 'Action'){
-      if(args[0]._by && args[0]._status !== 'cooking')
-        throw `Cant't ${name} on reactive item.`;
       target.action(...args);
       return args[0];
-    } else {
-      return target.action(...args);
+    } else if('returnType' in target.action){
+//      result.to(target.action.returnType);
+      const result = target.action.returnType();
+      target.action(result, ...args);
+      return result;
     }
+    return target.action(...args);
   } catch (e) {
     return Err(e);
   }
@@ -303,28 +292,12 @@ if(target.transformations)
 `;
 
 
-const warmupArgs = `
-    let ready = true;
-    this._args.forEach(a => {
-      if(a._isAnything){
-        a._compute();
-        ready &= !a.isPending();
-        follow && a.listen(this);
-      }
-    });
-
-    if(!ready)
-      return result.toPending();
-
-`;
-
 function createMappingBody(){
   const {_1,_2,_3,_$} = nice;
   const by = new Function('nice', 'result', 'follow', 'z', '...args', `
     const call = new Set();
 
     ${targetLookup}
-    ${warmupArgs}
 
     try {
       ${applyTransformations}
@@ -345,9 +318,6 @@ function createMappingBody(){
         return skip(z, args);
     }
     const result = nice._createItem(Anything, Anything);
-    result._args = [z, ...args];
-    result._by = by;
-    result._status = 'cold';
     return result;
   });
   return z;
@@ -366,8 +336,6 @@ function createCheckBody(){
 
     const l = args.length;
     let precision = Infinity;
-
-    args.forEach(a => a !== undefined && a._isAnything && a._status === 'cold' && a._compute());
 
     for(let i = 0; i < l; i++) {
       if(target && target.size) {
@@ -411,11 +379,11 @@ function createCheckBody(){
 
 
 function createFunctionBody(type){
-  if(type === 'Mapping'){
-    const f = createMappingBody();
-    f.functionType = 'Mapping';
-    return f;
-  }
+//  if(type === 'Mapping'){
+//    const f = createMappingBody();
+//    f.functionType = 'Mapping';
+//    return f;
+//  }
 
   if(type === 'Check'){
     const f = createCheckBody();
@@ -593,7 +561,6 @@ reflect.on('type', type => {
     expect(f).isFunction();
     defGet(type.proto, name, function() {
       const initType = this._type;
-      this._compute();
       if(initType !== this._type){
         return this[name];
       } else {

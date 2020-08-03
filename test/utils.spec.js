@@ -173,26 +173,26 @@ describe("utils", function() {
   });
 
 
-//  it("clone", function() {
-//    let a = Arr(1,2);
-//    let b = nice.clone(a);
-//
-//    expect(b()).to.deep.equal([1,2]);
-//    a.push(3);
-//
-//    expect(b()).to.deep.equal([1,2]);
-//  });
-//
-//
-//  it("cloneDeep", function() {
-//    let a = Arr(1,2);
-//    let b = nice.cloneDeep(a);
-//
-//    expect(b()).to.deep.equal([1,2]);
-//    a.push(3);
-//
-//    expect(b()).to.deep.equal([1,2]);
-//  });
+  it("clone", function() {
+    let a = Arr(1,2);
+    let b = nice.clone(a);
+
+    expect(b()).to.deep.equal([1,2]);
+    a.push(3);
+
+    expect(b()).to.deep.equal([1,2]);
+  });
+
+
+  it("cloneDeep", function() {
+    let a = Arr(1,2);
+    let b = nice.cloneDeep(a);
+
+    expect(b()).to.deep.equal([1,2]);
+    a.push(3);
+
+    expect(b()).to.deep.equal([1,2]);
+  });
 
   const jsTable = [
     [2,2],

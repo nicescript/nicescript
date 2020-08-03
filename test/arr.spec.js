@@ -43,15 +43,6 @@ describe("Arr", function() {
   });
 
 
-  Test("insertAt subscription", (Spy) => {
-    let a = Arr();
-    const onAdd = Spy();
-    a.listen({ onAdd });
-    a.insertAt(0, 2);
-    expect(onAdd).to.have.been.called();
-  });
-
-
   Test("pop", () => {
     const a = Arr(1, 2);
     const b = a.pop();

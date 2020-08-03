@@ -32,11 +32,12 @@ _each({
   previous: n => n - 1
 }, (f, name) => M(name, f));
 
-Test((sum, Num) => {
-  var a = Num(1);
-  var b = a.sum(2);
-  expect(b).is(3);
-});
+//TODO:0  Number->Num & Num-> Number signatures
+//Test((sum, Num) => {
+//  var a = Num(1);
+//  var b = a.sum(2);
+//  expect(b).is(3);
+//});
 
 
 `acos
@@ -93,16 +94,19 @@ Test(clamp => {
   expect(clamp(10, 1, 3)).is(3);
 });
 
-M.Function('times', (n, f) => {
-  let i = 0;
-  const res = [];
-  while(i < n) res.push(f(i++));
-  return res;
-});
+//TODO:0 return after Arr ready
+//M.Function('times', (n, f) => {
+//  let i = 0;
+//  const res = nice.Arr();
+//  while(i < n) res.push(f(i++));
+//  return res;
+//});
 
-Test(times => {
-  expect(times(2, () => 1).jsValue).deepEqual([1,1]);
-});
+//Test((times, Num) => {
+//  const f = () => 1;
+//  expect(times(2, f).jsValue).deepEqual([1,1]);
+//  expect(Num(2).times(f).jsValue).deepEqual([1,1]);
+//});
 
 const A = Action.Num;
 A('inc', (z, n = 1) => z(z() + n));

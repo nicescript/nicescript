@@ -11,7 +11,6 @@ const toString = v => {
 
 reflect.on('Check', f => {
   f.name && def(nice.expectPrototype, f.name, function(...a){
-    this.value && this.value._compute && this.value._compute();
     const res = this._preF ? this._preF(f(this.value, ...a)) : f(this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
       const e = new Error(this.text || ['Expected (', toString(this.value), ')',

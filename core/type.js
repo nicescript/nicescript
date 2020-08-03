@@ -44,9 +44,7 @@ defAll(nice, {
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      const item = nice._createItem(type, type, a);
-      item._status = 'hot';
-      return item;
+      return nice._createItem(type, type, a);
     };
 
 //    config.proto._type = type;

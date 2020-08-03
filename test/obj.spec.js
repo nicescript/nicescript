@@ -13,7 +13,6 @@ describe("Obj", function() {
 //    const asd = a.getDeep(['qwe', 'asd']);
 //    expect(asd).to.equal(a.getDeep(['qwe', 'asd']));
 //    expect(asd).to.equal(a.get('qwe').get('asd'));
-//    expect(asd._parent).to.equal(a.get('qwe'));
 //  });
 
 
