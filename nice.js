@@ -2820,7 +2820,7 @@ nice.Single.extensible = false;
 })();
 (function(){"use strict";
 let autoId = 0;
-const AUTO_PREFIX = '_nn_'
+const AUTO_PREFIX = '_nn_';
 nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .str('tag', 'div')
@@ -2868,6 +2868,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   })
   .ReadOnly(text)
   .ReadOnly(html)
+  .ReadOnly(dom)
   .Method.about('Scroll browser screen to an element.')(function scrollTo(z, offset = 10){
     z.on('domNode', n => {
       n && window.scrollTo(n.offsetLeft - offset, n.offsetTop - offset);
@@ -3035,7 +3036,71 @@ function html(z){
   z.children.each(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
+function toDom(e){
+  return e._isAnything
+    ? e.dom
+    : document.createTextNode(nice.htmlEscape(e));
+ };
+function dom(e){
+  const res = document.createElement(e.tag());
+  e.style.each((v, k) => {
+    res.style[k] = '' + v;
+  });
+  e.attributes.each((v, k) => {
+    res[k] = v;
+  });
+  e.children.each(c => res.appendChild(toDom(c)));
+  return res;
+}
+const childrenCounter = (o, v) => {
+  o[v] ? o[v]++ : (o[v] = 1);
+  return o;
+};
+const extractKey = v => {
+  if(v._isAnything)
+    v = v.jsValue;
+  if(typeof v === 'object')
+    return v.id || v.attributes?.id || v.key;
+  return v;
+};
 defAll(nice, {
+  refreshElement(e, old, domNode){
+    
+    
+    const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
+    _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
+    _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
+    const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
+    _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
+    _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
+    nice.refreshChildren(e.children._value, old.children._value, domNode);
+  },
+  refreshChildren(aChildren, bChildren, domNode){
+    const aKeys = aChildren.map(extractKey);
+    const bKeys = bChildren.map(extractKey);
+    const aCount = aKeys.reduce(childrenCounter, {});
+    const bCount = bKeys.reduce(childrenCounter, {});
+    let ai = 0, bi = 0;
+    while(ai < aKeys.length){
+      const aChild = aKeys[ai], bChild = bKeys[bi];
+      if(aChild === bChild){
+        ai++, bi++;
+      } else if(!bCount[aChild]){
+        insertAt(domNode, toDom(aChildren[ai]), ai);
+        ai++;
+      } else if(!aCount[bChild]) {
+        domNode.removeChild(domNode.childNodes[ai]);
+        bi++;
+      } else {
+        domNode.replaceChild(toDom(aChildren[ai]), domNode.childNodes[bi]);
+        ai++, bi++;
+      }
+    };
+    while(bi < bKeys.length){
+      domNode.removeChild(domNode.childNodes[ai]);
+      bi++;
+    }
+  },
   htmlEscape: s => (''+s).replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;')
@@ -3179,14 +3244,14 @@ if(nice.isEnvBrowser()){
     node && node.parentNode.removeChild(node);
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
   }
-  function insertAt(parent, node, position){
-    parent.insertBefore(node, parent.childNodes[position]);
-    return node;
-  }
   
   
   
 };
+function insertAt(parent, node, position){
+  parent.insertBefore(node, parent.childNodes[position]);
+  return node;
+}
 def(nice, 'iterateNodesTree', (f, node = document.body) => {
   f(node);
   if(node.childNodes)
