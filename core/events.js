@@ -36,7 +36,7 @@ const EventEmitter = {
   },
 
   emit (name, ...a) {
-    this.listeners(name).forEach(f => f.apply(this, a));
+    this.listeners(name).forEach(f => Function.prototype.apply.apply(f, [this, a]));
     return this;
   },
 
