@@ -77,6 +77,9 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(nice.isNumber(c) || nice.isNum(c))
         return z.children.push(c);
 
+      if(nice.isBox(c))
+        return z.children.push(c());
+
       if(c === z)
         return z.children.push(`Errro: Can't add element to itself.`);
 
@@ -288,7 +291,8 @@ function dom(e){
     res[k] = v;
   });
 
-  e.children.each(c => res.appendChild(toDom(c)));
+//  e.children.each(c => res.appendChild(toDom(c)));
+  e.children.each(c => attachNode(c, res));// res.appendChild(toDom(c)));
 
   return res;
 //  return `${selectors}<${tag}${as}>${body}</${tag}>`;
@@ -298,6 +302,29 @@ const childrenCounter = (o, v) => {
   o[v] ? o[v]++ : (o[v] = 1);
   return o;
 };
+
+
+function attachNode(child, parent, position){
+
+  if(nice.isBox(child)){
+    let state = child();
+    let dom = toDom(state);
+    insertAt(parent, dom, position);
+    //TODO:0 unsubscribe
+    dom.niceListener = s => {
+      nice.refreshElement(s, state, dom);
+    };
+    child.on('state', dom.niceListener);
+  } else {
+    insertAt(parent, toDom(child), position);
+  }
+  //insertAt(domNode, toDom(aChildren[ai]), ai);
+}
+
+
+function detachNode(child){
+
+}
 
 
 const extractKey = v => {
@@ -313,17 +340,25 @@ const extractKey = v => {
 
 defAll(nice, {
   refreshElement(e, old, domNode){
-    //TODO: selectors
-    //TODO: tag
-    const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
-    _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
-    _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
+    const eTag = nice.isHtml(e) && e.tag(), oldTag = nice.isHtml(old) && old.tag();
 
-    const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
-    _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
-    _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
+    if (eTag !== oldTag){
+      domNode.parentNode.replaceChild(toDom(e), domNode);
+    } else if(!eTag) {
+      domNode.nodeValue = nice.htmlEscape(e);
+    } else {
+      //TODO: selectors
+      //TODO: tag
+      const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
+      _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
+      _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
 
-    nice.refreshChildren(e.children._value, old.children._value, domNode);
+      const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
+      _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
+      _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
+
+      nice.refreshChildren(e.children._value, old.children._value, domNode);
+    }
   },
   refreshChildren(aChildren, bChildren, domNode){
     const aKeys = aChildren.map(extractKey);
@@ -334,6 +369,7 @@ defAll(nice, {
     let ai = 0, bi = 0;
     while(ai < aKeys.length){
       const aChild = aKeys[ai], bChild = bKeys[bi];
+      //TODO: try to compare by value if both new
       if(aChild === bChild){
         ai++, bi++;
       } else if(!bCount[aChild]){//assume insert
@@ -617,7 +653,9 @@ if(nice.isEnvBrowser()){
 
 
 function insertAt(parent, node, position){
-  parent.insertBefore(node, parent.childNodes[position]);
+  typeof position === 'number'
+    ? parent.insertBefore(node, parent.childNodes[position])
+    : parent.appendChild(node);
   return node;
 }
 

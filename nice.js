@@ -595,7 +595,7 @@ const EventEmitter = {
     return this;
   },
   emit (name, ...a) {
-    this.listeners(name).forEach(f => f.apply(this, a));
+    this.listeners(name).forEach(f => Function.prototype.apply.apply(f, [this, a]));
     return this;
   },
   emitAndSave (name, ...a) {
@@ -1214,6 +1214,8 @@ const proxy = new Proxy({}, {
       return undefined;
     if(k === 'isPrototypeOf')
       return Object.prototype.isPrototypeOf;
+    if(k === 'hasOwnProperty')
+      return Object.prototype.hasOwnProperty;
     return k in receiver ? receiver[k] : nice.NotFound();
   },
 });
@@ -1885,6 +1887,28 @@ defGet(nice.Null.proto, function jsValue() {
 });
 defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
+});
+})();
+(function(){"use strict";
+nice.Type({
+  name: 'Box',
+  extends: 'Something',
+  customCall: (z, ...as) => {
+    if(as.length === 0)
+      return z._value;
+    z._value = as[0];
+    z.emit('state', as[0]);
+  }
+});
+nice.eventEmitter(nice.Box.proto);
+Test((Box, Spy) => {
+  const b = Box(11);
+  expect(b()).is(11);
+  const spy = Spy();
+  b.on('state', spy);
+  b.on('state', console.log);
+  b(22);
+  expect(spy).calledWith(22);
 });
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
@@ -2889,6 +2913,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z.children.push(c);
       if(nice.isNumber(c) || nice.isNum(c))
         return z.children.push(c);
+      if(nice.isBox(c))
+        return z.children.push(c());
       if(c === z)
         return z.children.push(`Errro: Can't add element to itself.`);
       if(c.isErr())
@@ -3049,13 +3075,30 @@ function dom(e){
   e.attributes.each((v, k) => {
     res[k] = v;
   });
-  e.children.each(c => res.appendChild(toDom(c)));
+  e.children.each(c => attachNode(c, res));
   return res;
 }
 const childrenCounter = (o, v) => {
   o[v] ? o[v]++ : (o[v] = 1);
   return o;
 };
+function attachNode(child, parent, position){
+  if(nice.isBox(child)){
+    let state = child();
+    let dom = toDom(state);
+    insertAt(parent, dom, position);
+    
+    dom.niceListener = s => {
+      nice.refreshElement(s, state, dom);
+    };
+    child.on('state', dom.niceListener);
+  } else {
+    insertAt(parent, toDom(child), position);
+  }
+  
+}
+function detachNode(child){
+}
 const extractKey = v => {
   if(v._isAnything)
     v = v.jsValue;
@@ -3065,15 +3108,22 @@ const extractKey = v => {
 };
 defAll(nice, {
   refreshElement(e, old, domNode){
-    
-    
-    const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
-    _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
-    _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
-    const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
-    _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
-    _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
-    nice.refreshChildren(e.children._value, old.children._value, domNode);
+    const eTag = nice.isHtml(e) && e.tag(), oldTag = nice.isHtml(old) && old.tag();
+    if (eTag !== oldTag){
+      domNode.parentNode.replaceChild(toDom(e), domNode);
+    } else if(!eTag) {
+      domNode.nodeValue = nice.htmlEscape(e);
+    } else {
+      
+      
+      const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
+      _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
+      _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
+      const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
+      _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
+      _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
+      nice.refreshChildren(e.children._value, old.children._value, domNode);
+    }
   },
   refreshChildren(aChildren, bChildren, domNode){
     const aKeys = aChildren.map(extractKey);
@@ -3083,6 +3133,7 @@ defAll(nice, {
     let ai = 0, bi = 0;
     while(ai < aKeys.length){
       const aChild = aKeys[ai], bChild = bKeys[bi];
+      
       if(aChild === bChild){
         ai++, bi++;
       } else if(!bCount[aChild]){
@@ -3249,7 +3300,9 @@ if(nice.isEnvBrowser()){
   
 };
 function insertAt(parent, node, position){
-  parent.insertBefore(node, parent.childNodes[position]);
+  typeof position === 'number'
+    ? parent.insertBefore(node, parent.childNodes[position])
+    : parent.appendChild(node);
   return node;
 }
 def(nice, 'iterateNodesTree', (f, node = document.body) => {

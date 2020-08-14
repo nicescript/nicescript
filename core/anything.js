@@ -14,6 +14,9 @@ const proxy = new Proxy({}, {
     if(k === 'isPrototypeOf')
       return Object.prototype.isPrototypeOf;
 
+    if(k === 'hasOwnProperty')
+      return Object.prototype.hasOwnProperty;
+
     return k in receiver ? receiver[k] : nice.NotFound();
   },
 });

@@ -22,6 +22,7 @@ const order = [
   'core/type',
   'core/spy',
   'core/simple_types',
+  'core/box',
   'core/logic',
   'core/value',
   'types/obj',
