@@ -21,12 +21,12 @@ describe("Events", function() {
     const item = newEmmiter().on('removeListener', spy).on('fiesta', f);
 
     expect(item.listeners('fiesta')).to.deep.equal([f]);
-    expect(item.listenerCount('fiesta')).to.equal(1);
+    expect(item.countListeners('fiesta')).to.equal(1);
 
     item.off('fiesta', f);
     expect(item.listeners('fiesta')).to.deep.equal([]);
     expect(spy).to.have.been.called.with('fiesta', f);
-    expect(item.listenerCount('fiesta')).to.equal(0);
+    expect(item.countListeners('fiesta')).to.equal(0);
   });
 
 
@@ -79,7 +79,7 @@ describe("Events", function() {
     b.on('fiesta', spy2);
     b.emit('fiesta', 'today');
 
-    expect(a.listenerCount('fiesta')).to.equal(1);
+    expect(a.countListeners('fiesta')).to.equal(1);
     expect(b._listeners['fiesta'].length).to.equal(1);
     expect(spy1).to.have.been.called.with(b, 'today');
     expect(spy2).to.have.been.called.with('today');

@@ -58,7 +58,7 @@ const EventEmitter = {
     return a;
   },
 
-  listenerCount (name){
+  countListeners (name){
     return this._listeners
       ? this._listeners[name]
         ? this._listeners[name].length

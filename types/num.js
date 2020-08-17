@@ -109,6 +109,7 @@ Test(clamp => {
 //});
 
 const A = Action.Num;
+A('add', (z, n) => z(z() + n));
 A('inc', (z, n = 1) => z(z() + n));
 A('dec', (z, n = 1) => z(z() - n));
 A('divide', (z, n) => z(z() / n));
