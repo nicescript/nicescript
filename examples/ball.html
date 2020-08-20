@@ -14,7 +14,7 @@ const platform = Box({ x:0, width: 60, height: 20 });
 
 const gameOver = RBox(ball, b => b.y + b.size > window.innerHeight);
 
-const view = Div(
+Div(
   RBox(ball, b => {
     const div = Div()
       .position('absolute')
@@ -41,9 +41,7 @@ const view = Div(
         .textAlign('center').position('absolute').width('100%').top('45%')
     : ''
   )
-);
-
-document.body.appendChild(div.dom);
+).show();
 
 window.addEventListener('mousemove', e => {
   const width = platform().width;

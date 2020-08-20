@@ -434,13 +434,11 @@ if(nice.isEnvBrowser()){
     return newNode;
   }
 
-
-  Func.primitive('show', (v, parentNode = document.body, position) => {
-    const node = document.createTextNode(v);
-    return insertAt(parentNode, node, position);
+  Func.Html('show', (div, parentNode = document.body, position) => {
+    return insertAt(parentNode, div.dom, position);
   });
-
 }
+
 
 function insertAt(parent, node, position){
   typeof position === 'number'
