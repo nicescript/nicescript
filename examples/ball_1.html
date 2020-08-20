@@ -1,0 +1,83 @@
+<html>
+  <head>
+    <title>Ball game example</title>
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0;overflow: hidden;">
+<script>
+const { Type, Div, H1, Box, clamp, Bool } = nice;  
+let speed = 5;
+
+Type('Ball').num('x').num('dx').num('y').num('dy').num('size').num('speed');
+
+const ball = nice.Ball().y(10).dx(speed).dy(speed).size(20);
+
+Type('Platform').num('x').num('height').num('width');
+const platform = nice.Platform().height(20).width(60);
+
+const gameOver = Bool();
+//const gameOver = RBox(ball, b => b.y + b.size > window.innerHeight);
+
+
+//RBox(ball, b => {
+  const div = Div()
+    .position('absolute')
+    .top(ball.y).left(ball.x)
+    .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
+    .borderRadius('50%')
+    .width(ball.size + 'px').height(ball.size + 'px')
+    .show();
+//    
+//  return gameOver()
+//    ? div.add('💥').margin('-100px').fontSize('200px')
+//    : div
+//      .background('radial-gradient(circle at 30% 30%, #5cabff, #000)')
+//      .borderRadius('50%')
+//      .width(b.size + 'px').height(b.size + 'px');
+//}).show();
+
+
+//RBox(gameOver, over => over && H1('You lose!').color('red')
+//    .textAlign('center').position('absolute').width('100%').top('45%')
+//).show();
+
+
+//RBox(platform, p => Div().position('absolute')
+//  .background('linear-gradient(#333, #777 25%, #000)')
+//  .bottom(0)
+//  .borderRadius(p.width / 2 + 'px')
+//  .width(p.width + 'px').height(p.height + 'px')
+//  .left(p.x + 'px')
+//).show();
+//
+//
+//window.addEventListener('mousemove', e => {
+//  const width = platform().width;
+//  platform.assign({
+//    x: clamp(e.clientX - width / 2, document.body.offsetWidth - width)
+//  });
+//});
+
+
+function move() {
+  let p = platform();
+  let { x, y, dx, dy, size } = ball.jsValue;
+
+  dx = x + size > window.innerWidth
+    ? -speed
+    : x < 0 ? speed : dx;
+
+//  const low = y + size > window.innerHeight - platform.height;
+//  dy = low && x > p.x && x < p.x + p.width
+//    ? -speed
+//    : y < 0 ? speed : dy;
+
+  gameOver() || setTimeout(move, 20);
+  ball.assign({ dx, dy, x: x + dx, y: y + dy });
+}
+move();
+
+
+</script>
+  </body>
+</html>

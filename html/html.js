@@ -190,7 +190,7 @@ reflect.on('extension', ({child, parent}) => {
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       const s = this.style;
-      if(!a[0])
+      if(a.length === 0)
         return s[property]();
       nice.Switch(a[0])
 //        .isBox().use(b => s.set(property, b))
@@ -336,11 +336,6 @@ function detachNode(child, dom, parent){
   parent && parent.removeChild(dom);
 }
 
-
-function switchNode(element, ) {
-  domNode.parentNode.replaceChild(newDom, domNode);
-
-}
 
 const extractKey = v => {
   if(v._isAnything)
