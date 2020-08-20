@@ -17,7 +17,8 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
 
 const users = {
   Jo: Box({balance: 50}),
-  Jane: Box({balance: -10})
+  Jane: Box({balance: -10}),
+  Jim: Box({balance: 0})
 };
 
 var d = Div(Arr('qwe', 'asd')).color('red');
@@ -30,36 +31,34 @@ function change(e){
   last = e;
 }
 
-Html.extend('UserView')
-  .by((z, id) => {
-    z.id(id).h1('User ' + id);
-  });
+//Html.extend('UserView')
+//  .by((z, id) => {
+//    z.id(id).h1('User ' + id);
+//  });
+//RBox.extend('UserView')
+//  .by((z, id) => {
+//    z.id(id).h1('User ' + id);
+//  });
+  
+function userView(id){
+  return RBox(users[id], info => Div().id(id)
+    .h1('User ' + id)
+    .div('Balance: ' + info.balance));
+}  
 
 
 change(Div(Arr('qwe', 'asd')).color('blue'));
 change(Div(Arr('qwe', 'asd')).id('qqwe1').color('blue'));
-change(Div(Arr('qwe', 'asd')).color('green'));
-change(Div(Arr('qwe', 'zxc', 'asd')).color('green'));
-change(Div(Arr('qwe', 'poi', 'asd')).color('green'));
 change(Div(Arr('qwe')).id('asd').color('green'));
 change(Div(Arr('qwe', 'asd')).id('asd').color('green'));
 change(Div(Arr('asd')).id('asd').color('green'));
-change(Div().userView('Jo').userView('Jane').add('footer'));
-change(Div().add('header').userView('Jim').userView('Jane').add('footer'));
+change(Div().add(userView('Jo')).add(userView('Jane')).add('footer'));
+change(Div().add('header').add(userView('Jim')).add(userView('Jane')).add('footer'));
 
 
-//users.Jo({...users.Jo(), balance:400});
+users.Jim({...users.Jim(), balance:400});
 
-  const spy = Spy();
-  const b = Box(1);
-  const rb = RBox(b, a => a + 1);
-  rb.subscribe(spy);
-  expect(spy).calledOnce();
-  rb.unSubscribe(spy);
-  b(7);
-  expect(spy).calledOnce();
-  expect(rb.countListeners('state')).is(0);
-  expect(b.countListeners('state')).is(0);
+
 
 
 </script>

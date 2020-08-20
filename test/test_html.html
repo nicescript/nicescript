@@ -100,6 +100,20 @@ Test('Foolow Box', (Html) => {
   expect(dom.textContent).is('N: 6');
 });
 
+  
+Test('Foolow RBox', (Html) => {
+  const b = Box(1);
+  const rb = RBox(b, n => H1(n));
+  const div = Div(rb);
+  const dom = div.dom;
+
+  document.body.appendChild(dom);
+
+  b(2);
+  expect(dom.innerHTML).is('<h1>2</h1>');
+});
+
+
 //H3('Counter').show();
 //RBox(counter, c => Div('1: ', c)).show();
 //RBox(counter2, c => Div('2: ', c)).show();
