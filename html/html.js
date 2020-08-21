@@ -15,8 +15,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = e.eventHandlers.get(name);
-    handlers.isArr() ? handlers.push(f) : e.eventHandlers.set(name, [f]);
+    const handlers = e.eventHandlers();
+    handlers[name] ? handlers[name].push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
   .Action.about('Removes event handler from an element.')(function off(e, name, f){
@@ -260,7 +260,7 @@ function html(z){
   style && (as = ' style="' + style + '"');
 
   z.attributes.each((v, k) => {
-    k === 'className' && (k = 'class', v().trim());
+    k === 'className' && (k = 'class', v.trim());
     as += ` ${k}="${v}"`;
   });
 
@@ -294,6 +294,17 @@ function dom(e){
 
 //  e.children.each(c => res.appendChild(toDom(c)));
   e.children.each(c => attachNode(c, res));// res.appendChild(toDom(c)));
+
+  e.eventHandlers.each((ls, type) => {
+//            if(k === 'domNode')
+//              return f(node);
+    ls.forEach(f => res.addEventListener(type, f, true));
+
+//TODO:
+//            node.__niceListeners = node.__niceListeners || {};
+//            node.__niceListeners[k] = node.__niceListeners[k] || [];
+//            node.__niceListeners[k].push(f);
+  });
 
   return res;
 //  return `${selectors}<${tag}${as}>${body}</${tag}>`;
@@ -361,7 +372,7 @@ defAll(nice, {
       domNode.nodeValue = nice.htmlEscape(e);
     } else {
       //TODO: selectors
-      //TODO: tag
+      //TODO: events
       const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
       _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
       _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));

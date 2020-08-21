@@ -216,14 +216,6 @@ nice.registerType({
 });
 
 
-Test(function getDeep(Obj){
-  const o = Obj({q:{a:2}});
-  expect(o.getDeep('q', 'a')).is(2);
-  expect(o.getDeep('q', 'z')).isNotFound();
-  expect(o.getDeep() === o).isTrue();
-});
-
-
 Anything = nice.Anything;
 
 defGet(Anything.proto, 'switch', function () { return Switch(this); });

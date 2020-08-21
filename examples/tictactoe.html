@@ -5,7 +5,7 @@
   </head>
   <body>
 <script>
-const { Num, Arr, Div, H1, Ol, Li, Box, Button } = nice;  
+const { Num, Arr, Div, H1, Ol, Li, Box, RBox, Button } = nice;  
 
 const step = Num(0);
 
@@ -13,9 +13,10 @@ const whoseTurn = n => n % 2 ? 'o' : 'x';
 
 const current = RBox(step, whoseTurn);
 
-const state = Arr().fill(null, 0, 9);
+//const state = Arr().fill(null, 0, 9);
+const state = Box([0,0,0,0,0,0,0,0,0]);
 
-const history = Arr(state());
+//const history = Arr(state());
 
 const lines = [
   [0, 1, 2],
@@ -29,14 +30,13 @@ const lines = [
 ];
 
 const gameOver = RBox(state, s => {
-  s = s.jsValue;
-  return lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a))
+  return lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a));
 });
     
 const handleClick = i => {
-  history.size > step + 1 && history.splice(step + 1);
+//  history.size > step + 1 && history.splice(step + 1);
   state.set(i, current());
-  history.push(state.jsValue);
+//  history.push(state.jsValue);
   step.inc();
 };
 
@@ -47,8 +47,8 @@ const sellView = (v, i) => Div(v)
   .margin('-1px')
   .on('click', () => gameOver() || state.get(i).isStr() || handleClick(i));
   
-const historyButton = (s, i) => 
-  Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.jsValue); step(i); }));
+//const historyButton = (s, i) => 
+//  Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.jsValue); step(i); }));
  
 Div(
   H1('Tic Tac Toe'),
@@ -57,7 +57,7 @@ Div(
   RBox(gameOver, current, (o, c) => o 
     ? 'Winner: ' + whoseTurn(step() - 1)
     : 'Next player: ' + c),  
-  RBox(history, h => Ol(h.map(historyButton))),
+//  RBox(history, h => Ol(h.map(historyButton))),
 ).show();
 </script>
   </body>

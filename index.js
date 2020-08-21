@@ -1362,12 +1362,6 @@ nice.registerType({
     return this;
   }
 });
-Test(function getDeep(Obj){
-  const o = Obj({q:{a:2}});
-  expect(o.getDeep('q', 'a')).is(2);
-  expect(o.getDeep('q', 'z')).isNotFound();
-  expect(o.getDeep() === o).isTrue();
-});
 Anything = nice.Anything;
 defGet(Anything.proto, 'switch', function () { return Switch(this); });
 nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
@@ -2265,9 +2259,9 @@ A.about(`Set value if it's missing.`)
 Test((Obj, setDefault) => {
   const o = Obj({a:1});
   o.setDefault('a', 2);
-  expect(o.get('a').is(1));
+  expect(o.get('a')).is(1);
   o.setDefault('z', 2);
-  expect(o.get('a').is(2));
+  expect(o.get('z')).is(2);
 });
 F(function each(z, f){
   const index = z._value;
@@ -2302,7 +2296,7 @@ Mapping.Object('get', (o, path) => {
 });
 Test((Obj, NotFound) => {
   const o = Obj({q:1});
-  expect(o.get('q')()).is(1);
+  expect(o.get('q')).is(1);
   expect(o.get('z')).isNotFound();
 });
 Action.Object('set', (o, i, v) => {
@@ -2315,13 +2309,15 @@ A('set', (z, key, value, ...tale) => {
     throw `Can't set ${key} to undefined`;
   if(value === null)
     return z.remove(_name);
-  if(!z._value[_name]){
-    const type = z._type;
-    const childType = (type && type.types[key]) || Anything;
-    const child = nice._createItem(childType, childType);
-    z._value[_name] = child;
+  const type = z._type;
+  const childType = (type && type.types[key]);
+  if(childType) {
+    if(!z._value[_name]){
+      z._value[_name] = nice._createItem(childType, childType);
+    }
+    z._value[_name](value, ...tale);
   }
-  z._value[_name](value, ...tale);
+  z._value[_name] = value;
 });
 A('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 A.about('Remove element at `i`.')
@@ -2337,14 +2333,6 @@ Test((remove, Obj) => {
   expect( o.size() ).is(2);
   expect( remove(o, 'q').jsValue ).deepEqual({ a:2 });
   expect( o.size() ).is(1);
-});
-Test("Obj remove deep", (Obj) => {
-  const o = Obj({a: {b: { c:1 }}});
-  const id = o.get('a').get('b').get('c')._id;
-  expect(o.get('a').get('b').get('c')).is(1);
-  o.get('a').remove('b');
-  expect(o.get('a').get('b')).isNotFound();
-  expect(o.get('a').get('b').get('c')).isNotFound();
 });
 A('removeAll', z => {
   _each(z._value, (v, k) => z.get(k).toNotFound());
@@ -2481,6 +2469,12 @@ reflect.on('type', type => {
     createProperty(this, name, ...as);
     return this;
   });
+});
+Test(function getDeep(Obj){
+  const o = Obj({q:Obj({a:2})});
+  expect(o.getDeep('q', 'a')).is(2);
+  expect(o.getDeep('q', 'z')).isNotFound();
+  expect(o.getDeep() === o).isTrue();
 });
 })();
 (function(){"use strict";nice.Type({
@@ -3014,8 +3008,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = e.eventHandlers.get(name);
-    handlers.isArr() ? handlers.push(f) : e.eventHandlers.set(name, [f]);
+    const handlers = e.eventHandlers();
+    handlers[name] ? handlers[name].push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
   .Action.about('Removes event handler from an element.')(function off(e, name, f){
@@ -3212,7 +3206,7 @@ function html(z){
   let style = compileStyle(z.style);
   style && (as = ' style="' + style + '"');
   z.attributes.each((v, k) => {
-    k === 'className' && (k = 'class', v().trim());
+    k === 'className' && (k = 'class', v.trim());
     as += ` ${k}="${v}"`;
   });
   let body = '';
@@ -3235,6 +3229,9 @@ function dom(e){
     res[k] = v;
   });
   e.children.each(c => attachNode(c, res));
+  e.eventHandlers.each((ls, type) => {
+    ls.forEach(f => res.addEventListener(type, f, true));
+  });
   return res;
 }
 const childrenCounter = (o, v) => {
