@@ -1,32 +1,3 @@
-//      if(typeof a[0] === 'function')
-//        this.target.initBy = a[0];
-//      else if(typeof a[0] === 'string')
-//        this.target.initBy = (z, ...vs) => {
-//          a.forEach((name, i) => z.set(name, vs[i]));
-//        }
-//      return this;
-//    },
-//
-//    assign (...o) {
-//      Object.assign(this.target.proto, ...o);
-//      return this;
-//    },
-//
-//    addProperty (name, cfg){
-//      Object.defineProperty(this.target.proto, name, cfg);
-//      return this;
-//    },
-//
-//    Const (name, value){
-//      def(this.target, name, value);
-//      def(this.target.proto, name, value);
-//      return this;
-//    },
-//  },
-//}).about('Parent type for all values.');
-//
-//
-
 nice.Type({
   name: 'Box',
 

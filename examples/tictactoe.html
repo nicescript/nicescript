@@ -5,20 +5,19 @@
   </head>
   <body>
 <script>
-const { Num, Arr, Div, H1, Ol, Li, Box, RBox, Button } = nice;  
+const { Num, Arr, Div, H1, Ol, Li, A, Box, RBox, Button } = nice;  
 
-const step = Num(0);
+const step = Box(0);
 
 const whoseTurn = n => n % 2 ? 'o' : 'x';
 
-const current = RBox(step, whoseTurn);
+const currentPlayer = RBox(step, whoseTurn);
 
-//const state = Arr().fill(null, 0, 9);
-const state = Box([0,0,0,0,0,0,0,0,0]);
+const state = Box(Array(9).fill(null));
 
-//const history = Arr(state());
+const history = Box([state()]);
 
-const lines = [
+const wins = [
   [0, 1, 2],
   [3, 4, 5],
   [6, 7, 8],
@@ -30,34 +29,42 @@ const lines = [
 ];
 
 const gameOver = RBox(state, s => {
-  return lines.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a));
+  return wins.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a));
 });
     
 const handleClick = i => {
-//  history.size > step + 1 && history.splice(step + 1);
-  state.set(i, current());
-//  history.push(state.jsValue);
+  const current = step() + 1;
+  history().length > current && history(history().slice(0, current));
+  
+  const a = state().slice();
+  a[i] = currentPlayer();
+  history.push(a);
+  state(a);
   step.inc();
 };
 
 const sellView = (v, i) => Div(v)
   .textAlign('center').font('3.2rem Arial')
-  .width('4rem').height('4rem')
-  .border('1px #000 solid')
-  .margin('-1px')
-  .on('click', () => gameOver() || state.get(i).isStr() || handleClick(i));
+  .backgroundColor('white')
+  .on('click', () => gameOver() || state()[i] !== null || handleClick(i));
   
-//const historyButton = (s, i) => 
-//  Li(Button('Go to move #' + i, () => { state.removeAll(); state(...s.jsValue); step(i); }));
+const historyButton = (s, i) => 
+  Li(Button('Go to move #' + i, () => { state(s); step(i); }));
  
 Div(
   H1('Tic Tac Toe'),
   RBox(state, s => Div(s.map(sellView))
-      .width('12rem').display('flex').flexWrap('wrap').margin('1rem 0')),
-  RBox(gameOver, current, (o, c) => o 
-    ? 'Winner: ' + whoseTurn(step() - 1)
-    : 'Next player: ' + c),  
-//  RBox(history, h => Ol(h.map(historyButton))),
+      .display('inline-grid')
+      .gridTemplateColumns('4rem 4rem 4rem')
+      .gridTemplateRows('4rem 4rem 4rem')
+      .border('3px solid #666')
+      .gridGap('3px')
+      .backgroundColor('#666')
+      .margin('1rem 0')),
+  RBox(gameOver, currentPlayer, (o, c) => o 
+    ? H1('Winner: ' + whoseTurn(step() - 1))
+    : Div('Next player: ' + c)),  
+  RBox(history, h => Ol(h.map(historyButton))),
 ).show();
 </script>
   </body>

@@ -15,8 +15,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = e.eventHandlers();
-    handlers[name] ? handlers[name].push(f) : e.eventHandlers.set(name, [f]);
+    const handlers = e.eventHandlers.get(name);
+    handlers.isArr() ? handlers.push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
   .Action.about('Removes event handler from an element.')(function off(e, name, f){
@@ -78,7 +78,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z.children.push(c);
 
       if(nice.isBox(c))
-        return z.children.push(c);
+        return z.children.push(c());
 
       if(c === z)
         return z.children.push(`Errro: Can't add element to itself.`);
@@ -141,6 +141,7 @@ Test("item child", function(Num, Html) {
 });
 
 
+
 nice.Type('Style')
   .about('Represents CSS style.');
 
@@ -185,14 +186,15 @@ reflect.on('extension', ({child, parent}) => {
   }
 });
 
-//removed: src removed to avoid conflict with 'src' attribute
-'alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,appearance,backdropFilter,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,blockSize,border,borderBlockEnd,borderBlockEndColor,borderBlockEndStyle,borderBlockEndWidth,borderBlockStart,borderBlockStartColor,borderBlockStartStyle,borderBlockStartWidth,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderInlineEnd,borderInlineEndColor,borderInlineEndStyle,borderInlineEndWidth,borderInlineStart,borderInlineStartColor,borderInlineStartStyle,borderInlineStartWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,caretColor,clear,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,colorScheme,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,contain,containIntrinsicSize,content,counterIncrement,counterReset,cursor,cx,cy,d,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontDisplay,fontFamily,fontFeatureSettings,fontKerning,fontOpticalSizing,fontSize,fontStretch,fontStyle,fontVariant,fontVariantCaps,fontVariantEastAsian,fontVariantLigatures,fontVariantNumeric,fontVariationSettings,fontWeight,gap,grid,gridArea,gridAutoColumns,gridAutoFlow,gridAutoRows,gridColumn,gridColumnEnd,gridColumnGap,gridColumnStart,gridGap,gridRow,gridRowEnd,gridRowGap,gridRowStart,gridTemplate,gridTemplateAreas,gridTemplateColumns,gridTemplateRows,height,hyphens,imageOrientation,imageRendering,inlineSize,isolation,justifyContent,justifyItems,justifySelf,left,letterSpacing,lightingColor,lineBreak,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBlockEnd,marginBlockStart,marginBottom,marginInlineEnd,marginInlineStart,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxBlockSize,maxHeight,maxInlineSize,maxWidth,maxZoom,minBlockSize,minHeight,minInlineSize,minWidth,minZoom,mixBlendMode,objectFit,objectPosition,offset,offsetDistance,offsetPath,offsetRotate,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowAnchor,overflowWrap,overflowX,overflowY,overscrollBehavior,overscrollBehaviorBlock,overscrollBehaviorInline,overscrollBehaviorX,overscrollBehaviorY,padding,paddingBlockEnd,paddingBlockStart,paddingBottom,paddingInlineEnd,paddingInlineStart,paddingLeft,paddingRight,paddingTop,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,placeContent,placeItems,placeSelf,pointerEvents,position,quotes,r,resize,right,rowGap,rubyPosition,rx,ry,scrollBehavior,scrollMargin,scrollMarginBlock,scrollMarginBlockEnd,scrollMarginBlockStart,scrollMarginBottom,scrollMarginInline,scrollMarginInlineEnd,scrollMarginInlineStart,scrollMarginLeft,scrollMarginRight,scrollMarginTop,scrollPadding,scrollPaddingBlock,scrollPaddingBlockEnd,scrollPaddingBlockStart,scrollPaddingBottom,scrollPaddingInline,scrollPaddingInlineEnd,scrollPaddingInlineStart,scrollPaddingLeft,scrollPaddingRight,scrollPaddingTop,scrollSnapAlign,scrollSnapStop,scrollSnapType,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,size,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textDecorationColor,textDecorationLine,textDecorationSkipInk,textDecorationStyle,textIndent,textOrientation,textOverflow,textRendering,textShadow,textSizeAdjust,textTransform,textUnderlinePosition,top,touchAction,transform,transformBox,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userSelect,userZoom,vectorEffect,verticalAlign,visibility,webkitAlignContent,webkitAlignItems,webkitAlignSelf,webkitAnimation,webkitAnimationDelay,webkitAnimationDirection,webkitAnimationDuration,webkitAnimationFillMode,webkitAnimationIterationCount,webkitAnimationName,webkitAnimationPlayState,webkitAnimationTimingFunction,webkitAppRegion,webkitAppearance,webkitBackfaceVisibility,webkitBackgroundClip,webkitBackgroundOrigin,webkitBackgroundSize,webkitBorderAfter,webkitBorderAfterColor,webkitBorderAfterStyle,webkitBorderAfterWidth,webkitBorderBefore,webkitBorderBeforeColor,webkitBorderBeforeStyle,webkitBorderBeforeWidth,webkitBorderBottomLeftRadius,webkitBorderBottomRightRadius,webkitBorderEnd,webkitBorderEndColor,webkitBorderEndStyle,webkitBorderEndWidth,webkitBorderHorizontalSpacing,webkitBorderImage,webkitBorderRadius,webkitBorderStart,webkitBorderStartColor,webkitBorderStartStyle,webkitBorderStartWidth,webkitBorderTopLeftRadius,webkitBorderTopRightRadius,webkitBorderVerticalSpacing,webkitBoxAlign,webkitBoxDecorationBreak,webkitBoxDirection,webkitBoxFlex,webkitBoxOrdinalGroup,webkitBoxOrient,webkitBoxPack,webkitBoxReflect,webkitBoxShadow,webkitBoxSizing,webkitClipPath,webkitColumnBreakAfter,webkitColumnBreakBefore,webkitColumnBreakInside,webkitColumnCount,webkitColumnGap,webkitColumnRule,webkitColumnRuleColor,webkitColumnRuleStyle,webkitColumnRuleWidth,webkitColumnSpan,webkitColumnWidth,webkitColumns,webkitFilter,webkitFlex,webkitFlexBasis,webkitFlexDirection,webkitFlexFlow,webkitFlexGrow,webkitFlexShrink,webkitFlexWrap,webkitFontFeatureSettings,webkitFontSizeDelta,webkitFontSmoothing,webkitHighlight,webkitHyphenateCharacter,webkitJustifyContent,webkitLineBreak,webkitLineClamp,webkitLocale,webkitLogicalHeight,webkitLogicalWidth,webkitMarginAfter,webkitMarginBefore,webkitMarginEnd,webkitMarginStart,webkitMask,webkitMaskBoxImage,webkitMaskBoxImageOutset,webkitMaskBoxImageRepeat,webkitMaskBoxImageSlice,webkitMaskBoxImageSource,webkitMaskBoxImageWidth,webkitMaskClip,webkitMaskComposite,webkitMaskImage,webkitMaskOrigin,webkitMaskPosition,webkitMaskPositionX,webkitMaskPositionY,webkitMaskRepeat,webkitMaskRepeatX,webkitMaskRepeatY,webkitMaskSize,webkitMaxLogicalHeight,webkitMaxLogicalWidth,webkitMinLogicalHeight,webkitMinLogicalWidth,webkitOpacity,webkitOrder,webkitPaddingAfter,webkitPaddingBefore,webkitPaddingEnd,webkitPaddingStart,webkitPerspective,webkitPerspectiveOrigin,webkitPerspectiveOriginX,webkitPerspectiveOriginY,webkitPrintColorAdjust,webkitRtlOrdering,webkitRubyPosition,webkitShapeImageThreshold,webkitShapeMargin,webkitShapeOutside,webkitTapHighlightColor,webkitTextCombine,webkitTextDecorationsInEffect,webkitTextEmphasis,webkitTextEmphasisColor,webkitTextEmphasisPosition,webkitTextEmphasisStyle,webkitTextFillColor,webkitTextOrientation,webkitTextSecurity,webkitTextSizeAdjust,webkitTextStroke,webkitTextStrokeColor,webkitTextStrokeWidth,webkitTransform,webkitTransformOrigin,webkitTransformOriginX,webkitTransformOriginY,webkitTransformOriginZ,webkitTransformStyle,webkitTransition,webkitTransitionDelay,webkitTransitionDuration,webkitTransitionProperty,webkitTransitionTimingFunction,webkitUserDrag,webkitUserModify,webkitUserSelect,webkitWritingMode,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
+
+'clear,alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,border,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,content,counterIncrement,counterReset,cursor,cx,cy,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontFamily,fontFeatureSettings,fontKerning,fontSize,fontStretch,fontStyle,fontVariant,fontVariantLigatures,fontWeight,height,imageRendering,isolation,justifyItems,justifyContent,left,letterSpacing,lightingColor,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBottom,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxHeight,maxWidth,maxZoom,minHeight,minWidth,minZoom,mixBlendMode,motion,motionOffset,motionPath,motionRotation,objectFit,objectPosition,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowWrap,overflowX,overflowY,padding,paddingBottom,paddingLeft,paddingRight,paddingTop,page,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,pointerEvents,position,quotes,r,resize,right,rx,ry,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textIndent,textOrientation,textOverflow,textRendering,textShadow,textTransform,top,touchAction,transform,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userZoom,vectorEffect,verticalAlign,visibility,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     def(Html.proto, property, function(...a) {
       const s = this.style;
-      if(a.length === 0)
+      if(!a[0])
         return s[property]();
       nice.Switch(a[0])
+//        .isBox().use(b => s.set(property, b))
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
         .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
@@ -259,7 +261,7 @@ function html(z){
   style && (as = ' style="' + style + '"');
 
   z.attributes.each((v, k) => {
-    k === 'className' && (k = 'class', v.trim());
+    k === 'className' && (k = 'class', v().trim());
     as += ` ${k}="${v}"`;
   });
 
@@ -269,9 +271,7 @@ function html(z){
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 
-function toDom(e) {
-  if(nice.isBox(e))
-    return document.createTextNode(nice.htmlEscape(e() || '-'));
+function toDom(e){
   return e._isAnything
     ? e.dom
     : document.createTextNode(nice.htmlEscape(e));
@@ -294,17 +294,6 @@ function dom(e){
 //  e.children.each(c => res.appendChild(toDom(c)));
   e.children.each(c => attachNode(c, res));// res.appendChild(toDom(c)));
 
-  e.eventHandlers.each((ls, type) => {
-//            if(k === 'domNode')
-//              return f(node);
-    ls.forEach(f => res.addEventListener(type, f, true));
-
-//TODO:
-//            node.__niceListeners = node.__niceListeners || {};
-//            node.__niceListeners[k] = node.__niceListeners[k] || [];
-//            node.__niceListeners[k].push(f);
-  });
-
   return res;
 //  return `${selectors}<${tag}${as}>${body}</${tag}>`;
 }
@@ -318,32 +307,23 @@ const childrenCounter = (o, v) => {
 function attachNode(child, parent, position){
 
   if(nice.isBox(child)){
-    //TODO: RBox cold compute
-//    let state = child();
-    let state = '-';
+    let state = child();
     let dom = toDom(state);
     insertAt(parent, dom, position);
+    //TODO:0 unsubscribe
     dom.niceListener = s => {
-      dom = nice.refreshElement(s, state, dom);
-      state = s;
+      nice.refreshElement(s, state, dom);
     };
-    child.subscribe(dom.niceListener);
+    child.on('state', dom.niceListener);
   } else {
     insertAt(parent, toDom(child), position);
   }
+  //insertAt(domNode, toDom(aChildren[ai]), ai);
 }
 
 
-function detachNode(child, dom, parent){
-  if(nice.isBox(child)){
-    const f = dom.niceListener;
-    f && child.unSubscribe(f);
-  }
+function detachNode(child){
 
-  if(!parent)
-    parent = dom.parentNode;
-
-  parent && parent.removeChild(dom);
 }
 
 
@@ -358,20 +338,17 @@ const extractKey = v => {
 };
 
 
-//TODO: when remove node unsubscribe all children
 defAll(nice, {
   refreshElement(e, old, domNode){
     const eTag = nice.isHtml(e) && e.tag(), oldTag = nice.isHtml(old) && old.tag();
-    let newDom = domNode;
 
     if (eTag !== oldTag){
-      newDom = toDom(e);
-      domNode.parentNode.replaceChild(newDom, domNode);
+      domNode.parentNode.replaceChild(toDom(e), domNode);
     } else if(!eTag) {
       domNode.nodeValue = nice.htmlEscape(e);
     } else {
       //TODO: selectors
-      //TODO: events
+      //TODO: tag
       const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
       _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
       _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
@@ -382,7 +359,6 @@ defAll(nice, {
 
       nice.refreshChildren(e.children._value, old.children._value, domNode);
     }
-    return newDom;
   },
   refreshChildren(aChildren, bChildren, domNode){
     const aKeys = aChildren.map(extractKey);
@@ -394,27 +370,21 @@ defAll(nice, {
     while(ai < aKeys.length){
       const aChild = aKeys[ai], bChild = bKeys[bi];
       //TODO: try to compare by value if both new
-      if(aChild === bChild && aChild !== undefined){
+      if(aChild === bChild){
         ai++, bi++;
       } else if(!bCount[aChild]){//assume insert
-//        insertAt(domNode, toDom(aChildren[ai]), ai);
-        attachNode(aChildren[ai], domNode, ai);
+        insertAt(domNode, toDom(aChildren[ai]), ai);
         ai++;
       } else if(!aCount[bChild]) {//assume delete
-        detachNode(bChildren[ai], domNode.childNodes[ai], domNode);
+        domNode.removeChild(domNode.childNodes[ai]);
         bi++;
       } else {//assume ugly reorder - brute force
-        //TODO:0 attach|dettach node
-//        console.log('ugly');
-        const old = domNode.childNodes[bi];
-        attachNode(aChildren[ai], domNode, bi);
-        old && detachNode(bChildren[bi], old, domNode);
-
+        domNode.replaceChild(toDom(aChildren[ai]), domNode.childNodes[bi]);
         ai++, bi++;
       }
     };
     while(bi < bKeys.length){
-      detachNode(bChildren[bi], domNode.childNodes[ai], domNode);
+      domNode.removeChild(domNode.childNodes[ai]);
       bi++;
     }
   },
@@ -433,6 +403,102 @@ if(nice.isEnvBrowser()){
   document.head.appendChild(styleEl);
   const styleSheet = styleEl.sheet;
 
+//  const addStyle = Switch
+//    .Box.use((s, k, node) => {
+//      const f = v => addStyle(v, k, node);
+//      s.listen(f);
+//      nice._set(node, ['styleSubscriptions', k], () => s.unsubscribe(f));
+//    })
+//    .default.use((v, k, node) => node.style[k] = v);
+
+//  const delStyle = Switch
+//    .Box.use((s, k, node) => {
+//      node.styleSubscriptions[k]();
+//      delete node.styleSubscriptions[k];
+//      node.style[k] = '';
+//    })
+//    .default.use((v, k, node) => node.style && (node.style[k] = ''));
+//
+//
+//  const addAttribute = Switch
+//    .Box.use((s, k, node) => {
+//      const f = v => addAttribute(v, k, node);
+//      s.listen(f);
+//      nice._set(node, ['attrSubscriptions', k], () => s.unsubscribe(f));
+//    })
+//    .default.use((v, k, node) => node[k] = v);
+//
+//  const delAttribute = Switch
+//    .Box.use((s, k, node) => {
+//      node.attrSubscriptions[k]();
+//      delete node.attrSubscriptions[k];
+//      node[k] = '';
+//    })
+//    .default.use((v, k, node) => node[k] = '');
+
+
+
+  const addRules = (vs, selector, className) => {
+    const rule = assertRule(selector, className);
+    vs.each((value, prop) => rule.style[prop] = value);
+  };
+
+
+  const findRule = (selector, className) => {
+    const s = `.${className} ${selector}`.toLowerCase();
+    let rule;
+    for (const r of styleSheet.cssRules)
+      r.selectorText === s && (rule = r);
+    return rule;
+  };
+
+
+  const findRuleindex = (selector, className) => {
+    const s = `.${className} ${selector}`.toLowerCase();
+    let res;
+    for (const i in styleSheet.cssRules)
+      styleSheet.cssRules[i].selectorText === s && (res = i);
+    return res;
+  };
+
+
+  const assertRule = (selector, className) => {
+    return findRule(selector, className) || styleSheet
+        .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
+  };
+
+//  const killSelectors = (css, className) => {
+//    css.each((v, k) => killRules(v, k, getAutoClass(className)));
+//  };
+  function killSelectors(v) {
+    const c = getAutoClass(v.attributes.get('className'));
+    v.cssSelectors.each((v, k) => killRules(v, k, c));
+  };
+
+
+  const killRules = (vs, selector, id) => {
+    const rule = findRule(selector, id);
+    rule && vs.each((value, prop) => rule.style[prop] = null);
+  };
+
+
+  const killAllRules = v => {
+    const c = getAutoClass(v.attributes.get('className'));
+    const a = [];
+    [...styleSheet.cssRules].forEach((r, i) =>
+        r.selectorText.indexOf(c) === 1 && a.unshift(i));
+    a.forEach(i => styleSheet.deleteRule(i));
+  };
+
+
+  function killNode(n){
+    n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
+    n && nice._eachEach(n.__niceListeners, (listener, i, type) => {
+      n.removeEventListener(type, listener);
+    });
+  }
+
+
   function insertBefore(node, newNode){
     node.parentNode.insertBefore(newNode, node);
     return newNode;
@@ -444,10 +510,146 @@ if(nice.isEnvBrowser()){
     return newNode;
   }
 
-  Func.Html('show', (div, parentNode = document.body, position) => {
-    return insertAt(parentNode, div.dom, position);
+
+  Func.primitive('show', (v, parentNode = document.body, position) => {
+    const node = document.createTextNode(v);
+    return insertAt(parentNode, node, position);
   });
-}
+
+
+  Func.primitive('hide', (v, node) => {
+    killNode(node);
+  });
+
+
+  Func.Single('show', (e, parentNode = document.body, position) => {
+    const node = document.createTextNode('');
+    e._shownNodes = e._shownNodes || new WeakMap();
+    e._shownNodes.set(node, e.listen(v => node.nodeValue = v()));
+    return insertAt(parentNode, node, position);
+  });
+
+
+  Func.Single('hide', (e, node) => {
+    const subscription = e._shownNodes && e._shownNodes.get(node);
+    subscription();
+    killNode(node);
+  });
+
+
+//  Func.Box('show', (e, parentNode = document.body, position) => {
+//    let node;
+//    e._shownNodes = e._shownNodes || new WeakMap();
+//    const f = (v, oldValue) => {
+//      const oldNode = node;
+//      node && (position = Array.prototype.indexOf.call(parentNode.childNodes, node));
+//      if(v !== null){
+//        node = nice.show(v, parentNode, position);
+//        e._shownNodes.set(node, f);
+//      } else {
+//        node = undefined;
+//      }
+//      if(oldNode){
+//        oldValue && oldValue.hide ? oldValue.hide(oldNode) : killNode(oldNode);
+//      }
+//    };
+//    e.listen(f);
+//  });
+
+
+//  Func.Box('hide', (e, node) => {
+//    e.unsubscribe(e._shownNodes.get(node));
+//    e._shownNodes.delete(node);
+//    e._value && e._value.hide && e._value.hide(node);
+//  });
+
+
+  Func.Nothing('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode, document.createTextNode(''), position);
+  });
+
+  Func.Err('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode,
+        document.createTextNode('Error: ' + e().message), position);
+  });
+
+  Func.Bool('show', (e, parentNode = document.body, position) => {
+    if(e())
+      throw `I don't know how to display "true"`;
+    return insertAt(parentNode, document.createTextNode(''), position);
+  });
+
+
+  Func.Html('show', (e, parentNode = document.body, position = 0) => {
+    const node = document.createElement(e.tag());
+
+    //don't move this line to bootom. it's here for domNode event
+    insertAt(parentNode, node, position);
+    e.attachNode(node);
+    return node;
+  });
+
+  Func.Html('attachNode', (e, node) => {
+    e._shownNodes = e._shownNodes || new WeakMap();
+    const ss = [];
+    ss.push(e.children.listenItems((v, k) => v.isNothing()
+        ? removeNode(node.childNodes[k], k)
+        : nice.show(v, node, k)
+      ),
+      e.style.listenItems((v, k) => v.isSomething()
+          ? node.style[k] = v
+          : delete node.style[k]
+      ),
+      e.attributes.listenItems((v, k) => v.isSomething()
+          ? node[k] = v
+          : delete node[k]
+      ),
+      e.cssSelectors.listenItems((v, k) => {
+        e._autoClass();
+        (v.isSomething() ? addRules : killRules)
+            (v, k, getAutoClass(node.className));
+      }),
+      e.eventHandlers.listenItems((hs, k) => hs.isSomething()
+        ? hs.each(f => {
+            if(k === 'domNode')
+              return f(node);
+            node.addEventListener(k, f, true);
+            node.__niceListeners = node.__niceListeners || {};
+            node.__niceListeners[k] = node.__niceListeners[k] || [];
+            node.__niceListeners[k].push(f);
+          })
+        : console.log('TODO: Remove, ', k)
+      )
+    );
+    e._shownNodes.set(node, ss);
+  });
+
+
+  Func.Html('hide', (e, node) => {
+    const subscriptions = e._shownNodes && e._shownNodes.get(node);
+    e._shownNodes.delete(node);
+    subscriptions && subscriptions.forEach(f => f());
+    node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
+    killNode(node);
+  });
+
+
+  function removeNode(node, v){
+    node && node.parentNode.removeChild(node);
+    v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
+  }
+
+
+//  function removeAt(parent, position){
+//    const c = parent.childNodes[position];
+//    parent.removeChild(parent.childNodes[position]);
+//    //TODO: ?? clean cssSelectors
+//  }
+
+  //const addSelectors = (selectors, node) => {
+  //  selectors.each((v, k) => addRules(v, k, getAutoClass(node.className)));
+  //};
+};
 
 
 function insertAt(parent, node, position){
