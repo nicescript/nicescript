@@ -47,8 +47,7 @@ nice.Type({
 
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 
-
-Test((Box, Spy) => {
+Test((Box, assign, Spy) => {
   const a = {name:'Jo', balance:100};
   const b = Box(a);
 
@@ -56,6 +55,23 @@ Test((Box, Spy) => {
 
   expect(b().name).is('Jo');
   expect(b().balance).is(200);
+});
+
+
+Action.Box('push', (z, v) => {
+  var a = z().slice();
+  a.push(v);
+  z(a);
+});
+
+Test((Box, push, Spy) => {
+  const a = [1];
+  const b = Box(a);
+
+  b.push(2);
+
+  expect(b()).deepEqual([1,2]);
+  expect(a).deepEqual([1]);
 });
 
 
