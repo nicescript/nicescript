@@ -11,55 +11,53 @@
     <main id="js-main" class="main"></main>
 <script>
 "use strict";
-const { Box, RBox, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
+const { Box, RBox, BoxSet, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy, Pointer } = nice;
 
 
-expect(Arr(4, 3, 5).map(x => x * 2).jsValue).deepEqual([8,6,10]);
-
-const users = {
-  Jo: Box({balance: 50}),
-  Jane: Box({balance: -10}),
-  Jim: Box({balance: 0})
-};
-
-var d = Div(Arr('qwe', 'asd')).color('red');
-var last = d;
-var dom = d.dom;
-document.body.appendChild(dom);
-
-function change(e){
-  nice.refreshElement(e, last, dom);
-  last = e;
-}
-
-//Html.extend('UserView')
-//  .by((z, id) => {
-//    z.id(id).h1('User ' + id);
-//  });
-//RBox.extend('UserView')
-//  .by((z, id) => {
-//    z.id(id).h1('User ' + id);
-//  });
-  
-function userView(id){
-  return RBox(users[id], info => Div().id(id)
-    .h1('User ' + id)
-    .div('Balance: ' + info.balance));
-}  
-
-
-change(Div(Arr('qwe', 'asd')).color('blue'));
-change(Div(Arr('qwe', 'asd')).id('qqwe1').color('blue'));
-change(Div(Arr('qwe')).id('asd').color('green'));
-change(Div(Arr('qwe', 'asd')).id('asd').color('green'));
-change(Div(Arr('asd')).id('asd').color('green'));
-change(Div().add(userView('Jo')).add(userView('Jane')).add('footer'));
-change(Div().add('header').add(userView('Jim')).add(userView('Jane')).add('footer'));
-
-
-users.Jim({...users.Jim(), balance:400});
+//const users = {
+//  Jo: Box({balance: 50}),
+//  Jane: Box({balance: -10}),
+//  Jim: Box({balance: 0})
+//};
+//
+//var d = Div(Arr('qwe', 'asd')).color('red');
+//var last = d;
+//var dom = d.dom;
+//document.body.appendChild(dom);
+//
+//function change(e){
+//  nice.refreshElement(e, last, dom);
+//  last = e;
+//}
+//
+////Html.extend('UserView')
+////  .by((z, id) => {
+////    z.id(id).h1('User ' + id);
+////  });
+////RBox.extend('UserView')
+////  .by((z, id) => {
+////    z.id(id).h1('User ' + id);
+////  });
+//  
+//function userView(id){
+//  return RBox(users[id], info => Div().id(id)
+//    .h1('User ' + id)
+//    .div('Balance: ' + info.balance));
+//}  
+//
+//
+//change(Div(Arr('qwe', 'asd')).color('blue'));
+//change(Div(Arr('qwe', 'asd')).id('qqwe1').color('blue'));
+//change(Div(Arr('qwe')).id('asd').color('green'));
+//change(Div(Arr('qwe', 'asd')).id('asd').color('green'));
+//change(Div(Arr('asd')).id('asd').color('green'));
+//change(Div().add(userView('Jo')).add(userView('Jane')).add('footer'));
+//change(Div().add('header').add(userView('Jim')).add(userView('Jane')).add('footer'));
+//
+//
+//users.Jim({...users.Jim(), balance:400});
 
 
 
