@@ -6,20 +6,20 @@
 
 //TODO: empty transactions on empty values
 
-const proxy = new Proxy({}, {
-  get (o, k, receiver) {
-    if(k[0] === '_')
-      return undefined;
-
-    if(k === 'isPrototypeOf')
-      return Object.prototype.isPrototypeOf;
-
-    if(k === 'hasOwnProperty')
-      return Object.prototype.hasOwnProperty;
-
-    return k in receiver ? receiver[k] : nice.NotFound();
-  },
-});
+//const proxy = new Proxy({}, {
+//  get (o, k, receiver) {
+//    if(k[0] === '_')
+//      return undefined;
+//
+//    if(k === 'isPrototypeOf')
+//      return Object.prototype.isPrototypeOf;
+//
+//    if(k === 'hasOwnProperty')
+//      return Object.prototype.hasOwnProperty;
+//
+//    return k in receiver ? receiver[k] : nice.NotFound();
+//  },
+//});
 
 nice.registerType({
   name: 'Anything',
@@ -119,7 +119,8 @@ nice.registerType({
 
   _isNiceType: true,
 
-  proto: Object.setPrototypeOf({
+//  proto: Object.setPrototypeOf({
+  proto: {
     _isAnything: true,
 
     to (type, ...as){
@@ -184,7 +185,7 @@ nice.registerType({
     [Symbol.toPrimitive]() {
       return this.toString();
     }
-  }, proxy),
+  },
 
   configProto: {
     extends (parent){
