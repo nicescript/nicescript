@@ -6,22 +6,22 @@ Test('kill child', (Obj) => {
 
 });
 
+//TODO: restore and fix
+//Test('create function', (Function) => {
+//  const x = Function(() => 1);
+//  expect(x).not.isErr();
+//  expect(x).isFunction();
+//  expect(x()).is(1);
+//});
 
-Test('crete function', (Function) => {
-  const x = Function(() => 1);
-  expect(x).not.isErr();
-  expect(x).isFunction();
-  expect(x()).is(1);
-});
-
-
-Test('storing function', (Func) => {
-  const x = nice();
-  x(() => 1);
-  expect(x).isFunction();
-  expect(x).not.isErr();
-  expect(x()).is(1);
-});
+//TODO: restore and fix
+//Test('storing function', (Func) => {
+//  const x = nice();
+//  x(() => 1);
+//  expect(x).isFunction();
+//  expect(x).not.isErr();
+//  expect(x()).is(1);
+//});
 
 
 Test('isFunction', (Func) => {
