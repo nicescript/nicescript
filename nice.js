@@ -1208,17 +1208,6 @@ function runTest(t, args){
 }
 })();
 (function(){"use strict";
-const proxy = new Proxy({}, {
-  get (o, k, receiver) {
-    if(k[0] === '_')
-      return undefined;
-    if(k === 'isPrototypeOf')
-      return Object.prototype.isPrototypeOf;
-    if(k === 'hasOwnProperty')
-      return Object.prototype.hasOwnProperty;
-    return k in receiver ? receiver[k] : nice.NotFound();
-  },
-});
 nice.registerType({
   name: 'Anything',
   description: 'Parent type for all types.',
@@ -1292,7 +1281,7 @@ nice.registerType({
     return this.name;
   },
   _isNiceType: true,
-  proto: Object.setPrototypeOf({
+  proto: {
     _isAnything: true,
     to (type, ...as){
       nice._initItem(this, type, as);
@@ -1337,7 +1326,7 @@ nice.registerType({
     [Symbol.toPrimitive]() {
       return this.toString();
     }
-  }, proxy),
+  },
   configProto: {
     extends (parent){
       const type = this.target;
@@ -1891,9 +1880,19 @@ defGet(nice.Undefined.proto, function jsValue() {
   },
   proto: {
     setState (v){
+      if(v === this._value)
+        return;
       this._value = v;
       this.emit('state', v);
-    }
+    },
+    subscribe(f){
+      this.on('state', f);
+      if(this._value !== undefined)
+        f(this._value);
+    },
+      unsubscribe(f){
+      this.off('state', f);
+    },
   }
 });
 Action.Box('assign', (z, o) => z({...z(), ...o}));
@@ -1964,6 +1963,9 @@ Test('Box action', (Box, Spy) => {
       }
       return this;
     },
+    get (k) {
+      return this._value[k];
+    },
     subscribe (f) {
       _each(this._value, f);
       this.on('value', f);
@@ -2028,7 +2030,7 @@ nice.Type({
         f(this._value);
       }
     },
-    unSubscribe(f){
+    unsubscribe(f){
       this.off('state', f);
       if(!this.countListeners('state'))
         this.coolDown();
@@ -2060,13 +2062,13 @@ nice.Type({
     coolDown(){
       this._status &= ~IS_HOT;
       this._inputListeners.forEach((f, i) => {
-        const source = this._inputs[i];
-        if(source._isBox){
-          if(source._isRBox)
-            return source.unSubscribe(f);
-          return source.off('state', f);
-        }
+        this.detachSource(i);
       });
+    },
+    changeInputs(inputs){
+      const old = this._inputs;
+      old.forEach((input, index) =>
+          inputs.includes(i) || this.detachSource(index));
     },
     attachSource(s, i){
       if(s._isBox){
@@ -2081,6 +2083,15 @@ nice.Type({
         return s.on('state', f);
       }
     },
+    detachSource(i){
+      const source = this._inputs[i];
+      const f = this._inputListeners[i];
+      if(source._isBox){
+        if(source._isRBox)
+          return source.unsubscribe(f);
+        return source.off('state', f);
+      }
+    }
   }
 });
 function checkSourceStatus(s){
@@ -2112,7 +2123,7 @@ Test('RBox unsubscribe', (Box, RBox, Spy) => {
   const rb = RBox(b, a => a + 1);
   rb.subscribe(spy);
   expect(spy).calledOnce();
-  rb.unSubscribe(spy);
+  rb.unsubscribe(spy);
   b(7);
   expect(spy).calledOnce();
   expect(rb.countListeners('state')).is(0);
@@ -3300,6 +3311,8 @@ function dom(e){
   });
   e.children.each(c => attachNode(c, res));
   e.eventHandlers.each((ls, type) => {
+    if(type === 'domNode')
+      return ls.forEach(f => f(res));
     ls.forEach(f => res.addEventListener(type, f, true));
   });
   return res;
@@ -3326,7 +3339,7 @@ function attachNode(child, parent, position){
 function detachNode(child, dom, parent){
   if(nice.isBox(child)){
     const f = dom.niceListener;
-    f && child.unSubscribe(f);
+    f && child.unsubscribe(f);
   }
   if(!parent)
     parent = dom.parentNode;
@@ -3468,7 +3481,7 @@ function defaultSetValue(t, v){
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 function attachValue(target, setValue = defaultSetValue){
   let node, mute;
-  def(target, 'value', Box(""));
+  def(target, 'value', nice.Box(""));
   if(nice.isEnvBrowser()){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
@@ -3479,7 +3492,11 @@ function attachValue(target, setValue = defaultSetValue){
     target._autoId();
     target.on('domNode', n => node = n);
   }
-  target.value.on('state', v => node ? node.value = v : setValue(target, v));
+  target.value.on('state', v => {
+    if(mute)
+      return;
+    node ? node.value = v : setValue(target, v);
+  });
   return target;
 }
 Html.extend('Input', (z, type) => {
@@ -3495,10 +3512,14 @@ Input.extend('Button', (z, text = '', action) => {
   .about('Represents HTML <input type="button"> element.');
 Input.extend('Textarea', (z, value) => {
     z.tag('textarea');
-    attachValue(z, (t, v) => t.children.removeAll().push(v));
+    attachValue(z, (t, v) => t.attributes.set('value', v));
     z.value(value ? '' + value : "");
   })
   .about('Represents HTML <textarea> element.');
+Test(Textarea => {
+  const ta = Textarea('qwe');
+  expect(ta.value()).is('qwe');
+});
 Input.extend('Submit', (z, text, action) => {
     z.super('submit').attributes({ value: text });
     action && z.on('click', action);
@@ -3564,19 +3585,6 @@ Input.extend('Checkbox', (z, status) => {
   expect(o.get('q')).is(1);
   o({});
   expect(o.get('q')).isNotFound();
-});
-Test('crete function', (Function) => {
-  const x = Function(() => 1);
-  expect(x).not.isErr();
-  expect(x).isFunction();
-  expect(x()).is(1);
-});
-Test('storing function', (Func) => {
-  const x = nice();
-  x(() => 1);
-  expect(x).isFunction();
-  expect(x).not.isErr();
-  expect(x()).is(1);
 });
 Test('isFunction', (Func) => {
   const x = nice(1);

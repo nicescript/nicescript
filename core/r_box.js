@@ -33,7 +33,7 @@ nice.Type({
       }
     },
 
-    unSubscribe(f){
+    unsubscribe(f){
       this.off('state', f);
       if(!this.countListeners('state'))
         this.coolDown();
@@ -70,15 +70,23 @@ nice.Type({
     coolDown(){
       this._status &= ~IS_HOT;
       this._inputListeners.forEach((f, i) => {
-        const source = this._inputs[i];
-        if(source._isBox){
-
-          if(source._isRBox)
-            return source.unSubscribe(f);
-
-          return source.off('state', f);
-        }
+        this.detachSource(i);
+//        const source = this._inputs[i];
+//        if(source._isBox){
+//
+//          if(source._isBox)
+//            return source.unsubscribe(f);
+//
+//          return source.off('state', f);
+//        }
       });
+    },
+
+
+    changeInputs(inputs){
+      const old = this._inputs;
+      old.forEach((input, index) =>
+          inputs.includes(i) || this.detachSource(index));
     },
 
     attachSource(s, i){
@@ -96,6 +104,18 @@ nice.Type({
         return s.on('state', f);
       }
     },
+
+    detachSource(i){
+      const source = this._inputs[i];
+      const f = this._inputListeners[i];
+      if(source._isBox){
+
+        if(source._isRBox)
+          return source.unsubscribe(f);
+
+        return source.off('state', f);
+      }
+    }
   }
 });
 
@@ -136,7 +156,7 @@ Test('RBox unsubscribe', (Box, RBox, Spy) => {
   const rb = RBox(b, a => a + 1);
   rb.subscribe(spy);
   expect(spy).calledOnce();
-  rb.unSubscribe(spy);
+  rb.unsubscribe(spy);
   b(7);
   expect(spy).calledOnce();
   expect(rb.countListeners('state')).is(0);

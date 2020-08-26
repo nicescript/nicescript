@@ -25,6 +25,9 @@ nice.Type({
       }
       return this;
     },
+    get (k) {
+      return this._value[k];
+    },
     subscribe (f) {
       _each(this._value, f);
       this.on('value', f);

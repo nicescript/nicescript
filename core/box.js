@@ -9,9 +9,21 @@ nice.Type({
 
   proto: {
     setState (v){
+      if(v === this._value)
+        return;
       this._value = v;
       this.emit('state', v);
-    }
+    },
+
+    subscribe(f){
+      this.on('state', f);
+      if(this._value !== undefined)
+        f(this._value);
+    },
+
+      unsubscribe(f){
+      this.off('state', f);
+    },
   }
 });
 

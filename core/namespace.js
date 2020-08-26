@@ -1,0 +1,8 @@
+class NameSpace{
+
+  get(path){
+
+  }
+
+  
+}

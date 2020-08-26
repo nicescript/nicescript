@@ -295,8 +295,8 @@ function dom(e){
   e.children.each(c => attachNode(c, res));// res.appendChild(toDom(c)));
 
   e.eventHandlers.each((ls, type) => {
-//            if(k === 'domNode')
-//              return f(node);
+    if(type === 'domNode')
+      return ls.forEach(f => f(res));
     ls.forEach(f => res.addEventListener(type, f, true));
 
 //TODO:
@@ -337,7 +337,7 @@ function attachNode(child, parent, position){
 function detachNode(child, dom, parent){
   if(nice.isBox(child)){
     const f = dom.niceListener;
-    f && child.unSubscribe(f);
+    f && child.unsubscribe(f);
   }
 
   if(!parent)
