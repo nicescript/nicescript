@@ -162,13 +162,13 @@ F('each', (a, f) => {
   return a;
 });
 
-Test("each", (Arr, Spy) => {
+Test("each", (Arr, Spy, each) => {
   const a = Arr(1, 2);
   const spy = Spy();
   a.each(spy);
   expect(spy).calledTwice();
-  expect(spy).calledWith(1, "0");
-  expect(spy).calledWith(2, "1");
+  expect(spy).calledWith(1, 0);
+  expect(spy).calledWith(2, 1);
 });
 
 

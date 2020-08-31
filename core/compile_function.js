@@ -1,6 +1,5 @@
 nice.reflect.compileFunction = function compileFunction(cfg){
   const reflect = nice.reflect;
-//  const iterator = cfg.signatures[Symbol.iterator]();
   const res = [];
   const name = cfg.name.toString();
 
@@ -8,26 +7,27 @@ nice.reflect.compileFunction = function compileFunction(cfg){
     res.push('this.reflect.onFunctionUse && this.reflect.onFunctionUse("' + name + '");\n');
   }
 
-  compileStep(0, res, cfg.signatures, name, cfg.functionType);
+  res.push(compileStep(0, cfg.signatures, name, cfg.functionType));
 
   return (new Function('...args', res.join(''))).bind(nice);
 };
 
 
-function compileStep(step, res, signatures, name, functionType){
+function compileStep(step, signatures, name, functionType){
+  const res = [];
   const types = Array.from(signatures.keys()).sort(compareTypes);
   types.forEach(type => {
     const f = signatures.get(type);
     if(!type.name)
       throw 'Bad type';
+    const callCode = compileStep(step + 1, f, name, functionType);
     res.push('if(', getTypeCheckCode(type, 'args[' + step + ']'),'){',
-        compileCall(f, functionType), '}');
+        callCode, '}');
     const mirrorType = getMirrorType(type);
-    mirrorType && console.log('mirror', mirrorType.name);
     if(mirrorType && !signatures.has(mirrorType)){
       res.push('if(', getTypeCheckCode(mirrorType, 'args[' + step + ']'),'){',
           getTranslatorCode(mirrorType, 'args[0]'),
-          compileCall(f, functionType), '}');
+          callCode, '}');
     }
   });
 
@@ -36,6 +36,7 @@ function compileStep(step, res, signatures, name, functionType){
   } else {
     res.push("throw `Function ", name, " do not accept ${args[", step, "]._type.name}`;");
   }
+  return res.join('\n');
 }
 
 
@@ -87,7 +88,7 @@ function getTypeCheckCode(type, name){
 function compareTypes(a, b){
   if(a._isJsType){
     if(b._isJsType){
-      0;//TODO
+      a.name === 'Object' ? -1 : 0;
     } else {
       return 1;
     }
@@ -95,7 +96,11 @@ function compareTypes(a, b){
     if(b._isJsType){
       return -1;
     } else {
-      return 0;//TODO: hierarchy
+      return a.proto.isPrototypeOf(b.proto)
+        ? 1
+        : b.proto.isPrototypeOf(a.proto)
+          ? -1
+          : 0;
     }
   }
 }

@@ -704,23 +704,24 @@ jsHierarchy['primitive'].split(',').forEach(name => {
   if(reflect.reportUse){
     res.push('this.reflect.onFunctionUse && this.reflect.onFunctionUse("' + name + '");\n');
   }
-  compileStep(0, res, cfg.signatures, name, cfg.functionType);
+  res.push(compileStep(0, cfg.signatures, name, cfg.functionType));
   return (new Function('...args', res.join(''))).bind(nice);
 };
-function compileStep(step, res, signatures, name, functionType){
+function compileStep(step, signatures, name, functionType){
+  const res = [];
   const types = Array.from(signatures.keys()).sort(compareTypes);
   types.forEach(type => {
     const f = signatures.get(type);
     if(!type.name)
       throw 'Bad type';
+    const callCode = compileStep(step + 1, f, name, functionType);
     res.push('if(', getTypeCheckCode(type, 'args[' + step + ']'),'){',
-        compileCall(f, functionType), '}');
+        callCode, '}');
     const mirrorType = getMirrorType(type);
-    mirrorType && console.log('mirror', mirrorType.name);
     if(mirrorType && !signatures.has(mirrorType)){
       res.push('if(', getTypeCheckCode(mirrorType, 'args[' + step + ']'),'){',
           getTranslatorCode(mirrorType, 'args[0]'),
-          compileCall(f, functionType), '}');
+          callCode, '}');
     }
   });
   if(signatures.action){
@@ -728,6 +729,7 @@ function compileStep(step, res, signatures, name, functionType){
   } else {
     res.push("throw `Function ", name, " do not accept ${args[", step, "]._type.name}`;");
   }
+  return res.join('\n');
 }
 function compileCall(f, type){
   if(f.action === undefined)
@@ -769,7 +771,7 @@ function getTypeCheckCode(type, name){
 function compareTypes(a, b){
   if(a._isJsType){
     if(b._isJsType){
-      0;
+      a.name === 'Object' ? -1 : 0;
     } else {
       return 1;
     }
@@ -777,7 +779,11 @@ function compareTypes(a, b){
     if(b._isJsType){
       return -1;
     } else {
-      return 0;
+      return a.proto.isPrototypeOf(b.proto)
+        ? 1
+        : b.proto.isPrototypeOf(a.proto)
+          ? -1
+          : 0;
     }
   }
 }
@@ -1228,7 +1234,7 @@ for(let i in nice.jsTypes){
   if(i === 'Function'){
     Check.about(`Checks if \`v\` is \`function\`.`)
       ('is' + i, v => v._isAnything
-        ? v._type === nice.Func || v._type === nice.jsType.Function
+        ? v._type === nice.Func || v._type === nice.jsTypes.Function
         : typeof v === 'function');
   } else {
     const low = i.toLowerCase();
@@ -2611,13 +2617,13 @@ F('each', (a, f) => {
       break;
   return a;
 });
-Test("each", (Arr, Spy) => {
+Test("each", (Arr, Spy, each) => {
   const a = Arr(1, 2);
   const spy = Spy();
   a.each(spy);
   expect(spy).calledTwice();
-  expect(spy).calledWith(1, "0");
-  expect(spy).calledWith(2, "1");
+  expect(spy).calledWith(1, 0);
+  expect(spy).calledWith(2, 1);
 });
 M.Function('reduce', (a, f, res) => {
   _each(a, (v, k) => res = f(res, v, k));
@@ -3393,6 +3399,13 @@ Input.extend('Checkbox', (z, status) => {
   expect(o.get('q')).is(1);
   o({});
   expect(o.get('q')).isNotFound();
+});
+Test('storing function', (Func) => {
+  const x = nice();
+  x(() => 1);
+  expect(x).isFunction();
+  expect(x).not.isErr();
+  expect(x()).is(1);
 });
 Test('isFunction', (Func) => {
   const x = nice(1);

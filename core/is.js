@@ -70,7 +70,7 @@ for(let i in nice.jsTypes){
   if(i === 'Function'){
     Check.about(`Checks if \`v\` is \`function\`.`)
       ('is' + i, v => v._isAnything
-        ? v._type === nice.Func || v._type === nice.jsType.Function
+        ? v._type === nice.Func || v._type === nice.jsTypes.Function
         : typeof v === 'function');
   } else {
     const low = i.toLowerCase();

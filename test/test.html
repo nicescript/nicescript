@@ -15,11 +15,9 @@ const { Box, RBox, BoxSet, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = n
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy, Pointer, def } = nice;
  
-
-var o = Obj({ q:1, a:2 });
-  expect( o.size() ).is(2);
-  const v = o.remove(o, 'q').jsValue
-
+ const x = nice();
+  x(() => 1);
+  
 //const users = {
 //  Jo: Box({balance: 50}),
 //  Jane: Box({balance: -10}),
