@@ -14,6 +14,7 @@ const order = [
   'core/utils_object',
   'core/events',
   'core/js_type',
+  'core/compile_function',
   'core/function',
   'core/tests',
   'core/anything',

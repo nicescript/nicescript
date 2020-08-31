@@ -57,5 +57,10 @@ nice.jsBasicTypes = {
   number: nice.jsTypes.Number,
   boolean: nice.jsTypes.Boolean,
   string: nice.jsTypes.String,
-  function: nice.jsTypes.Function
+  function: nice.jsTypes.Function,
+  symbol: nice.jsTypes.Symbol
 };
+
+jsHierarchy['primitive'].split(',').forEach(name => {
+  nice.jsTypes[name].primitiveName = name.toLowerCase();
+});

@@ -13,11 +13,12 @@
 "use strict";
 const { Box, RBox, BoxSet, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
-   get, expect, Num, Str, Obj,Test, Spy, Pointer } = nice;
+   get, expect, Num, Str, Obj,Test, Spy, Pointer, def } = nice;
+ 
 
-var b = Box(5);
-var b2 = RBox(b, (n) => n);
-Div(b).show();
+var o = Obj({ q:1, a:2 });
+  expect( o.size() ).is(2);
+  const v = o.remove(o, 'q').jsValue
 
 //const users = {
 //  Jo: Box({balance: 50}),

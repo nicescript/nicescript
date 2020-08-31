@@ -48,7 +48,7 @@ function runTest(t, args){
       const a = t.body.toString().split('\n');
 
       a.splice(dh + 1, 0,
-        '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
+        '-'.repeat(symbol - 1) + '^' + (symbol > 80 ? '' : '-'.repeat(80 - symbol)),
          e.message,
          colors.gray(location + ':' + line),
          '-'.repeat(80));

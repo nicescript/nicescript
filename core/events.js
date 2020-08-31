@@ -86,5 +86,5 @@ const EventEmitter = {
 
 nice.eventEmitter = o => defAll(o, EventEmitter);
 def(nice, 'EventEmitter', EventEmitter);
-def(nice, 'reflect', create(EventEmitter));
+def(nice, 'reflect', create(EventEmitter, {functions:{}, bodies:[]}));
 reflect = nice.reflect;

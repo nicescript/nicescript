@@ -9,13 +9,13 @@ const toString = v => {
 }
 
 
-reflect.on('Check', f => {
-  f.name && def(nice.expectPrototype, f.name, function(...a){
-    const res = this._preF ? this._preF(f(this.value, ...a)) : f(this.value, ...a);
+reflect.on('Check', ({name}) => {
+  name && def(nice.expectPrototype, name, function(...a){
+    const res = this._preF ? this._preF(nice[name](this.value, ...a)) : nice[name](this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
       const e = new Error(this.text || ['Expected (', toString(this.value), ')',
         this._preMessage || '', 'to be (',
-        f.name, ...a.map(toString), ')'].join(' '));
+        name, ...a.map(toString), ')'].join(' '));
       e.shift = 1;
       throw e;
     }

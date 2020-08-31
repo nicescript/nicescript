@@ -220,7 +220,7 @@ defGet(actionProto, 'or', function (){
 reflect.on('function', f => {
   if(f.functionType !== 'Check'){
     f.name in actionProto || def(actionProto, f.name, function(...a){
-      return this.use(v => f(v, ...a));
+      return this.use(v => nice[f.name](v, ...a));
     });
   }
 });
@@ -261,11 +261,11 @@ const S = Switch = nice.Switch = (...args) => {
 };
 
 
-reflect.on('Check', f => f.name && !common[f.name]
-  && def(common, f.name, function (...a) {
+reflect.on('Check', ({name}) => name && !common[name]
+  && def(common, name, function (...a) {
     return this.check((...v) => {
       try {
-        return f(...v, ...a);
+        return nice[name](...v, ...a);
       } catch (e) {
         return false;
       }
@@ -273,11 +273,11 @@ reflect.on('Check', f => f.name && !common[f.name]
   })
 );
 
-reflect.on('Check', f => f.name && !$proto[f.name]
-  && def($proto, f.name, function (...a) {
+reflect.on('Check', ({name}) => name && !$proto[name]
+  && def($proto, name, function (...a) {
     return this.parent.check((...v) => {
       try {
-        return f(v[this.pos], ...a);
+        return nice[name](v[this.pos], ...a);
       } catch (e) {
         return false;
       }
@@ -286,11 +286,11 @@ reflect.on('Check', f => f.name && !$proto[f.name]
 );
 
 
-reflect.on('Check', f => f.name && !_$proto[f.name]
-  && def(_$proto, f.name, function (...a) {
+reflect.on('Check', ({name}) => name && !_$proto[name]
+  && def(_$proto, name, function (...a) {
     return this.parent.check((...v) => {
       try {
-        return f(v, ...a);
+        return nice[name](v, ...a);
       } catch (e) {
         return false;
       }

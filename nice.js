@@ -637,7 +637,7 @@ const EventEmitter = {
 };
 nice.eventEmitter = o => defAll(o, EventEmitter);
 def(nice, 'EventEmitter', EventEmitter);
-def(nice, 'reflect', create(EventEmitter));
+def(nice, 'reflect', create(EventEmitter, {functions:{}, bodies:[]}));
 reflect = nice.reflect;
 })();
 (function(){"use strict";nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
@@ -690,10 +690,100 @@ nice.jsBasicTypes = {
   number: nice.jsTypes.Number,
   boolean: nice.jsTypes.Boolean,
   string: nice.jsTypes.String,
-  function: nice.jsTypes.Function
+  function: nice.jsTypes.Function,
+  symbol: nice.jsTypes.Symbol
 };
+jsHierarchy['primitive'].split(',').forEach(name => {
+  nice.jsTypes[name].primitiveName = name.toLowerCase();
+});
+})();
+(function(){"use strict";nice.reflect.compileFunction = function compileFunction(cfg){
+  const reflect = nice.reflect;
+  const res = [];
+  const name = cfg.name.toString();
+  if(reflect.reportUse){
+    res.push('this.reflect.onFunctionUse && this.reflect.onFunctionUse("' + name + '");\n');
+  }
+  compileStep(0, res, cfg.signatures, name, cfg.functionType);
+  return (new Function('...args', res.join(''))).bind(nice);
+};
+function compileStep(step, res, signatures, name, functionType){
+  const types = Array.from(signatures.keys()).sort(compareTypes);
+  types.forEach(type => {
+    const f = signatures.get(type);
+    if(!type.name)
+      throw 'Bad type';
+    res.push('if(', getTypeCheckCode(type, 'args[' + step + ']'),'){',
+        compileCall(f, functionType), '}');
+    const mirrorType = getMirrorType(type);
+    mirrorType && console.log('mirror', mirrorType.name);
+    if(mirrorType && !signatures.has(mirrorType)){
+      res.push('if(', getTypeCheckCode(mirrorType, 'args[' + step + ']'),'){',
+          getTranslatorCode(mirrorType, 'args[0]'),
+          compileCall(f, functionType), '}');
+    }
+  });
+  if(signatures.action){
+    res.push(compileCall(signatures, functionType));
+  } else {
+    res.push("throw `Function ", name, " do not accept ${args[", step, "]._type.name}`;");
+  }
+}
+function compileCall(f, type){
+  if(f.action === undefined)
+    throw 'Bad function body';
+  if(f.bodyId === undefined){
+    f.bodyId = reflect.bodies.length;
+    reflect.bodies.push(f.action);
+  }
+  if(type === 'Action'){
+    return 'this.reflect.bodies[' + f.bodyId + '](...args);return args[0]';
+  } else if ('returns' in f) {
+    return `const result = this.${f.returns.name}();
+    this.reflect.bodies[${f.bodyId}](result, ...args);
+    return result`;
+  }
+  return 'return this.reflect.bodies[' + f.bodyId + '](...args);';
+}
+function getMirrorType (type) {
+  if(type._isJsType){
+    return nice[type.niceType];
+  } else if (type._isNiceType){
+    const jsTypeName = nice.typesToJsTypesMap[type.name];
+    return jsTypeName === undefined ? null : nice.jsTypes[jsTypeName] || null;
+  }
+  throw 'I need type';
+};
+function getTranslatorCode(type, name){
+  return type._isJsType
+    ? name + ' = this(' + name + ');'
+    : name + ' = ' + name + '();';
+}
+function getTypeCheckCode(type, name){
+  return type._isJsType
+    ? type.primitiveName
+      ? 'typeof ' + name + " === '" + type.primitiveName + "'"
+      : name + ' instanceof ' + type.name
+    : name + '._is' + type.name;
+}
+function compareTypes(a, b){
+  if(a._isJsType){
+    if(b._isJsType){
+      0;
+    } else {
+      return 1;
+    }
+  } else {
+    if(b._isJsType){
+      return -1;
+    } else {
+      return 0;
+    }
+  }
+}
 })();
 (function(){"use strict";
+nice.reflect.reportUse = true;
 const configProto = {
   next (o) {
     const c = Configurator(this.name || o.name);
@@ -705,52 +795,23 @@ const configProto = {
   about (s) { return this.next({ description: s}); },
 };
 const functionProto = {
-  addSignature (body, signature, name, returns){
-    const ss = 'signatures' in this
+  addSignature (body, types, name, returns){
+    let ss = 'signatures' in this
       ? this.signatures
       : this.signatures = new Map();
-    if(signature && signature.length){
-      const combinations = allSignatureCombinations(signature);
-      combinations.forEach(combination => {
-        let _ss = ss;
-        const lastI = combination.signature.length - 1;
-        combination.signature.forEach((type, i) => {
-          if(_ss.has(type)){
-            _ss = _ss.get(type);
-          } else {
-            const s = new Map();
-            _ss.set(type, s);
-            _ss = s;
-          }
-        });
-        if(_ss.action) {
-          const existingN = nice._size(_ss.transformations);
-          const newN = nice._size(combination.transformations);
-          if(!existingN && !newN)
-            throw `Function "${name}" already have signature
-                [${signature.map(v=>v.name + ' ')}]`;
-          if(existingN > newN){
-            _ss.action = body;
-            _ss.transformations = combination.transformations;
-          }
-        } else {
-          _ss.action = body;
-          _ss.transformations = combination.transformations;
-        }
-        returns && (_ss.returns = returns);
-      });
-    } else {
-      ss.action = body;
-      returns && (ss.returns = returns);
-    }
+    types && types.forEach(type => {
+      if(ss.has(type)){
+        ss = ss.get(type);
+      } else {
+        const s = new Map();
+        ss.set(type, s);
+        ss = s;
+      }
+    });
+    ss.action = body;
+    returns && (ss.returns = returns);
     return this;
   },
-  ary (n){
-    return (...a) => this(...a.splice(0, n));
-  },
-  about (s) {
-    return configurator({ description: s });
-  }
 };
 defGet(functionProto, 'help',  function () {
   if(!nice.doc)
@@ -798,24 +859,29 @@ function createFunction({ name, body, signature, type, description, returns }){
   if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
     throw new Error("Function name should start with lowercase letter. "
           + `"${nice._decapitalize(name)}" not "${name}"`);
-  const existing = (name && nice[name]);
-  if(existing && existing.functionType !== type)
-    throw `function '${name}' can't have types '${existing.functionType}' and '${type}' at the same time`;
-  const f = existing || createFunctionBody(type);
+  const reflect = nice.reflect;
+  let cfg = (name && reflect.functions[name]);
+  const existing = cfg;
+  if(cfg && cfg.functionType !== type)
+    throw `function '${name}' can't have types '${cfg.functionType}' and '${type}' at the same time`;
+  if(!cfg){
+    cfg = create(functionProto, { name, functionType: type });
+    reflect.functions[name] = cfg;
+  }
   
   const types = signature.map(v => v.type);
   returns && (body.returnType = returns);
-  body && f.addSignature(body, types, name, returns);
-  createMethodBody(types[0], f);
+  body && cfg.addSignature(body, types, name, returns);
+  const f = reflect.compileFunction(cfg);
   if(name){
+    
+    nice[name] = f;
     if(!existing){
-      f.name !== name && nice.rewriteProperty(f, 'name', name);
-      def(nice, name, f);
-      reflect.emitAndSave('function', f);
-      type && reflect.emitAndSave(type, f);
+      reflect.emitAndSave('function', cfg);
+      type && reflect.emitAndSave(type, cfg);
     }
     body && reflect.emitAndSave('signature',
-      { name, body, signature, type, description, f });
+      { name, body, signature, type, description });
   }
   return f;
 };
@@ -825,260 +891,8 @@ nice.reflect.on('signature', s => {
   const first = s.signature[0];
   const type = first ? first.type : Anything;
   if(!(s.name in type.proto))
-    def(type.proto, s.name, function(...a) { return s.f(this, ...a); });
+    type.proto[s.name] = function(...a) { return nice[s.name](this, ...a); };
 });
-function createMethodBody(type, body) {
-  if(!type || !type._isNiceType || (body.name in type.proto))
-    return;
-  const functionType = body.functionType;
-  const fistTarget = body.signatures.get(type);
-  const {_1,_2,_3,_$} = nice;
-  def(type.proto, body.name, function(...args) {
-    const fistArg = this;
-    for(let a of args){
-      if(a === _1 || a === _2 || a === _3 || a === _$)
-        return skip(z, [fistArg].concat(args));
-    }
-    let target = fistTarget;
-    const l = args.length;
-    let precision = Infinity;
-    for(let i = 0; i < l; i++) {
-      if(target && target.size){
-        let type = nice.getType(args[i]);
-        let found = null;
-        while(type){
-          found = target.get(type);
-          if(found){
-            break;
-          } else {
-            type = Object.getPrototypeOf(type);
-          }
-        }
-        if(found){
-          let _t = found.transformations ? found.transformations.length : 0;
-          if(_t <= precision || !target.action){
-            precision = _t;
-            target = found;
-          }
-        }
-      }
-    }
-    return useBody(target, body.name, body.functionType, fistArg, ...args);
-  });
-}
-function useBody(target, name, functionType, ...args){
-  if(!target || !target.action)
-    return Err(signatureError(name, args));
-  try {
-    if(target.transformations)
-      for(let i in target.transformations)
-        args[i] = target.transformations[i](args[i]);
-    if(functionType === 'Action'){
-      target.action(...args);
-      return args[0];
-    } else if('returnType' in target.action){
-      const result = target.action.returnType();
-      target.action(result, ...args);
-      return result;
-    }
-    return target.action(...args);
-  } catch (e) {
-    return Err(e);
-  }
-  return nice.Undefined();
-}
-const _check = `
-const {_1,_2,_3,_$} = z.nice;
-for(let a of args){
-      if(a === _1 || a === _2 || a === _3 || a === _$)
-        return skip(z, args);
-    }`;
-const targetLookup = `
-    let target = z.signatures;
-    const l = args.length;
-    let precision = Infinity;
-    for(let i = 0; i < l; i++) {
-      if(target && target.size) {
-        let type = nice.getType(args[i]);
-        let found = null;
-        while(type){
-          found = target.get(type);
-          if(found){
-            break;
-          } else {
-            type = Object.getPrototypeOf(type);
-          }
-        }
-        if(found){
-          let _t = found.transformations ? found.transformations.length : 0;
-          if(_t <= precision || !target.action){
-            precision = _t;
-            target = found;
-          }
-        }
-      }
-    }
-    if(!target || !target.action)
-      return result.toErr(signatureError(z.name, args));
-`;
-const applyTransformations = `
-if(target.transformations)
-  for(let i in target.transformations)
-    args[i] = target.transformations[i](args[i]);
-`;
-function createMappingBody(){
-  const {_1,_2,_3,_$} = nice;
-  const by = new Function('nice', 'result', 'follow', 'z', '...args', `
-    const call = new Set();
-    ${targetLookup}
-    try {
-      ${applyTransformations}
-      if('returnType' in target.action){
-        result.to(target.action.returnType);
-        target.action(result, ...args);
-      } else {
-        result(target.action(...args));
-      }
-    } catch (e) {
-      result.toErr(e);
-    }
-    return result;
-  `);
-  const z = create(functionProto, (...args) => {
-    for(let a of args){
-      if(a === _1 || a === _2 || a === _3 || a === _$)
-        return skip(z, args);
-    }
-    const result = nice._createItem(Anything, Anything);
-    return result;
-  });
-  return z;
-}
-function createCheckBody(){
-  const {_1,_2,_3,_$} = nice;
-  const z = create(functionProto, (...args) => {
-    for(let a of args){
-      if(a === _1 || a === _2 || a === _3 || a === _$)
-        return skip(z, args);
-    }
-    let target = z.signatures;
-    const l = args.length;
-    let precision = Infinity;
-    for(let i = 0; i < l; i++) {
-      if(target && target.size) {
-        let type = nice.getType(args[i]);
-        let found = null;
-        while(type){
-          found = target.get(type);
-          if(found){
-            break;
-          } else {
-            type = Object.getPrototypeOf(type);
-          }
-        }
-        if(found){
-          let _t = found.transformations ? found.transformations.length : 0;
-          if(_t <= precision || !target.action){
-            precision = _t;
-            target = found;
-          }
-        }
-      }
-    }
-    if(!target || !target.action)
-      return false;
-    try {
-      if(target.transformations)
-        for(let i in target.transformations)
-          args[i] = target.transformations[i](args[i]);
-      return target.action(...args);
-    } catch (e) {
-      return false;
-    }
-  });
-  return z;
-}
-function createFunctionBody(type){
-  if(type === 'Check'){
-    const f = createCheckBody();
-    f.functionType = 'Check';
-    return f;
-  }
-  const {_1,_2,_3,_$} = nice;
-  const z = create(functionProto, (...args) => {
-    for(let a of args){
-      if(a === _1 || a === _2 || a === _3 || a === _$)
-        return skip(z, args);
-    }
-    let target = z.signatures;
-    const l = args.length;
-    let precision = Infinity;
-    for(let i = 0; i < l; i++) {
-      if(target && target.size) {
-        let type = nice.getType(args[i]);
-        let found = null;
-        while(type){
-          found = target.get(type);
-          if(found){
-            break;
-          } else {
-            type = Object.getPrototypeOf(type);
-          }
-        }
-        if(found){
-          let _t = found.transformations ? found.transformations.length : 0;
-          if(_t <= precision || !target.action){
-            precision = _t;
-            target = found;
-          }
-        }
-      }
-    }
-    return useBody(target, z.name, type, ...args);
-  });
-  z.functionType = type;
-  return z;
-}
-function mirrorType (t) {
-  if(t._isJsType){
-    return nice[t.niceType];
-  } else if (t._isNiceType){
-    const jsTypeName = nice.typesToJsTypesMap[t.name];
-    return jsTypeName === undefined ? null : nice.jsTypes[jsTypeName] || null;
-  }
-  throw 'I need type';
-};
-function addCombination (a, type, mirror, transformation) {
-  const res = [];
-  const position = a[0].signature.length;
-  a.forEach((last, k) => {
-    res.push({
-      signature: [ ...last.signature, type],
-      transformations: Object.assign({}, last.transformations )
-    });
-    mirror !== null && res.push({
-      signature: [ ...last.signature, mirror],
-      transformations: Object.assign({}, last.transformations, { [position]: transformation})
-    });
-  });
-  return res;
-}
-function allSignatureCombinations (ts) {
-  let res = [];
-  ts.forEach((type, i) => {
-    const mirror = mirrorType(type);
-    if(i === 0){
-      res.push({signature: [type], transformations: []});
-      mirror === null || res.push({
-        signature: [mirror],
-        transformations: { 0: type._isJsType ? v => v() : nice}
-      });
-    } else {
-      res = addCombination (res, type, mirror, type._isJsType ? v => v() : nice);
-    }
-  });
-  return res;
-}
 function signatureError(name, a){
   return `Function ${name} can't handle (${a.map(v =>
       nice.typeOf(v).name).join(',')})`;
@@ -1121,12 +935,6 @@ function skip(f1, args1){
   return f;
 };
 def(nice, skip);
-reflect.on('function', f => f.name && !skipedProto[f.name]
-  && def(skipedProto, f.name, function(...args){
-      this.queue.push({action: f, args});
-      return this;
-    })
-);
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('type', handleType);
 Func = def(nice, 'Func', configurator());
@@ -1197,7 +1005,7 @@ function runTest(t, args){
       const dh = line - t.line;
       const a = t.body.toString().split('\n');
       a.splice(dh + 1, 0,
-        '-'.repeat(symbol - 1) + '^' + '-'.repeat(80 - symbol),
+        '-'.repeat(symbol - 1) + '^' + (symbol > 80 ? '' : '-'.repeat(80 - symbol)),
          e.message,
          colors.gray(location + ':' + line),
          '-'.repeat(80));
@@ -1543,7 +1351,7 @@ defGet(actionProto, 'or', function (){
 reflect.on('function', f => {
   if(f.functionType !== 'Check'){
     f.name in actionProto || def(actionProto, f.name, function(...a){
-      return this.use(v => f(v, ...a));
+      return this.use(v => nice[f.name](v, ...a));
     });
   }
 });
@@ -1575,33 +1383,33 @@ const S = Switch = nice.Switch = (...args) => {
   f.done = false;
   return create(switchProto, f);
 };
-reflect.on('Check', f => f.name && !common[f.name]
-  && def(common, f.name, function (...a) {
+reflect.on('Check', ({name}) => name && !common[name]
+  && def(common, name, function (...a) {
     return this.check((...v) => {
       try {
-        return f(...v, ...a);
+        return nice[name](...v, ...a);
       } catch (e) {
         return false;
       }
     });
   })
 );
-reflect.on('Check', f => f.name && !$proto[f.name]
-  && def($proto, f.name, function (...a) {
+reflect.on('Check', ({name}) => name && !$proto[name]
+  && def($proto, name, function (...a) {
     return this.parent.check((...v) => {
       try {
-        return f(v[this.pos], ...a);
+        return nice[name](v[this.pos], ...a);
       } catch (e) {
         return false;
       }
     });
   })
 );
-reflect.on('Check', f => f.name && !_$proto[f.name]
-  && def(_$proto, f.name, function (...a) {
+reflect.on('Check', ({name}) => name && !_$proto[name]
+  && def(_$proto, name, function (...a) {
     return this.parent.check((...v) => {
       try {
-        return f(v, ...a);
+        return nice[name](v, ...a);
       } catch (e) {
         return false;
       }
@@ -1636,13 +1444,13 @@ const toString = v => {
   const s = v.toString ? v.toString() : JSON.stringify(v);
   return typeof s === 'string' ? s : '' + s;
 }
-reflect.on('Check', f => {
-  f.name && def(nice.expectPrototype, f.name, function(...a){
-    const res = this._preF ? this._preF(f(this.value, ...a)) : f(this.value, ...a);
+reflect.on('Check', ({name}) => {
+  name && def(nice.expectPrototype, name, function(...a){
+    const res = this._preF ? this._preF(nice[name](this.value, ...a)) : nice[name](this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
       const e = new Error(this.text || ['Expected (', toString(this.value), ')',
         this._preMessage || '', 'to be (',
-        f.name, ...a.map(toString), ')'].join(' '));
+        name, ...a.map(toString), ')'].join(' '));
       e.shift = 1;
       throw e;
     }

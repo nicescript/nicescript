@@ -173,30 +173,30 @@ describe("Func", function() {
   });
 
 
-  it("global Action", done => {
-    const f = nice.Action.Arr(function qwedsd2(a){ a.push(1); });
-    const a = nice.Arr();
-    expect(typeof a.qwedsd2).to.equal('function');
-    expect(a.qwedsd2()).to.equal(a);
-    expect(a.jsValue).to.deep.equal([1]);
-    expect(() => nice.Func(function qwedsd2(){ })).to.throw();
-    nice.reflect.on('Action', (_f) => {
-      f === _f && done();
-    });
-  });
+//  it("global Action", done => {
+//    const f = nice.Action.Arr(function qwedsd2(a){ a.push(1); });
+//    const a = nice.Arr();
+//    expect(typeof a.qwedsd2).to.equal('function');
+//    expect(a.qwedsd2()).to.equal(a);
+//    expect(a.jsValue).to.deep.equal([1]);
+//    expect(() => nice.Func(function qwedsd2(){ })).to.throw();
+//    nice.reflect.on('Action', (_f) => {
+//      f === _f && done();
+//    });
+//  });
 
 
-  it("Action", done => {
-    const T = nice.Type('TTTT321').Action('brt53', a => a.set('qwe', 2))();
-    const t = T();
-
-    expect(typeof t.brt53).to.equal('function');
-    expect(t.brt53()).to.equal(t);
-    expect(t().qwe).to.equal(2);
-    nice.reflect.on('Action', (_f) => {
-      nice.brt53 === _f && done();
-    });
-  });
+//  it("Action", done => {
+//    const T = nice.Type('TTTT321').Action('brt53', a => a.set('qwe', 2))();
+//    const t = T();
+//
+//    expect(typeof t.brt53).to.equal('function');
+//    expect(t.brt53()).to.equal(t);
+//    expect(t().qwe).to.equal(2);
+//    nice.reflect.on('Action', (_f) => {
+//      nice.brt53 === _f && done();
+//    });
+//  });
 
   //TODO: check Func.Single.Arr match(Num, Arr)
 });
