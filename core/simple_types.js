@@ -1,3 +1,8 @@
+nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);
+
+nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
+
+
 function s(name, parent, description, ){
   const value = Object.freeze({ _type: name });
   nice.Type({

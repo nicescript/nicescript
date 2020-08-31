@@ -697,6 +697,258 @@ jsHierarchy['primitive'].split(',').forEach(name => {
   nice.jsTypes[name].primitiveName = name.toLowerCase();
 });
 })();
+(function(){"use strict";
+nice.registerType({
+  name: 'Anything',
+  description: 'Parent type for all types.',
+  extend (name, by){
+    return nice.Type(name, by).extends(this);
+  },
+  itemArgs0: z => {
+    return z._value;
+  },
+  setValue: (z, value) => {
+    z._value = value;
+  },
+  itemArgs1: (z, v) => {
+    if (v && v._isAnything) {
+      
+      
+      z._type = v._type;
+      z._value = nice.clone(v._value);
+    } else {
+      z._cellType.setPrimitive(z, v);
+    }
+    return z;
+  },
+  setPrimitive: (z, v) => {
+    const t = typeof v;
+    let type;
+    if(v === undefined) {
+      type = nice.Undefined;
+    } else if(v === null) {
+      type = nice.Null;
+    } else if(t === 'number') {
+      type = Number.isNaN(v) ? nice.NumberError : nice.Num;
+    } else if(t === 'function') {
+      type = nice.Func;
+    } else if(t === 'string') {
+      type = nice.Str;
+    } else if(t === 'boolean') {
+      type = nice.Bool;
+    } else if(Array.isArray(v)) {
+      type = nice.Arr;
+    } else if(v[nice.TYPE_KEY]) {
+      type = nice[v[nice.TYPE_KEY]];
+    } else if(t === 'object') {
+      type = nice.Obj;
+    }
+    if(type !== undefined) {
+      if(type === z._type)
+        return type.setValue(z, v);
+      const cellType = z._cellType;
+      if(cellType === type || cellType.isPrototypeOf(type)){
+        nice._initItem(z, type, [v]);
+        return z;
+      }
+      const cast = cellType.castFrom && cellType.castFrom[type.name];
+      if(cast !== undefined){
+        nice._initItem(z, type, [cast(v)]);
+        return z;
+      };
+      z.toErr(`Can't cast`, type.name, 'to', cellType.name);
+      return ;
+    }
+    throw 'Unknown type';
+  },
+  itemArgsN: (z, vs) => {
+    throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
+  },
+  fromValue (_value){
+    return Object.assign(this(), { _value });
+  },
+  toString () {
+    return this.name;
+  },
+  _isNiceType: true,
+  proto: {
+    _isAnything: true,
+    to (type, ...as){
+      nice._initItem(this, type, as);
+      return this;
+    },
+    
+    valueOf () {
+      return '_value' in this ? ('' + this._value) : undefined;
+    },
+    toString () {
+      return this._type.name + '('
+        + ('_value' in this ? ('' + this._value) : '')
+        + ')';
+    },
+    super (...as){
+      const type = this._type;
+      const superType = type.super;
+      superType.initBy(this, ...as);
+      return this;
+    },
+    apply(f){
+      try {
+        f(this);
+      } catch (e) { return nice.Err(e) }
+      return this;
+    },
+    Switch (...vs) {
+      const s = Switch(this, ...vs);
+      return defGet(s, 'up', () => {
+        s();
+        return this;
+      });
+    },
+    SwitchArg (...vs) {
+      const s = Switch(this, ...vs);
+      s.checkArgs = vs;
+      return defGet(s, 'up', () => {
+        s();
+        return this;
+      });
+    },
+    [Symbol.toPrimitive]() {
+      return this.toString();
+    }
+  },
+  configProto: {
+    extends (parent){
+      const type = this.target;
+      nice.isString(parent) && (parent = nice[parent]);
+      expect(parent).isType();
+      nice.extend(type, parent);
+      return this;
+    },
+    about (...a) {
+      this.target.description = nice.format(...a);
+      return this;
+    },
+    ReadOnly (...a){
+      nice.ReadOnly[this.target.name](...a);
+      return this;
+    },
+  },
+  types: {},
+  static (...a) {
+    const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];
+    def(this, name, v);
+    return this;
+  }
+});
+Anything = nice.Anything;
+defGet(Anything.proto, 'switch', function () { return Switch(this); });
+nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
+Anything.proto._type = Anything;
+reflect.on('type', t =>
+  t.name && def(Anything.proto, 'to' + t.name, function (...as) {
+    return nice._initItem(this, t, as);
+  })
+);
+})();
+(function(){"use strict";
+def(nice, function extend(child, parent){
+  if(parent.extensible === false)
+    throw `Type ${parent.name} is not extensible.`;
+  create(parent, child);
+  create(parent.proto, child.proto);
+  create(parent.configProto, child.configProto);
+  create(parent.types, child.types);
+  parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
+  reflect.emitAndSave('extension', { child, parent });
+  child.super = parent;
+});
+defAll(nice, {
+  type: t => {
+    nice.isString(t) && (t = nice[t]);
+    expect(Anything.isPrototypeOf(t) || Anything === t,
+      '' + t + ' is not a type').is(true);
+    return t;
+  },
+  Type: (config = {}, by) => {
+    if(nice.isString(config)){
+      if(nice.types[config])
+        throw `Type "${config}" already exists`;
+      config = {name: config};
+    }
+    nice.isObject(config)
+      || nice.error("Need object for type's prototype");
+    config.name = config.name || 'Type_' + (nice._counter++);
+    config.types = {};
+    config.proto = config.proto || {};
+    config.configProto = config.configProto || {};
+    config.defaultArguments = config.defaultArguments || {};
+    by === undefined || (config.initBy = by);
+    const {_1,_2,_3,_$} = nice;
+    const type = (...a) => {
+      for(let v of a){
+        if(v === _1 || v === _2 || v === _3 || v === _$)
+          return nice.skip(type, a);
+      }
+      return nice._createItem(type, type, a);
+    };
+    Object.defineProperty(type, 'name', { writable: true });
+    Object.assign(type, config);
+    nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);
+    const cfg = create(config.configProto, nice.Configurator(type, ''));
+    config.name && nice.registerType(type);
+    return cfg;
+  },
+});
+nice.typeOf = v => {
+  if(v === undefined)
+    return nice.Undefined;
+  if(v === null)
+    return nice.Null;
+  if(v._type)
+    return v._type;
+  let primitive = typeof v;
+  if(primitive !== 'object'){
+    const res = nice[nice.jsBasicTypesMap[primitive]];
+    if(!res)
+      throw `JS type ${primitive} not supported`;
+    return res;
+  }
+  if(Array.isArray(v))
+    return nice.Arr;
+  return nice.Obj;
+};
+nice.getType = v => {
+  if(v === undefined)
+    return nice.Undefined;
+  if(v === null)
+    return nice.Null;
+  if(v && v._isAnything)
+    return v._type;
+  let res = typeof v;
+  if(res === 'object'){
+    const c = v.constructor;
+    
+    res = nice.jsTypes[c === Object
+      ? 'Object'
+      : c === Number
+        ? 'Number'
+        : c === String
+          ? 'String'
+          : c.name];
+    if(!res)
+      throw 'Unsupported object type ' + v.constructor.name;
+    return res;
+  }
+  res = nice.jsBasicTypes[res];
+  if(!res)
+    throw 'Unsupported type ' + typeof v;
+  return res;
+};
+defGet(Anything, 'help',  function () {
+  return this.description;
+});
+})();
 (function(){"use strict";nice.reflect.compileFunction = function compileFunction(cfg){
   const reflect = nice.reflect;
   const res = [];
@@ -1021,160 +1273,6 @@ function runTest(t, args){
   }
 }
 })();
-(function(){"use strict";
-nice.registerType({
-  name: 'Anything',
-  description: 'Parent type for all types.',
-  extend (name, by){
-    return nice.Type(name, by).extends(this);
-  },
-  itemArgs0: z => {
-    return z._value;
-  },
-  setValue: (z, value) => {
-    z._value = value;
-  },
-  itemArgs1: (z, v) => {
-    if (v && v._isAnything) {
-      
-      
-      z._type = v._type;
-      z._value = nice.clone(v._value);
-    } else {
-      z._cellType.setPrimitive(z, v);
-    }
-    return z;
-  },
-  setPrimitive: (z, v) => {
-    const t = typeof v;
-    let type;
-    if(v === undefined) {
-      type = nice.Undefined;
-    } else if(v === null) {
-      type = nice.Null;
-    } else if(t === 'number') {
-      type = Number.isNaN(v) ? nice.NumberError : nice.Num;
-    } else if(t === 'function') {
-      type = nice.Func;
-    } else if(t === 'string') {
-      type = nice.Str;
-    } else if(t === 'boolean') {
-      type = nice.Bool;
-    } else if(Array.isArray(v)) {
-      type = nice.Arr;
-    } else if(v[nice.TYPE_KEY]) {
-      type = nice[v[nice.TYPE_KEY]];
-    } else if(t === 'object') {
-      type = nice.Obj;
-    }
-    if(type !== undefined) {
-      if(type === z._type)
-        return type.setValue(z, v);
-      const cellType = z._cellType;
-      if(cellType === type || cellType.isPrototypeOf(type)){
-        nice._initItem(z, type, [v]);
-        return z;
-      }
-      const cast = cellType.castFrom && cellType.castFrom[type.name];
-      if(cast !== undefined){
-        nice._initItem(z, type, [cast(v)]);
-        return z;
-      };
-      z.toErr(`Can't cast`, type.name, 'to', cellType.name);
-      return ;
-    }
-    throw 'Unknown type';
-  },
-  itemArgsN: (z, vs) => {
-    throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
-  },
-  fromValue (_value){
-    return Object.assign(this(), { _value });
-  },
-  toString () {
-    return this.name;
-  },
-  _isNiceType: true,
-  proto: {
-    _isAnything: true,
-    to (type, ...as){
-      nice._initItem(this, type, as);
-      return this;
-    },
-    
-    valueOf () {
-      return '_value' in this ? ('' + this._value) : undefined;
-    },
-    toString () {
-      return this._type.name + '('
-        + ('_value' in this ? ('' + this._value) : '')
-        + ')';
-    },
-    super (...as){
-      const type = this._type;
-      const superType = type.super;
-      superType.initBy(this, ...as);
-      return this;
-    },
-    apply(f){
-      try {
-        f(this);
-      } catch (e) { return nice.Err(e) }
-      return this;
-    },
-    Switch (...vs) {
-      const s = Switch(this, ...vs);
-      return defGet(s, 'up', () => {
-        s();
-        return this;
-      });
-    },
-    SwitchArg (...vs) {
-      const s = Switch(this, ...vs);
-      s.checkArgs = vs;
-      return defGet(s, 'up', () => {
-        s();
-        return this;
-      });
-    },
-    [Symbol.toPrimitive]() {
-      return this.toString();
-    }
-  },
-  configProto: {
-    extends (parent){
-      const type = this.target;
-      nice.isString(parent) && (parent = nice[parent]);
-      expect(parent).isType();
-      nice.extend(type, parent);
-      return this;
-    },
-    about (...a) {
-      this.target.description = nice.format(...a);
-      return this;
-    },
-    ReadOnly (...a){
-      nice.ReadOnly[this.target.name](...a);
-      return this;
-    },
-  },
-  types: {},
-  static (...a) {
-    const [name, v] = a.length === 2 ? a : [a[0].name, a[0]];
-    def(this, name, v);
-    return this;
-  }
-});
-Anything = nice.Anything;
-defGet(Anything.proto, 'switch', function () { return Switch(this); });
-nice.ANYTHING = Object.seal(create(Anything.proto, new String('ANYTHING')));
-Anything.proto._type = Anything;
-reflect.on('type', t =>
-  t.name && def(Anything.proto, 'to' + t.name, function (...as) {
-    return nice._initItem(this, t, as);
-  })
-);
-})();
 (function(){"use strict";const { _1, _2, _3, _$ } = nice;
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
@@ -1487,112 +1585,6 @@ Test('Not expect followed by expect.', () => {
 });
 })();
 (function(){"use strict";
-def(nice, function extend(child, parent){
-  if(parent.extensible === false)
-    throw `Type ${parent.name} is not extensible.`;
-  create(parent, child);
-  create(parent.proto, child.proto);
-  create(parent.configProto, child.configProto);
-  create(parent.types, child.types);
-  parent.defaultArguments && create(parent.defaultArguments, child.defaultArguments);
-  reflect.emitAndSave('extension', { child, parent });
-  child.super = parent;
-});
-defAll(nice, {
-  type: t => {
-    nice.isString(t) && (t = nice[t]);
-    expect(Anything.isPrototypeOf(t) || Anything === t,
-      '' + t + ' is not a type').is(true);
-    return t;
-  },
-  Type: (config = {}, by) => {
-    if(nice.isString(config)){
-      if(nice.types[config])
-        throw `Type "${config}" already exists`;
-      config = {name: config};
-    }
-    nice.isObject(config)
-      || nice.error("Need object for type's prototype");
-    config.name = config.name || 'Type_' + (nice._counter++);
-    config.types = {};
-    config.proto = config.proto || {};
-    config.configProto = config.configProto || {};
-    config.defaultArguments = config.defaultArguments || {};
-    by === undefined || (config.initBy = by);
-    const {_1,_2,_3,_$} = nice;
-    const type = (...a) => {
-      for(let v of a){
-        if(v === _1 || v === _2 || v === _3 || v === _$)
-          return nice.skip(type, a);
-      }
-      return nice._createItem(type, type, a);
-    };
-    Object.defineProperty(type, 'name', { writable: true });
-    Object.assign(type, config);
-    nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);
-    const cfg = create(config.configProto, nice.Configurator(type, ''));
-    config.name && nice.registerType(type);
-    return cfg;
-  },
-});
-nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);
-Test("named type", (Type) => {
-  Type('Cat').str('name');
-  const cat = nice.Cat().name('Ball');
-  expect(cat._type.name).is('Cat');
-  expect(cat.name()).is('Ball');
-});
-nice.typeOf = v => {
-  if(v === undefined)
-    return nice.Undefined;
-  if(v === null)
-    return nice.Null;
-  if(v._type)
-    return v._type;
-  let primitive = typeof v;
-  if(primitive !== 'object'){
-    const res = nice[nice.jsBasicTypesMap[primitive]];
-    if(!res)
-      throw `JS type ${primitive} not supported`;
-    return res;
-  }
-  if(Array.isArray(v))
-    return nice.Arr;
-  return nice.Obj;
-};
-nice.getType = v => {
-  if(v === undefined)
-    return nice.Undefined;
-  if(v === null)
-    return nice.Null;
-  if(v && v._isAnything)
-    return v._type;
-  let res = typeof v;
-  if(res === 'object'){
-    const c = v.constructor;
-    
-    res = nice.jsTypes[c === Object
-      ? 'Object'
-      : c === Number
-        ? 'Number'
-        : c === String
-          ? 'String'
-          : c.name];
-    if(!res)
-      throw 'Unsupported object type ' + v.constructor.name;
-    return res;
-  }
-  res = nice.jsBasicTypes[res];
-  if(!res)
-    throw 'Unsupported type ' + typeof v;
-  return res;
-};
-defGet(Anything, 'help',  function () {
-  return this.description;
-});
-nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
-})();
-(function(){"use strict";
 nice.Type({
   name: 'Spy',
   extends: 'Anything',
@@ -1653,7 +1645,9 @@ Test((Spy, calledWith) => {
   expect(spy.calledWith(1, 2)).is(true);
 });
 })();
-(function(){"use strict";function s(name, parent, description, ){
+(function(){"use strict";nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);
+nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
+function s(name, parent, description, ){
   const value = Object.freeze({ _type: name });
   nice.Type({
     name,
@@ -3394,18 +3388,17 @@ Input.extend('Checkbox', (z, status) => {
     })
   .about('Represents HTML <select> element.');
 })();
-(function(){"use strict";Test('kill child', (Obj) => {
+(function(){"use strict";Test("named type", (Type) => {
+  Type('Cat').str('name');
+  const cat = nice.Cat().name('Ball');
+  expect(cat._type.name).is('Cat');
+  expect(cat.name()).is('Ball');
+});
+Test('kill child', (Obj) => {
   const o = Obj({q:1});
   expect(o.get('q')).is(1);
   o({});
   expect(o.get('q')).isNotFound();
-});
-Test('storing function', (Func) => {
-  const x = nice();
-  x(() => 1);
-  expect(x).isFunction();
-  expect(x).not.isErr();
-  expect(x()).is(1);
 });
 Test('isFunction', (Func) => {
   const x = nice(1);

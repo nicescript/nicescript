@@ -58,19 +58,6 @@ defAll(nice, {
   },
 });
 
-nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);
-
-Test("named type", (Type) => {
-  Type('Cat').str('name');
-
-  const cat = nice.Cat().name('Ball');
-  expect(cat._type.name).is('Cat');
-  expect(cat.name()).is('Ball');
-});
-
-
-
-
 
 nice.typeOf = v => {
   if(v === undefined)
@@ -134,5 +121,3 @@ nice.getType = v => {
 defGet(Anything, 'help',  function () {
   return this.description;
 });
-
-nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
