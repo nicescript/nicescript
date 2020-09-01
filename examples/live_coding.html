@@ -1,0 +1,112 @@
+<html>
+  <head>
+    <title>Ball game example</title>
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0;overflow: hidden;">
+<script>
+const { Div, H1, Box, RBox, BoxSet, clamp } = nice;  
+const { Textarea, Input } = nice;  
+
+const doc = nice.generateDoc();
+const codes = BoxSet();
+const values = BoxSet();
+const inputs = BoxSet();
+const valueView = Box();
+
+const resolver = new Proxy({}, {
+  get (o, k, receiver) {
+    console.log(k, ' requested');
+    const local = values.get(k);
+    return local ? local() : nice[k];
+  },
+});
+
+const names = Box([]);
+const codeViews = RBox(names, ns => {
+  return Div(...ns.map(name => {
+    const value = codes.get(name)();
+    const editor = Textarea(value).width('100%').wrap('off').rows(8);
+    
+    editor.value.on('state', v => {
+      codes.get(name)(v);
+    });
+    return Div()
+      .h3(name)
+      .add(editor)
+      .add(inputsList());
+  }));
+});
+
+function createUnit(name, value = ''){
+  const codeBox = Box(value);
+  codes.set(name, codeBox);
+  
+  const valueBox = Box();
+  values.set(name, valueBox);
+  
+  names.push(name);
+  codeBox.subscribe(code => {
+    const fs = [];
+    const tracker = f => {
+      fs.push(f);
+      let cursor = '';
+      
+    };
+    nice.reflect.onFunctionUse = tracker;
+    try {
+      const f = new Function('$', 'return (' + code + ');');
+      valueBox(f(resolver));
+    } catch (e) {
+      valueBox('' + e);
+    }
+    delete nice.reflect.onFunctionUse;
+    console.log('Used functions: ', fs.length, ...fs);
+  });
+  return codeBox;
+}
+
+createUnit('mainPain', `H1('Hi')`);
+
+function newView(){
+  const input = Input();//.on();
+  input.on('keyup', e => {
+    if(e.code === 'Enter'){
+      const name = input.value();
+      name && createUnit(name);
+      input.value('');
+    }
+  });
+  return Div(Div('Create new:'), input).margin('1rem 0');
+}
+
+function inputsList(a = ['map', 'H1']){
+  return a.map(name => {
+    const local = values.get(name);
+    const lib = nice[name];
+    return Div().color('#666')
+      .b( local ? name : 'nice.'+name, ': ' )
+      .add( local ? '' + local() : lib.description || ("" + lib));
+  });
+};
+
+const namesList = RBox(names, ns => {
+  return Div(...ns.map(name => {
+    return Div(name);
+  }));
+});
+
+Div(
+  Div(namesList).backgroundColor('#bbb').padding('.5rem'),
+  Div(codeViews, newView()).backgroundColor('#ddd').padding('.5rem'),
+  Div(values.get('mainPain')).padding('.5rem')
+).display('grid')
+  .gridTemplateColumns('10% 45% 45%')
+  .minHeight('100%')
+  .show();
+
+
+
+</script>
+  </body>
+</html>
