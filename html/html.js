@@ -62,22 +62,22 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     children.forEach(c => {
-      if(nice.isArray(c))
-        return _each(c, _c => z.add(_c));
-
-      if(nice.isArr(c))
-        return c.each(_c => z.add(_c));
-
       if(c === undefined || c === null)
         return;
 
-      if(typeof c === 'string' || nice.isStr(c))
+      if(typeof c === 'string' || c._isStr)
         return z.children.push(c);
 
-      if(nice.isNumber(c) || nice.isNum(c))
+      if(Array.isArray(c))
+        return c.forEach(_c => z.add(_c));
+
+      if(c._isArr)
+        return c.each(_c => z.add(_c));
+
+      if(c._isNum || typeof c === 'number')
         return z.children.push(c);
 
-      if(nice.isBox(c))
+      if(c._isBox)
         return z.children.push(c);
 
       if(c === z)
@@ -270,7 +270,7 @@ function html(z){
 };
 
 function toDom(e) {
-  if(nice.isBox(e))
+  if(e && e._isBox)
     return document.createTextNode(nice.htmlEscape(e() || '-'));
   return e._isAnything
     ? e.dom
@@ -317,7 +317,7 @@ const childrenCounter = (o, v) => {
 
 function attachNode(child, parent, position){
 
-  if(nice.isBox(child)){
+  if(child && child._isBox){
     //TODO: RBox cold compute
 //    let state = child();
     let state = '-';
@@ -335,7 +335,7 @@ function attachNode(child, parent, position){
 
 
 function detachNode(child, dom, parent){
-  if(nice.isBox(child)){
+  if(child && child._isBox){
     const f = dom.niceListener;
     f && child.unsubscribe(f);
   }
@@ -361,7 +361,8 @@ const extractKey = v => {
 //TODO: when remove node unsubscribe all children
 defAll(nice, {
   refreshElement(e, old, domNode){
-    const eTag = nice.isHtml(e) && e.tag(), oldTag = nice.isHtml(old) && old.tag();
+    const eTag = e && e._isHtml && e.tag(),
+          oldTag = old && old._isHtml && old.tag();
     let newDom = domNode;
 
     if (eTag !== oldTag){

@@ -190,7 +190,7 @@ nice.registerType({
   configProto: {
     extends (parent){
       const type = this.target;
-      nice.isString(parent) && (parent = nice[parent]);
+      typeof parent === 'string' && (parent = nice[parent]);
       expect(parent).isType();
       nice.extend(type, parent);
       return this;

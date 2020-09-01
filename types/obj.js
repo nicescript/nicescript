@@ -106,7 +106,7 @@ nice.Type({
     return a;
   })
   .ReadOnly(function jsValue(z){
-    const o = z.isArray() || z.isArr() ? [] : {};
+    const o = (Array.isArray(z) || (z && z._isArr)) ? [] : {};
     z.each((v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
     Switch(z._type.name).isString().use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));

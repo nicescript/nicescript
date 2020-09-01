@@ -15,14 +15,14 @@ def(nice, function extend(child, parent){
 
 defAll(nice, {
   type: t => {
-    nice.isString(t) && (t = nice[t]);
+    typeof t === 'string' && (t = nice[t]);
     expect(Anything.isPrototypeOf(t) || Anything === t,
       '' + t + ' is not a type').is(true);
     return t;
   },
 
   Type: (config = {}, by) => {
-    if(nice.isString(config)){
+    if(typeof config === 'string'){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
       config = {name: config};
