@@ -5,7 +5,7 @@
   </head>
   <body style="margin:0;overflow: hidden;">
 <script>
-const { Div, H1, Box, RBox, BoxSet, clamp } = nice;  
+const { Div, H1, B, Box, RBox, BoxSet, clamp } = nice;  
 const { Textarea, Input } = nice;  
 
 const doc = nice.generateDoc();
@@ -13,14 +13,13 @@ const codes = BoxSet();
 const values = BoxSet();
 const inputs = BoxSet();
 const valueView = Box();
+const activeItem = Box('mainPain');
 
-const resolver = new Proxy({}, {
-  get (o, k, receiver) {
-    console.log(k, ' requested');
-    const local = values.get(k);
-    return local ? local() : nice[k];
-  },
-});
+const resolve = (name) => {
+  const local = values.get(name);
+  return local ? local() : nice[name];
+};
+
 
 const names = Box([]);
 const codeViews = RBox(names, ns => {
@@ -32,6 +31,7 @@ const codeViews = RBox(names, ns => {
       codes.get(name)(v);
     });
     return Div()
+      .on('click', () => activeItem(name))
       .h3(name)
       .add(editor)
       .add(inputsList());
@@ -53,12 +53,44 @@ function createUnit(name, value = ''){
       let cursor = '';
       
     };
+    
+    const MAX_ATTEMPTS = 10;
+    const ins = [];
+    let done = false, attempts = 0;
+    
     nice.reflect.onFunctionUse = tracker;
-    try {
-      const f = new Function('$', 'return (' + code + ');');
-      valueBox(f(resolver));
-    } catch (e) {
-      valueBox('' + e);
+    while(!done){
+      if(attempts++ >= MAX_ATTEMPTS){
+        value = new Error('Too many attempts.');
+        break;
+      }
+      try {
+        const f = new Function(...ins, 'return (' + code + ');');
+        const vs = [];
+        for(name of ins){
+          const value = resolve(name);
+          if(value === undefined){
+            done = true;
+            throw name + ' not found!';
+          } else {
+            vs.push(value);
+          }
+        }
+        valueBox(f(...vs));
+        done = true;
+      } catch (e) {
+        valueBox('' + e);
+          if(e.constructor === ReferenceError){
+            let inputName = e.message.split(' ')[0];
+            ins.push(inputName);
+            console.log(inputName, 'missing');
+  //          const input = this.base.get(inputName);
+  //          input.listeners.add(this);
+  //          vs.push(input.value);
+          } else {
+            value = e;
+          }
+      }
     }
     delete nice.reflect.onFunctionUse;
     console.log('Used functions: ', fs.length, ...fs);
@@ -66,7 +98,8 @@ function createUnit(name, value = ''){
   return codeBox;
 }
 
-createUnit('mainPain', `H1('Hi')`);
+createUnit('mainPain', `H1('Hi').add(qwe)`);
+createUnit('qwe', `world`);
 
 function newView(){
   const input = Input();//.on();
@@ -90,16 +123,18 @@ function inputsList(a = ['map', 'H1']){
   });
 };
 
-const namesList = RBox(names, ns => {
+const namesList = RBox(names, activeItem, (ns, active) => {
   return Div(...ns.map(name => {
-    return Div(name);
+    return Div(name === active ? B(name) : name);
   }));
 });
+
+const resultPane = RBox(activeItem, active => Div(values.get(active)));
 
 Div(
   Div(namesList).backgroundColor('#bbb').padding('.5rem'),
   Div(codeViews, newView()).backgroundColor('#ddd').padding('.5rem'),
-  Div(values.get('mainPain')).padding('.5rem')
+  Div(resultPane).padding('.5rem')
 ).display('grid')
   .gridTemplateColumns('10% 45% 45%')
   .minHeight('100%')

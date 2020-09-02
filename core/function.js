@@ -262,11 +262,6 @@ reflect.on('type', type => {
   };
 });
 
-nice.reflect.on('itemUse', item => {
-  const call = nice.reflect.currentCall;
-  call === undefined || call.add(item);
-});
-
 
 //nice.reflect.on('signature', s => {
 ////  console.log(s.body);

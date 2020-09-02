@@ -14,10 +14,21 @@
 const { Box, RBox, BoxSet, Div, Span, H1, H2, H3, B, I, A, next, Html, Img } = nice;
 const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy, Pointer, def } = nice;
- 
-const x = nice();
-x(() => 1);
-  
+
+
+
+   const spy = Spy();
+  const a = Box(1);
+  const b = Box(2);
+  const c = Box(3);
+  const rb = RBox(a, b, (a, b) => a * b);
+  rb.subscribe(spy);
+  expect(spy).calledWith(2);
+  rb.reconfigure(c, a, (c, a) => c + a);
+  expect(spy).calledWith(5);
+
+
+
 //const users = {
 //  Jo: Box({balance: 50}),
 //  Jane: Box({balance: -10}),

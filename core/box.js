@@ -21,7 +21,7 @@ nice.Type({
         f(this._value);
     },
 
-      unsubscribe(f){
+    unsubscribe(f){
       this.off('state', f);
     },
   }

@@ -14,7 +14,7 @@ nice.Type({
     z._status = 0;
     z._inputs = inputs;
     z._inputValues = [];
-    z._inputListeners = [];
+    z._inputListeners = new Map();
   },
 
   customCall: (z, ...as) => {
@@ -25,6 +25,29 @@ nice.Type({
   },
 
   proto: {
+    reconfigure(...inputs) {
+      const by = inputs.pop();
+
+      if(typeof this._by !== 'function')
+        throw `RBox only accepts functions`;
+
+      this._inputs.forEach(input => {
+        inputs.includes(input) || this.detachSource(input);
+      });
+
+      inputs.forEach(input => {
+        this._inputs.includes(input) || this.attachSource(input);
+      });
+      this._by = by;
+      this._inputs = inputs;
+      this._inputValues = this._inputs.map(v => v._value);
+      if(this._status & IS_HOT)
+        this.attemptCompute();
+
+//      this._status = 0;
+//      this._inputListeners = [];)
+    },
+
     subscribe(f){
       this.warmUp();
       this.on('state', f);
@@ -63,14 +86,15 @@ nice.Type({
       this._status |= IS_LOADING;
       this._status |= IS_HOT;
       this._status &= ~IS_READY;
-      this._inputs.forEach((input, i) => this.attachSource(input, i));
+      this._inputs.forEach(input => this.attachSource(input));
+      this._inputValues = this._inputs.map(v => v._value);
       this.attemptCompute();
     },
 
     coolDown(){
       this._status &= ~IS_HOT;
-      this._inputListeners.forEach((f, i) => {
-        this.detachSource(i);
+      for (let [input, f] of this._inputListeners) {
+        this.detachSource(input);
 //        const source = this._inputs[i];
 //        if(source._isBox){
 //
@@ -79,35 +103,27 @@ nice.Type({
 //
 //          return source.off('state', f);
 //        }
-      });
+      };
     },
 
-
-    changeInputs(inputs){
-      const old = this._inputs;
-      old.forEach((input, index) =>
-          inputs.includes(i) || this.detachSource(index));
-    },
-
-    attachSource(s, i){
-      if(s._isBox){
+    attachSource(source, i){
+      if(source._isBox){
         const f = state => {
-          this._inputValues[i] = state;
+          const position = this._inputs.indexOf(source);
+          this._inputValues[position] = state;
           this.attemptCompute();
         };
-        this._inputListeners[i] = f;
+        this._inputListeners.set(source, f);
 
-        if(s._isRBox)
-          return s.subscribe(f);
+        if(source._isRBox)
+          return source.subscribe(f);
 
-        this._inputValues[i] = s._value;
-        return s.on('state', f);
+        return source.on('state', f);
       }
     },
 
-    detachSource(i){
-      const source = this._inputs[i];
-      const f = this._inputListeners[i];
+    detachSource(source){
+      const f = this._inputListeners.get(source);
       if(source._isBox){
 
         if(source._isRBox)
@@ -175,5 +191,21 @@ Test('RBox 2 sources', (Box, RBox, Spy) => {
   expect(spy).calledWith(3);
   a(2);
   expect(spy).calledWith(6);
+});
+
+
+Test('RBox reconfigure', (Box, RBox, Spy) => {
+  const spy = Spy();
+  const a = Box(1);
+  const b = Box(2);
+  const c = Box(3);
+  const rb = RBox(a, b, (a, b) => a * b);
+  rb.subscribe(spy);
+  expect(spy).calledWith(2);
+  rb.reconfigure(c, a, (c, a) => c + a);
+  expect(spy).calledWith(4);
+  a(7);
+  expect(spy).calledWith(10);
+  expect(b.countListeners('state')).is(0);
 });
 

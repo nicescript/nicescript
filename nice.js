@@ -820,7 +820,7 @@ nice.registerType({
   configProto: {
     extends (parent){
       const type = this.target;
-      nice.isString(parent) && (parent = nice[parent]);
+      typeof parent === 'string' && (parent = nice[parent]);
       expect(parent).isType();
       nice.extend(type, parent);
       return this;
@@ -865,13 +865,13 @@ def(nice, function extend(child, parent){
 });
 defAll(nice, {
   type: t => {
-    nice.isString(t) && (t = nice[t]);
+    typeof t === 'string' && (t = nice[t]);
     expect(Anything.isPrototypeOf(t) || Anything === t,
       '' + t + ' is not a type').is(true);
     return t;
   },
   Type: (config = {}, by) => {
-    if(nice.isString(config)){
+    if(typeof config === 'string'){
       if(nice.types[config])
         throw `Type "${config}" already exists`;
       config = {name: config};
@@ -1215,10 +1215,6 @@ reflect.on('type', type => {
     
     return this;
   };
-});
-nice.reflect.on('itemUse', item => {
-  const call = nice.reflect.currentCall;
-  call === undefined || call.add(item);
 });
 })();
 (function(){"use strict";Test = def(nice, 'Test', (...a) => {
@@ -1698,7 +1694,7 @@ defGet(nice.Undefined.proto, function jsValue() {
       if(this._value !== undefined)
         f(this._value);
     },
-      unsubscribe(f){
+    unsubscribe(f){
       this.off('state', f);
     },
   }
@@ -1823,7 +1819,7 @@ nice.Type({
     z._status = 0;
     z._inputs = inputs;
     z._inputValues = [];
-    z._inputListeners = [];
+    z._inputListeners = new Map();
   },
   customCall: (z, ...as) => {
     if(as.length === 0)
@@ -1831,6 +1827,22 @@ nice.Type({
     throw `Can't set value for reactive box`;
   },
   proto: {
+    reconfigure(...inputs) {
+      const by = inputs.pop();
+      if(typeof this._by !== 'function')
+        throw `RBox only accepts functions`;
+      this._inputs.forEach(input => {
+        inputs.includes(input) || this.detachSource(input);
+      });
+      inputs.forEach(input => {
+        this._inputs.includes(input) || this.attachSource(input);
+      });
+      this._by = by;
+      this._inputs = inputs;
+      this._inputValues = this._inputs.map(v => v._value);
+      if(this._status & IS_HOT)
+        this.attemptCompute();
+    },
     subscribe(f){
       this.warmUp();
       this.on('state', f);
@@ -1864,36 +1876,31 @@ nice.Type({
       this._status |= IS_LOADING;
       this._status |= IS_HOT;
       this._status &= ~IS_READY;
-      this._inputs.forEach((input, i) => this.attachSource(input, i));
+      this._inputs.forEach(input => this.attachSource(input));
+      this._inputValues = this._inputs.map(v => v._value);
       this.attemptCompute();
     },
     coolDown(){
       this._status &= ~IS_HOT;
-      this._inputListeners.forEach((f, i) => {
-        this.detachSource(i);
-      });
+      for (let [input, f] of this._inputListeners) {
+        this.detachSource(input);
+      };
     },
-    changeInputs(inputs){
-      const old = this._inputs;
-      old.forEach((input, index) =>
-          inputs.includes(i) || this.detachSource(index));
-    },
-    attachSource(s, i){
-      if(s._isBox){
+    attachSource(source, i){
+      if(source._isBox){
         const f = state => {
-          this._inputValues[i] = state;
+          const position = this._inputs.indexOf(source);
+          this._inputValues[position] = state;
           this.attemptCompute();
         };
-        this._inputListeners[i] = f;
-        if(s._isRBox)
-          return s.subscribe(f);
-        this._inputValues[i] = s._value;
-        return s.on('state', f);
+        this._inputListeners.set(source, f);
+        if(source._isRBox)
+          return source.subscribe(f);
+        return source.on('state', f);
       }
     },
-    detachSource(i){
-      const source = this._inputs[i];
-      const f = this._inputListeners[i];
+    detachSource(source){
+      const f = this._inputListeners.get(source);
       if(source._isBox){
         if(source._isRBox)
           return source.unsubscribe(f);
@@ -1948,6 +1955,20 @@ Test('RBox 2 sources', (Box, RBox, Spy) => {
   expect(spy).calledWith(3);
   a(2);
   expect(spy).calledWith(6);
+});
+Test('RBox reconfigure', (Box, RBox, Spy) => {
+  const spy = Spy();
+  const a = Box(1);
+  const b = Box(2);
+  const c = Box(3);
+  const rb = RBox(a, b, (a, b) => a * b);
+  rb.subscribe(spy);
+  expect(spy).calledWith(2);
+  rb.reconfigure(c, a, (c, a) => c + a);
+  expect(spy).calledWith(4);
+  a(7);
+  expect(spy).calledWith(10);
+  expect(b.countListeners('state')).is(0);
 });
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
@@ -2094,7 +2115,7 @@ nice.jsTypes.isSubType = isSubType;
     return a;
   })
   .ReadOnly(function jsValue(z){
-    const o = z.isArray() || z.isArr() ? [] : {};
+    const o = (Array.isArray(z) || (z && z._isArr)) ? [] : {};
     z.each((v, k) => o[k] = (v && v._isAnything) ? v.jsValue : v);
     Switch(z._type.name).isString().use(s =>
       ['Arr', 'Obj'].includes(s) || (o[nice.TYPE_KEY] = s));
@@ -2943,17 +2964,17 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     children.forEach(c => {
-      if(nice.isArray(c))
-        return _each(c, _c => z.add(_c));
-      if(nice.isArr(c))
-        return c.each(_c => z.add(_c));
       if(c === undefined || c === null)
         return;
-      if(typeof c === 'string' || nice.isStr(c))
+      if(typeof c === 'string' || c._isStr)
         return z.children.push(c);
-      if(nice.isNumber(c) || nice.isNum(c))
+      if(Array.isArray(c))
+        return c.forEach(_c => z.add(_c));
+      if(c._isArr)
+        return c.each(_c => z.add(_c));
+      if(c._isNum || typeof c === 'number')
         return z.children.push(c);
-      if(nice.isBox(c))
+      if(c._isBox)
         return z.children.push(c);
       if(c === z)
         return z.children.push(`Errro: Can't add element to itself.`);
@@ -3103,7 +3124,7 @@ function html(z){
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 function toDom(e) {
-  if(nice.isBox(e))
+  if(e && e._isBox)
     return document.createTextNode(nice.htmlEscape(e() || '-'));
   return e._isAnything
     ? e.dom
@@ -3130,7 +3151,7 @@ const childrenCounter = (o, v) => {
   return o;
 };
 function attachNode(child, parent, position){
-  if(nice.isBox(child)){
+  if(child && child._isBox){
     
     let state = '-';
     let dom = toDom(state);
@@ -3145,7 +3166,7 @@ function attachNode(child, parent, position){
   }
 }
 function detachNode(child, dom, parent){
-  if(nice.isBox(child)){
+  if(child && child._isBox){
     const f = dom.niceListener;
     f && child.unsubscribe(f);
   }
@@ -3162,7 +3183,8 @@ const extractKey = v => {
 };
 defAll(nice, {
   refreshElement(e, old, domNode){
-    const eTag = nice.isHtml(e) && e.tag(), oldTag = nice.isHtml(old) && old.tag();
+    const eTag = e && e._isHtml && e.tag(),
+          oldTag = old && old._isHtml && old.tag();
     let newDom = domNode;
     if (eTag !== oldTag){
       newDom = toDom(e);
