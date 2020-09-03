@@ -83,7 +83,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(c === z)
         return z.children.push(`Errro: Can't add element to itself.`);
 
-      if(c.isErr())
+      if(c._isErr)
         return z.children.push(c.toString());
 
       if(!c || !nice.isAnything(c))
@@ -271,10 +271,10 @@ function html(z){
 
 function toDom(e) {
   if(e && e._isBox)
-    return document.createTextNode(nice.htmlEscape(e() || '-'));
+    return document.createTextNode(e() || '-');
   return e._isAnything
     ? e.dom
-    : document.createTextNode(nice.htmlEscape(e));
+    : document.createTextNode(e);
  };
 
 
@@ -369,7 +369,7 @@ defAll(nice, {
       newDom = toDom(e);
       domNode.parentNode.replaceChild(newDom, domNode);
     } else if(!eTag) {
-      domNode.nodeValue = nice.htmlEscape(e);
+      domNode.nodeValue = e;
     } else {
       //TODO: selectors
       //TODO: events
