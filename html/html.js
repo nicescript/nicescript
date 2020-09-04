@@ -95,6 +95,9 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     });
   });
 
+nice.ReadOnly.Anything('dom', z => document.createTextNode("" + z._value));
+
+
 const Html = nice.Html;
 
 Test('Simple html element with string child', Html => {

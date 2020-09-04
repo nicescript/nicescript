@@ -7,9 +7,19 @@ function defaultSetValue(t, v){
 
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 
-function attachValue(target, setValue = defaultSetValue){
-  let node, mute;
-  def(target, 'value', nice.Box(""));
+function attachValue(target, setValue = defaultSetValue, value){
+  let node, mute, box;
+
+  if(value && value._isBox){
+    box = value;
+    //TODO: avoid leak
+    setValue(target, value());
+  } else {
+    box = nice.Box(value || "");
+    setValue(target, value || "");
+  }
+
+  def(target, 'value', box);
 
   if(nice.isEnvBrowser()){
     changeEvents.forEach(k => target.on(k, e => {
@@ -20,7 +30,10 @@ function attachValue(target, setValue = defaultSetValue){
     }));
 
     target._autoId();
-    target.on('domNode', n => node = n);
+    target.on('domNode', n => {
+      node = n;
+      node.value = box();
+    });
   }
   target.value.on('state', v => {
     if(mute)
@@ -46,9 +59,7 @@ Input.extend('Button', (z, text = '', action) => {
 
 Input.extend('Textarea', (z, value) => {
     z.tag('textarea');
-//    attachValue(z, (t, v) => t.children.removeAll().push(v));
-    attachValue(z, (t, v) => t.attributes.set('value', v));
-    z.value(value ? '' + value : "");
+    attachValue(z, (t, v) =>  t.children.removeAll().push(v), value);
   })
   .about('Represents HTML <textarea> element.');
 
