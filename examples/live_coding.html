@@ -55,14 +55,15 @@ nice.Type({
     z.setCode(code);
   },
   
+  customCall: (z, ...as) => {
+    if(as.length === 0)
+      return z._value;
+
+    z.setCode(as[0]);
+    z.attemptCompute();
+  },
+  
   proto: {
-//    addInput (name) {
-//      const input = resolve(name);
-//      this._inputNames.push(name);
-//      this._inputs.push(input);
-//      this._inputValues = this._inputs.map(v => v._value);
-//      this.setCode();
-//    },
     setCode (code) {
       if(code){
         this._code = code;
@@ -70,7 +71,6 @@ nice.Type({
       try {
         this._by = new Function(...this._inputNames, 'return (' + this._code + ');');
       } catch (e) {
-//        this._by = () => 'Temp by';
         this.setState(e);
       }
     },
@@ -93,13 +93,11 @@ nice.Type({
         this._status |= IS_READY;
       } catch (e) {
         if(e.constructor === ReferenceError){
-//          this.addInput(e.message.split(' ')[0]);
           const inputName = e.message.split(' ')[0];
           const input = resolve(inputName);
           this._inputNames.push(inputName);
           this._by = new Function(...this._inputNames, 'return (' + this._code + ');');
           this.reconfigure(...this._inputs, input, this._by);  
-//          this.attemptCompute();
           return;
         } 
         this.setState(e);
@@ -114,10 +112,10 @@ nice.Type({
 const names = Box([]);
 const codeViews = RBox(names, ns => {
   return Div(...ns.map(name => {
-    const value = codes.get(name)();
-    const editor = Textarea(value).width('100%').wrap('off').rows(8);
+    const editor = Textarea(codes.get(name)).width('100%').wrap('off').rows(8);
     
-    editor.value.on('state', v => codes.get(name)(v));
+//    editor.value.on('state', v => codes.get(name)(v));
+    
     return Div()
       .on('click', () => activeItem(name))
       .h3(name)
@@ -143,10 +141,7 @@ function createUnit(name, value = ''){
   values.set(name, valueBox);
   
   names.push(name);
-  codeBox.subscribe(code => {
-    valueBox.setCode(code);
-    valueBox.attemptCompute();
-  });
+  codeBox.subscribe(code => valueBox(code));
   
   return codeBox;
 }
@@ -192,7 +187,8 @@ Div(
   .show();
 
 
-createUnit('mainPain', `H2('Hello ').add(qwe)`);
+createUnit('mainPain', `H2('Hello ').add(qwe).a(() => codes.get('qwe')('"wwwwwwwwwwww2"'), 'qwe')`);
+//createUnit('mainPain', `H2('Hello ').add(qwe)`);
 createUnit('qwe', `world`);
 
 
