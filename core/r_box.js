@@ -28,19 +28,20 @@ nice.Type({
     reconfigure(...inputs) {
       const by = inputs.pop();
 
-      if(typeof this._by !== 'function')
+      if(typeof by !== 'function')
         throw `RBox only accepts functions`;
 
-      this._inputs.forEach(input => {
+      const oldInputs = this._inputs;
+      oldInputs.forEach(input => {
         inputs.includes(input) || this.detachSource(input);
       });
 
-      inputs.forEach(input => {
-        this._inputs.includes(input) || this.attachSource(input);
-      });
       this._by = by;
       this._inputs = inputs;
       this._inputValues = this._inputs.map(v => v._value);
+      inputs.forEach(input => {
+        oldInputs.includes(input) || this.attachSource(input);
+      });
       if(this._status & IS_HOT)
         this.attemptCompute();
 
@@ -63,14 +64,12 @@ nice.Type({
     },
 
     attemptCompute(){
+      const ready = this._inputValues.every(v => v !== undefined);
+
+      if(!ready)
+        return;
+
       try {
-        //check dependencies
-        const ready = this._inputValues.every(v => v !== undefined);
-
-        if(!ready)
-          return;
-
-        //compute
         const value = this._by(...this._inputValues);
         this.setState(value);
         this._status &= ~IS_LOADING;

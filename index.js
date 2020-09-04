@@ -1829,17 +1829,18 @@ nice.Type({
   proto: {
     reconfigure(...inputs) {
       const by = inputs.pop();
-      if(typeof this._by !== 'function')
+      if(typeof by !== 'function')
         throw `RBox only accepts functions`;
-      this._inputs.forEach(input => {
+      const oldInputs = this._inputs;
+      oldInputs.forEach(input => {
         inputs.includes(input) || this.detachSource(input);
-      });
-      inputs.forEach(input => {
-        this._inputs.includes(input) || this.attachSource(input);
       });
       this._by = by;
       this._inputs = inputs;
       this._inputValues = this._inputs.map(v => v._value);
+      inputs.forEach(input => {
+        oldInputs.includes(input) || this.attachSource(input);
+      });
       if(this._status & IS_HOT)
         this.attemptCompute();
     },
@@ -1856,12 +1857,10 @@ nice.Type({
         this.coolDown();
     },
     attemptCompute(){
+      const ready = this._inputValues.every(v => v !== undefined);
+      if(!ready)
+        return;
       try {
-        
-        const ready = this._inputValues.every(v => v !== undefined);
-        if(!ready)
-          return;
-        
         const value = this._by(...this._inputValues);
         this.setState(value);
         this._status &= ~IS_LOADING;
@@ -2978,7 +2977,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z.children.push(c);
       if(c === z)
         return z.children.push(`Errro: Can't add element to itself.`);
-      if(c.isErr())
+      if(c._isErr)
         return z.children.push(c.toString());
       if(!c || !nice.isAnything(c))
         return z.children.push('Bad child: ' + c);
@@ -3125,10 +3124,10 @@ function html(z){
 };
 function toDom(e) {
   if(e && e._isBox)
-    return document.createTextNode(nice.htmlEscape(e() || '-'));
+    return document.createTextNode(e() || '-');
   return e._isAnything
     ? e.dom
-    : document.createTextNode(nice.htmlEscape(e));
+    : document.createTextNode(e);
  };
 function dom(e){
   const res = document.createElement(e.tag());
@@ -3190,7 +3189,7 @@ defAll(nice, {
       newDom = toDom(e);
       domNode.parentNode.replaceChild(newDom, domNode);
     } else if(!eTag) {
-      domNode.nodeValue = nice.htmlEscape(e);
+      domNode.nodeValue = e;
     } else {
       
       
