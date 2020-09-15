@@ -1,7 +1,6 @@
 //TODO: throw error when adding object that is not Html
 //TODO: BUG: Div(111).Css(':hover').backgroundColor('red').up.show() - not work
-let autoId = 0;
-const AUTO_PREFIX = '_nn_';
+
 
 nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
@@ -28,13 +27,13 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .obj('attributes')
   .arr('children')
   .Method('_autoId', z => {
-    z.id() || z.id(AUTO_PREFIX + autoId++);
+    z.id() || z.id(nice.autoId());
     return z.id();
   })
   .Method('_autoClass', z => {
     const s = z.attributes.get('className')() || '';
-    if(s.indexOf(AUTO_PREFIX) < 0){
-      const c = AUTO_PREFIX + autoId++;
+    if(s.indexOf(nice.AUTO_PREFIX) < 0){
+      const c = nice.autoId()
       z.attributes.set('className', s + ' ' + c);
     }
     return z;
@@ -197,7 +196,7 @@ reflect.on('extension', ({child, parent}) => {
         return s[property]();
       nice.Switch(a[0])
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
-        .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
+        .default.use(() => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
     });
     def(Style.proto, property, function(...a) {
@@ -223,6 +222,11 @@ reflect.on('extension', ({child, parent}) => {
     def(Html.proto, property, f);
     def(Html.proto, property.toLowerCase(), f);
   });
+
+Test('Css propperty format', Div => {
+  expect(Div().border('3px', 'silver', 'solid').html)
+    .is('<div style="border:3px silver solid"></div>')
+});
 
 
 function text(z){
@@ -273,6 +277,8 @@ function html(z){
 };
 
 function toDom(e) {
+  if(e === undefined)
+    return document.createTextNode('');
   if(e && e._isBox)
     return document.createTextNode(e() || '-');
   return e._isAnything
@@ -351,13 +357,22 @@ function detachNode(child, dom, parent){
 
 
 const extractKey = v => {
-  if(v._isAnything)
+  let res;
+
+  if(v._isBox){
+    return v.assertId();
+  }
+
+  if(v._isAnything){
     v = v.jsValue;
+  }
 
   if(typeof v === 'object')
-    return v.id || v.attributes?.id || v.key;
+    res = v.id || v.attributes?.id || v.key;
+  else
+    res = v;
 
-  return v;
+  return res;
 };
 
 
