@@ -1,3 +1,9 @@
+Test((autoId) => {
+  expect(autoId()).isString();
+  expect(autoId()).not.is(autoId());
+});
+
+
 Test("named type", (Type) => {
   Type('Cat').str('name');
 
@@ -36,5 +42,14 @@ Test('kill child', (Obj) => {
 Test('isFunction', (Func) => {
   const x = nice(1);
   expect(x).not.isFunction();
+});
+
+
+Test('isError', (isError) => {
+  const x = new Error('qwe');
+  expect(x).isError();
+  const x2 = new SyntaxError('qwe');
+  expect(x2).isError();
+  expect(x2).isSyntaxError();
 });
 

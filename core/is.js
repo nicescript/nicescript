@@ -77,7 +77,8 @@ for(let i in nice.jsTypes){
     Check.about(`Checks if \`v\` is \`${i}\`.`)
       ('is' + i, basicJS.includes(low)
       ? v => typeof v === low//BUG: always true for function since every nice item is function
-      : v => v && typeof v === 'object' ? v.constructor.name === i : false);
+      : new Function('v', `return ${i}.prototype.isPrototypeOf(v);`));
+//      : new Function('v', v => v && typeof v === 'object' ? v.constructor.name === i : false);
   }
 };
 
