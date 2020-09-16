@@ -225,7 +225,7 @@ reflect.on('extension', ({child, parent}) => {
 
 Test('Css propperty format', Div => {
   expect(Div().border('3px', 'silver', 'solid').html)
-    .is('<div style="border:3px silver solid"></div>')
+    .is('<div style="border:3px silver solid"></div>'); 
 });
 
 
