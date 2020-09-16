@@ -1,3 +1,7 @@
+let autoId = 0;
+const AUTO_PREFIX = '_nn_';
+
+
 nice.Type({
   name: 'Box',
 
@@ -24,6 +28,12 @@ nice.Type({
     unsubscribe(f){
       this.off('state', f);
     },
+
+    assertId(){
+      if(!this._id)
+        this._id = nice.autoId();
+      return this._id;
+    }
   }
 });
 

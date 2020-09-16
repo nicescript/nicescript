@@ -3,7 +3,7 @@
     <title>Nim Nim Nim</title>
     <script src="../nice.js"></script>
   </head>
-  <body style="margin:0;overflow: hidden;">
+  <body style="margin:0;">
   <style>
     A {
       text-decoration: none;
@@ -11,9 +11,12 @@
     A:hover {
       text-decoration: underline;
     }
+    P {
+      margin: .5rem;
+    }
   </style>
 <script>
-const { Type, Div, H1, Box, clamp, Bool, A } = nice;  
+const { Type, Div, H1, Box, clamp, Bool, A, P } = nice;  
 
 
 Div.extend('PhoneBox').by((z, ...cs) => {
@@ -25,7 +28,8 @@ Div.extend('PhoneBox').by((z, ...cs) => {
     .borderColor('silver')
     .borderStyle('solid')
     .borderRadius('.5rem .5rem 0 0')
-    .position('relative');
+    .position('relative')
+    .fontFamily('Arial');
 });
 
 Div.extend('BottomMenu').by(z => {
@@ -69,30 +73,44 @@ nice.PageItem.extend('Block').by((z, a, ...b) => {
       .up
 });
 
-const div = Div();//.display('flex');
+const frontPage = Div()
+  .h2('Front page')
+  .PhoneBox()
+    .P()
+      .Input().width('100%').up
+      .up
+    .P()
+      .b('What are you gonna do?')
+      .div(['fun', 'study', 'help'].map(s => A(s, s).marginRight('.5rem')))
+      .up
+    .P()
+      .div('Your level: 2/9. 34 points to get to the next level')
+      .up
+    .P()
+      .Button().add('Create').width('100%').up
+      .up
+    .up  
 
+const createPage = Div()
+  .h2('Create page')
+  .PhoneBox()
+    .Block('Title',  '1 / 7')
+      .P().input().up
+      .up
+    .Block('Links 3/7')
+      .P().input().up
+      .up
+    .Block('Related topics 3/7')
+      .P().input().up
+      .up
+    .up;
+    
 
-//div.margin('0.5rem')
-//  .PhoneBox()
-//    .PageItem()
-//      .Div().tag('input').width('100%').up
-//      .up
-//    .PageItem()
-//      .a('/cc', 'Covid-19')
-//      .up
-//    .PageItem()
-//      .a('/cc', 'Programming')
-//      .up
-//    .PageItem()
-//      .a('/cc', 'Music')
-//      .up
-//    .PageItem()
-//      .a('/cc', 'Movies')
-//      .up
-//    .up;
-    
-    
-div.margin('0.5rem')
+const topicPage = Div()
+ .h2('Topic page');
+ 
+
+topicPage.margin('0.5rem')
   .PhoneBox()
     .Block('Title',  '1 / 7')
       .h1('Covid-19')
@@ -102,7 +120,7 @@ div.margin('0.5rem')
       .p('Coronavirus disease (COVID-19) is an infectious disease caused by a newly discovered coronavirus.')
       .up
 
-    .Block('Topics 3/7')
+    .Block('Related topics 3/7')
       .P('Health, Economy, Infection diseases').up
       .up
 
@@ -148,7 +166,10 @@ div.margin('0.5rem')
     .up
   .up;
 
-div.show();
+Div(frontPage, createPage, topicPage).display('grid')
+  .gridTemplateColumns('33% 33% 33%')
+  .gridTemplateRows('repeat(3, 300px)')
+  .show();
 
 </script>
   </body>

@@ -50,9 +50,10 @@ Html.extend('Input', (z, type) => {
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
-Input.extend('Button', (z, text = '', action) => {
+Html.extend('Button', (z, text = '', action) => {
     z.super('button').on('click', action);
-    z.attributes.set('value', text);
+//    z.attributes.set('value', text);
+    z.add(text);
   })
   .about('Represents HTML <input type="button"> element.');
 

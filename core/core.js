@@ -254,6 +254,10 @@ defGet = nice.defineGetter;
 _each = nice._each;
 
 
+let autoId = 0;
+def(nice, 'AUTO_PREFIX', '_nn_');
+def(nice, 'autoId', () => nice.AUTO_PREFIX + autoId++);
+
 //function refreshSize(item, oldType, type){
 //  const on = type && type !== NotFound;
 //  const off = oldType && oldType !== NotFound;

@@ -75,7 +75,8 @@ nice.Type({
         this._status &= ~IS_LOADING;
         this._status |= IS_READY;
       } catch (e) {
-        this.setState(nice.Err('Fail to compute'));
+//        this.setState(nice.Err('Fail to compute'));
+        this.setState(e);
       }
     },
 

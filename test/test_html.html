@@ -114,6 +114,16 @@ Test('Foolow RBox', (Html) => {
 });
 
 
+Test('Textarea', (Html, Textarea) => {
+  const x = Textarea(2);
+  const dom = x.dom;
+  expect(dom.outerHTML).is('<textarea>2</textarea>');
+  x.value('qwe');
+  //strange dom.outerHTML never updates
+//  expect(dom.outerHTML).is('<textarea>qwe</textarea>');
+  expect(dom.value).is('qwe');
+});
+
 //H3('Counter').show();
 //RBox(counter, c => Div('1: ', c)).show();
 //RBox(counter2, c => Div('2: ', c)).show();

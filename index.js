@@ -191,6 +191,9 @@ defAll(nice, {
 });
 defGet = nice.defineGetter;
 _each = nice._each;
+let autoId = 0;
+def(nice, 'AUTO_PREFIX', '_nn_');
+def(nice, 'autoId', () => nice.AUTO_PREFIX + autoId++);
 })();
 (function(){"use strict";const formatRe = /(%([jds%]))/g;
 const formatMap = { s: String, d: Number, j: JSON.stringify };
@@ -1335,7 +1338,7 @@ for(let i in nice.jsTypes){
     Check.about(`Checks if \`v\` is \`${i}\`.`)
       ('is' + i, basicJS.includes(low)
       ? v => typeof v === low
-      : v => v && typeof v === 'object' ? v.constructor.name === i : false);
+      : new Function('v', `return ${i}.prototype.isPrototypeOf(v);`));
   }
 };
 reflect.on('type', function defineReducer(type) {
@@ -1676,7 +1679,9 @@ defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";let autoId = 0;
+const AUTO_PREFIX = '_nn_';
+nice.Type({
   name: 'Box',
   extends: 'Something',
   customCall: (z, ...as) => {
@@ -1697,6 +1702,11 @@ defGet(nice.Undefined.proto, function jsValue() {
     unsubscribe(f){
       this.off('state', f);
     },
+    assertId(){
+      if(!this._id)
+        this._id = nice.autoId();
+      return this._id;
+    }
   }
 });
 Action.Box('assign', (z, o) => z({...z(), ...o}));
@@ -1866,7 +1876,7 @@ nice.Type({
         this._status &= ~IS_LOADING;
         this._status |= IS_READY;
       } catch (e) {
-        this.setState(nice.Err('Fail to compute'));
+        this.setState(e);
       }
     },
     warmUp(){
@@ -2903,8 +2913,6 @@ nice.Single.extensible = false;
 (function(){"use strict";
 })();
 (function(){"use strict";
-let autoId = 0;
-const AUTO_PREFIX = '_nn_';
 nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .str('tag', 'div')
@@ -2930,13 +2938,13 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .obj('attributes')
   .arr('children')
   .Method('_autoId', z => {
-    z.id() || z.id(AUTO_PREFIX + autoId++);
+    z.id() || z.id(nice.autoId());
     return z.id();
   })
   .Method('_autoClass', z => {
     const s = z.attributes.get('className')() || '';
-    if(s.indexOf(AUTO_PREFIX) < 0){
-      const c = AUTO_PREFIX + autoId++;
+    if(s.indexOf(nice.AUTO_PREFIX) < 0){
+      const c = nice.autoId()
       z.attributes.set('className', s + ' ' + c);
     }
     return z;
@@ -2986,6 +2994,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       z.children.push(c);
     });
   });
+nice.ReadOnly.Anything('dom', z => document.createTextNode("" + z._value));
 const Html = nice.Html;
 Test('Simple html element with string child', Html => {
   expect(Html().add('qwe').html).is('<div>qwe</div>');
@@ -3062,7 +3071,7 @@ reflect.on('extension', ({child, parent}) => {
         return s[property]();
       nice.Switch(a[0])
         .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
-        .default.use((...a) => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
+        .default.use(() => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
     });
     def(Style.proto, property, function(...a) {
@@ -3085,6 +3094,10 @@ reflect.on('extension', ({child, parent}) => {
     def(Html.proto, property, f);
     def(Html.proto, property.toLowerCase(), f);
   });
+Test('Css propperty format', Div => {
+  expect(Div().border('3px', 'silver', 'solid').html)
+    .is('<div style="border:3px silver solid"></div>')
+});
 function text(z){
   return z.children
       .map(v => v.text
@@ -3123,6 +3136,8 @@ function html(z){
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 function toDom(e) {
+  if(e === undefined)
+    return document.createTextNode('');
   if(e && e._isBox)
     return document.createTextNode(e() || '-');
   return e._isAnything
@@ -3174,11 +3189,18 @@ function detachNode(child, dom, parent){
   parent && parent.removeChild(dom);
 }
 const extractKey = v => {
-  if(v._isAnything)
+  let res;
+  if(v._isBox){
+    return v.assertId();
+  }
+  if(v._isAnything){
     v = v.jsValue;
+  }
   if(typeof v === 'object')
-    return v.id || v.attributes?.id || v.key;
-  return v;
+    res = v.id || v.attributes?.id || v.key;
+  else
+    res = v;
+  return res;
 };
 defAll(nice, {
   refreshElement(e, old, domNode){
@@ -3308,9 +3330,17 @@ function defaultSetValue(t, v){
   t.attributes.set('value', v);
 };
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
-function attachValue(target, setValue = defaultSetValue){
-  let node, mute;
-  def(target, 'value', nice.Box(""));
+function attachValue(target, setValue = defaultSetValue, value){
+  let node, mute, box;
+  if(value && value._isBox){
+    box = value;
+    
+    setValue(target, value());
+  } else {
+    box = nice.Box(value || "");
+    setValue(target, value || "");
+  }
+  def(target, 'value', box);
   if(nice.isEnvBrowser()){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
@@ -3319,7 +3349,10 @@ function attachValue(target, setValue = defaultSetValue){
       return true;
     }));
     target._autoId();
-    target.on('domNode', n => node = n);
+    target.on('domNode', n => {
+      node = n;
+      node.value = box();
+    });
   }
   target.value.on('state', v => {
     if(mute)
@@ -3334,15 +3367,14 @@ Html.extend('Input', (z, type) => {
   })
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
-Input.extend('Button', (z, text = '', action) => {
+Html.extend('Button', (z, text = '', action) => {
     z.super('button').on('click', action);
-    z.attributes.set('value', text);
+    z.add(text);
   })
   .about('Represents HTML <input type="button"> element.');
 Input.extend('Textarea', (z, value) => {
     z.tag('textarea');
-    attachValue(z, (t, v) => t.attributes.set('value', v));
-    z.value(value ? '' + value : "");
+    attachValue(z, (t, v) =>  t.children.removeAll().push(v), value);
   })
   .about('Represents HTML <textarea> element.');
 Test(Textarea => {
@@ -3409,7 +3441,11 @@ Input.extend('Checkbox', (z, status) => {
     })
   .about('Represents HTML <select> element.');
 })();
-(function(){"use strict";Test("named type", (Type) => {
+(function(){"use strict";Test((autoId) => {
+  expect(autoId()).isString();
+  expect(autoId()).not.is(autoId());
+});
+Test("named type", (Type) => {
   Type('Cat').str('name');
   const cat = nice.Cat().name('Ball');
   expect(cat._type.name).is('Cat');
@@ -3424,5 +3460,12 @@ Test('kill child', (Obj) => {
 Test('isFunction', (Func) => {
   const x = nice(1);
   expect(x).not.isFunction();
+});
+Test('isError', (isError) => {
+  const x = new Error('qwe');
+  expect(x).isError();
+  const x2 = new SyntaxError('qwe');
+  expect(x2).isError();
+  expect(x2).isSyntaxError();
 });
 })();;nice.version = "0.3.3";})();; return nice;}
