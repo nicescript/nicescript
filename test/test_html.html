@@ -124,6 +124,22 @@ Test('Textarea', (Html, Textarea) => {
   expect(dom.value).is('qwe');
 });
 
+
+Test('Update event handlers', (Div, Spy, Html) => {
+  const f1 = Spy();
+  const f2 = Spy();
+  const h1 = Div().on('click', f1);
+  const h2 = Div().on('click', f2);
+  const dom = h1.dom;
+  const event = new Event('click');
+  dom.dispatchEvent(event);
+  expect(f1).calledOnce();
+  nice.refreshElement(h2, h1, dom);
+  dom.dispatchEvent(event);
+  expect(f1).calledOnce();
+  expect(f2).calledOnce();
+});
+
 //H3('Counter').show();
 //RBox(counter, c => Div('1: ', c)).show();
 //RBox(counter2, c => Div('2: ', c)).show();

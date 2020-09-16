@@ -225,7 +225,7 @@ reflect.on('extension', ({child, parent}) => {
 
 Test('Css propperty format', Div => {
   expect(Div().border('3px', 'silver', 'solid').html)
-    .is('<div style="border:3px silver solid"></div>'); 
+    .is('<div style="border:3px silver solid"></div>');
 });
 
 
@@ -390,7 +390,6 @@ defAll(nice, {
       domNode.nodeValue = e;
     } else {
       //TODO: selectors
-      //TODO: events
       const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
       _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
       _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
@@ -398,6 +397,16 @@ defAll(nice, {
       const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
       _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
       _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
+
+      const newHandlers = e.eventHandlers(), oldHandlers = old.eventHandlers();
+      nice._eachEach(oldHandlers, (f, i, type) => {
+        if(!(newHandlers[type] && newHandlers[type].includes(f)))
+          domNode.removeEventListener(type, f, true);
+      });
+      nice._eachEach(newHandlers, (f, i, type) => {
+        if(!(oldHandlers[type] && oldHandlers[type].includes(f)))
+          domNode.addEventListener(type, f, true);
+      });
 
       nice.refreshChildren(e.children._value, old.children._value, domNode);
     }
