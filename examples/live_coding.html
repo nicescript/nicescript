@@ -13,7 +13,7 @@
 //TODO: syncronius warmup
 //TODO: how to display(orderly) object(no order)
 
-const { Div, H1, B, A, Box, RBox, BoxSet, clamp, Err } = nice;  
+const { Div, H1, B, A, I, Span, Box, RBox, BoxSet, clamp, Err } = nice;  
 const { Textarea, Input } = nice;
 const history = [];
 
@@ -69,6 +69,12 @@ function createSet(){
 }
 
 
+
+function setState(name, state){
+  resolve(name)(JSON.stringify(state));
+}
+
+
 nice.Type({
   name: 'LiveBox',
   
@@ -116,7 +122,7 @@ nice.Type({
       
       let value;
       try {
-        value = this._by(createGet(), createSet(), ...this._inputValues);
+        value = this._by(createGet(), setState, ...this._inputValues);
       } catch (e) {
         const bool = nice.isError(e);
         if(e.constructor === ReferenceError){
@@ -167,32 +173,59 @@ function resultFrame(box){
 
 const names = Box([]);
 const codeViews = RBox(names, ns => {
-  return Div(...ns.map(name => {
-    const editorOn = Box(false);
-    const code = Box(codes.get(name)());
-    const editor = RBox(editorOn, on => on 
-      ? Div()
-        .Textarea(code).width('100%').wrap('off').rows(6).up
-        .a(() => editorOn(false), 'Save')
-      : A(() => editorOn(true), 'Edit')
-    );
-    const value = nice.LiveBox();
-    code.subscribe(v => value(v));
-    
-    return Div()
-      .on('click', () => activeItem(name))
-      .h3(name)
-      .Div(codes.get(name))
-        .whiteSpace('pre')
-        .padding('.5rem')
-        .backgroundColor('#eee')
-        .up
-      .add(editor)
-//      .add(childrenBlock(name))
-      .add(resultFrame(value))
-//      .add(inputsList());
-  }));
+  return Div(...ns.map(name));
 });
+
+
+Div.extend('TabView')
+  .by((z, cfg) => {
+    const resultPane = Box();
+    const activeTab = Box('');
+    const keys = Object.keys(cfg)
+    return Div()
+      .Div(...keys.map(key => A(() => activeTab(key), key))).up
+      .Div(resultPane).up
+      
+      
+  });
+  
+A.extend('MyButton')
+  .by((z, ...as) => {
+    z.super(...as)
+      .backgroundColor('#588fc7')
+      .color('#fff')
+      .borderRadius('.3rem')
+      .padding('.1rem .3rem')
+      .textDecoration('none')
+  });
+
+const itemDetails = name => {
+  const editorOn = Box(false);
+  const code = Box(codes.get(name)());
+  const editor = RBox(editorOn, on => on 
+    ? Div('Edit code:placeholder')
+      .Textarea(code).width('100%').wrap('off').rows(6).up
+      .myButton(() => { codes.get(name)(code()); editorOn(false) }, 'Save')
+      .myButton(() => editorOn(false), 'Cancel')
+    : A(() => editorOn(true), 'Edit')
+  );
+  const value = nice.LiveBox();
+  code.subscribe(v => value(v));
+
+  return Div()
+    .on('click', () => activeItem(name))
+    .h3(name)
+    .Div(codes.get(name))
+      .fontFamily('mono')
+      .whiteSpace('pre')
+      .padding('.5rem')
+      .backgroundColor('#eee')
+      .up
+    .Div(editor).margin('1rem 0').up
+//      .add(childrenBlock(name))
+    .Div(resultFrame(value)).margin('1rem 0').up
+//      .add(inputsList());
+};
 
 function createUnit(name, value = ''){
   const codeBox = Box(value);
@@ -218,14 +251,17 @@ function createUnit(name, value = ''){
 
 function newView(){
   const input = Input();
-  input.on('keyup', e => {
-    if(e.code === 'Enter'){
-      const name = input.value();
-      name && createUnit(name);
-      input.value('');
-    }
-  });
-  return Div(Div('Create new:'), input).margin('1rem 0');
+  input
+    .placeholder('Create new:')
+    .on('keyup', e => {
+      if(e.code === 'Enter'){
+        const name = input.value();
+        name && createUnit(name);
+        input.value('');
+        activeItem(name);
+      }
+    });
+  return Div(input).margin('1rem 0');
 }
 
 function inputsList(a = ['map', 'H1']){
@@ -240,24 +276,18 @@ function inputsList(a = ['map', 'H1']){
 
 const namesList = RBox(names, activeItem, (ns, active) => {
   return Div(...ns.map(name => {
-    return RBox(resolve(name), value => 
-        Div(name === active ? B(name) : name)
-          .color(value._isErr || value  instanceof Error ? '#ce0404' : 'black')
-          .on('click', () => activeItem(name)));
+    return Div(name === active ? B(name) : name)
+      .cursor('pointer')
+      .add(' ', Span(nice.getType(resolve(name)()).name).color('#666'))
+      .on('click', () => { activeItem(name); return false });
+//    return RBox(resolve(name), value => 
+//        Div(name === active ? B(name) : name)
+//          .color(value._isErr || value  instanceof Error ? '#ce0404' : 'black')
+//          .on('click', () => activeItem(name)));
   }));
 });
 
 const resultPane = RBox(activeItem, active => Div(values.get(active)));
-
-Div(
-  Div(namesList).backgroundColor('#bbb').padding('.5rem'),
-  Div(codeViews, newView()).overflow('auto').backgroundColor('#ddd').padding('.5rem'),
-  Div(resultPane).padding('.5rem')
-).display('grid')
-  .gridTemplateColumns('10% 45% 45%')
-  .height('100%')
-  .show();
-
 
 function extractNames (code){
   const tokens = esprima.tokenize(code);
@@ -290,7 +320,8 @@ function extractNames (code){
 //createUnit('mainPane', `H2('Hello ').add(qwe)`);
 //createUnit('qwe', `world`);
 
-createUnit('mainPane', `H2('Hello ')
+createUnit('mainPane', `Div()
+  .h2('Hello ')
   .add(messages.map(m => Div(m)))
   .add(input)`);
 createUnit('messages', `['Hi all']`);
@@ -298,13 +329,28 @@ createUnit('input', `Input().on('keyup', e => {
     if(e.code === 'Enter'){
       const input = e.srcElement;
       const text = input.value;
-      text && set('messages', [...get('messages'), text]);
       input.value = '';
+      input.dispatchEvent(new Event('change'));
+      text && set('messages', [...get('messages'), text]);
     }
   })`);
+  
+//  set('messages', [...get('messages'), text]);
+//  or
+//  messages.push(text);
+//  or
+//  addMessage(text);
 
 
-
+Div(
+  Div(newView(), namesList).backgroundColor('#bbb').padding('.5rem'),
+  Div(RBox(activeItem, itemDetails))
+    .overflow('auto').backgroundColor('#ddd').padding('.5rem'),
+//  Div(resultPane).padding('.5rem')
+).display('grid')
+  .gridTemplateColumns('25% 75%')
+  .height('100%')
+  .show();
 
 </script>
   </body>

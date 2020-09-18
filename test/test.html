@@ -16,34 +16,30 @@ const { Arr, Type, Check, Mapping, Switch, is, Single,
    get, expect, Num, Str, Obj,Test, Spy, Pointer, def, Textarea } = nice;
 
 
-//var ab = Box([2]);
-//var vb = RBox(ab, vs => {
-//  return Div(...vs.map(v => Li(v)));
-//});
-//
-//Div(vb).show();
-//
-//ab([1]);
-//ab([1,3]);
-//ab([1,3,2]);
-//ab([1,4,3,2]);
-
-const rb = RBox(() => {
-    const name = 'qwe';
-    const editorOn = Box(false);
-    const editor = RBox(editorOn, on => on 
-      ? Textarea('codes.get(name)').width('100%').wrap('off').rows(6)
-      : A(() => editorOn(true), 'Edit')
-    );
-    
-    return Div()
-      .h3(name)
-      .add(editor);
+var ab = Box([2]);
+var vb = RBox(ab, vs => {
+  return Div(...vs.map(v => Li(v)));
 });
-    
-Div(rb).show();
 
+Div(vb).show();
 
+const b1 = Box(1);
+const b2 = Box(2);
+const b3 = Box(3);
+const b4 = Box(4);
+
+ab([b1]);
+ab([b1,b3]);
+ab([b1,b3,b2]);
+ab([b1,b4,b3,b2]);
+
+var dom; 
+var i = nice.Input()
+  .on('domNode', node => dom = node);
+  
+i.value.subscribe(v => console.log(v));
+  
+i.show();  
 
 //const users = {
 //  Jo: Box({balance: 50}),
