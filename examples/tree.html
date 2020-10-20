@@ -1,0 +1,62 @@
+<html>
+  <head>
+    <title>Tree input</title>
+    <script src="../nice.js"></script>
+  </head>
+  <body style="margin:0;">
+<script>
+const { Div, H1, B, Box, RBox, BoxSet, clamp, Err, Test } = nice;  
+
+// * primary vs reactive
+// * 
+
+const tree = {
+  data: {},
+  schema: {},
+  set(){
+    const path = arguments;
+    console.log(path);
+    
+    let curData = this.data;
+    let curSchema = this.schema;
+    
+    const l = arguments.length - 1;
+    const value = arguments[l];
+    
+    for (let i = 0; i < l; i++) {
+      const key = arguments[i];
+      
+      const type = curSchema[key];
+      if(!type)
+        throw `Key ${key} not found in schema`;
+      
+      if(!type.match(value))
+        throw `Value don't match type ${type.name}`;
+      
+      if(i === l - 1){
+        curData[key] = value;
+      } else {
+        curData = curData[key];
+      }
+    }
+  }
+};
+
+
+function checkType(type, value){
+  
+}
+
+const types = {
+  Number: { name: 'Number', match: v => typeof v === 'number' },
+  Object: { name: 'Object', match: v => typeof v === 'object' },
+}
+
+tree.schema.qwe = Number;
+tree.schema.users = Object;
+tree.set('qwe', 1);      
+
+
+</script>
+  </body>
+</html>

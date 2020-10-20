@@ -90,6 +90,114 @@ Component('chatView')
       .input().onValueEnter(value => messages.add(value))
   });
 
+
+const input = {
+  messages: Array
+  settings: {
+    style: {
+      blockMargin: String
+    }
+  }
+}
+
+
+Component({
+  input: {
+    messages: Array
+    settings: {
+      style: {
+        blockMargin: String.as('margin'),
+        mainFontColor: String.as('color')
+      }
+    }
+  },
+  input
+    .messages.Array
+    .settings.style.blockMargin.as('margin').String,
+  type: Div,
+  by: ({messages, margin}) => {
+    return Div(messages.map(m => Div('> ', m).margin(margin)));
+  }
+});
+
+
+Component(
+  $.messages.Array,      
+  $.settings.style.blockMargin.String,
+  $.settings.style.mainFontColor.String,
+  Div,
+  by: (messages, margin, color) => {
+    return Div(messages.map(m => Div('> ', m).margin(margin)));
+  }
+});
+
+Component(
+  $.messages.Array,      
+  $.settings.style.blockMargin.String.and.mainFontColor.String,
+  Div,
+  by: (messages, margin, color) => {
+    return Div(messages.map(m => Div('> ', m).margin(margin)));
+  }
+});
+
+
+  input
+    .messages.Array
+    .settings.style.Object
+      .blockMargin.as('margin').String,
+      .mainFontColor.as('color').String,
+      
+  messages: $.messages.Array,
+  margin: $.settings.style.blockMargin.String,
+  color: $.settings.style.mainFontColor.String    
+
+  messages: $.messages.Array,
+  $style: $.settings.style,        
+  margin: $style.blockMargin.String,
+  color: $style.mainFontColor.String    
+  
+
+  messages: Array,
+  settings: {
+    style: {
+      blockMargin: String.as('margin'),
+      mainFontColor: String.as('color')
+    }
+  }
+
+  messages: $.messages.Array,
+  style: $.settings.style(s => {
+    margin: s.blockMargin.String
+    color: s.mainFontColor.String
+  })  
+  
+//no type query
+q
+  .messages()
+  .settings
+    .style
+      .margin()
+      .color()
+      
+ 
+  
+///DB Schema
+query
+  row(id)
+    property*
+  rows([ids])
+    property*          
+  field(name)
+    ??
+  find(query)
+    page(n, count)
+      id
+      property*
+action
+  setProperty(id, property, value)
+      
+
+
 </script>
   </body>
 </html>

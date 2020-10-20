@@ -1,6 +1,7 @@
 <html>
   <head>
     <title>Live coding</title>
+    <!--<script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>-->
     <script src="../nice.js"></script>
   </head>
   <body style="margin:0;">
@@ -14,64 +15,14 @@
 
 const { Div, H1, B, A, I, Span, Box, RBox, BoxSet, clamp, Err } = nice;  
 const { Textarea, Input } = nice;
-const history = [];
 
-const doc = nice.generateDoc();
-const codes = BoxSet();
-const values = BoxSet();
-const inputs = BoxSet();
-const valueView = Box();
-const activeItem = Box('mainPane');
-const missingItems = {};
-const imports = {};
-let test;
-
+const names = Box([]);
 //TODO: //BUG: name "name" dont work
-
-const resolve = (name) => {
-  const local = values.get(name);
-  if(local){
-    return local;
-  } else {
-    if(nice[name]){
-      const box = nice.LiveBox(`nice["${name}"]`);
-      imports[name] = box;
-      return box;
-    } else {
-      const box = nice.LiveBox(`Err('Name "${name}" not found')`);
-      missingItems[name] = box;
-      return box;
-    }
-  }
-};
 
 const MAX_ATTEMPTS = 10;
 const IS_READY = 1;
 const IS_LOADING = 2;
 const IS_HOT = 4;
-
-function createGet(){
-  const res = function(name){
-    return resolve(name)();
-  };
-  
-  return res;
-}
-
-  
-function createSet(){
-  const res = function(name, value){
-    return resolve(name)(value);
-  };
-  
-  return res;
-}
-
-
-
-function setState(name, state){
-  resolve(name)(JSON.stringify(state));
-}
 
 
 nice.Type({
@@ -85,6 +36,11 @@ nice.Type({
     z._inputNames = [];
     z._inputValues = [];
     z._inputListeners = new Map();
+    z.codes = BoxSet();
+    z.values = BoxSet();
+    z.inputs = BoxSet();
+    z.missingItems = {};
+    z.imports = {};
     z.setCode(code);
   },
   
@@ -121,12 +77,12 @@ nice.Type({
       
       let value;
       try {
-        value = this._by(createGet(), setState, ...this._inputValues);
+        value = this._by(this.createGet(), this.setState, ...this._inputValues);
       } catch (e) {
         const bool = nice.isError(e);
         if(e.constructor === ReferenceError){
           const inputName = e.message.split(' ')[0];
-          const input = resolve(inputName);
+          const input = this.resolve(inputName);
           this._inputNames.push(inputName);
           this._by = new Function('get', 'set', ...this._inputNames, 'return (' + this._code + ');');
           this.reconfigure(...this._inputs, input, this._by);  
@@ -141,44 +97,93 @@ nice.Type({
 
       delete this.attempts;
       return;
+    },
+    
+    createUnit(name, value = ''){
+      const codeBox = Box(value);
+      this.codes.set(name, codeBox);
+
+      let valueBox;
+      if(this.missingItems[name]){
+        valueBox = this.missingItems[name];
+        delete this.missingItems[name];
+      } else if (this.imports[name]) {
+        valueBox = this.imports[name];
+        delete this.imports[name];
+      } else {
+        valueBox = nice.LiveBox();
+      }
+      this.values.set(name, valueBox);
+
+      names.push(name);
+      codeBox.subscribe(code => valueBox(code));
+
+      return codeBox;
+    },
+    resolve (name) {
+      const local = this.values.get(name);
+      if(local){
+        return local;
+      } else {
+        if(nice[name]){
+          const box = nice.LiveBox(`nice["${name}"]`);
+          this.imports[name] = box;
+          return box;
+        } else {
+          const box = nice.LiveBox(`Err('Name "${name}" not found')`);
+          this.missingItems[name] = box;
+          return box;
+        }
+      }
+    },
+    
+    createGet(){
+      const res = function(name){
+        return this.resolve(name)();
+      };
+
+      return res;
+    },
+    
+    createSet(){
+      const res = function(name, value){
+        return this.resolve(name)(value);
+      };
+
+      return res;
+    },
+
+    setState(name, state){
+      this.resolve(name)(JSON.stringify(state));
     }
   }
 });
 
 
-function create$(parent){
-  const f = () => {
-    
-  };
-  
-//  f.target = 
-  
-  const res = new Proxy(f, {
-    get (o, k, receiver) {
-//      if(k[0] === '_')
-//        return undefined;
-//
-//      if(k === 'isPrototypeOf')
-//        return Object.prototype.isPrototypeOf;
-//
-//      if(k === 'hasOwnProperty')
-//        return Object.prototype.hasOwnProperty;
-
-      return function(){
-        
-      };
-    },
-  });
-  return res;
-}
+const root = nice.LiveBox();
+root.createUnit('mainPane', `Div()
+  .h2('Hello ')
+  .add(messages.map(m => Div(m)))
+  .add(input)`);
+root.createUnit('messages', `['Hi all']`);
+root.createUnit('input', `Input().on('keyup', e => {
+    if(e.code === 'Enter'){
+      const input = e.srcElement;
+      const text = input.value;
+      input.value = '';
+      input.dispatchEvent(new Event('change'));
+      text && set('messages', [...get('messages'), text]);
+    }
+  })`);
 
 
-function childrenBlock(name){
-  return RBox(resolve(name), value => {
-    return value && value._isObj ? 1 :2;
-  });
-}
+//view
+const valueView = Box();
+const activeItem = Box('mainPane');
 
+const codeViews = RBox(names, ns => {
+  return Div(...ns.map(name));
+});
 
 function resultFrame(box){
   return RBox(box, value => {
@@ -196,23 +201,6 @@ function resultFrame(box){
 };
 
 
-
-const names = Box([]);
-const codeViews = RBox(names, ns => {
-  return Div(...ns.map(name));
-});
-
-
-Div.extend('TabView')
-  .by((z, cfg) => {
-    const resultPane = Box();
-    const activeTab = Box('');
-    const keys = Object.keys(cfg)
-    return Div()
-      .Div(...keys.map(key => A(() => activeTab(key), key))).up
-      .Div(resultPane).up
-  });
-  
 A.extend('MyButton')
   .by((z, ...as) => {
     z.super(...as)
@@ -249,30 +237,7 @@ const itemDetails = name => {
     .Div(editor).margin('1rem 0').up
 //      .add(childrenBlock(name))
     .Div(resultFrame(value)).margin('1rem 0').up
-//      .add(inputsList());
 };
-
-function createUnit(name, value = ''){
-  const codeBox = Box(value);
-  codes.set(name, codeBox);
-  
-  let valueBox;
-  if(missingItems[name]){
-    valueBox = missingItems[name];
-    delete missingItems[name];
-  } else if (imports[name]) {
-    valueBox = imports[name];
-    delete imports[name];
-  } else {
-    valueBox = nice.LiveBox();
-  }
-  values.set(name, valueBox);
-  
-  names.push(name);
-  codeBox.subscribe(code => valueBox(code));
-  
-  return codeBox;
-}
 
 function newView(){
   const input = Input();
@@ -289,81 +254,18 @@ function newView(){
   return Div(input).margin('1rem 0');
 }
 
-function inputsList(a = ['map', 'H1']){
-  return a.map(name => {
-    const local = values.get(name);
-    const lib = nice[name];
-    return Div().color('#666')
-      .b( local ? name : 'nice.'+name, ': ' )
-      .add( local ? '' + local() : lib.description || ("" + lib));
-  });
-};
-
 const namesList = RBox(names, activeItem, (ns, active) => {
   return Div(...ns.map(name => {
     return Div(name === active ? B(name) : name)
       .cursor('pointer')
       .add(' ', Span(nice.getType(resolve(name)()).name).color('#666'))
       .on('click', () => { activeItem(name); return false });
-//    return RBox(resolve(name), value => 
-//        Div(name === active ? B(name) : name)
-//          .color(value._isErr || value  instanceof Error ? '#ce0404' : 'black')
-//          .on('click', () => activeItem(name)));
   }));
 });
 
+
 const resultPane = RBox(activeItem, active => Div(values.get(active)));
 
-createUnit('mainPane', `Div()
-  .h2('Hello ')
-  .add(messages.map(m => Div(m)))
-  .add(input)`);
-createUnit('messages', `['Hi all']`);
-createUnit('input', `Input().on('keyup', e => {
-    if(e.code === 'Enter'){
-      const input = e.srcElement;
-      const text = input.value;
-      input.value = '';
-      input.dispatchEvent(new Event('change'));
-      text && set('messages', [...get('messages'), text]);
-    }
-  })`);
-  
-//var x = { 
-//  chats: {
-//    inbox: []
-//  },
-//  newMessageInput: Input(),
-//  currentChat: 'inbox',
-//  mainPane: Component({
-////    args: { chatName: String },//??syntax
-//    input: ($, args) => ({
-//      current: $.currentChat,
-//      newMessageInput: $.newMessageInput
-//    }),//??syntax
-//    by: ($, ins, args) => {
-//      return Div().h2('Wellcome to ', ins.current)
-////        .add($.messagesView({name: ins.current}))
-//        .rBox($.chats[args.name], messages => Div(messages.map(m => Div(m))))
-//        .add(ins.newMessageInput)
-//    },
-//  }),
-//  messagesList: ($) => {
-//    return Div(...$.chats.map(name => A(() => $.currentChat(name), name)))
-//  }
-////  messagesView: Component({
-////    args:  { name: String },
-////    input: ($, args) => {
-////      messages: $.chats[args.name]
-////    },
-////    by: ({ Div }, { messages }) => {
-////      return Div(messages.map(m => Div(m)));
-////    }
-////  })
-//}
-
-  
-  
   
 //  set('messages', [...get('messages'), text]);
 //  or
@@ -385,3 +287,4 @@ Div(
 </script>
   </body>
 </html>
+

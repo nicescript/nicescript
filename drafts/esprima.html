@@ -1,6 +1,7 @@
 <html>
   <head>
     <title>Live coding</title>
+    <script src="https://unpkg.com/esprima@~4.0/dist/esprima.js"></script>
     <script src="../nice.js"></script>
   </head>
   <body style="margin:0;">
@@ -147,13 +148,7 @@ nice.Type({
 
 
 function create$(parent){
-  const f = () => {
-    
-  };
-  
-//  f.target = 
-  
-  const res = new Proxy(f, {
+  const res = new Proxy({}, {
     get (o, k, receiver) {
 //      if(k[0] === '_')
 //        return undefined;
@@ -314,6 +309,33 @@ const namesList = RBox(names, activeItem, (ns, active) => {
 
 const resultPane = RBox(activeItem, active => Div(values.get(active)));
 
+function extractNames (code){
+  const tokens = esprima.tokenize(code);
+  const result = {};
+  const ignored = {};
+  let ignoreNext = false;
+  
+  tokens.forEach(({type, value}) => {
+    if(type === 'Keyword'){
+      if(value === 'var' || value === 'const' || value === 'let'){
+        ignoreNext = true;
+        return;
+      }
+    } else if (type === 'Identifier') {
+      if(ignoreNext){
+        ignored[value] = 1;
+      } else {
+        ignored[value] || (result[value] = 1);
+      }
+    }
+    ignoreNext = false;
+  });
+  
+  return result;
+}
+
+
+
 createUnit('mainPane', `Div()
   .h2('Hello ')
   .add(messages.map(m => Div(m)))
@@ -329,38 +351,38 @@ createUnit('input', `Input().on('keyup', e => {
     }
   })`);
   
-//var x = { 
-//  chats: {
-//    inbox: []
-//  },
-//  newMessageInput: Input(),
-//  currentChat: 'inbox',
-//  mainPane: Component({
-////    args: { chatName: String },//??syntax
-//    input: ($, args) => ({
-//      current: $.currentChat,
-//      newMessageInput: $.newMessageInput
-//    }),//??syntax
-//    by: ($, ins, args) => {
-//      return Div().h2('Wellcome to ', ins.current)
-////        .add($.messagesView({name: ins.current}))
-//        .rBox($.chats[args.name], messages => Div(messages.map(m => Div(m))))
-//        .add(ins.newMessageInput)
+var x = { 
+  chats: {
+    inbox: []
+  },
+  newMessageInput: Input(),
+  currentChat: 'inbox',
+  mainPane: Component({
+//    args: { chatName: String },//??syntax
+    input: ($, args) => ({
+      current: $.currentChat,
+      newMessageInput: $.newMessageInput
+    }),//??syntax
+    by: ($, ins, args) => {
+      return Div().h2('Wellcome to ', ins.current)
+//        .add($.messagesView({name: ins.current}))
+        .rBox($.chats[args.name], messages => Div(messages.map(m => Div(m))))
+        .add(ins.newMessageInput)
+    },
+  }),
+  messagesList: ($) => {
+    return Div(...$.chats.map(name => A(() => $.currentChat(name), name)))
+  }
+//  messagesView: Component({
+//    args:  { name: String },
+//    input: ($, args) => {
+//      messages: $.chats[args.name]
 //    },
-//  }),
-//  messagesList: ($) => {
-//    return Div(...$.chats.map(name => A(() => $.currentChat(name), name)))
-//  }
-////  messagesView: Component({
-////    args:  { name: String },
-////    input: ($, args) => {
-////      messages: $.chats[args.name]
-////    },
-////    by: ({ Div }, { messages }) => {
-////      return Div(messages.map(m => Div(m)));
-////    }
-////  })
-//}
+//    by: ({ Div }, { messages }) => {
+//      return Div(messages.map(m => Div(m)));
+//    }
+//  })
+}
 
   
   

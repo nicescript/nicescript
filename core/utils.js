@@ -120,7 +120,7 @@ defAll(nice, {
   parseTraceString (s) {
     const a = s.match(/\/(.*):(\d+):(\d+)/);
     return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
-  }
+  },
 });
 
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
@@ -208,11 +208,11 @@ defAll(nice, {
 
   memoize: f => {
     const res = (k, ...a) => {
-      if(k in res._cache)
-        return res._cache[k];
-      return res._cache[k] = f(k, ...a);
+      if(k in res.cache)
+        return res.cache[k];
+      return res.cache[k] = f(k, ...a);
     };
-    res._cache = {};
+    res.cache = {};
     return res;
   },
 

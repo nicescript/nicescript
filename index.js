@@ -297,7 +297,7 @@ defAll(nice, {
   parseTraceString (s) {
     const a = s.match(/\/(.*):(\d+):(\d+)/);
     return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
-  }
+  },
 });
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
 nice._eachEach = (o, f) => {
@@ -372,11 +372,11 @@ defAll(nice, {
   },
   memoize: f => {
     const res = (k, ...a) => {
-      if(k in res._cache)
-        return res._cache[k];
-      return res._cache[k] = f(k, ...a);
+      if(k in res.cache)
+        return res.cache[k];
+      return res.cache[k] = f(k, ...a);
     };
-    res._cache = {};
+    res.cache = {};
     return res;
   },
   once: f => {
@@ -3161,7 +3161,7 @@ function dom(e){
   return res;
 }
 const childrenCounter = (o, v) => {
-  o[v] ? o[v]++ : (o[v] = 1);
+  v && (o[v] ? o[v]++ : (o[v] = 1));
   return o;
 };
 function attachNode(child, parent, position){
@@ -3213,7 +3213,6 @@ defAll(nice, {
     } else if(!eTag) {
       domNode.nodeValue = e;
     } else {
-      
       
       const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
       _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));

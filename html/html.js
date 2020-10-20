@@ -319,7 +319,7 @@ function dom(e){
 }
 
 const childrenCounter = (o, v) => {
-  o[v] ? o[v]++ : (o[v] = 1);
+  v && (o[v] ? o[v]++ : (o[v] = 1));
   return o;
 };
 
