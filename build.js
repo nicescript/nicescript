@@ -40,6 +40,7 @@ const order = [
   'html/html',
   'html/tags',
   'html/inputs',
+  'html/routing',
   'core/core_tests'
 ];
 
@@ -55,12 +56,20 @@ src += `;nice.version = "${pachageInfo.version}";})();`;
 
 fs.writeFileSync('nice.js', src);
 
-fs.writeFileSync(
-  'index.js',
+fs.writeFileSync('index.js',
   'module.exports = function(){' + src + '; return nice;}'
 );
 
 const nice = require('./index.js')();
+
+const blackList = ['class', 'try', 'with','super'];
+fs.writeFileSync( 'nice.mjs',
+  src + '; export let '
+  + Object.getOwnPropertyNames(nice)
+      .filter(k => !blackList.includes(k))
+      .map(k => `${k} = nice.${k}`).join(',')
+  + '; export default nice;' );
+
 
 nice.runTests();
 

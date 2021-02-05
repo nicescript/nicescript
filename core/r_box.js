@@ -18,8 +18,12 @@ nice.Type({
   },
 
   customCall: (z, ...as) => {
-    if(as.length === 0)
+    if(as.length === 0){
+      if(!(z._status & IS_READY))
+        z .attemptCompute();
+
       return z._value;
+    }
 
     throw `Can't set value for reactive box`;
   },

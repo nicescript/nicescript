@@ -17,11 +17,23 @@ const Html = nice.Html;
     .about('Represents HTML <%s> element.', l);
 });
 
+const protocolRe = /^([a-zA-Z0-9]{3,5})\:\/\//;
+
+
 Html.extend('A').by((z, url, ...children) => {
   z.tag('a').add(...children);
-  nice.isFunction(url) && !url._isAnything
-    ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
-    : z.href(url || '#');
+
+  if (nice.isFunction(url) && !url._isAnything) {
+    z.on('click', e => {url(e); e.preventDefault();}).href('#');
+  } else {
+    const router = nice.Html.linkRouter;
+
+    if(!router || (protocolRe.exec(url) && !url.startsWith(router.origin))) {
+      z.href(url || '#');
+    } else {
+      z.on('click', e => e.preventDefault(router.go(url))).href(url);
+    }
+  }
 }).about('Represents HTML <a> element.');
 
 
@@ -45,7 +57,7 @@ const constructors = {
 //      }
 //    }, z.children);
 //  },
-  Object: (z, o, f) => Object.values[o].forEach((v, k) => z.add(f(v, k))),
+  Object: (z, o, f) => Object.values(o).forEach((v, k) => z.add(f(v, k))),
 //  Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
 //  Arr: (z, a, f) => a.listenItems(v => v.isNotFound()
 //    ? z.children.remove(v._name)

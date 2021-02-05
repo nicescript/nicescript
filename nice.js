@@ -202,7 +202,7 @@ defAll(nice, {
   _map (o, f) {
     let res = {};
     for(let i in o)
-      res[i] = f(o[i]);
+      res[i] = f(o[i], i);
     return res;
   },
   _pick (o, a) {
@@ -442,6 +442,14 @@ defAll(nice, {
   keyPosition: (c, k) => typeof k === 'number' ? k : Object.keys(c).indexOf(k),
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
+  times: (n, f, payload) => {
+    n = n > 0 ? n : 0;
+    let i = 0;
+    while(i < n){
+      f(i++, payload);
+    }
+    return payload;
+  },
   fromJson (v) {
     return nice.valueType(v).fromValue(v);
   }
@@ -1832,8 +1840,11 @@ nice.Type({
     z._inputListeners = new Map();
   },
   customCall: (z, ...as) => {
-    if(as.length === 0)
+    if(as.length === 0){
+      if(!(z._status & IS_READY))
+        z .attemptCompute();
       return z._value;
+    }
     throw `Can't set value for reactive box`;
   },
   proto: {
@@ -3315,11 +3326,19 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
   })
     .about('Represents HTML <%s> element.', l);
 });
+const protocolRe = /^([a-zA-Z0-9]{3,5})\:\/\//;
 Html.extend('A').by((z, url, ...children) => {
   z.tag('a').add(...children);
-  nice.isFunction(url) && !url._isAnything
-    ? z.on('click', e => {url(e); e.preventDefault();}).href('#')
-    : z.href(url || '#');
+  if (nice.isFunction(url) && !url._isAnything) {
+    z.on('click', e => {url(e); e.preventDefault();}).href('#');
+  } else {
+    const router = nice.Html.linkRouter;
+    if(!router || (protocolRe.exec(url) && !url.startsWith(router.origin))) {
+      z.href(url || '#');
+    } else {
+      z.on('click', e => e.preventDefault(router.go(url))).href(url);
+    }
+  }
 }).about('Represents HTML <a> element.');
 Html.extend('Img').by((z, src, x, y) => {
   z.tag('img').src(src);
@@ -3328,7 +3347,7 @@ Html.extend('Img').by((z, src, x, y) => {
 })
   .about('Represents HTML <img> element.');
 const constructors = {
-  Object: (z, o, f) => Object.values[o].forEach((v, k) => z.add(f(v, k))),
+  Object: (z, o, f) => Object.values(o).forEach((v, k) => z.add(f(v, k))),
   Arr: (z, a, f) => a.each((v, k) => z.add(f(v, k))),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
 };
@@ -3449,6 +3468,95 @@ Input.extend('Checkbox', (z, status) => {
     })
   .about('Represents HTML <select> element.');
 })();
+(function(){"use strict";const paramsRe = /\:([A-Za-z0-9_]+)/g;
+nice.Type({
+  name: 'Router',
+  initBy: (z, div = nice.Div()) => {
+    z.staticRoutes = {};
+    if(window && window.addEventListener){
+      nice.Html.linkRouter = z;
+      z.origin = window.location.origin;
+      div.add(nice.RBox(z.currentUrl, url => {
+        const route = z.getRoute(url);
+        let content = route();
+        if(content.__proto__ === Object.prototype && content.content){
+          content.title && (window.document.title = content.title);
+          content = content.content;
+        }
+        if(Array.isArray(content))
+          content = nice.Div(...content);
+        return content;
+      })).show();
+      window.addEventListener('popstate', function(e) {
+        z.currentUrl(e.target.location.pathname);
+        return false;
+      });
+    }
+  },
+  customCall: (z, ...as) => {
+    return as.length === 0 ? z._value : z.setState(as[0]);
+  }
+})
+  .arr('queryRoutes')
+  .box('currentUrl')
+  .Method(addRoute)
+  .Method(go)
+  .Method(function getRoute(z, path){
+    path[0] === '/' || (path = '/' + path);
+    let url = path;
+    const query = {};
+    const i = url.indexOf('?');
+    if(i >= 0){
+      url.substring(i+1).split('&').forEach(v => {
+        const pair = v.split('=');
+        query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+      });
+      url = url.substring(0, i);
+    }
+    const rurl = '/' + nice.trimRight(url, '/');
+    let route = z.staticRoutes[url];
+    route || z.queryRoutes().some(f => route = f(url, query));
+    return route || (() => `Page "${url}" not found`);
+  });
+function addRoute(router, pattern, f){
+  if(!pattern || pattern === '/'){
+    router.staticRoutes['/'] = f;
+    return router;
+  }
+  pattern[0] === '/' || (pattern = '/' + pattern);
+  const params = pattern.match(paramsRe);
+  if(!params){
+    router.staticRoutes[nice.trimRight(pattern, '/')] = f;
+    return router;
+  }
+  const s = pattern.replace('.', '\\.');
+  const re = new RegExp('^' + s.replace(paramsRe, '(.+)'));
+  const res = (s, query) => {
+    const a = re.exec(s);
+    if(!a)
+      return false;
+    params.forEach((v, k) => query[v.substr(1)] = a[k+1]);
+    return () => f(query);
+  };
+  res.pattern = pattern;
+  const i = router.queryRoutes
+      .map(r => r.pattern)
+      .sortedIndex(pattern, nice.routeSort);
+  router.queryRoutes.insertAt(i, res);
+  return router;
+}
+function go(z, originalUrl){
+  let url = originalUrl.pathname || originalUrl;
+  const location = window.location;
+  const origin = location.origin;
+  if(url.startsWith(origin))
+    url = url.substr(origin.length);
+  z.currentUrl(url);
+  if(location.pathname + location.hash !== url)
+    window.history.pushState(url, url, url);
+  window.scrollTo(0, 0);
+}
+})();
 (function(){"use strict";Test((autoId) => {
   expect(autoId()).isString();
   expect(autoId()).not.is(autoId());
@@ -3475,5 +3583,9 @@ Test('isError', (isError) => {
   const x2 = new SyntaxError('qwe');
   expect(x2).isError();
   expect(x2).isSyntaxError();
+});
+Test('times', (times) => {
+  const x = times(2, (n, a) => a.push(n), []);
+  expect(x).deepEqual([0,1]);
 });
 })();;nice.version = "0.3.3";})();

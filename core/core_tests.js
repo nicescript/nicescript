@@ -53,3 +53,9 @@ Test('isError', (isError) => {
   expect(x2).isSyntaxError();
 });
 
+
+Test('times', (times) => {
+  const x = times(2, (n, a) => a.push(n), []);
+  expect(x).deepEqual([0,1]);
+});
+

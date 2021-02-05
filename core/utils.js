@@ -6,7 +6,7 @@ defAll(nice, {
   _map (o, f) {
     let res = {};
     for(let i in o)
-      res[i] = f(o[i]);
+      res[i] = f(o[i], i);
     return res;
   },
 
@@ -288,6 +288,15 @@ defAll(nice, {
   _capitalize: s => s[0].toUpperCase() + s.substr(1),
 
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
+
+  times: (n, f, payload) => {
+    n = n > 0 ? n : 0;
+    let i = 0;
+    while(i < n){
+      f(i++, payload);
+    }
+    return payload;
+  },
 
   fromJson (v) {
     return nice.valueType(v).fromValue(v);
