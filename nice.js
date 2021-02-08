@@ -1709,6 +1709,9 @@ nice.Type({
     },
     unsubscribe(f){
       this.off('state', f);
+      if(!this.countListeners('state')){
+        this.emit('noMoreSubscribers', this);
+      }
     },
     assertId(){
       if(!this._id)
@@ -1874,8 +1877,10 @@ nice.Type({
     },
     unsubscribe(f){
       this.off('state', f);
-      if(!this.countListeners('state'))
+      if(!this.countListeners('state')){
         this.coolDown();
+        this.emit('noMoreSubscribers', this);
+      }
     },
     attemptCompute(){
       const ready = this._inputValues.every(v => v !== undefined);
@@ -1922,9 +1927,7 @@ nice.Type({
     detachSource(source){
       const f = this._inputListeners.get(source);
       if(source._isBox){
-        if(source._isRBox)
-          return source.unsubscribe(f);
-        return source.off('state', f);
+        return source.unsubscribe(f);
       }
     }
   }
@@ -3220,6 +3223,8 @@ defAll(nice, {
     let newDom = domNode;
     if (eTag !== oldTag){
       newDom = toDom(e);
+      if('niceListener' in domNode)
+        newDom.niceListener = domNode.niceListener;
       domNode.parentNode.replaceChild(newDom, domNode);
     } else if(!eTag) {
       domNode.nodeValue = e;

@@ -27,6 +27,9 @@ nice.Type({
 
     unsubscribe(f){
       this.off('state', f);
+      if(!this.countListeners('state')){
+        this.emit('noMoreSubscribers', this);
+      }
     },
 
     assertId(){

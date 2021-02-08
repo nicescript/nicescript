@@ -385,6 +385,8 @@ defAll(nice, {
 
     if (eTag !== oldTag){
       newDom = toDom(e);
+      if('niceListener' in domNode)
+        newDom.niceListener = domNode.niceListener;
       domNode.parentNode.replaceChild(newDom, domNode);
     } else if(!eTag) {
       domNode.nodeValue = e;

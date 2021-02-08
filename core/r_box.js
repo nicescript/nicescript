@@ -63,8 +63,10 @@ nice.Type({
 
     unsubscribe(f){
       this.off('state', f);
-      if(!this.countListeners('state'))
+      if(!this.countListeners('state')){
         this.coolDown();
+        this.emit('noMoreSubscribers', this);
+      }
     },
 
     attemptCompute(){
@@ -129,11 +131,7 @@ nice.Type({
     detachSource(source){
       const f = this._inputListeners.get(source);
       if(source._isBox){
-
-        if(source._isRBox)
-          return source.unsubscribe(f);
-
-        return source.off('state', f);
+        return source.unsubscribe(f);
       }
     }
   }
