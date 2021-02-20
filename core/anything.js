@@ -1,11 +1,3 @@
-/*
- * 1. setting new(calculated) value
- * 2. recalculate on each use when not hot?
- * 3.
- */
-
-//TODO: empty transactions on empty values
-
 nice.registerType({
   name: 'Anything',
 
