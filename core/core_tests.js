@@ -66,7 +66,7 @@ Test('isError', (isError) => {
 });
 
 
-Test('times', (times) => {
+Test((times) => {
   const x = times(2, (n, a) => a.push(n), []);
   expect(x).deepEqual([0,1]);
 });

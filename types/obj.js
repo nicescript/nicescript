@@ -73,8 +73,6 @@ nice.Type({
         this._value[key] = child;
         return child;
       }
-      //TODO:0 make NotFount readonly
-//      return nice._createItem(NotFound);
       return undefined;
     },
 

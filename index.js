@@ -2365,7 +2365,6 @@ nice.jsTypes.isSubType = isSubType;
         this._value[key] = child;
         return child;
       }
-      
       return undefined;
     },
     assert (key) {
@@ -3111,6 +3110,11 @@ _each({
   next: n => n + 1,
   previous: n => n - 1
 }, (f, name) => M(name, f));
+Test((sum, Num) => {
+  var a = Num(1);
+  var b = a.add(2);
+  expect(b).is(3);
+});
 `acos
 asin
 atan
@@ -3884,7 +3888,7 @@ Test('isError', (isError) => {
   expect(x2).isError();
   expect(x2).isSyntaxError();
 });
-Test('times', (times) => {
+Test((times) => {
   const x = times(2, (n, a) => a.push(n), []);
   expect(x).deepEqual([0,1]);
 });

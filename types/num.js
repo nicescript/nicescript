@@ -108,20 +108,6 @@ Test(clamp => {
   expect(clamp(10, 1, 3)).is(3);
 });
 
-//TODO:0 return after Arr ready
-//M.Function('times', (n, f) => {
-//  let i = 0;
-//  const res = nice.Arr();
-//  while(i < n) res.push(f(i++));
-//  return res;
-//});
-
-//Test((times, Num) => {
-//  const f = () => 1;
-//  expect(times(2, f).jsValue).deepEqual([1,1]);
-//  expect(Num(2).times(f).jsValue).deepEqual([1,1]);
-//});
-
 const A = Action.Num;
 A('add', (z, n) => z(z() + n));
 A('inc', (z, n = 1) => z(z() + n));
