@@ -1,6 +1,6 @@
 nice = (...a) => {
   if(a.length === 0)
-    return nice._createItem(Anything, Anything);
+    return nice._createItem(Anything);
 
   if(a.length > 1)
     return nice.Arr(...a);
@@ -68,41 +68,51 @@ defAll(nice, {
 //TODO: check:
 //create guessType -> assignType -> assignValue
 //set tearDown -> guessType -> assignType -> assignValue
-  _createItem(_cellType, type, args){
+  _createItem(type, args){
     //TODO: kill ...
     if(!type._isNiceType)
       throw new Error('Bad type');
+    let item;
 
-    const item = nice._newItem();
-    item._cellType = _cellType;
-    try {
-      nice._initItem(item, type, args);
-    } catch (e) {
-      nice._initItem(item, nice.Err, [e]);
+    if(type.isFunction === true){
+      item = nice._newItem();
+      nice._setType(item, type);
+    } else {
+      item = Object.create(type.proto);
+      item._type = type;
+      if("defaultValueBy" in type){
+        item._value = type.defaultValueBy();
+      };
     }
+
+    nice._initItem(item, type, args);
     return item;
   },
 
   _initItem(z, type, args) {
-    nice._setType(z, type);
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(z)
       : type.initBy
         ? type.initBy(z, ...args)
-        : (args.length && z(...args));
+        : type.setValue(z, ...args);
     return z;
   },
 
   _setType(item, type) {
-    const oldType = item._type;
+//    const oldType = item._type;
 
-    expect(type).isType();
-    Object.setPrototypeOf(item, type.proto);
+//    expect(type).isType();
+    1;
+    const proto = type.proto;
+    1;
+    Object.setPrototypeOf(item, proto);
+    1;
     item._type = type;
 
-    type.defaultValueBy && (item._value = type.defaultValueBy());
-
-//    item._parent && refreshSize(item, oldType, type);
+//    type.defaultValueBy && (item._value = type.defaultValueBy());
+    if("defaultValueBy" in type){
+      item._value = type.defaultValueBy();
+    };
 
     return item;
   },
@@ -116,7 +126,7 @@ defAll(nice, {
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        f._cellType.itemArgs1(f, a[0]);
+        f._type.itemArgs1(f, a[0]);
       } else {
         f._type.itemArgsN(f, a);
       }

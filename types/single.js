@@ -3,6 +3,8 @@ nice.Type({
 
   extends: nice.Value,
 
+  isFunction: true,
+
   proto: {
     [Symbol.toPrimitive]() {
       return this.valueOf();
@@ -15,18 +17,4 @@ reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw new Error("Can't add properties to SingleValue types");
   });
-});
-
-//TODO:0 test cast errors
-
-Test((Single, Num) => {
-  const x = Single();
-  expect(x).isSingle();
-  expect(x._cellType).is(Single);
-  x(2);
-  expect(x).isNum();
-  expect(x._cellType).is(Single);
-  x('qwe');
-  expect(x).isStr();
-  expect(x._cellType).is(Single);
 });

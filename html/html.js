@@ -14,7 +14,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = e.eventHandlers();
+    const handlers = e.eventHandlers._value;
     handlers[name] ? handlers[name].push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
@@ -31,15 +31,15 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className')() || '';
+    const s = '' + z.attributes.get('className') || '';
     if(s.indexOf(nice.AUTO_PREFIX) < 0){
-      const c = nice.autoId()
+      const c = nice.autoId();
       z.attributes.set('className', s + ' ' + c);
     }
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className')() || '';
+    const current = z.attributes.get('className') || '';
     if(!vs.length)
       return current;
 

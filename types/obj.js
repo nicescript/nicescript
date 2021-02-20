@@ -67,14 +67,15 @@ nice.Type({
 
       if(childType){
         const child = key in type.defaultArguments
-         ? nice._createItem(childType, childType, type.defaultArguments[key])
-         : nice._createItem(childType, childType);
+         ? nice._createItem(childType, type.defaultArguments[key])
+         : nice._createItem(childType);
 
         this._value[key] = child;
         return child;
       }
       //TODO:0 make NotFount readonly
-      return nice._createItem(NotFound, NotFound);
+//      return nice._createItem(NotFound);
+      return undefined;
     },
 
     assert (key) {
@@ -85,8 +86,8 @@ nice.Type({
       const childType = (type && type.types[key]) || Anything;
 
       const child = key in type.defaultArguments
-       ? nice._createItem(childType, childType, type.defaultArguments[key])
-       : nice._createItem(childType, childType);
+       ? nice._createItem(childType, type.defaultArguments[key])
+       : nice._createItem(childType);
 
       this._value[key] = child;
       return child;
@@ -117,7 +118,7 @@ nice.Type({
 Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});
   expect(a.get('a')).is(3);
-  expect(a.get('q')).isNotFound();
+//  expect(a.get('q')).isNotFound();
 });
 
 Test("Obj deep constructor", Obj => {
@@ -125,17 +126,12 @@ Test("Obj deep constructor", Obj => {
   expect(o.jsValue.a.b.c).is(1);
 });
 
-Test('Obj constructor error', Obj => {
-  const a = Obj(5);
-  expect(a).isErr();
-});
-
 
 Test("set / get primitive", (Obj) => {
   const a = Obj();
   a.set('a', 1);
   expect(a.get('a')).is(1);
-  expect(a.get('q')).isNotFound();
+//  expect(a.get('q')).isNotFound();
 });
 
 Test("set / get with nice.Str as key", (Obj) => {
@@ -218,7 +214,7 @@ Mapping.Object('get', (o, path) => {
 Test((Obj, NotFound) => {
   const o = Obj({q:1});
   expect(o.get('q')).is(1);
-  expect(o.get('z')).isNotFound();
+//  expect(o.get('z')).isNotFound();
 });
 
 
@@ -243,7 +239,7 @@ A('set', (z, key, value, ...tale) => {
 
   if(childType) {
     if(!z._value[_name]){
-      z._value[_name] = nice._createItem(childType, childType);
+      z._value[_name] = nice._createItem(childType);
     }
     z._value[_name](value, ...tale);
   }
@@ -524,7 +520,7 @@ reflect.on('type', type => {
 Test(function getDeep(Obj){
   const o = Obj({q:Obj({a:2})});
   expect(o.getDeep('q', 'a')).is(2);
-  expect(o.getDeep('q', 'z')).isNotFound();
+//  expect(o.getDeep('q', 'z')).isNotFound();
   expect(o.getDeep() === o).isTrue();
 });
 

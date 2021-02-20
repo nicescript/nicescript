@@ -1,7 +1,7 @@
 module.exports = function(){;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
-    return nice._createItem(Anything, Anything);
+    return nice._createItem(Anything);
   if(a.length > 1)
     return nice.Arr(...a);
   if(Array.isArray(a[0]))
@@ -46,34 +46,42 @@ defAll(nice, {
       return nice.Err(e);
     }
   },
-  _createItem(_cellType, type, args){
+  _createItem(type, args){
     
     if(!type._isNiceType)
       throw new Error('Bad type');
-    const item = nice._newItem();
-    item._cellType = _cellType;
-    try {
-      nice._initItem(item, type, args);
-    } catch (e) {
-      nice._initItem(item, nice.Err, [e]);
+    let item;
+    if(type.isFunction === true){
+      item = nice._newItem();
+      nice._setType(item, type);
+    } else {
+      item = Object.create(type.proto);
+      item._type = type;
+      if("defaultValueBy" in type){
+        item._value = type.defaultValueBy();
+      };
     }
+    nice._initItem(item, type, args);
     return item;
   },
   _initItem(z, type, args) {
-    nice._setType(z, type);
     args === undefined || args.length === 0
       ? type.initBy && type.initBy(z)
       : type.initBy
         ? type.initBy(z, ...args)
-        : (args.length && z(...args));
+        : type.setValue(z, ...args);
     return z;
   },
   _setType(item, type) {
-    const oldType = item._type;
-    expect(type).isType();
-    Object.setPrototypeOf(item, type.proto);
+    1;
+    const proto = type.proto;
+    1;
+    Object.setPrototypeOf(item, proto);
+    1;
     item._type = type;
-    type.defaultValueBy && (item._value = type.defaultValueBy());
+    if("defaultValueBy" in type){
+      item._value = type.defaultValueBy();
+    };
     return item;
   },
   _newItem() {
@@ -84,7 +92,7 @@ defAll(nice, {
       if(a.length === 0){
         return f._type.itemArgs0(f);
       } else if (a.length === 1){
-        f._cellType.itemArgs1(f, a[0]);
+        f._type.itemArgs1(f, a[0]);
       } else {
         f._type.itemArgsN(f, a);
       }
@@ -728,7 +736,7 @@ nice.registerType({
       z._type = v._type;
       z._value = nice.clone(v._value);
     } else {
-      z._cellType.setPrimitive(z, v);
+      z._type.setPrimitive(z, v);
     }
     return z;
   },
@@ -895,13 +903,17 @@ defAll(nice, {
     config.configProto = config.configProto || {};
     config.defaultArguments = config.defaultArguments || {};
     by === undefined || (config.initBy = by);
+    if(config.customCall !== undefined || config.itemArgs0 !== undefined
+        || config.itemArgs1 !== undefined || config.itemArgsN !== undefined){
+      config.isFunction = true;
+    }
     const {_1,_2,_3,_$} = nice;
     const type = (...a) => {
       for(let v of a){
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      return nice._createItem(type, type, a);
+      return nice._createItem(type, a);
     };
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
@@ -1697,10 +1709,20 @@ nice.Type({
   },
   proto: {
     setState (v){
-      if(v === this._value)
-        return;
       this._value = v;
       this.emit('state', v);
+    },
+    uniq(){
+      this.setState = function(v){
+        v === this._value || this.__proto__.setState.call(this, v);
+      }
+      return this;
+    },
+    deepUniq(){
+      this.setState = function(v){
+        nice.diff(v, this._value) === false || this.__proto__.setState.call(this, v);
+      }
+      return this;
     },
     subscribe(f){
       this.on('state', f);
@@ -1721,6 +1743,37 @@ nice.Type({
   }
 });
 Action.Box('assign', (z, o) => z({...z(), ...o}));
+Test((Box, Spy) => {
+  const b = Box();
+  const spy = Spy();
+  b.subscribe(spy);
+  b(1);
+  b(1);
+  b(2);
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(2);
+  expect(spy).calledTimes(3);
+});
+Test((Box, Spy, uniq) => {
+  const b = Box().uniq();
+  const spy = Spy();
+  b.subscribe(spy);
+  b(1);
+  b(1);
+  b(2);
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(2);
+  expect(spy).calledTimes(2);
+});
+Test((Box, Spy, deepUniq) => {
+  const b = Box().deepUniq();
+  const spy = Spy();
+  b.subscribe(spy);
+  b({qwe:1, asd:2});
+  b({qwe:1, asd:2});
+  b({qwe:1, asd:3});
+  expect(spy).calledTimes(2);
+});
 Test((Box, assign, Spy) => {
   const a = {name:'Jo', balance:100};
   const b = Box(a);
@@ -1994,6 +2047,154 @@ Test('RBox reconfigure', (Box, RBox, Spy) => {
   expect(b.countListeners('state')).is(0);
 });
 })();
+(function(){"use strict";let autoId = 0;
+const AUTO_PREFIX = '_nn_';
+nice.Type({
+  name: 'Stream',
+  extends: 'Something',
+  initBy: (z, cfg) => {
+    z.messages = [];
+  },
+  customCall: (z) => {
+    throw 'Use methods';
+  },
+  proto: {
+    push (m){
+      this.messages.push(m);
+      this.emit('message', m);
+    },
+    subscribe(f){
+      this.messages.forEach(m => f(m));
+      this.on('message', f);
+    },
+    unsubscribe(f){
+      this.off('message', f);
+      if(!this.countListeners('message')){
+        this.emit('noMoreSubscribers', this);
+      }
+    },
+    assertId(){
+      if(!this._id)
+        this._id = nice.autoId();
+      return this._id;
+    },
+    map(f){
+      const res = nice.Stream();
+      this.subscribe(m => res.push(f(m)));
+      return res;
+    },
+    filter(f){
+      const res = nice.Stream();
+      this.subscribe(m => f(m) && res.push(m));
+      return res;
+    },
+    reduce(...as){
+      const box = nice.Box();
+      let hasSeed = as.length > 1;
+      const f = as[0];
+      let value = as[1];
+      this.subscribe(m => {
+        if(!hasSeed){
+          hasSeed = true;
+          value = m;
+        } else {
+          value = f(value, m);
+          box(value);
+        }
+      });
+      return box;
+    },
+    collect(accumulator, f){
+      const box = nice.Box();
+      this.subscribe(m => {
+        f(accumulator, m);
+        box(accumulator);
+      });
+      return box;
+    }
+  }
+});
+Test((Box, assign, Spy) => {
+  const a = {name:'Jo', balance:100};
+  const b = Box(a);
+  b.assign({balance:200});
+  expect(b().name).is('Jo');
+  expect(b().balance).is(200);
+});
+Action.Box('push', (z, v) => {
+  var a = z().slice();
+  a.push(v);
+  z(a);
+});
+Test((Box, push, Spy) => {
+  const a = [1];
+  const b = Box(a);
+  b.push(2);
+  expect(b()).deepEqual([1,2]);
+  expect(a).deepEqual([1]);
+});
+nice.eventEmitter(nice.Stream.proto);
+Test((Stream, Spy) => {
+  const stream = Stream();
+  const spy = Spy();
+  stream.subscribe(spy);
+  stream.push(11);
+  stream.push(22);
+  expect(spy).calledWith(11);
+  expect(spy).calledWith(22);
+  expect(spy).calledTwice();
+});
+Test((Stream, Spy, map) => {
+  const stream = Stream();
+  const stream2 = stream.map(x => 2 * x);
+  const spy = Spy();
+  stream2.subscribe(spy);
+  stream.push(12);
+  stream.push(13);
+  expect(spy).calledWith(24);
+  expect(spy).calledWith(26);
+  expect(spy).calledTwice();
+});
+Test((Stream, Spy, filter) => {
+  const stream = Stream();
+  const stream2 = stream.filter(x => x < 10);
+  const spy = Spy();
+  stream2.subscribe(spy);
+  stream.push(7);
+  stream.push(13);
+  expect(spy).calledWith(7);
+  expect(spy).calledOnce();
+});
+Test((Stream, Spy, reduce) => {
+  const stream = Stream();
+  const spy = Spy();
+  stream.reduce((a,b) => a + b).subscribe(spy);
+  stream.push(7);
+  stream.push(13);
+  expect(spy).calledWith(20);
+  expect(spy).calledOnce();
+});
+Test((Stream, Spy, reduce) => {
+  const stream = Stream();
+  const spy = Spy();
+  stream.reduce((a,b) => a + b, 4).subscribe(spy);
+  stream.push(7);
+  stream.push(13);
+  expect(spy).calledWith(11);
+  expect(spy).calledWith(24);
+  expect(spy).calledTwice();
+});
+Test((Stream, Spy, collect) => {
+  const stream = Stream();
+  const spy = Spy();
+  const array = [];
+  stream.collect(array, (a, v) => a.push(v)).subscribe(spy);
+  stream.push(7);
+  stream.push(13);
+  expect(spy).calledTwice();
+  expect(array).deepEqual([7, 13]);
+});
+})();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
   let v;
   for(let i in as){
@@ -2105,13 +2306,13 @@ nice.jsTypes.isSubType = isSubType;
       const childType = type && type.types[key]
       if(childType){
         const child = key in type.defaultArguments
-         ? nice._createItem(childType, childType, type.defaultArguments[key])
-         : nice._createItem(childType, childType);
+         ? nice._createItem(childType, type.defaultArguments[key])
+         : nice._createItem(childType);
         this._value[key] = child;
         return child;
       }
       
-      return nice._createItem(NotFound, NotFound);
+      return undefined;
     },
     assert (key) {
       if(key._isAnything === true)
@@ -2119,8 +2320,8 @@ nice.jsTypes.isSubType = isSubType;
       const type = this._type;
       const childType = (type && type.types[key]) || Anything;
       const child = key in type.defaultArguments
-       ? nice._createItem(childType, childType, type.defaultArguments[key])
-       : nice._createItem(childType, childType);
+       ? nice._createItem(childType, type.defaultArguments[key])
+       : nice._createItem(childType);
       this._value[key] = child;
       return child;
     },
@@ -2148,21 +2349,15 @@ nice.jsTypes.isSubType = isSubType;
 Test("Obj constructor", (Obj) => {
   const a = Obj({a: 3});
   expect(a.get('a')).is(3);
-  expect(a.get('q')).isNotFound();
 });
 Test("Obj deep constructor", Obj => {
   const o = Obj({a: {b: { c:1 }}});
   expect(o.jsValue.a.b.c).is(1);
 });
-Test('Obj constructor error', Obj => {
-  const a = Obj(5);
-  expect(a).isErr();
-});
 Test("set / get primitive", (Obj) => {
   const a = Obj();
   a.set('a', 1);
   expect(a.get('a')).is(1);
-  expect(a.get('q')).isNotFound();
 });
 Test("set / get with nice.Str as key", (Obj) => {
   const a = Obj();
@@ -2230,7 +2425,6 @@ Mapping.Object('get', (o, path) => {
 Test((Obj, NotFound) => {
   const o = Obj({q:1});
   expect(o.get('q')).is(1);
-  expect(o.get('z')).isNotFound();
 });
 Action.Object('set', (o, i, v) => {
   typeof i === 'function' && (i = i());
@@ -2246,7 +2440,7 @@ A('set', (z, key, value, ...tale) => {
   const childType = (type && type.types[key]);
   if(childType) {
     if(!z._value[_name]){
-      z._value[_name] = nice._createItem(childType, childType);
+      z._value[_name] = nice._createItem(childType);
     }
     z._value[_name](value, ...tale);
   }
@@ -2406,7 +2600,6 @@ reflect.on('type', type => {
 Test(function getDeep(Obj){
   const o = Obj({q:Obj({a:2})});
   expect(o.getDeep('q', 'a')).is(2);
-  expect(o.getDeep('q', 'z')).isNotFound();
   expect(o.getDeep() === o).isTrue();
 });
 })();
@@ -2443,6 +2636,7 @@ Err = nice.Err;
 (function(){"use strict";nice.Type({
   name: 'Single',
   extends: nice.Value,
+  isFunction: true,
   proto: {
     [Symbol.toPrimitive]() {
       return this.valueOf();
@@ -2453,17 +2647,6 @@ reflect.on('type', type => {
   def(nice.Single.configProto, type.name, () => {
     throw new Error("Can't add properties to SingleValue types");
   });
-});
-Test((Single, Num) => {
-  const x = Single();
-  expect(x).isSingle();
-  expect(x._cellType).is(Single);
-  x(2);
-  expect(x).isNum();
-  expect(x._cellType).is(Single);
-  x('qwe');
-  expect(x).isStr();
-  expect(x._cellType).is(Single);
 });
 })();
 (function(){"use strict";const whiteSpaces = ' \f\n\r\t\v\u00A0\u2028\u2029';
@@ -2596,14 +2779,12 @@ Test("constructor", function(Arr) {
   a.push(9);
   expect(a.get(1)).is(5);
   expect(a.get(3)).is(9);
-  expect(a.get(4).isNotFound()).is(true);
 });
 Test("setter", function(Arr) {
   const a = Arr();
   a.push(2)(3, 4).push(5);
   expect(a.get(0)).is(3);
   expect(a.get(2)).is(5);
-  expect(a.get(3)).isNotFound();
 });
 Test("push", (Arr, push) => {
   const a = Arr(1, 4);
@@ -2627,11 +2808,6 @@ Test("size", (Arr, push, Num) => {
   expect(a.size).is(2);
   a.remove(0);
   expect(a.size).is(1);
-});
-Test((Arr) => {
-  const a = nice.Something()([1,2]);
-  expect(a._type).is(Arr);
-  expect(a.jsValue).deepEqual([1, 2]);
 });
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;
@@ -2939,7 +3115,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = e.eventHandlers();
+    const handlers = e.eventHandlers._value;
     handlers[name] ? handlers[name].push(f) : e.eventHandlers.set(name, [f]);
     return e;
   })
@@ -2956,15 +3132,15 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     return z.id();
   })
   .Method('_autoClass', z => {
-    const s = z.attributes.get('className')() || '';
+    const s = '' + z.attributes.get('className') || '';
     if(s.indexOf(nice.AUTO_PREFIX) < 0){
-      const c = nice.autoId()
+      const c = nice.autoId();
       z.attributes.set('className', s + ' ' + c);
     }
     return z;
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className')() || '';
+    const current = z.attributes.get('className') || '';
     if(!vs.length)
       return current;
     const a = current ? current.split(' ') : [];
@@ -3572,11 +3748,12 @@ Test("named type", (Type) => {
   expect(cat._type.name).is('Cat');
   expect(cat.name()).is('Ball');
 });
-Test('kill child', (Obj) => {
-  const o = Obj({q:1});
-  expect(o.get('q')).is(1);
-  o({});
-  expect(o.get('q')).isNotFound();
+Test("primitive property", (Type) => {
+  Type('Cat2').string('name');
+  const cat = nice.Cat2();
+  expect(cat.name).is('');
+  cat.name = 'Ball';
+  expect(cat.name === 'Ball').is(true);
 });
 Test('isFunction', (Func) => {
   const x = nice(1);

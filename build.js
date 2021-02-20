@@ -26,6 +26,7 @@ const order = [
   'core/box',
   'core/box_set',
   'core/r_box',
+  'core/stream',
   'core/logic',
   'core/value',
   'types/obj',

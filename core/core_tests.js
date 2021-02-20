@@ -13,13 +13,7 @@ Test("named type", (Type) => {
 });
 
 
-Test('kill child', (Obj) => {
-  const o = Obj({q:1});
-  expect(o.get('q')).is(1);
-  o({});
-  expect(o.get('q')).isNotFound();
 
-});
 
 //TODO: restore and fix
 //Test('create function', (Function) => {

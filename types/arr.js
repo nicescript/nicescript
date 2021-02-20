@@ -84,7 +84,7 @@ Test("constructor", function(Arr) {
   a.push(9);
   expect(a.get(1)).is(5);
   expect(a.get(3)).is(9);
-  expect(a.get(4).isNotFound()).is(true);
+//  expect(a.get(4).isNotFound()).is(true);
 });
 
 Test("setter", function(Arr) {
@@ -93,7 +93,7 @@ Test("setter", function(Arr) {
   a.push(2)(3, 4).push(5);
   expect(a.get(0)).is(3);
   expect(a.get(2)).is(5);
-  expect(a.get(3)).isNotFound();
+//  expect(a.get(3)).isNotFound();
 });
 
 
@@ -125,12 +125,6 @@ Test("size", (Arr, push, Num) => {
   expect(a.size).is(1);
 });
 
-
-Test((Arr) => {
-  const a = nice.Something()([1,2]);
-  expect(a._type).is(Arr);
-  expect(a.jsValue).deepEqual([1, 2]);
-});
 
 const Arr = nice.Arr;
 const F = Func.Arr, M = Mapping.Arr, A = Action.Arr;

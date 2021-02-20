@@ -38,13 +38,18 @@ defAll(nice, {
     config.defaultArguments = config.defaultArguments || {};
     by === undefined || (config.initBy = by);
 
+    if(config.customCall !== undefined || config.itemArgs0 !== undefined
+        || config.itemArgs1 !== undefined || config.itemArgsN !== undefined){
+      config.isFunction = true;
+    }
+
     const {_1,_2,_3,_$} = nice;
     const type = (...a) => {
       for(let v of a){
         if(v === _1 || v === _2 || v === _3 || v === _$)
           return nice.skip(type, a);
       }
-      return nice._createItem(type, type, a);
+      return nice._createItem(type, a);
     };
 
 //    config.proto._type = type;

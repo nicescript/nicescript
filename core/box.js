@@ -13,10 +13,22 @@ nice.Type({
 
   proto: {
     setState (v){
-      if(v === this._value)
-        return;
       this._value = v;
       this.emit('state', v);
+    },
+
+    uniq(){
+      this.setState = function(v){
+        v === this._value || this.__proto__.setState.call(this, v);
+      }
+      return this;
+    },
+
+    deepUniq(){
+      this.setState = function(v){
+        nice.diff(v, this._value) === false || this.__proto__.setState.call(this, v);
+      }
+      return this;
     },
 
     subscribe(f){
@@ -43,6 +55,49 @@ nice.Type({
 
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 
+Test((Box, Spy) => {
+  const b = Box();
+  const spy = Spy();
+  b.subscribe(spy);
+
+  b(1);
+  b(1);
+  b(2);
+
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(2);
+  expect(spy).calledTimes(3);
+});
+
+
+Test((Box, Spy, uniq) => {
+  const b = Box().uniq();
+  const spy = Spy();
+  b.subscribe(spy);
+
+  b(1);
+  b(1);
+  b(2);
+
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(2);
+  expect(spy).calledTimes(2);
+});
+
+
+Test((Box, Spy, deepUniq) => {
+  const b = Box().deepUniq();
+  const spy = Spy();
+  b.subscribe(spy);
+
+  b({qwe:1, asd:2});
+  b({qwe:1, asd:2});
+  b({qwe:1, asd:3});
+
+  expect(spy).calledTimes(2);
+});
+
+
 Test((Box, assign, Spy) => {
   const a = {name:'Jo', balance:100};
   const b = Box(a);
@@ -59,6 +114,7 @@ Action.Box('push', (z, v) => {
   a.push(v);
   z(a);
 });
+
 
 Test((Box, push, Spy) => {
   const a = [1];
@@ -102,5 +158,3 @@ Test('Box action', (Box, Spy) => {
   b.add(3);
   expect(b()).is(5);
 });
-
-

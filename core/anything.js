@@ -47,7 +47,7 @@ nice.registerType({
       z._type = v._type;
       z._value = nice.clone(v._value);
     } else {
-      z._cellType.setPrimitive(z, v);
+      z._type.setPrimitive(z, v);
     }
     return z;
   },
