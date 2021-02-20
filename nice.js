@@ -1698,6 +1698,42 @@ defGet(nice.Null.proto, function jsValue() {
 defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });
+['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
+  nice.Anything.configProto[typeName] = function (name, defaultValue) {
+    Object.defineProperty(this.target.proto, name, {
+      get: function(){
+        let v = this._value[name];
+        if(v === undefined)
+          v = this._value[name] = defaultValue;
+        return v;
+      },
+      set: function(value){
+        if(typeof value !== typeName)
+          throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
+        this._value[name] = value;
+      },
+      enumerable: true
+    });
+    return this;
+  };
+});
+nice.Anything.configProto.array = function (name, defaultValue = []) {
+  Object.defineProperty(this.target.proto, name, {
+    get: function(){
+      let value = this._value[name];
+      if(value === undefined)
+        value = this._value[name] = defaultValue;
+      return value;
+    },
+    set: function(value){
+      if(!Array.isArray(value))
+        throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
+      this._value[name] = value;
+    },
+    enumerable: true
+  });
+  return;
+};
 })();
 (function(){"use strict";let autoId = 0;
 const AUTO_PREFIX = '_nn_';
@@ -3103,9 +3139,9 @@ nice.Single.extensible = false;
 (function(){"use strict";
 })();
 (function(){"use strict";
-nice.Type('Html', (z, tag) => tag && z.tag(tag))
+nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .about('Represents HTML element.')
-  .str('tag', 'div')
+  .string('tag', 'div')
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
@@ -3312,7 +3348,7 @@ nice.ReadOnly.Single('html', z => _html(z._value));
 nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
     .map(_html).join(''));
 function html(z){
-  const tag = z.tag();
+  const tag = z.tag;
   const selectors = compileSelectors(z) || '';
   let as = '';
   let style = compileStyle(z.style);
@@ -3335,7 +3371,7 @@ function toDom(e) {
     : document.createTextNode(e);
  };
 function dom(e){
-  const res = document.createElement(e.tag());
+  const res = document.createElement(e.tag);
   e.style.each((v, k) => {
     res.style[k] = '' + v;
   });
@@ -3394,8 +3430,8 @@ const extractKey = v => {
 };
 defAll(nice, {
   refreshElement(e, old, domNode){
-    const eTag = e && e._isHtml && e.tag(),
-          oldTag = old && old._isHtml && old.tag();
+    const eTag = e && e._isHtml && e.tag,
+          oldTag = old && old._isHtml && old.tag;
     let newDom = domNode;
     if (eTag !== oldTag){
       newDom = toDom(e);
@@ -3412,7 +3448,7 @@ defAll(nice, {
       const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
       _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
       _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
-      const newHandlers = e.eventHandlers(), oldHandlers = old.eventHandlers();
+      const newHandlers = e.eventHandlers._value, oldHandlers = old.eventHandlers._value;
       nice._eachEach(oldHandlers, (f, i, type) => {
         if(!(newHandlers[type] && newHandlers[type].includes(f)))
           domNode.removeEventListener(type, f, true);
@@ -3495,7 +3531,7 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
   const l = t.toLowerCase();
   Html.extend(t).by((z, a, ...as) => {
-    z.tag(l);
+    z.tag = l;
     if(a === undefined)
       return;
     const type = nice.getType(a).name;
@@ -3509,7 +3545,8 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
 });
 const protocolRe = /^([a-zA-Z0-9]{3,5})\:\/\//;
 Html.extend('A').by((z, url, ...children) => {
-  z.tag('a').add(...children);
+  z.tag = 'a';
+  z.add(...children);
   if (nice.isFunction(url) && !url._isAnything) {
     z.on('click', e => {url(e); e.preventDefault();}).href('#');
   } else {
@@ -3522,7 +3559,8 @@ Html.extend('A').by((z, url, ...children) => {
   }
 }).about('Represents HTML <a> element.');
 Html.extend('Img').by((z, src, x, y) => {
-  z.tag('img').src(src);
+  z.tag = 'img';
+  z.src(src);
   x === undefined || z.width(x);
   y === undefined || z.height(y);
 })
@@ -3570,7 +3608,8 @@ function attachValue(target, setValue = defaultSetValue, value){
   return target;
 }
 Html.extend('Input', (z, type) => {
-    z.tag('input').attributes.set('type', type || 'text');
+    z.tag = 'input';
+    z.attributes.set('type', type || 'text');
     attachValue(z);
   })
   .about('Represents HTML <input> element.');
@@ -3581,7 +3620,7 @@ Html.extend('Button', (z, text = '', action) => {
   })
   .about('Represents HTML <input type="button"> element.');
 Input.extend('Textarea', (z, value) => {
-    z.tag('textarea');
+    z.tag = 'textarea';
     attachValue(z, (t, v) =>  t.children.removeAll().push(v), value);
   })
   .about('Represents HTML <textarea> element.');
@@ -3596,7 +3635,8 @@ Input.extend('Submit', (z, text, action) => {
   .about('Represents HTML <input type="submit"> element.');
 Input.extend('Checkbox', (z, status) => {
     let node;
-    z.tag('input').attributes.set('type', 'checkbox');
+    z.tag = 'input';
+    z.attributes.set('type', 'checkbox');
     const value = Box(status || false);
     def(z, 'checked', value);
     def(z, 'value', value);
@@ -3616,7 +3656,7 @@ Input.extend('Checkbox', (z, status) => {
   .about('Represents HTML <input type="checkbox"> element.');
   Input.extend('Select', (z, values) => {
     let node;
-    z.tag('select');
+    z.tag = 'select';
     const value = Box(null);
     def(z, 'value', value);
     let mute;
@@ -3749,15 +3789,36 @@ Test("named type", (Type) => {
   expect(cat.name()).is('Ball');
 });
 Test("primitive property", (Type) => {
-  Type('Cat2').string('name');
+  Type('Cat2').string('name', 'a cat');
   const cat = nice.Cat2();
-  expect(cat.name).is('');
+  expect(cat.name).is('a cat');
   cat.name = 'Ball';
   expect(cat.name === 'Ball').is(true);
 });
-Test('isFunction', (Func) => {
+Test("primitive type check", (Type) => {
+  Type('Cat3').string('name');
+  const cat = nice.Cat2();
+  expect(() => cat.name(2)).throws();
+  expect(() => cat.name = 2).throws();
+});
+Test("js array property", (Type) => {
+  Type('Cat4').array('friends');
+  const cat = nice.Cat4();
+  expect(cat.friends).deepEqual([]);
+  cat.friends.push('Ball');
+  expect(cat.friends).deepEqual(['Ball']);
+  expect(() => cat.friends = 2).throws();
+});
+Test('create function', (Function) => {
+  const x = Function(() => 1);
+  expect(x).not.isErr();
+  expect(x).isFunction();
+  expect(x()).is(1);
+});
+Test('isFunction', (isFunction) => {
   const x = nice(1);
   expect(x).not.isFunction();
+  expect(() => 1).isFunction();
 });
 Test('isError', (isError) => {
   const x = new Error('qwe');

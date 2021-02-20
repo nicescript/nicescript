@@ -42,3 +42,46 @@ defGet(nice.Null.proto, function jsValue() {
 defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });
+
+//TODO: cast compatible
+
+
+['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
+  nice.Anything.configProto[typeName] = function (name, defaultValue) {
+    Object.defineProperty(this.target.proto, name, {
+      get: function(){
+        let v = this._value[name];
+        if(v === undefined)
+          v = this._value[name] = defaultValue;
+        return v;
+      },
+      set: function(value){
+        if(typeof value !== typeName)
+          throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
+        this._value[name] = value;
+      },
+      enumerable: true
+    });
+    return this;
+  };
+});
+
+
+//Array
+nice.Anything.configProto.array = function (name, defaultValue = []) {
+  Object.defineProperty(this.target.proto, name, {
+    get: function(){
+      let value = this._value[name];
+      if(value === undefined)
+        value = this._value[name] = defaultValue;
+      return value;
+    },
+    set: function(value){
+      if(!Array.isArray(value))
+        throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
+      this._value[name] = value;
+    },
+    enumerable: true
+  });
+  return;
+};

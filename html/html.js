@@ -2,9 +2,9 @@
 //TODO: BUG: Div(111).Css(':hover').backgroundColor('red').up.show() - not work
 
 
-nice.Type('Html', (z, tag) => tag && z.tag(tag))
+nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .about('Represents HTML element.')
-  .str('tag', 'div')
+  .string('tag', 'div')
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
@@ -259,7 +259,7 @@ nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
     .map(_html).join(''));
 
 function html(z){
-  const tag = z.tag();
+  const tag = z.tag;
   const selectors = compileSelectors(z) || '';
   let as = '';
   let style = compileStyle(z.style);
@@ -288,7 +288,7 @@ function toDom(e) {
 
 
 function dom(e){
-  const res = document.createElement(e.tag());
+  const res = document.createElement(e.tag);
 //  const selectors = compileSelectors(e) || '';
 
   e.style.each((v, k) => {
@@ -379,8 +379,8 @@ const extractKey = v => {
 //TODO: when remove node unsubscribe all children
 defAll(nice, {
   refreshElement(e, old, domNode){
-    const eTag = e && e._isHtml && e.tag(),
-          oldTag = old && old._isHtml && old.tag();
+    const eTag = e && e._isHtml && e.tag,
+          oldTag = old && old._isHtml && old.tag;
     let newDom = domNode;
 
     if (eTag !== oldTag){
@@ -400,7 +400,7 @@ defAll(nice, {
       _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
       _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
 
-      const newHandlers = e.eventHandlers(), oldHandlers = old.eventHandlers();
+      const newHandlers = e.eventHandlers._value, oldHandlers = old.eventHandlers._value;
       nice._eachEach(oldHandlers, (f, i, type) => {
         if(!(newHandlers[type] && newHandlers[type].includes(f)))
           domNode.removeEventListener(type, f, true);

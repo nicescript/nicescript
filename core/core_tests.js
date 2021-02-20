@@ -13,29 +13,42 @@ Test("named type", (Type) => {
 });
 
 
+Test("primitive property", (Type) => {
+  Type('Cat2').string('name', 'a cat');
+
+  const cat = nice.Cat2();
+
+  expect(cat.name).is('a cat');
+  cat.name = 'Ball';
+  expect(cat.name === 'Ball').is(true);
+});
 
 
-//TODO: restore and fix
-//Test('create function', (Function) => {
-//  const x = Function(() => 1);
-//  expect(x).not.isErr();
-//  expect(x).isFunction();
-//  expect(x()).is(1);
-//});
+Test("primitive type check", (Type) => {
+  Type('Cat3').string('name');
 
-//TODO: restore and fix
-//Test('storing function', (Func) => {
-//  const x = nice();
-//  x(() => 1);
-//  expect(x).isFunction();
-//  expect(x).not.isErr();
-//  expect(x()).is(1);
-//});
+  const cat = nice.Cat2();
+
+  expect(() => cat.name(2)).throws();
+  expect(() => cat.name = 2).throws();
+});
 
 
-Test('isFunction', (Func) => {
+Test("js array property", (Type) => {
+  Type('Cat4').array('friends');
+
+  const cat = nice.Cat4();
+  expect(cat.friends).deepEqual([]);
+  cat.friends.push('Ball');
+  expect(cat.friends).deepEqual(['Ball']);
+  expect(() => cat.friends = 2).throws();
+});
+
+
+Test('isFunction', (isFunction) => {
   const x = nice(1);
   expect(x).not.isFunction();
+  expect(() => 1).isFunction();
 });
 
 

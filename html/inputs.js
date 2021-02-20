@@ -44,7 +44,8 @@ function attachValue(target, setValue = defaultSetValue, value){
 }
 
 Html.extend('Input', (z, type) => {
-    z.tag('input').attributes.set('type', type || 'text');
+    z.tag = 'input';
+    z.attributes.set('type', type || 'text');
     attachValue(z);
   })
   .about('Represents HTML <input> element.');
@@ -59,7 +60,7 @@ Html.extend('Button', (z, text = '', action) => {
 
 
 Input.extend('Textarea', (z, value) => {
-    z.tag('textarea');
+    z.tag = 'textarea';
     attachValue(z, (t, v) =>  t.children.removeAll().push(v), value);
   })
   .about('Represents HTML <textarea> element.');
@@ -80,7 +81,8 @@ Input.extend('Submit', (z, text, action) => {
 
 Input.extend('Checkbox', (z, status) => {
     let node;
-    z.tag('input').attributes.set('type', 'checkbox');
+    z.tag = 'input';
+    z.attributes.set('type', 'checkbox');
     const value = Box(status || false);
     def(z, 'checked', value);
     def(z, 'value', value);
@@ -104,7 +106,7 @@ Input.extend('Checkbox', (z, status) => {
 
   Input.extend('Select', (z, values) => {
     let node;
-    z.tag('select');
+    z.tag = 'select';
     const value = Box(null);
     def(z, 'value', value);
 
