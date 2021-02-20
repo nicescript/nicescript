@@ -26,14 +26,14 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .obj('style')
   .obj('attributes')
   .arr('children')
-  .Method('_autoId', z => {
-    z.id() || z.id(nice.autoId());
+  .Method('assertId', z => {
+    z.id() || z.id(nice.genereteAutoId());
     return z.id();
   })
-  .Method('_autoClass', z => {
+  .Method('assertClass', z => {
     const s = '' + z.attributes.get('className') || '';
     if(s.indexOf(nice.AUTO_PREFIX) < 0){
-      const c = nice.autoId();
+      const c = nice.genereteAutoId();
       z.attributes.set('className', s + ' ' + c);
     }
     return z;
@@ -150,7 +150,7 @@ const Style = nice.Style;
 
 defGet(Html.proto, function hover(){
   const style = Style();
-  this._autoClass();
+  this.assertClass();
   this.cssSelectors.set(':hover', style);
   return style;
 });
@@ -161,7 +161,7 @@ def(Html.proto, 'Css', function(s = ''){
 //  const existing = this.cssSelectors.get(s);
   if(this.cssSelectors.has(s))
     return this.cssSelectors.get(s);
-  this._autoClass();
+  this.assertClass();
   const style = Style();
   style.up = this;
   this.cssSelectors.set(s, style);

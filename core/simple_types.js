@@ -43,7 +43,6 @@ defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });
 
-//TODO: cast compatible
 nice.simpleTypes = {
   number: {
     cast(v){

@@ -47,7 +47,6 @@ defAll(nice, {
     }
   },
   _createItem(type, args){
-    
     if(!type._isNiceType)
       throw new Error('Bad type');
     let item;
@@ -142,7 +141,11 @@ defAll(nice, {
       ? f => (f(o), o)
       : (f(o), o),
   types: {},
-  registerType (type){
+  checkTypeName (name) {
+    /^[A-Z].*/.test(name[0]) ||
+      nice.error('Please start type name with a upper case letter');
+  },
+  registerType (type) {
     const name = type.name;
     name[0] !== name[0].toUpperCase() &&
       nice.error('Please start type name with a upper case letter');
@@ -201,7 +204,7 @@ defGet = nice.defineGetter;
 _each = nice._each;
 let autoId = 0;
 def(nice, 'AUTO_PREFIX', '_nn_');
-def(nice, 'autoId', () => nice.AUTO_PREFIX + autoId++);
+def(nice, 'genereteAutoId', () => nice.AUTO_PREFIX + autoId++);
 })();
 (function(){"use strict";const formatRe = /(%([jds%]))/g;
 const formatMap = { s: String, d: Number, j: JSON.stringify };
@@ -718,8 +721,7 @@ jsHierarchy['primitive'].split(',').forEach(name => {
   nice.jsTypes[name].primitiveName = name.toLowerCase();
 });
 })();
-(function(){"use strict";
-nice.registerType({
+(function(){"use strict";nice.registerType({
   name: 'Anything',
   description: 'Parent type for all types.',
   extend (name, by){
@@ -744,7 +746,6 @@ nice.registerType({
       nice._initItem(this, type, as);
       return this;
     },
-    
     valueOf () {
       return '_value' in this ? ('' + this._value) : undefined;
     },
@@ -1085,9 +1086,9 @@ function configurator(...a){
   return Configurator(cfg.name).next(cfg);
 };
 function createFunction({ name, body, signature, type, description, returns }){
-  if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
-    throw new Error("Function name should start with lowercase letter. "
-          + `"${nice._decapitalize(name)}" not "${name}"`);
+  if(!/^[a-z].*/.test(name[0]))
+   throw new Error(`Function name should start with lowercase letter. "${name}" is not`);
+ 
   const reflect = nice.reflect;
   let cfg = (name && reflect.functions[name]);
   const existing = cfg;
@@ -1790,7 +1791,7 @@ nice.Type({
     },
     assertId(){
       if(!this._id)
-        this._id = nice.autoId();
+        this._id = nice.genereteAutoId();
       return this._id;
     }
   }
@@ -2128,7 +2129,7 @@ nice.Type({
     },
     assertId(){
       if(!this._id)
-        this._id = nice.autoId();
+        this._id = nice.generateAutoId();
       return this._id;
     },
     map(f){
@@ -3222,14 +3223,14 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .obj('style')
   .obj('attributes')
   .arr('children')
-  .Method('_autoId', z => {
-    z.id() || z.id(nice.autoId());
+  .Method('assertId', z => {
+    z.id() || z.id(nice.genereteAutoId());
     return z.id();
   })
-  .Method('_autoClass', z => {
+  .Method('assertClass', z => {
     const s = '' + z.attributes.get('className') || '';
     if(s.indexOf(nice.AUTO_PREFIX) < 0){
-      const c = nice.autoId();
+      const c = nice.genereteAutoId();
       z.attributes.set('className', s + ' ' + c);
     }
     return z;
@@ -3318,7 +3319,7 @@ nice.Type('Style')
 const Style = nice.Style;
 defGet(Html.proto, function hover(){
   const style = Style();
-  this._autoClass();
+  this.assertClass();
   this.cssSelectors.set(':hover', style);
   return style;
 });
@@ -3326,7 +3327,7 @@ def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
   if(this.cssSelectors.has(s))
     return this.cssSelectors.get(s);
-  this._autoClass();
+  this.assertClass();
   const style = Style();
   style.up = this;
   this.cssSelectors.set(s, style);
@@ -3653,7 +3654,7 @@ function attachValue(target, setValue = defaultSetValue, value){
       mute = false;
       return true;
     }));
-    target._autoId();
+    target.assertId();
     target.on('domNode', n => {
       node = n;
       node.value = box();
@@ -3707,7 +3708,7 @@ Input.extend('Checkbox', (z, status) => {
       return true;
     });
     if(nice.isEnvBrowser()){
-      z._autoId();
+      z.assertId();
       z.on('domNode', n => node = n);
     }
     value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
@@ -3726,7 +3727,7 @@ Input.extend('Checkbox', (z, status) => {
       return true;
     });
     if(nice.isEnvBrowser()){
-      z._autoId();
+      z.assertId();
       z.on('domNode', n => node = n);
     }
     z.options.listenChildren(v => z.add(Html('option').add(v.label)
@@ -3837,9 +3838,9 @@ function go(z, originalUrl){
   window.scrollTo(0, 0);
 }
 })();
-(function(){"use strict";Test((autoId) => {
-  expect(autoId()).isString();
-  expect(autoId()).not.is(autoId());
+(function(){"use strict";Test((genereteAutoId) => {
+  expect(genereteAutoId()).isString();
+  expect(genereteAutoId()).not.is(genereteAutoId());
 });
 Test("named type", (Type) => {
   Type('Cat').str('name');

@@ -1,6 +1,6 @@
-Test((autoId) => {
-  expect(autoId()).isString();
-  expect(autoId()).not.is(autoId());
+Test((genereteAutoId) => {
+  expect(genereteAutoId()).isString();
+  expect(genereteAutoId()).not.is(genereteAutoId());
 });
 
 

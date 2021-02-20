@@ -111,9 +111,9 @@ function configurator(...a){
 
 //optimization: create function that don't check fist argument for type.proto
 function createFunction({ name, body, signature, type, description, returns }){//existing,
-  if(name && typeof name === 'string' && name[0] !== name[0].toLowerCase())
-    throw new Error("Function name should start with lowercase letter. "
-          + `"${nice._decapitalize(name)}" not "${name}"`);
+  if(!/^[a-z].*/.test(name[0]))
+   throw new Error(`Function name should start with lowercase letter. "${name}" is not`);
+ 
   const reflect = nice.reflect;
 
   let cfg = (name && reflect.functions[name]);

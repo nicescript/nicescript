@@ -65,11 +65,7 @@ defAll(nice, {
     }
   },
 
-//TODO: check:
-//create guessType -> assignType -> assignValue
-//set tearDown -> guessType -> assignType -> assignValue
   _createItem(type, args){
-    //TODO: kill ...
     if(!type._isNiceType)
       throw new Error('Bad type');
     let item;
@@ -195,7 +191,12 @@ defAll(nice, {
 
   types: {},
 
-  registerType (type){
+  checkTypeName (name) {
+    /^[A-Z].*/.test(name[0]) ||
+      nice.error('Please start type name with a upper case letter');
+  },
+
+  registerType (type) {
     const name = type.name;
 
     name[0] !== name[0].toUpperCase() &&
@@ -266,7 +267,7 @@ _each = nice._each;
 
 let autoId = 0;
 def(nice, 'AUTO_PREFIX', '_nn_');
-def(nice, 'autoId', () => nice.AUTO_PREFIX + autoId++);
+def(nice, 'genereteAutoId', () => nice.AUTO_PREFIX + autoId++);
 
 //function refreshSize(item, oldType, type){
 //  const on = type && type !== NotFound;

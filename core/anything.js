@@ -39,16 +39,6 @@ nice.registerType({
       return this;
     },
 
-    //TODO: forbid public names with _
-//        const type = target._get('_type');
-//        if(type.types[key])
-//          return f.get(key);
-//
-//        if(type.readOnlys[key])
-//          return type.readOnlys[key](f);
-//
-//        return target[key];
-
     valueOf () {
       return '_value' in this ? ('' + this._value) : undefined;
     },

@@ -29,7 +29,7 @@ function attachValue(target, setValue = defaultSetValue, value){
       return true;
     }));
 
-    target._autoId();
+    target.assertId();
     target.on('domNode', n => {
       node = n;
       node.value = box();
@@ -96,7 +96,7 @@ Input.extend('Checkbox', (z, status) => {
     });
 
     if(nice.isEnvBrowser()){
-      z._autoId();
+      z.assertId();
       z.on('domNode', n => node = n);
     }
 
@@ -119,7 +119,7 @@ Input.extend('Checkbox', (z, status) => {
     });
 
     if(nice.isEnvBrowser()){
-      z._autoId();
+      z.assertId();
       z.on('domNode', n => node = n);
     }
 

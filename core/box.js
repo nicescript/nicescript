@@ -46,7 +46,7 @@ nice.Type({
 
     assertId(){
       if(!this._id)
-        this._id = nice.autoId();
+        this._id = nice.genereteAutoId();
       return this._id;
     }
   }
