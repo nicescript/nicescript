@@ -44,6 +44,95 @@ defGet(nice.Undefined.proto, function jsValue() {
 });
 
 //TODO: cast compatible
+nice.simpleTypes = {
+  number: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'number')
+        return v;
+
+      if(v === undefined)
+        throw `undefined is not a number`;
+
+      if(v === null)
+        throw `undefined is not a number`;
+
+      if(v._isNum)
+        return v._value;
+
+      if(type === 'string'){
+        const n = +v;
+        if(!isNaN(n))
+          return n;
+      }
+
+      throw `${v}[${type}] is not a number`;
+    }
+  },
+  string: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'string')
+        return v;
+
+      if(v === undefined)
+        throw `undefined is not a string`;
+
+      if(v === null)
+        throw `undefined is not a string`;
+
+      if(v._isStr)
+        return v._value;
+
+      if(type === 'number')
+        return '' + v;
+
+      if(Array.isArray(v))
+        return nice.format(...v);
+
+      throw `${v}[${type}] is not a string`;
+    }
+  },
+  boolean: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'boolean')
+        return v;
+
+      if(v === undefined)
+        false;
+
+      if(v === null)
+        false;
+
+      if(v._isBool)
+        return v._value;
+
+      if(type === 'number' || type === 'string')
+        return !!v;
+
+      throw `${v}[${type}] is not a boolean`;
+    }
+  },
+  function: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'function')
+        return v;
+
+      throw `${v}[${type}] is not a function`;
+    }
+  },
+  object: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'object')
+        return v;
+
+      throw `${v}[${type}] is not an object`;
+    }
+  }
+};
 
 
 ['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
@@ -56,9 +145,9 @@ defGet(nice.Undefined.proto, function jsValue() {
         return v;
       },
       set: function(value){
-        if(typeof value !== typeName)
-          throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
-        this._value[name] = value;
+//        if(typeof value !== typeName)
+//          throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
+        this._value[name] = nice.simpleTypes[typeName].cast(value);
       },
       enumerable: true
     });

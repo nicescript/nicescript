@@ -317,6 +317,8 @@ nice._eachEach = (o, f) => {
 defAll(nice, {
   format (t, ...a) {
     t = t ? '' + t : '';
+    if(a.length === 0)
+      return t;
     a.unshift(t.replace(formatRe, (match, ptn, flag) =>
         flag === '%' ? '%' : formatMap[flag](a.shift())));
     return a.join(' ');
@@ -723,62 +725,8 @@ nice.registerType({
   extend (name, by){
     return nice.Type(name, by).extends(this);
   },
-  itemArgs0: z => {
-    return z._value;
-  },
   setValue: (z, value) => {
     z._value = value;
-  },
-  itemArgs1: (z, v) => {
-    if (v && v._isAnything) {
-      
-      
-      z._type = v._type;
-      z._value = nice.clone(v._value);
-    } else {
-      z._type.setPrimitive(z, v);
-    }
-    return z;
-  },
-  setPrimitive: (z, v) => {
-    const t = typeof v;
-    let type;
-    if(v === undefined) {
-      type = nice.Undefined;
-    } else if(v === null) {
-      type = nice.Null;
-    } else if(t === 'number') {
-      type = Number.isNaN(v) ? nice.NumberError : nice.Num;
-    } else if(t === 'function') {
-      type = nice.Func;
-    } else if(t === 'string') {
-      type = nice.Str;
-    } else if(t === 'boolean') {
-      type = nice.Bool;
-    } else if(Array.isArray(v)) {
-      type = nice.Arr;
-    } else if(v[nice.TYPE_KEY]) {
-      type = nice[v[nice.TYPE_KEY]];
-    } else if(t === 'object') {
-      type = nice.Obj;
-    }
-    if(type !== undefined) {
-      if(type === z._type)
-        return type.setValue(z, v);
-      const cellType = z._cellType;
-      if(cellType === type || cellType.isPrototypeOf(type)){
-        nice._initItem(z, type, [v]);
-        return z;
-      }
-      const cast = cellType.castFrom && cellType.castFrom[type.name];
-      if(cast !== undefined){
-        nice._initItem(z, type, [cast(v)]);
-        return z;
-      };
-      z.toErr(`Can't cast`, type.name, 'to', cellType.name);
-      return ;
-    }
-    throw 'Unknown type';
   },
   itemArgsN: (z, vs) => {
     throw new Error(`${z._type.name} doesn't know what to do with ${vs.length} arguments.`);
@@ -1698,6 +1646,77 @@ defGet(nice.Null.proto, function jsValue() {
 defGet(nice.Undefined.proto, function jsValue() {
   return undefined;
 });
+nice.simpleTypes = {
+  number: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'number')
+        return v;
+      if(v === undefined)
+        throw `undefined is not a number`;
+      if(v === null)
+        throw `undefined is not a number`;
+      if(v._isNum)
+        return v._value;
+      if(type === 'string'){
+        const n = +v;
+        if(!isNaN(n))
+          return n;
+      }
+      throw `${v}[${type}] is not a number`;
+    }
+  },
+  string: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'string')
+        return v;
+      if(v === undefined)
+        throw `undefined is not a string`;
+      if(v === null)
+        throw `undefined is not a string`;
+      if(v._isStr)
+        return v._value;
+      if(type === 'number')
+        return '' + v;
+      if(Array.isArray(v))
+        return nice.format(...v);
+      throw `${v}[${type}] is not a string`;
+    }
+  },
+  boolean: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'boolean')
+        return v;
+      if(v === undefined)
+        false;
+      if(v === null)
+        false;
+      if(v._isBool)
+        return v._value;
+      if(type === 'number' || type === 'string')
+        return !!v;
+      throw `${v}[${type}] is not a boolean`;
+    }
+  },
+  function: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'function')
+        return v;
+      throw `${v}[${type}] is not a function`;
+    }
+  },
+  object: {
+    cast(v){
+      const type = typeof v;
+      if(type === 'object')
+        return v;
+      throw `${v}[${type}] is not an object`;
+    }
+  }
+};
 ['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
   nice.Anything.configProto[typeName] = function (name, defaultValue) {
     Object.defineProperty(this.target.proto, name, {
@@ -1708,9 +1727,7 @@ defGet(nice.Undefined.proto, function jsValue() {
         return v;
       },
       set: function(value){
-        if(typeof value !== typeName)
-          throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
-        this._value[name] = value;
+        this._value[name] = nice.simpleTypes[typeName].cast(value);
       },
       enumerable: true
     });
@@ -2672,6 +2689,12 @@ Err = nice.Err;
 (function(){"use strict";nice.Type({
   name: 'Single',
   extends: nice.Value,
+  itemArgs0: z => {
+    return z._value;
+  },
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, v);
+  },
   isFunction: true,
   proto: {
     [Symbol.toPrimitive]() {
@@ -2690,17 +2713,24 @@ const allowedSources = {boolean: 1, number: 1, string: 1};
 nice.Single.extend({
   name: 'Str',
   defaultValueBy: () => '',
-  itemArgs1: (z, s) => {
-    if(s && s._isAnything)
-       s = s();
-    if(!allowedSources[typeof s])
-      throw `Can't create Str from ${typeof s}`;
-    z._type.setValue(z, '' + s);
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, nice.simpleTypes.string.cast(v));
   },
   itemArgsN: (z, a) => z._type.setValue(z, nice.format(...a)),
 })
   .about('Wrapper for JS string.')
   .ReadOnly('length', z => z._value.length);
+Test(Str => {
+  const s = Str();
+  expect(s).is('');
+  s(3);
+  expect(s).is('3');
+  s('/%d/', 1);
+  expect(s).is('/1/');
+  s(['/%d/', 2]);
+  expect(s).is('/2/');
+  expect(() => s({})).throws();
+});
 _each({
   endsWith: (s, p, l) => s.endsWith(p, l),
   startsWith: (s, p, i) => s.startsWith(p, i),
@@ -2751,6 +2781,12 @@ localeCompare`.split('\n').forEach(k => M
     (k, (s, ...a) => s[k](...a)));
 nice.Mapping.Number(String.fromCharCode);
 nice.Mapping.Number(String.fromCodePoint);
+Test(format => {
+  expect(format('/%d/', 1)).is('/1/');
+  expect(format('%s:%s', 'foo', 'bar', 'baz')).is('foo:bar baz');
+  expect(format(1, 2, 3)).is('1 2 3');
+  expect(format('%% %s')).is('%% %s');
+});
 typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   let i = 0;
   const l = z.length;
@@ -3039,8 +3075,18 @@ typeof Symbol === 'function' && F(Symbol.iterator, z => {
 })();
 (function(){"use strict";nice.Single.extend({
   name: 'Num',
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, nice.simpleTypes.number.cast(v));
+  },
   defaultValueBy: () => 0,
   help: 'Wrapper for JS number.'
+});
+Test(Num => {
+  const n = Num();
+  expect(n).is(0);
+  n(3);
+  expect(n).is(3);
+  expect(() => n('qwe')).throws();
 });
 Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);
 _each({
@@ -3127,8 +3173,21 @@ A('setMin', (z, n) => n < z() && z(n));
 (function(){"use strict";nice.Single.extend({
   name: 'Bool',
   defaultValueBy: () => false,
-  itemArgs1: (z, v) => z._type.setValue(z, !!v),
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, nice.simpleTypes.boolean.cast(v));
+  },
 }).about('Wrapper for JS boolean.');
+Test(Bool => {
+  const b = Bool();
+  expect(b).is(false);
+  b(true);
+  expect(b).is(true);
+  b('qwe');
+  expect(b).is(true);
+  b('');
+  expect(b).is(false);
+  expect(() => b({})).throws();
+});
 const B = nice.Bool, M = Mapping.Bool;
 const A = Action.Bool;
 A('turnOn', z => z(true));
@@ -3799,7 +3858,10 @@ Test("primitive type check", (Type) => {
   Type('Cat3').string('name');
   const cat = nice.Cat2();
   expect(() => cat.name(2)).throws();
-  expect(() => cat.name = 2).throws();
+  cat.name = 2;
+  expect(cat.name).is('2');
+  cat.name = ['Cat #%d', 2];
+  expect(cat.name).is('Cat #2');
 });
 Test("js array property", (Type) => {
   Type('Cat4').array('friends');
@@ -3808,12 +3870,6 @@ Test("js array property", (Type) => {
   cat.friends.push('Ball');
   expect(cat.friends).deepEqual(['Ball']);
   expect(() => cat.friends = 2).throws();
-});
-Test('create function', (Function) => {
-  const x = Function(() => 1);
-  expect(x).not.isErr();
-  expect(x).isFunction();
-  expect(x()).is(1);
 });
 Test('isFunction', (isFunction) => {
   const x = nice(1);

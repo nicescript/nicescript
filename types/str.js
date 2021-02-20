@@ -5,17 +5,30 @@ nice.Single.extend({
   name: 'Str',
 
   defaultValueBy: () => '',
-  itemArgs1: (z, s) => {
-    if(s && s._isAnything)
-       s = s();
-    if(!allowedSources[typeof s])
-      throw `Can't create Str from ${typeof s}`;
-    z._type.setValue(z, '' + s);
+
+
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, nice.simpleTypes.string.cast(v));
   },
   itemArgsN: (z, a) => z._type.setValue(z, nice.format(...a)),
 })
   .about('Wrapper for JS string.')
   .ReadOnly('length', z => z._value.length);
+
+
+Test(Str => {
+  const s = Str();
+  expect(s).is('');
+  s(3);
+  expect(s).is('3');
+//  nice.format('/%d/', 1);
+  s('/%d/', 1);
+  expect(s).is('/1/');
+  s(['/%d/', 2]);
+  expect(s).is('/2/');
+  expect(() => s({})).throws();
+});
+
 
 _each({
   endsWith: (s, p, l) => s.endsWith(p, l),
@@ -77,6 +90,14 @@ localeCompare`.split('\n').forEach(k => M
 
 nice.Mapping.Number(String.fromCharCode);
 nice.Mapping.Number(String.fromCodePoint);
+
+
+Test(format => {
+  expect(format('/%d/', 1)).is('/1/');
+  expect(format('%s:%s', 'foo', 'bar', 'baz')).is('foo:bar baz');
+  expect(format(1, 2, 3)).is('1 2 3');
+  expect(format('%% %s')).is('%% %s');
+});
 
 
 typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {

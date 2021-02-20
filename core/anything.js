@@ -6,21 +6,6 @@
 
 //TODO: empty transactions on empty values
 
-//const proxy = new Proxy({}, {
-//  get (o, k, receiver) {
-//    if(k[0] === '_')
-//      return undefined;
-//
-//    if(k === 'isPrototypeOf')
-//      return Object.prototype.isPrototypeOf;
-//
-//    if(k === 'hasOwnProperty')
-//      return Object.prototype.hasOwnProperty;
-//
-//    return k in receiver ? receiver[k] : nice.NotFound();
-//  },
-//});
-
 nice.registerType({
   name: 'Anything',
 
@@ -30,73 +15,8 @@ nice.registerType({
     return nice.Type(name, by).extends(this);
   },
 
-  itemArgs0: z => {
-    return z._value;
-  },
-
   setValue: (z, value) => {
     z._value = value;
-  },
-
-//set tearDown -> guessType -> assignType -> assignValue
-
-  itemArgs1: (z, v) => {
-    if (v && v._isAnything) {
-      //TODO:0 check cellType
-      //TODO:0 deside to clone or to forbid setting to mutable items
-      z._type = v._type;
-      z._value = nice.clone(v._value);
-    } else {
-      z._type.setPrimitive(z, v);
-    }
-    return z;
-  },
-
-  setPrimitive: (z, v) => {
-    const t = typeof v;
-    let type;
-
-    if(v === undefined) {
-      type = nice.Undefined;
-    } else if(v === null) {
-      type = nice.Null;
-    } else if(t === 'number') {
-      type = Number.isNaN(v) ? nice.NumberError : nice.Num;
-    } else if(t === 'function') {
-      type = nice.Func;
-    } else if(t === 'string') {
-      type = nice.Str;
-    } else if(t === 'boolean') {
-      type = nice.Bool;
-    } else if(Array.isArray(v)) {
-      type = nice.Arr;
-    } else if(v[nice.TYPE_KEY]) {
-      type = nice[v[nice.TYPE_KEY]];
-    } else if(t === 'object') {
-      type = nice.Obj;
-    }
-
-    if(type !== undefined) {
-      if(type === z._type)
-        return type.setValue(z, v);
-
-      const cellType = z._cellType;
-      if(cellType === type || cellType.isPrototypeOf(type)){
-        nice._initItem(z, type, [v]);
-        return z;
-      }
-
-      const cast = cellType.castFrom && cellType.castFrom[type.name];
-      if(cast !== undefined){
-        nice._initItem(z, type, [cast(v)]);
-        return z;
-      };
-
-      z.toErr(`Can't cast`, type.name, 'to', cellType.name);
-      return ;
-    }
-
-    throw 'Unknown type';
   },
 
   itemArgsN: (z, vs) => {
@@ -119,7 +39,6 @@ nice.registerType({
 
   _isNiceType: true,
 
-//  proto: Object.setPrototypeOf({
   proto: {
     _isAnything: true,
 

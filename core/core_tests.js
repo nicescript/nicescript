@@ -30,7 +30,12 @@ Test("primitive type check", (Type) => {
   const cat = nice.Cat2();
 
   expect(() => cat.name(2)).throws();
-  expect(() => cat.name = 2).throws();
+
+  cat.name = 2;
+  expect(cat.name).is('2');
+
+  cat.name = ['Cat #%d', 2];
+  expect(cat.name).is('Cat #2');
 });
 
 

@@ -3,6 +3,14 @@ nice.Type({
 
   extends: nice.Value,
 
+  itemArgs0: z => {
+    return z._value;
+  },
+
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, v);
+  },
+
   isFunction: true,
 
   proto: {

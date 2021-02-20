@@ -1,7 +1,21 @@
 nice.Single.extend({
   name: 'Num',
+
+  itemArgs1: (z, v) => {
+    z._type.setValue(z, nice.simpleTypes.number.cast(v));
+  },
+
   defaultValueBy: () => 0,
+
   help: 'Wrapper for JS number.'
+});
+
+Test(Num => {
+  const n = Num();
+  expect(n).is(0);
+  n(3);
+  expect(n).is(3);
+  expect(() => n('qwe')).throws();
 });
 
 
