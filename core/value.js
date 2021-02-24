@@ -7,6 +7,13 @@ nice.Type({
 
   isSubType,
 
+  initBy: (z, v) => {
+    if(v === undefined)
+      v = z._type.defaultValueBy();
+
+    z._type.setValue(z, v);
+  },
+
   creator: () => { throw 'Use Single or Object.' },
 
   proto: create(Anything.proto, {

@@ -1,50 +1,12 @@
 const paramsRe = /\:([A-Za-z0-9_]+)/g;
 
-nice.Type({
-  name: 'Router',
-
-  initBy: (z, div = nice.Div()) => {
-    z.staticRoutes = {};
-    if(window && window.addEventListener){
-      nice.Html.linkRouter = z;
-      z.origin = window.location.origin;
-
-      div.add(nice.RBox(z.currentUrl, url => {
-        const route = z.getRoute(url);
-
-        let content = route();
-
-        if(content.__proto__ === Object.prototype && content.content){
-          content.title && (window.document.title = content.title);
-          content = content.content;
-        }
-
-        if(Array.isArray(content))
-          content = nice.Div(...content);
-
-        return content;
-      })).show();
-
-      window.addEventListener('popstate', function(e) {
-        z.currentUrl(e.target.location.pathname);
-        return false;
-      });
-    }
-  },
-
-  customCall: (z, ...as) => {
-    return as.length === 0 ? z._value : z.setState(as[0]);
-  }
-})
-//  .object('staticRoutes')
+nice.Type('Router')
+  .object('staticRoutes')
   .arr('queryRoutes')
-  .box('currentUrl')
   .Method(addRoute)
-  .Method(go)
-  .Method(function getRoute(z, path){
+  .Method(function resolve(z, path){
     path[0] === '/' || (path = '/' + path);
     let url = path;
-//    let url = z.relativeUrl(path);
     const query = {};
     const i = url.indexOf('?');
     if(i >= 0){
@@ -56,7 +18,7 @@ nice.Type({
     }
     const rurl = '/' + nice.trimRight(url, '/');
     let route = z.staticRoutes[url];
-    route || z.queryRoutes().some(f => route = f(url, query));
+    route || z.queryRoutes.some(f => route = f(url, query));
     return route || (() => `Page "${url}" not found`);
   });
 
@@ -91,7 +53,57 @@ function addRoute(router, pattern, f){
   return router;
 }
 
+Test((Router, Spy) => {
+  const r = Router();
+  const f = () => 1;
 
+  r.addRoute('/', f);
+  expect(r.resolve('/')).is(f);
+
+  let res;
+  const f2 = o => res = o.id;
+
+  r.addRoute('/page/:id', f2);
+  r.resolve('/page/123')();
+  expect(res).is('123');
+});
+
+nice.Type({
+  name: 'WindowRouter',
+
+  extends: 'Router',
+
+  initBy: (z, div = nice.Div()) => {
+    if(window && window.addEventListener){
+      nice.Html.linkRouter = z;
+      z.origin = window.location.origin;
+
+      div.add(nice.RBox(z.currentUrl, url => {
+        const route = z.resolve(url);
+
+        let content = route();
+
+        if(content.__proto__ === Object.prototype && content.content){
+          content.title && (window.document.title = content.title);
+          content = content.content;
+        }
+
+        if(Array.isArray(content))
+          content = nice.Div(...content);
+
+        return content;
+      })).show();
+
+      window.addEventListener('popstate', function(e) {
+        z.currentUrl(e.target.location.pathname);
+        return false;
+      });
+    }
+  },
+
+})
+  .box('currentUrl')
+  .Method(go);
 
 
 function go(z, originalUrl){

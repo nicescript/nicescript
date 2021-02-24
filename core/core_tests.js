@@ -39,6 +39,17 @@ Test("primitive type check", (Type) => {
 });
 
 
+Test("js object property", (Type) => {
+  Type('Cat41').object('friends');
+
+  const cat = nice.Cat41();
+  expect(cat.friends).deepEqual({});
+  cat.friends['Ball'] = 1;
+  expect(cat.friends.Ball).is(1);
+  expect(() => cat.friends = 2).throws();
+});
+
+
 Test("js array property", (Type) => {
   Type('Cat4').array('friends');
 

@@ -11,6 +11,8 @@ nice.Type({
     return as.length === 0 ? z._value : z.setState(as[0]);
   },
 
+  initBy: (z, v) => z.setState(v),
+
   proto: {
     setState (v){
       this._value = v;

@@ -114,6 +114,12 @@ Test('Foolow RBox', (Html) => {
 });
 
 
+Test('element selectors', (Div, A, Html) => {
+//  const a = A('/qwe', 'qwe').hover({color:red})
+  A('/qwe', 'qwe').Css(':hover').backgroundColor('red').up.show();
+});
+
+
 Test('Textarea', (Html, Textarea) => {
   const x = Textarea(2);
   const dom = x.dom;

@@ -4,10 +4,7 @@ nice.Type({
   name: 'Spy',
   extends: 'Anything',
   defaultValueBy: () => [],
-  customCall: call
-//  itemArgs0: call,
-//  itemArgs1: call,
-//  itemArgsN: (z, as) => call(z, ...as),
+  customCall: call,
 });
 
 function call(spy, ...a){

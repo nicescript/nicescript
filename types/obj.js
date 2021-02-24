@@ -369,7 +369,7 @@ M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
 C.Function(function some(c, f){
   let res = false;
   c.each((v,k) => {
-    if(f(res, v, k)){
+    if(f(v, k)){
       res = true;
       return nice.Stop;
     }
@@ -377,6 +377,13 @@ C.Function(function some(c, f){
   return res;
 });
 
+
+Test((Obj, some) => {
+  const o = Obj({a:1,b:2});
+  expect(o.some(v => v % 2)).is(true);
+  expect(o.some(v => v < 3)).is(true);
+  expect(o.some(v => v < 0)).is(false);
+});
 
 
 C.about(`Check if every element in colection matches given check`)

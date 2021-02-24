@@ -86,23 +86,22 @@ defAll(nice, {
   },
 
   _initItem(z, type, args) {
-    args === undefined || args.length === 0
-      ? type.initBy && type.initBy(z)
-      : type.initBy
-        ? type.initBy(z, ...args)
-        : type.setValue(z, ...args);
+    if(args === undefined || args.length === 0){
+      type.initBy && type.initBy(z);
+    } else if (type.initBy){
+      type.initBy(z, ...args);
+    } else {
+      throw type.name + ' doesn\'t know what to do with arguments';
+    }
+//      :
+//        ? type.initBy(z, ...args)
+//        : type.setValue(z, ...args);
     return z;
   },
 
   _setType(item, type) {
-//    const oldType = item._type;
-
-//    expect(type).isType();
-    1;
     const proto = type.proto;
-    1;
     Object.setPrototypeOf(item, proto);
-    1;
     item._type = type;
 
 //    type.defaultValueBy && (item._value = type.defaultValueBy());

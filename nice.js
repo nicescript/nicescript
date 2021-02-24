@@ -64,19 +64,18 @@ defAll(nice, {
     return item;
   },
   _initItem(z, type, args) {
-    args === undefined || args.length === 0
-      ? type.initBy && type.initBy(z)
-      : type.initBy
-        ? type.initBy(z, ...args)
-        : type.setValue(z, ...args);
+    if(args === undefined || args.length === 0){
+      type.initBy && type.initBy(z);
+    } else if (type.initBy){
+      type.initBy(z, ...args);
+    } else {
+      throw type.name + ' doesn\'t know what to do with arguments';
+    }
     return z;
   },
   _setType(item, type) {
-    1;
     const proto = type.proto;
-    1;
     Object.setPrototypeOf(item, proto);
-    1;
     item._type = type;
     if("defaultValueBy" in type){
       item._value = type.defaultValueBy();
@@ -1557,7 +1556,7 @@ nice.Type({
   name: 'Spy',
   extends: 'Anything',
   defaultValueBy: () => [],
-  customCall: call
+  customCall: call,
 });
 function call(spy, ...a){
   spy._logCalls && console.log('Spy called with:', ...a);
@@ -1718,13 +1717,23 @@ nice.simpleTypes = {
     }
   }
 };
+const defaultValueBy = {
+  string: () => '',
+  boolean: () => false,
+  number: () => 0,
+  object: () => ({}),
+  'function': x => x,
+};
 ['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
   nice.Anything.configProto[typeName] = function (name, defaultValue) {
     Object.defineProperty(this.target.proto, name, {
       get: function(){
         let v = this._value[name];
-        if(v === undefined)
-          v = this._value[name] = defaultValue;
+        if(v === undefined){
+          v = this._value[name] = defaultValue !== undefined
+            ? nice.simpleTypes[typeName].cast(defaultValue)
+            : defaultValueBy[typeName]();
+        }
         return v;
       },
       set: function(value){
@@ -1750,7 +1759,7 @@ nice.Anything.configProto.array = function (name, defaultValue = []) {
     },
     enumerable: true
   });
-  return;
+  return this;
 };
 })();
 (function(){"use strict";let autoId = 0;
@@ -1761,6 +1770,7 @@ nice.Type({
   customCall: (z, ...as) => {
     return as.length === 0 ? z._value : z.setState(as[0]);
   },
+  initBy: (z, v) => z.setState(v),
   proto: {
     setState (v){
       this._value = v;
@@ -2291,6 +2301,11 @@ Func.Anything('xor', (...as) => {
   extends: 'Something',
   default: () => undefined,
   isSubType,
+  initBy: (z, v) => {
+    if(v === undefined)
+      v = z._type.defaultValueBy();
+    z._type.setValue(z, v);
+  },
   creator: () => { throw 'Use Single or Object.' },
   proto: create(Anything.proto, {
     valueOf (){ return this._value; }
@@ -2547,12 +2562,18 @@ M('sum', (c, f) => c.reduce((n, v) => n + (f ? f(v) : v), 0));
 C.Function(function some(c, f){
   let res = false;
   c.each((v,k) => {
-    if(f(res, v, k)){
+    if(f(v, k)){
       res = true;
       return nice.Stop;
     }
   });
   return res;
+});
+Test((Obj, some) => {
+  const o = Obj({a:1,b:2});
+  expect(o.some(v => v % 2)).is(true);
+  expect(o.some(v => v < 3)).is(true);
+  expect(o.some(v => v < 0)).is(false);
 });
 C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
@@ -3110,11 +3131,6 @@ _each({
   next: n => n + 1,
   previous: n => n - 1
 }, (f, name) => M(name, f));
-Test((sum, Num) => {
-  var a = Num(1);
-  var b = a.add(2);
-  expect(b).is(3);
-});
 `acos
 asin
 atan
@@ -3439,9 +3455,7 @@ function dom(e){
   e.style.each((v, k) => {
     res.style[k] = '' + v;
   });
-  e.attributes.each((v, k) => {
-    res[k] = v;
-  });
+  e.attributes.each((v, k) => res[k] = v);
   e.children.each(c => attachNode(c, res));
   e.eventHandlers.each((ls, type) => {
     if(type === 'domNode')
@@ -3590,6 +3604,151 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
       nice.iterateNodesTree(f, n);
     };
 });
+if(nice.isEnvBrowser()){
+  const styleEl = document.createElement('style');
+  document.head.appendChild(styleEl);
+  const styleSheet = styleEl.sheet;
+  const addRules = (vs, selector, className) => {
+    const rule = assertRule(selector, className);
+    vs.each((value, prop) => rule.style[prop] = value);
+  };
+  const findRule = (selector, className) => {
+    const s = `.${className} ${selector}`.toLowerCase();
+    let rule;
+    for (const r of styleSheet.cssRules)
+      r.selectorText === s && (rule = r);
+    return rule;
+  };
+  const findRuleindex = (selector, className) => {
+    const s = `.${className} ${selector}`.toLowerCase();
+    let res;
+    for (const i in styleSheet.cssRules)
+      styleSheet.cssRules[i].selectorText === s && (res = i);
+    return res;
+  };
+  const assertRule = (selector, className) => {
+    return findRule(selector, className) || styleSheet
+        .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
+  };
+  function killSelectors(v) {
+    const c = getAutoClass(v.attributes.get('className'));
+    v.cssSelectors.each((v, k) => killRules(v, k, c));
+  };
+  const killRules = (vs, selector, id) => {
+    const rule = findRule(selector, id);
+    rule && vs.each((value, prop) => rule.style[prop] = null);
+  };
+  const killAllRules = v => {
+    const c = getAutoClass(v.attributes.get('className'));
+    const a = [];
+    [...styleSheet.cssRules].forEach((r, i) =>
+        r.selectorText.indexOf(c) === 1 && a.unshift(i));
+    a.forEach(i => styleSheet.deleteRule(i));
+  };
+  function killNode(n){
+    n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
+    n && nice._eachEach(n.__niceListeners, (listener, i, type) => {
+      n.removeEventListener(type, listener);
+    });
+  }
+  function insertBefore(node, newNode){
+    node.parentNode.insertBefore(newNode, node);
+    return newNode;
+  }
+  function insertAfter(node, newNode){
+    node.parentNode.insertBefore(newNode, node.nextSibling);
+    return newNode;
+  }
+  Func.primitive('show', (v, parentNode = document.body, position) => {
+    const node = document.createTextNode(v);
+    return insertAt(parentNode, node, position);
+  });
+  Func.primitive('hide', (v, node) => {
+    killNode(node);
+  });
+  Func.Single('show', (e, parentNode = document.body, position) => {
+    const node = document.createTextNode('');
+    e._shownNodes = e._shownNodes || new WeakMap();
+    e._shownNodes.set(node, e.listen(v => node.nodeValue = v()));
+    return insertAt(parentNode, node, position);
+  });
+  Func.Single('hide', (e, node) => {
+    const subscription = e._shownNodes && e._shownNodes.get(node);
+    subscription();
+    killNode(node);
+  });
+  Func.Nothing('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode, document.createTextNode(''), position);
+  });
+  Func.Err('show', (e, parentNode = document.body, position) => {
+    return insertAt(parentNode,
+        document.createTextNode('Error: ' + e().message), position);
+  });
+  Func.Bool('show', (e, parentNode = document.body, position) => {
+    if(e())
+      throw `I don't know how to display "true"`;
+    return insertAt(parentNode, document.createTextNode(''), position);
+  });
+  Func.Html('show', (e, parentNode = document.body, position = 0) => {
+    const node = document.createElement(e.tag());
+    
+    insertAt(parentNode, node, position);
+    e.attachNode(node);
+    return node;
+  });
+  Func.Html('attachNode', (e, node) => {
+    e._shownNodes = e._shownNodes || new WeakMap();
+    const ss = [];
+    ss.push(e.children.listenItems((v, k) => v.isNothing()
+        ? removeNode(node.childNodes[k], k)
+        : nice.show(v, node, k)
+      ),
+      e.style.listenItems((v, k) => v.isSomething()
+          ? node.style[k] = v
+          : delete node.style[k]
+      ),
+      e.attributes.listenItems((v, k) => v.isSomething()
+          ? node[k] = v
+          : delete node[k]
+      ),
+      e.cssSelectors.listenItems((v, k) => {
+        e._autoClass();
+        (v.isSomething() ? addRules : killRules)
+            (v, k, getAutoClass(node.className));
+      }),
+      e.eventHandlers.listenItems((hs, k) => hs.isSomething()
+        ? hs.each(f => {
+            if(k === 'domNode')
+              return f(node);
+            node.addEventListener(k, f, true);
+            node.__niceListeners = node.__niceListeners || {};
+            node.__niceListeners[k] = node.__niceListeners[k] || [];
+            node.__niceListeners[k].push(f);
+          })
+        : console.log('TODO: Remove, ', k)
+      )
+    );
+    e._shownNodes.set(node, ss);
+  });
+  Func.Html('hide', (e, node) => {
+    const subscriptions = e._shownNodes && e._shownNodes.get(node);
+    e._shownNodes.delete(node);
+    subscriptions && subscriptions.forEach(f => f());
+    node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
+    killNode(node);
+  });
+  function removeNode(node, v){
+    node && node.parentNode.removeChild(node);
+    v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
+  }
+  function insertAt(parent, node, position){
+    parent.insertBefore(node, parent.childNodes[position]);
+    return node;
+  }
+  
+  
+  
+};
 })();
 (function(){"use strict";const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
@@ -3754,39 +3913,11 @@ Input.extend('Checkbox', (z, status) => {
   .about('Represents HTML <select> element.');
 })();
 (function(){"use strict";const paramsRe = /\:([A-Za-z0-9_]+)/g;
-nice.Type({
-  name: 'Router',
-  initBy: (z, div = nice.Div()) => {
-    z.staticRoutes = {};
-    if(window && window.addEventListener){
-      nice.Html.linkRouter = z;
-      z.origin = window.location.origin;
-      div.add(nice.RBox(z.currentUrl, url => {
-        const route = z.getRoute(url);
-        let content = route();
-        if(content.__proto__ === Object.prototype && content.content){
-          content.title && (window.document.title = content.title);
-          content = content.content;
-        }
-        if(Array.isArray(content))
-          content = nice.Div(...content);
-        return content;
-      })).show();
-      window.addEventListener('popstate', function(e) {
-        z.currentUrl(e.target.location.pathname);
-        return false;
-      });
-    }
-  },
-  customCall: (z, ...as) => {
-    return as.length === 0 ? z._value : z.setState(as[0]);
-  }
-})
+nice.Type('Router')
+  .object('staticRoutes')
   .arr('queryRoutes')
-  .box('currentUrl')
   .Method(addRoute)
-  .Method(go)
-  .Method(function getRoute(z, path){
+  .Method(function resolve(z, path){
     path[0] === '/' || (path = '/' + path);
     let url = path;
     const query = {};
@@ -3800,7 +3931,7 @@ nice.Type({
     }
     const rurl = '/' + nice.trimRight(url, '/');
     let route = z.staticRoutes[url];
-    route || z.queryRoutes().some(f => route = f(url, query));
+    route || z.queryRoutes.some(f => route = f(url, query));
     return route || (() => `Page "${url}" not found`);
   });
 function addRoute(router, pattern, f){
@@ -3830,6 +3961,44 @@ function addRoute(router, pattern, f){
   router.queryRoutes.insertAt(i, res);
   return router;
 }
+Test((Router, Spy) => {
+  const r = Router();
+  const f = () => 1;
+  r.addRoute('/', f);
+  expect(r.resolve('/')).is(f);
+  let res;
+  const f2 = o => res = o.id;
+  r.addRoute('/page/:id', f2);
+  r.resolve('/page/123')();
+  expect(res).is('123');
+});
+nice.Type({
+  name: 'WindowRouter',
+  extends: 'Router',
+  initBy: (z, div = nice.Div()) => {
+    if(window && window.addEventListener){
+      nice.Html.linkRouter = z;
+      z.origin = window.location.origin;
+      div.add(nice.RBox(z.currentUrl, url => {
+        const route = z.resolve(url);
+        let content = route();
+        if(content.__proto__ === Object.prototype && content.content){
+          content.title && (window.document.title = content.title);
+          content = content.content;
+        }
+        if(Array.isArray(content))
+          content = nice.Div(...content);
+        return content;
+      })).show();
+      window.addEventListener('popstate', function(e) {
+        z.currentUrl(e.target.location.pathname);
+        return false;
+      });
+    }
+  },
+})
+  .box('currentUrl')
+  .Method(go);
 function go(z, originalUrl){
   let url = originalUrl.pathname || originalUrl;
   const location = window.location;
@@ -3867,6 +4036,14 @@ Test("primitive type check", (Type) => {
   expect(cat.name).is('2');
   cat.name = ['Cat #%d', 2];
   expect(cat.name).is('Cat #2');
+});
+Test("js object property", (Type) => {
+  Type('Cat41').object('friends');
+  const cat = nice.Cat41();
+  expect(cat.friends).deepEqual({});
+  cat.friends['Ball'] = 1;
+  expect(cat.friends.Ball).is(1);
+  expect(() => cat.friends = 2).throws();
 });
 Test("js array property", (Type) => {
   Type('Cat4').array('friends');
