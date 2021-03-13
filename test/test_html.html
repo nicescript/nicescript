@@ -131,6 +131,13 @@ Test('Textarea', (Html, Textarea) => {
 });
 
 
+Test('Submit', (Html, Submit) => {
+  const x = Submit('Go');
+  const dom = x.dom;
+  expect(dom.outerHTML).is('<input type="submit" value="Go">');
+});
+
+
 Test('Update event handlers', (Div, Spy, Html) => {
   const f1 = Spy();
   const f2 = Spy();
