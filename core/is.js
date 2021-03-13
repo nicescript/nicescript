@@ -18,7 +18,18 @@ const basicChecks = {
     return a === b;
   },
   isExactly: (a, b) => a === b,
-  deepEqual: (a, b) => nice.diff(a, b) === false,
+  deepEqual: (a, b) => {
+    if(a === b)
+      return true;
+
+    if(a && a._isAnything && '_value' in a)
+      a = a._value;
+
+    if(b && b._isAnything  && '_value' in b)
+      b = b._value;
+
+    return nice.diff(a, b) === false;
+  },
   isTrue: v => v === true,
   isFalse: v => v === false,
   isAnyOf: (v, ...vs) => vs.includes(v),
