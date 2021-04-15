@@ -38,6 +38,7 @@ const order = [
   'types/bool',
 //  'core/interface',
   'types/range',
+//  'types/data_tree',
   'html/html',
   'html/tags',
   'html/inputs',

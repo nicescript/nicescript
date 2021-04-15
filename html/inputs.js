@@ -72,9 +72,29 @@ Test(Textarea => {
 });
 
 
-Input.extend('Submit', (z, text, action) => {
-    z.super('submit').attributes({ value: text });
+Html.extend('Submit', (z, text, action) => {
+    z.tag = 'input';
+    z.attributes.set('type', 'submit');
+    z.attributes.set('value',  text || 'Submit');
     action && z.on('click', action);
+  })
+  .about('Represents HTML <input type="submit"> element.');
+
+
+Html.extend('Form', (z, handler) => {
+    z.tag = 'form';
+    handler && z.on('submit', e => {
+      const input = {}, form = e.currentTarget;
+      e.preventDefault();
+
+      for(let field of form.elements) {
+        field.name && (input[field.name] = field.value);
+      }
+
+//      try C
+        handler(input);
+//      } catch ()
+    });
   })
   .about('Represents HTML <input type="submit"> element.');
 
@@ -100,6 +120,7 @@ Input.extend('Checkbox', (z, status) => {
       z.on('domNode', n => node = n);
     }
 
+    //TODO: BUG: nice.Checkbox().html fails
     value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');

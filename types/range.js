@@ -85,13 +85,13 @@ Test((Range, within, Num) => {
 
 Test((Range, map) => {
   const r = Range(2, 4);
-  expect(r.map(x => x * 2).jsValue).deepEqual([4, 6, 8]);
+  expect(r.map(x => x * 2)).deepEqual([4, 6, 8]);
 });
 
 
 Test((Range, filter) => {
   const r = Range(2, 7);
-  expect(r.filter(x => x % 2).jsValue).deepEqual([3, 5, 7]);
+  expect(r.filter(x => x % 2)).deepEqual([3, 5, 7]);
 });
 
 
