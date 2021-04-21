@@ -33,7 +33,7 @@ nice.Type({
       this.on('value', f);
     },
     unsubscribe (f) {
-      this.onff('value', f);
+      this.off('value', f);
     },
     setState (v){
       this._value = v;
