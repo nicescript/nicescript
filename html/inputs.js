@@ -1,3 +1,8 @@
+//TODO: change ".value()" logic:
+//1. .value() - get actual (dom element) value
+//2. .value(v) - set value (set dom value ??)
+//3. .boxValue - current ".attachValue" box
+
 const Html = nice.Html;
 
 function defaultSetValue(t, v){

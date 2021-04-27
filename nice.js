@@ -1921,7 +1921,7 @@ Test('Box action', (Box, Spy) => {
       this.on('value', f);
     },
     unsubscribe (f) {
-      this.onff('value', f);
+      this.off('value', f);
     },
     setState (v){
       this._value = v;
@@ -2572,7 +2572,7 @@ C.Function(function some(c, f){
   c.each((v,k) => {
     if(f(v, k)){
       res = true;
-      return nice.Stop;
+      return nice.Stop();
     }
   });
   return res;
@@ -3307,75 +3307,6 @@ Test((Range, toArray) => {
   expect(r.toArray()).deepEqual([2, 3, 4, 5, 6, 7]);
 });
 })();
-(function(){"use strict";nice.Type({
-  name: 'DataTree',
-  extends: 'Something',
-  initBy: (z) => {
-    z.values = {};
-    z.meta = {};
-  },
-  proto: {
-    set ( path, value ) {
-      
-      let meta = this.meta;
-      let values = this.values;
-      const length = path.length - 1;
-      for(let i = 0; i < length; i++) {
-        const key = path[i];
-        if(!(key in values))
-          values[key] = {};
-        values = values[key];
-      }
-      values[path[length]] = value;
-    },
-    get ( path ) {
-      let result = this.values;
-      for(let key of path) {
-        result = result[key];
-      }
-      return result;
-    },
-    setRestriction ( path, restriction ) {
-      
-    },
-    subscribe ( path, listener ) {
-    }
-  }
-});
-Test(DataTree => {
-  const tree = DataTree();
-  tree.set(['qwe', 'asd'], 1);
-  expect(tree.get(['qwe', 'asd'])).is(1);
-});
-Test((DataTree, Spy) => {
-  const db = DataTree();
-  const userInfo = { name: 'Jim', access: ["room1", "room3"] };
-  db.set( 'users', {} );
-  db.set( 'users', 'id1', userInfo );
-  Test('listenKey', () => {
-    const keySpy = Spy();
-    db.listenKey("users", keySpy);
-    expect(keySpy).calledWith("id1", userInfo);
-  });
-  Test('listenValue', () => {
-    const valueSpy = Spy();
-    db.listenValue("users", valueSpy);
-    expect(valueSpy).calledWith(userInfo, "id1");
-  });
-  Test('listenAll', () => {
-    const allSpy = Spy();
-    db.listenAll("users", "*", allSpy);
-    expect(allSpy).calledWith(userInfo);
-  });
-  Test('listenEach', () => {
-    const eachSpy = Spy();
-    db.listenEach("users", "*", "access", eachSpy);
-    expect(eachSpy).calledTwice();
-    expect(eachSpy).calledWith("id1", "room1");
-    expect(eachSpy).calledWith("id1", "room3");
-  });
-});
-})();
 (function(){"use strict";
 nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .about('Represents HTML element.')
@@ -3545,7 +3476,7 @@ reflect.on('extension', ({child, parent}) => {
       return this;
     });
   });
-'checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contentEditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
+'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contentEditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
   .split(',').forEach( property => {
     const f = function(...a){
       if(a.length){

@@ -371,7 +371,7 @@ C.Function(function some(c, f){
   c.each((v,k) => {
     if(f(v, k)){
       res = true;
-      return nice.Stop;
+      return nice.Stop();
     }
   });
   return res;
