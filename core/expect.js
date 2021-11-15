@@ -3,7 +3,7 @@ def(nice, 'expectPrototype', {});
 const toString = v => {
   if(v === undefined) return "undefined";
 
-  const s = v.toString ? v.toString() : JSON.stringify(v);
+  const s = (v && v.toString) ? v.toString() : JSON.stringify(v);
 
   return typeof s === 'string' ? s : '' + s;
 }

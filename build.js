@@ -25,6 +25,7 @@ const order = [
   'core/simple_types',
   'core/box',
   'core/box_set',
+  'core/box_array',
   'core/r_box',
   'core/stream',
   'core/logic',
