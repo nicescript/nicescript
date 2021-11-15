@@ -1,6 +1,3 @@
-//TODO: consumable Range: sequence or consumer(Range/iterable)??
-//TODO: lookup js/other iterable -> move map/filter to iterable
-
 nice.Type('Range')
   .about('Represent range of numbers.')
   .by((z, start, end, step = 1) => {
