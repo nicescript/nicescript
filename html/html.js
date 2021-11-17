@@ -105,10 +105,9 @@ Test('Simple html element with string child', Html => {
 
 Test("insert Html", (Html) => {
   const div = Html('li');
-  const div2 = Html('b');
+  const div2 = Html('b').add('qwe');
   div.add(div2);
-  //TODO:
-//  expect(div.html).is('<li><b>qwe</b></li>');
+  expect(div.html).is('<li><b>qwe</b></li>');
 });
 
 Test("Html tag name", (Html) => {
@@ -127,21 +126,9 @@ Test("Html children array", (Div) => {
   expect(Div(['qwe', 'asd']).html).is('<div>qweasd</div>');
 });
 
-//TODO:0
 Test("Html children Arr", (Div, Arr) => {
   expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
 });
-
-Test("item child", function(Num, Html) {
-  const n = Num(5);
-  const n2 = Num(7);
-  const div = Html().add(n, n2);
-  expect(div.html).is('<div>57</div>');
-  n2(8);
-  //TODO:
-//  expect(div.html).is('<ol>58</ol>');
-});
-
 
 nice.Type('Style')
   .about('Represents CSS style.');

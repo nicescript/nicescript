@@ -3339,8 +3339,7 @@ A('turnOff', z => z(false));
 A('toggle', z => z(!z()));
 nice.Single.extensible = false;
 })();
-(function(){"use strict";
-nice.Type('Range')
+(function(){"use strict";nice.Type('Range')
   .about('Represent range of numbers.')
   .by((z, start, end, step = 1) => {
     expect(start).isNumber();
@@ -3511,9 +3510,9 @@ Test('Simple html element with string child', Html => {
 });
 Test("insert Html", (Html) => {
   const div = Html('li');
-  const div2 = Html('b');
+  const div2 = Html('b').add('qwe');
   div.add(div2);
-  
+  expect(div.html).is('<li><b>qwe</b></li>');
 });
 Test("Html tag name", (Html) => {
   expect(Html('li').html).is('<li></li>');
@@ -3529,14 +3528,6 @@ Test("Html children array", (Div) => {
 });
 Test("Html children Arr", (Div, Arr) => {
   expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
-});
-Test("item child", function(Num, Html) {
-  const n = Num(5);
-  const n2 = Num(7);
-  const div = Html().add(n, n2);
-  expect(div.html).is('<div>57</div>');
-  n2(8);
-  
 });
 nice.Type('Style')
   .about('Represents CSS style.');
