@@ -129,15 +129,16 @@ Test((Box, push, Spy) => {
 });
 
 
-
-nice.reflect.on('Action', f => {
-  const name = f.name;
-  name && (!(name in nice.Box.proto)) && (
+nice.reflect.on('signature', ({type, name, signature}) => {
+  if(type !== 'Action')
+    return;
+  const first = signature[0];
+  if(name && (!first || first.type !== nice.Box) && (!(name in nice.Box.proto))){
     nice.Box.proto[name] = function(...as){
       this(nice[name](this._value, ...as));
       return this;
     }
-  );
+  };
 });
 
 nice.eventEmitter(nice.Box.proto);

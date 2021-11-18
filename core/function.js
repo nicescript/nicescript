@@ -113,7 +113,7 @@ function configurator(...a){
 function createFunction({ name, body, signature, type, description, returns }){//existing,
   if(!/^[a-z].*/.test(name[0]))
    throw new Error(`Function name should start with lowercase letter. "${name}" is not`);
- 
+
   const reflect = nice.reflect;
 
   let cfg = (name && reflect.functions[name]);

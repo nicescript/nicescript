@@ -121,10 +121,7 @@ nice.Type({
         };
         this._inputListeners.set(source, f);
 
-        if(source._isRBox)
-          return source.subscribe(f);
-
-        return source.on('state', f);
+        return source.subscribe(f);
       }
     },
 

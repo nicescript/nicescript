@@ -1087,7 +1087,6 @@ function configurator(...a){
 function createFunction({ name, body, signature, type, description, returns }){
   if(!/^[a-z].*/.test(name[0]))
    throw new Error(`Function name should start with lowercase letter. "${name}" is not`);
- 
   const reflect = nice.reflect;
   let cfg = (name && reflect.functions[name]);
   const existing = cfg;
@@ -1865,14 +1864,16 @@ Test((Box, push, Spy) => {
   expect(b()).deepEqual([1,2]);
   expect(a).deepEqual([1]);
 });
-nice.reflect.on('Action', f => {
-  const name = f.name;
-  name && (!(name in nice.Box.proto)) && (
+nice.reflect.on('signature', ({type, name, signature}) => {
+  if(type !== 'Action')
+    return;
+  const first = signature[0];
+  if(name && (!first || first.type !== nice.Box) && (!(name in nice.Box.proto))){
     nice.Box.proto[name] = function(...as){
       this(nice[name](this._value, ...as));
       return this;
     }
-  );
+  };
 });
 nice.eventEmitter(nice.Box.proto);
 Test((Box, Spy) => {
@@ -2159,9 +2160,7 @@ nice.Type({
           this.attemptCompute();
         };
         this._inputListeners.set(source, f);
-        if(source._isRBox)
-          return source.subscribe(f);
-        return source.on('state', f);
+        return source.subscribe(f);
       }
     },
     detachSource(source){
@@ -2233,6 +2232,39 @@ Test('RBox reconfigure', (Box, RBox, Spy) => {
   expect(spy).calledWith(10);
   expect(b.countListeners('state')).is(0);
 });
+})();
+(function(){"use strict";nice.Type({
+  name: 'IntervalBox',
+  extends: 'Box',
+  initBy: (z, ms, f) => {
+    if(typeof ms !== 'number')
+      throw `1st argument must be number`;
+    if(typeof f !== 'function')
+      throw `2nd argument must be functions`;
+    z._ms = ms;
+    z._f = f;
+    z._interval = null;
+  },
+  proto: {
+    subscribe(f){
+      if(this._interval === null){
+        this._interval = setInterval(() => this(this._f(this())), this._ms);
+      }
+      this.on('state', f);
+    },
+    unsubscribe(f){
+      this.off('state', f);
+      if(!this.countListeners('state')){
+        if(this._interval !== null){
+          clearInterval(this._interval);
+          this._interval = null;
+        }
+        this.emit('noMoreSubscribers', this);
+      }
+    },
+  }
+});
+Action.Box('changeAfter', (z, ms, f) => setTimeout(() => z(f(z())), ms));
 })();
 (function(){"use strict";let autoId = 0;
 const AUTO_PREFIX = '_nn_';
@@ -3663,29 +3695,48 @@ const childrenCounter = (o, v) => {
   v && (o[v] ? o[v]++ : (o[v] = 1));
   return o;
 };
+function nodeListener(newState){
+  this.dom = nice.refreshElement(newState, this.state, this.dom);
+  this.state = newState;
+}
 function attachNode(child, parent, position){
   if(child && child._isBox){
     
     let state = '-';
     let dom = toDom(state);
     insertAt(parent, dom, position);
-    dom.niceListener = s => {
-      dom = nice.refreshElement(s, state, dom);
-      state = s;
+    const f = function(newState){
+      f.dom = nice.refreshElement(newState, f.state, f.dom);
+      f.state = newState;
     };
+    f.dom = dom;
+    f.source = child;
+    f.state = state;
+    dom.niceListener = f;
     child.subscribe(dom.niceListener);
   } else {
     insertAt(parent, toDom(child), position);
   }
 }
-function detachNode(child, dom, parent){
-  if(child && child._isBox){
-    const f = dom.niceListener;
-    f && child.unsubscribe(f);
+function detachNode(dom, parentDom){
+  const f = dom.niceListener;
+  f !== undefined && f.source.unsubscribe(f);
+  const children = dom.childNodes;
+  if(children !== undefined) {
+    for (let child of children) {
+      detachNode(child);
+    }
   }
-  if(!parent)
-    parent = dom.parentNode;
-  parent && parent.removeChild(dom);
+  parentDom !== undefined && parentDom.removeChild(dom);
+}
+function replaceNode(newNode, oldNode){
+  const children = oldNode.childNodes;
+  if(children !== undefined) {
+    for (let child of children) {
+      detachNode(child);
+    }
+  }
+  oldNode.parentNode.replaceChild(newNode, oldNode);
 }
 const extractKey = v => {
   let res;
@@ -3703,13 +3754,17 @@ const extractKey = v => {
 };
 defAll(nice, {
   refreshElement(e, old, domNode){
-    const eTag = e && e._isHtml && e.tag,
-          oldTag = old && old._isHtml && old.tag;
+    const eTag = (e !== undefined) && e._isHtml && e.tag,
+          oldTag = (old !== undefined) && old._isHtml && old.tag;
     let newDom = domNode;
     if (eTag !== oldTag){
       newDom = toDom(e);
-      if('niceListener' in domNode)
-        newDom.niceListener = domNode.niceListener;
+      const children = domNode.childNodes;
+      if(children !== undefined) {
+        for (let child of children) {
+          detachNode(child);
+        }
+      }
       domNode.parentNode.replaceChild(newDom, domNode);
     } else if(!eTag) {
       domNode.nodeValue = e;
@@ -3749,18 +3804,18 @@ defAll(nice, {
         attachNode(aChildren[ai], domNode, ai);
         ai++;
       } else if(!aCount[bChild]) {
-        detachNode(bChildren[ai], domNode.childNodes[ai], domNode);
+        detachNode(domNode.childNodes[ai], domNode);
         bi++;
       } else {
         
         const old = domNode.childNodes[bi];
         attachNode(aChildren[ai], domNode, bi);
-        old && detachNode(bChildren[bi], old, domNode);
+        old && detachNode(old, domNode);
         ai++, bi++;
       }
     };
     while(bi < bKeys.length){
-      detachNode(bChildren[bi], domNode.childNodes[ai], domNode);
+      detachNode(domNode.childNodes[ai], domNode);
       bi++;
     }
   },

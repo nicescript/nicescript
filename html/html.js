@@ -314,10 +314,16 @@ function attachNode(child, parent, position){
     let state = '-';
     let dom = toDom(state);
     insertAt(parent, dom, position);
-    dom.niceListener = s => {
-      dom = nice.refreshElement(s, state, dom);
-      state = s;
+
+    const f = function(newState){
+      f.dom = nice.refreshElement(newState, f.state, f.dom);
+      f.state = newState;
     };
+    f.dom = dom;
+    f.source = child;
+    f.state = state;
+
+    dom.niceListener = f;
     child.subscribe(dom.niceListener);
   } else {
     insertAt(parent, toDom(child), position);
@@ -325,16 +331,29 @@ function attachNode(child, parent, position){
 }
 
 
-function detachNode(child, dom, parent){
-  if(child && child._isBox){
-    const f = dom.niceListener;
-    f && child.unsubscribe(f);
+function detachNode(dom, parentDom){
+  const f = dom.niceListener;
+  f !== undefined && f.source.unsubscribe(f);
+
+  const children = dom.childNodes;
+  if(children !== undefined) {
+    for (let child of children) {
+      detachNode(child);
+    }
   }
 
-  if(!parent)
-    parent = dom.parentNode;
+  parentDom !== undefined && parentDom.removeChild(dom);
+}
 
-  parent && parent.removeChild(dom);
+
+function replaceNode(newNode, oldNode){
+  const children = oldNode.childNodes;
+  if(children !== undefined) {
+    for (let child of children) {
+      detachNode(child);
+    }
+  }
+  oldNode.parentNode.replaceChild(newNode, oldNode);
 }
 
 
@@ -361,14 +380,19 @@ const extractKey = v => {
 //TODO: when remove node unsubscribe all children
 defAll(nice, {
   refreshElement(e, old, domNode){
-    const eTag = e && e._isHtml && e.tag,
-          oldTag = old && old._isHtml && old.tag;
+    const eTag = (e !== undefined) && e._isHtml && e.tag,
+          oldTag = (old !== undefined) && old._isHtml && old.tag;
     let newDom = domNode;
 
     if (eTag !== oldTag){
       newDom = toDom(e);
-      if('niceListener' in domNode)
-        newDom.niceListener = domNode.niceListener;
+//      replaceNode(new, old);
+      const children = domNode.childNodes;
+      if(children !== undefined) {
+        for (let child of children) {
+          detachNode(child);
+        }
+      }
       domNode.parentNode.replaceChild(newDom, domNode);
     } else if(!eTag) {
       domNode.nodeValue = e;
@@ -413,20 +437,20 @@ defAll(nice, {
         attachNode(aChildren[ai], domNode, ai);
         ai++;
       } else if(!aCount[bChild]) {//assume delete
-        detachNode(bChildren[ai], domNode.childNodes[ai], domNode);
+        detachNode(domNode.childNodes[ai], domNode);
         bi++;
       } else {//assume ugly reorder - brute force
-        //TODO:0 attach|dettach node
+        //TODO:0 attach|detach node
 //        console.log('ugly');
         const old = domNode.childNodes[bi];
         attachNode(aChildren[ai], domNode, bi);
-        old && detachNode(bChildren[bi], old, domNode);
+        old && detachNode(old, domNode);
 
         ai++, bi++;
       }
     };
     while(bi < bKeys.length){
-      detachNode(bChildren[bi], domNode.childNodes[ai], domNode);
+      detachNode(domNode.childNodes[ai], domNode);
       bi++;
     }
   },
