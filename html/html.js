@@ -267,7 +267,7 @@ function toDom(e) {
   if(e === undefined)
     return document.createTextNode('');
   if(e && e._isBox)
-    return document.createTextNode(e() || '-');
+    throw `toDom(e) shoud never recieve Box`;
   return e._isAnything
     ? e.dom
     : document.createTextNode(e);
@@ -306,6 +306,45 @@ const childrenCounter = (o, v) => {
 };
 
 
+function cancelNestedSubscription(subscription){
+  const nested = subscription.nestedSubscription;
+  nested.source.unsubscribe(nested);
+  delete subscription.nestedSubscription;
+  delete nested.parentSubscription;
+  nested.nestedSubscription !== undefined && cancelNestedSubscription(nested);
+}
+
+
+function createSubscription(box, state, dom){
+  const f = function(newState){
+    if(f.nestedSubscription !== undefined){
+      cancelNestedSubscription(f);
+    }
+
+    if(newState !== undefined && newState._isBox === true){
+      f.nestedSubscription = createSubscription(newState, f.state, f.dom);
+      f.nestedSubscription.parentSubscription = f;
+      newState.subscribe(f.nestedSubscription);
+    } else {
+      const newDom = nice.refreshElement(newState, f.state, f.dom);
+      if(newDom !== f.dom){
+        f.dom = newDom;
+        let parent = f;
+        while (parent = parent.parentSubscription) {
+          parent.dom = newDom;
+        };
+      }
+    }
+    f.state = newState;
+  };
+  dom.boxListener = f;
+  f.dom = dom;
+  f.source = box;
+  f.state = state;
+  return f;
+}
+
+
 function attachNode(child, parent, position){
 
   if(child && child._isBox){
@@ -314,17 +353,7 @@ function attachNode(child, parent, position){
     let state = '-';
     let dom = toDom(state);
     insertAt(parent, dom, position);
-
-    const f = function(newState){
-      f.dom = nice.refreshElement(newState, f.state, f.dom);
-      f.state = newState;
-    };
-    f.dom = dom;
-    f.source = child;
-    f.state = state;
-
-    dom.niceListener = f;
-    child.subscribe(dom.niceListener);
+    child.subscribe(createSubscription(child, state, dom));
   } else {
     insertAt(parent, toDom(child), position);
   }
@@ -332,7 +361,7 @@ function attachNode(child, parent, position){
 
 
 function detachNode(dom, parentDom){
-  const f = dom.niceListener;
+  const f = dom.boxListener;
   f !== undefined && f.source.unsubscribe(f);
 
   const children = dom.childNodes;
@@ -343,17 +372,6 @@ function detachNode(dom, parentDom){
   }
 
   parentDom !== undefined && parentDom.removeChild(dom);
-}
-
-
-function replaceNode(newNode, oldNode){
-  const children = oldNode.childNodes;
-  if(children !== undefined) {
-    for (let child of children) {
-      detachNode(child);
-    }
-  }
-  oldNode.parentNode.replaceChild(newNode, oldNode);
 }
 
 
@@ -377,7 +395,6 @@ const extractKey = v => {
 };
 
 
-//TODO: when remove node unsubscribe all children
 defAll(nice, {
   refreshElement(e, old, domNode){
     const eTag = (e !== undefined) && e._isHtml && e.tag,

@@ -2249,7 +2249,9 @@ Test('RBox reconfigure', (Box, RBox, Spy) => {
     subscribe(f){
       if(this._interval === null){
         this._interval = setInterval(() => this(this._f(this())), this._ms);
+        this._value === undefined && this.setState(this._f());
       }
+      this._value !== undefined && f(this._value);
       this.on('state', f);
     },
     unsubscribe(f){
@@ -2265,6 +2267,23 @@ Test('RBox reconfigure', (Box, RBox, Spy) => {
   }
 });
 Action.Box('changeAfter', (z, ms, f) => setTimeout(() => z(f(z())), ms));
+Test((IntervalBox, RBox, Spy) => {
+  const n = IntervalBox(450, (old = 0) => old + 1);
+  const x2 = RBox(n, n => n * 2);
+  const spy = Spy();
+  Test(() => {
+    expect(n._value).is(undefined);
+    expect(spy).calledTimes(0);
+    x2.subscribe(spy);
+    expect(n._value).is(1);
+    expect(spy).calledTimes(1);
+  });
+  Test(() => {
+    x2.unsubscribe(spy);
+    expect(n._interval).is(null);
+    expect(spy).calledTimes(1);
+  });
+});
 })();
 (function(){"use strict";let autoId = 0;
 const AUTO_PREFIX = '_nn_';
@@ -3672,7 +3691,7 @@ function toDom(e) {
   if(e === undefined)
     return document.createTextNode('');
   if(e && e._isBox)
-    return document.createTextNode(e() || '-');
+    throw `toDom(e) shoud never recieve Box`;
   return e._isAnything
     ? e.dom
     : document.createTextNode(e);
@@ -3695,9 +3714,39 @@ const childrenCounter = (o, v) => {
   v && (o[v] ? o[v]++ : (o[v] = 1));
   return o;
 };
-function nodeListener(newState){
-  this.dom = nice.refreshElement(newState, this.state, this.dom);
-  this.state = newState;
+function cancelNestedSubscription(subscription){
+  const nested = subscription.nestedSubscription;
+  nested.source.unsubscribe(nested);
+  delete subscription.nestedSubscription;
+  delete nested.parentSubscription;
+  nested.nestedSubscription !== undefined && cancelNestedSubscription(nested);
+}
+function createSubscription(box, state, dom){
+  const f = function(newState){
+    if(f.nestedSubscription !== undefined){
+      cancelNestedSubscription(f);
+    }
+    if(newState !== undefined && newState._isBox === true){
+      f.nestedSubscription = createSubscription(newState, f.state, f.dom);
+      f.nestedSubscription.parentSubscription = f;
+      newState.subscribe(f.nestedSubscription);
+    } else {
+      const newDom = nice.refreshElement(newState, f.state, f.dom);
+      if(newDom !== f.dom){
+        f.dom = newDom;
+        let parent = f;
+        while (parent = parent.parentSubscription) {
+          parent.dom = newDom;
+        };
+      }
+    }
+    f.state = newState;
+  };
+  dom.boxListener = f;
+  f.dom = dom;
+  f.source = box;
+  f.state = state;
+  return f;
 }
 function attachNode(child, parent, position){
   if(child && child._isBox){
@@ -3705,21 +3754,13 @@ function attachNode(child, parent, position){
     let state = '-';
     let dom = toDom(state);
     insertAt(parent, dom, position);
-    const f = function(newState){
-      f.dom = nice.refreshElement(newState, f.state, f.dom);
-      f.state = newState;
-    };
-    f.dom = dom;
-    f.source = child;
-    f.state = state;
-    dom.niceListener = f;
-    child.subscribe(dom.niceListener);
+    child.subscribe(createSubscription(child, state, dom));
   } else {
     insertAt(parent, toDom(child), position);
   }
 }
 function detachNode(dom, parentDom){
-  const f = dom.niceListener;
+  const f = dom.boxListener;
   f !== undefined && f.source.unsubscribe(f);
   const children = dom.childNodes;
   if(children !== undefined) {
@@ -3728,15 +3769,6 @@ function detachNode(dom, parentDom){
     }
   }
   parentDom !== undefined && parentDom.removeChild(dom);
-}
-function replaceNode(newNode, oldNode){
-  const children = oldNode.childNodes;
-  if(children !== undefined) {
-    for (let child of children) {
-      detachNode(child);
-    }
-  }
-  oldNode.parentNode.replaceChild(newNode, oldNode);
 }
 const extractKey = v => {
   let res;
