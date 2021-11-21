@@ -1,6 +1,6 @@
 /*
 
- Functions requiermants:
+ Functions requirements:
 
  - Store and use simple js function
 

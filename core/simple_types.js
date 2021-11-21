@@ -183,3 +183,39 @@ nice.Anything.configProto.array = function (name, defaultValue = []) {
   });
   return this;
 };
+
+
+Func('partial', (f, template, ...cfgAs) => {
+  const a = template.split('');
+  const l = cfgAs.length;
+  const useThis = template[0] === 'z';
+  useThis && a.shift();
+
+  return function(...callAs){
+    let cur = 0;
+    const as = a.map(n => {
+      return n === '$' ? cfgAs[cur++]: callAs[n-1];
+    });
+    cur < l && as.push(...cfgAs.slice(cur));
+    return useThis ? f.apply(as.shift(), as) : f.apply(this || null, as);
+  };
+});
+
+
+Test('Arguments order', (partial) => {
+  const f = partial((...as) => as.join(''), '21');
+  expect(f('a', 'b')).is('ba');
+});
+
+
+Test('Partial arguments', (partial) => {
+  const f = partial((...as) => as.join(''), '2$1', 'c', 'd');
+  expect(f('a', 'b')).is('bcad');
+});
+
+
+Test('Partial `this` argument', (partial) => {
+  const f = partial(String.prototype.concat, 'z2$1', 'c', 'd');
+  expect(f('a', 'b')).is('bcad');
+});
+
