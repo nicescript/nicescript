@@ -6,6 +6,9 @@ nice.Single.extend({
 
   defaultValueBy: () => '',
 
+  initBy: (z, ...as) => {
+    z._type.setValue(z, as.length > 1 ? nice.format(...as) : as[0] || '');
+  },
 
   itemArgs1: (z, v) => {
     z._type.setValue(z, nice.simpleTypes.string.cast(v));
