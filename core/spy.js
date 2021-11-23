@@ -5,12 +5,32 @@ nice.Type({
   extends: 'Anything',
   defaultValueBy: () => [],
   customCall: call,
+  initBy: (z, f) => {
+    typeof f === 'function' ? (z._f = f) : (z._returnValue = f);
+  },
+
 });
 
 function call(spy, ...a){
   spy._logCalls && console.log('Spy called with:', ...a);
   spy._value.push(a);
+  if(spy._f)
+    return spy._f(...a);
+  return spy._returnValue;
 };
+
+Test((Spy) => {
+
+  Test('Use function', () => {
+    expect(Spy(() => 2)()).is(2);
+  });
+
+  Test('Return value', () => {
+    expect(Spy(2)()).is(2);
+  });
+});
+
+
 
 Action.Spy('logCalls', z => z._logCalls = true);
 
