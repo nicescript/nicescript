@@ -1,5 +1,3 @@
-const { _1, _2, _3, _$ } = nice;
-
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
   ('is' + t, v => v.functionType === t));
@@ -261,10 +259,8 @@ defGet(delayedProto, 'default', function () {
 
 
 const S = Switch = nice.Switch = (...args) => {
-  for(let a of args){
-    if(a === _1 || a === _2 || a === _3 || a === _$)
-      return DelayedSwitch(args);
-  }
+  if(args.length === 0)
+    return DelayedSwitch();
 
   const f = () => f.done ? f.res : args[0];
   f.args = args;
@@ -311,12 +307,10 @@ reflect.on('Check', ({name}) => name && !_$proto[name]
 );
 
 
-function DelayedSwitch(initArgs) {
-  const f = (...a) => {
+function DelayedSwitch() {
+  const f = (...args) => {
     const l = f.cases.length;
     let action = f._default;
-
-    const args = nice._skipArgs(initArgs, a);
 
     for(let i = 0 ;  i < l; i += 2){
       if(f.cases[i](...args)){
@@ -331,6 +325,86 @@ function DelayedSwitch(initArgs) {
 
   return create(delayedProto, f);
 };
+
+
+Test('Delayed Switch', (Switch, Spy) => {
+  const spy1 = Spy(() => 1);
+  const spy2 = Spy(() => 2);
+  const spy3 = Spy(() => 3);
+
+  const s = Switch()
+    .is(3)(10)
+    .isNumber().use(spy1)
+    .isString().use(spy2)
+    .default.use(spy3);
+
+  Test('', () => {
+    expect(s(42)).is(1);
+  });
+  Test('', () => {
+    expect(s('qwe')).is(2);
+  });
+  Test('', () => {
+    expect(s(3)).is(10);
+  });
+  Test('', () => {
+    expect(s([])).is(3);
+  });
+
+  expect(spy1).calledOnce();
+  expect(spy2).calledOnce();
+  expect(spy3).calledOnce();
+});
+
+
+Test("not", (Switch) => {
+  const s = Switch(5)
+    .isString()(1)
+    .not.isString()(2)
+    .default(3);
+
+  expect(s).is(2);
+});
+
+
+Test((Switch, Spy) => {
+  const spy1 = Spy();
+  const spy2 = Spy();
+  const spy3 = Spy();
+
+  const s = Switch('qwe')
+    .isNumber().use(spy1)
+    .isString().use((...a) => {
+      spy2(...a);
+      return 13;
+    })
+    .is(3)(4)
+    .default.use(spy3);
+
+  expect(s).is(13);
+  expect(spy1).not.called();
+  expect(spy2).calledTimes(1);
+  expect(spy2).calledWith('qwe');
+  expect(spy3).not.called();
+});
+
+
+Test("switch equal", (Switch, Spy) => {
+  const spy1 = Spy();
+  const spy3 = Spy();
+
+  const s = Switch('qwe')
+    .isNumber().use(spy1)
+    .is('qwe')(4)
+    .default.use(spy3);
+
+  expect(spy1).not.called();
+  expect(spy3).not.called();
+
+  expect(s).is(4);
+});
+
+
 
 Test((is) => {
   const n = nice.Num(1);
