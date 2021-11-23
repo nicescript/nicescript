@@ -43,16 +43,8 @@ defAll(nice, {
       config.isFunction = true;
     }
 
-    const {_1,_2,_3,_$} = nice;
-    const type = (...a) => {
-      for(let v of a){
-        if(v === _1 || v === _2 || v === _3 || v === _$)
-          return nice.skip(type, a);
-      }
-      return nice._createItem(type, a);
-    };
+    const type = (...a) => nice._createItem(type, a);
 
-//    config.proto._type = type;
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
     nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);

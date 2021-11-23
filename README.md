@@ -1,6 +1,5 @@
 NiceScript
 =========
-[![Build Status](https://travis-ci.org/nicescript/nicescript.svg?branch=master)](https://travis-ci.org/nicescript/nicescript)
 
 A naive attempt to simplify life of a fellow JavaScript programmer. 
 [NiceScript.org](http://nicescript.org) 

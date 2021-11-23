@@ -197,7 +197,7 @@ Func('partial', (f, template, ...cfgAs) => {
       return n === '$' ? cfgAs[cur++]: callAs[n-1];
     });
     cur < l && as.push(...cfgAs.slice(cur));
-    return useThis ? f.apply(as.shift(), as) : f.apply(this || null, as);
+    return useThis ? f.apply(as.shift(), as) : f(...as);
   };
 });
 
@@ -217,5 +217,12 @@ Test('Partial arguments', (partial) => {
 Test('Partial `this` argument', (partial) => {
   const f = partial(String.prototype.concat, 'z2$1', 'c', 'd');
   expect(f('a', 'b')).is('bcad');
+});
+
+
+Test('Partial type constructor', (partial) => {
+  const f = nice.Str.partial('$1', 'Hello');
+//  const f = partial(String.prototype.concat, 'z2$1', 'c', 'd');
+  expect(f('world')).is('Hello world');
 });
 

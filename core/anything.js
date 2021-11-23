@@ -31,6 +31,10 @@ nice.registerType({
 
   _isNiceType: true,
 
+  partial (...as) {
+    return nice.partial(this, ...as);
+  },
+
   proto: {
     _isAnything: true,
 

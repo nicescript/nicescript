@@ -163,21 +163,6 @@ defGet($proto, 'not', function (){
   return create($proto, {parent: this, pos: n - 1});
 }));
 
-const _$proto = create(common, {
-  check (f) {
-    return this.parent.check((...v) => f(v));
-  },
-  pushCheck (f) {
-    this.parent.pushCheck(f);
-    return this;
-  }
-});
-
-
-defGet(common, '_$', function () {
-  return create(_$proto, {parent: this});
-});
-
 
 defGet(switchProto, 'default', function () {
   const z = this;
@@ -294,19 +279,6 @@ reflect.on('Check', ({name}) => name && !$proto[name]
 );
 
 
-reflect.on('Check', ({name}) => name && !_$proto[name]
-  && def(_$proto, name, function (...a) {
-    return this.parent.check((...v) => {
-      try {
-        return nice[name](v, ...a);
-      } catch (e) {
-        return false;
-      }
-    });
-  })
-);
-
-
 function DelayedSwitch() {
   const f = (...args) => {
     const l = f.cases.length;
@@ -338,22 +310,18 @@ Test('Delayed Switch', (Switch, Spy) => {
     .isString().use(spy2)
     .default.use(spy3);
 
-  Test('', () => {
+  Test('type check', () => {
+    expect(s('qwe')).is(2);
     expect(s(42)).is(1);
   });
-  Test('', () => {
-    expect(s('qwe')).is(2);
-  });
-  Test('', () => {
-    expect(s(3)).is(10);
-  });
-  Test('', () => {
-    expect(s([])).is(3);
-  });
+  Test('is', () => expect(s(3)).is(10));
+  Test('default', () => expect(s([])).is(3));
 
-  expect(spy1).calledOnce();
-  expect(spy2).calledOnce();
-  expect(spy3).calledOnce();
+  Test('No extra calls', () => {
+    expect(spy1).calledOnce();
+    expect(spy2).calledOnce();
+    expect(spy3).calledOnce();
+  });
 });
 
 
@@ -369,19 +337,16 @@ Test("not", (Switch) => {
 
 Test((Switch, Spy) => {
   const spy1 = Spy();
-  const spy2 = Spy();
+  const spy2 = Spy(() => 2);
   const spy3 = Spy();
 
   const s = Switch('qwe')
     .isNumber().use(spy1)
-    .isString().use((...a) => {
-      spy2(...a);
-      return 13;
-    })
+    .isString().use(spy2)
     .is(3)(4)
     .default.use(spy3);
 
-  expect(s).is(13);
+  expect(s).is(2);
   expect(spy1).not.called();
   expect(spy2).calledTimes(1);
   expect(spy2).calledWith('qwe');

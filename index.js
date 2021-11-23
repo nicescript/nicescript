@@ -1,4 +1,4 @@
-module.exports = function(){;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;
+module.exports = function(){;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice._createItem(Anything);
@@ -739,6 +739,9 @@ jsHierarchy['primitive'].split(',').forEach(name => {
     return this.name;
   },
   _isNiceType: true,
+  partial (...as) {
+    return nice.partial(this, ...as);
+  },
   proto: {
     _isAnything: true,
     to (type, ...as){
@@ -855,14 +858,7 @@ defAll(nice, {
         || config.itemArgs1 !== undefined || config.itemArgsN !== undefined){
       config.isFunction = true;
     }
-    const {_1,_2,_3,_$} = nice;
-    const type = (...a) => {
-      for(let v of a){
-        if(v === _1 || v === _2 || v === _3 || v === _$)
-          return nice.skip(type, a);
-      }
-      return nice._createItem(type, a);
-    };
+    const type = (...a) => nice._createItem(type, a);
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);
     nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);
@@ -1134,35 +1130,6 @@ function handleType(type){
     return this.next({returns: type});
   });
 };
-const skipedProto = {};
-[1,2,3].forEach(n => nice['_' + n] = a => a[n - 1]);
-_1 = nice._1;
-_2 = nice._2;
-_3 = nice._3;
-_$ = nice._$ = a => a;
-function _skipArgs(init, called) {
-  const {_1,_2,_3,_$} = nice;
-  const res = [];
-  init.forEach(v => v === _$
-    ? res.push(...called)
-    : res.push(( v===_1 || v === _2 || v === _3) ? v(called) : v));
-  return res;
-};
-def(nice, _skipArgs);
-function skip(f1, args1){
-  const f = create(skipedProto, function (...as) {
-    let res;
-    f.queue.forEach(({action, args}, k) => {
-      const a2 = _skipArgs(args, as);
-      res = k ? action(res, ...a2) : action(...a2);
-    });
-    return res;
-  });
-  f.queue = [];
-  f1 && f.queue.push({action: f1, args: args1});
-  return f;
-};
-def(nice, skip);
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('type', handleType);
 Func = def(nice, 'Func', configurator());
@@ -1239,8 +1206,7 @@ function runTest(t, args){
   }
 }
 })();
-(function(){"use strict";const { _1, _2, _3, _$ } = nice;
-['Check', 'Action', 'Mapping'].forEach(t => Check
+(function(){"use strict";['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
   ('is' + t, v => v.functionType === t));
 const basicChecks = {
@@ -1375,18 +1341,6 @@ defGet($proto, 'not', function (){
 [1,2,3,4].forEach(n => defGet(common, '_' + n, function () {
   return create($proto, {parent: this, pos: n - 1});
 }));
-const _$proto = create(common, {
-  check (f) {
-    return this.parent.check((...v) => f(v));
-  },
-  pushCheck (f) {
-    this.parent.pushCheck(f);
-    return this;
-  }
-});
-defGet(common, '_$', function () {
-  return create(_$proto, {parent: this});
-});
 defGet(switchProto, 'default', function () {
   const z = this;
   const res = v => z.done ? z.res : v;
@@ -1452,10 +1406,8 @@ defGet(delayedProto, 'default', function () {
   return res;
 });
 const S = Switch = nice.Switch = (...args) => {
-  for(let a of args){
-    if(a === _1 || a === _2 || a === _3 || a === _$)
-      return DelayedSwitch(args);
-  }
+  if(args.length === 0)
+    return DelayedSwitch();
   const f = () => f.done ? f.res : args[0];
   f.args = args;
   f.done = false;
@@ -1483,22 +1435,10 @@ reflect.on('Check', ({name}) => name && !$proto[name]
     });
   })
 );
-reflect.on('Check', ({name}) => name && !_$proto[name]
-  && def(_$proto, name, function (...a) {
-    return this.parent.check((...v) => {
-      try {
-        return nice[name](v, ...a);
-      } catch (e) {
-        return false;
-      }
-    });
-  })
-);
-function DelayedSwitch(initArgs) {
-  const f = (...a) => {
+function DelayedSwitch() {
+  const f = (...args) => {
     const l = f.cases.length;
     let action = f._default;
-    const args = nice._skipArgs(initArgs, a);
     for(let i = 0 ;  i < l; i += 2){
       if(f.cases[i](...args)){
         action = f.cases[i + 1];
@@ -1510,6 +1450,60 @@ function DelayedSwitch(initArgs) {
   f.cases = [];
   return create(delayedProto, f);
 };
+Test('Delayed Switch', (Switch, Spy) => {
+  const spy1 = Spy(() => 1);
+  const spy2 = Spy(() => 2);
+  const spy3 = Spy(() => 3);
+  const s = Switch()
+    .is(3)(10)
+    .isNumber().use(spy1)
+    .isString().use(spy2)
+    .default.use(spy3);
+  Test('type check', () => {
+    expect(s('qwe')).is(2);
+    expect(s(42)).is(1);
+  });
+  Test('is', () => expect(s(3)).is(10));
+  Test('default', () => expect(s([])).is(3));
+  Test('No extra calls', () => {
+    expect(spy1).calledOnce();
+    expect(spy2).calledOnce();
+    expect(spy3).calledOnce();
+  });
+});
+Test("not", (Switch) => {
+  const s = Switch(5)
+    .isString()(1)
+    .not.isString()(2)
+    .default(3);
+  expect(s).is(2);
+});
+Test((Switch, Spy) => {
+  const spy1 = Spy();
+  const spy2 = Spy(() => 2);
+  const spy3 = Spy();
+  const s = Switch('qwe')
+    .isNumber().use(spy1)
+    .isString().use(spy2)
+    .is(3)(4)
+    .default.use(spy3);
+  expect(s).is(2);
+  expect(spy1).not.called();
+  expect(spy2).calledTimes(1);
+  expect(spy2).calledWith('qwe');
+  expect(spy3).not.called();
+});
+Test("switch equal", (Switch, Spy) => {
+  const spy1 = Spy();
+  const spy3 = Spy();
+  const s = Switch('qwe')
+    .isNumber().use(spy1)
+    .is('qwe')(4)
+    .default.use(spy3);
+  expect(spy1).not.called();
+  expect(spy3).not.called();
+  expect(s).is(4);
+});
 Test((is) => {
   const n = nice.Num(1);
   expect(n.is(1)).is(true);
@@ -1564,11 +1558,25 @@ nice.Type({
   extends: 'Anything',
   defaultValueBy: () => [],
   customCall: call,
+  initBy: (z, f) => {
+    typeof f === 'function' ? (z._f = f) : (z._returnValue = f);
+  },
 });
 function call(spy, ...a){
   spy._logCalls && console.log('Spy called with:', ...a);
   spy._value.push(a);
+  if(spy._f)
+    return spy._f(...a);
+  return spy._returnValue;
 };
+Test((Spy) => {
+  Test('Use function', () => {
+    expect(Spy(() => 2)()).is(2);
+  });
+  Test('Return value', () => {
+    expect(Spy(2)()).is(2);
+  });
+});
 Action.Spy('logCalls', z => z._logCalls = true);
 Check.Spy('called', s => s._value.length > 0);
 Test((Spy, called) => {
@@ -1768,6 +1776,36 @@ nice.Anything.configProto.array = function (name, defaultValue = []) {
   });
   return this;
 };
+Func('partial', (f, template, ...cfgAs) => {
+  const a = template.split('');
+  const l = cfgAs.length;
+  const useThis = template[0] === 'z';
+  useThis && a.shift();
+  return function(...callAs){
+    let cur = 0;
+    const as = a.map(n => {
+      return n === '$' ? cfgAs[cur++]: callAs[n-1];
+    });
+    cur < l && as.push(...cfgAs.slice(cur));
+    return useThis ? f.apply(as.shift(), as) : f(...as);
+  };
+});
+Test('Arguments order', (partial) => {
+  const f = partial((...as) => as.join(''), '21');
+  expect(f('a', 'b')).is('ba');
+});
+Test('Partial arguments', (partial) => {
+  const f = partial((...as) => as.join(''), '2$1', 'c', 'd');
+  expect(f('a', 'b')).is('bcad');
+});
+Test('Partial `this` argument', (partial) => {
+  const f = partial(String.prototype.concat, 'z2$1', 'c', 'd');
+  expect(f('a', 'b')).is('bcad');
+});
+Test('Partial type constructor', (partial) => {
+  const f = nice.Str.partial('$1', 'Hello');
+  expect(f('world')).is('Hello world');
+});
 })();
 (function(){"use strict";let autoId = 0;
 const AUTO_PREFIX = '_nn_';
@@ -2908,6 +2946,9 @@ const allowedSources = {boolean: 1, number: 1, string: 1};
 nice.Single.extend({
   name: 'Str',
   defaultValueBy: () => '',
+  initBy: (z, ...as) => {
+    z._type.setValue(z, as.length > 1 ? nice.format(...as) : as[0] || '');
+  },
   itemArgs1: (z, v) => {
     z._type.setValue(z, nice.simpleTypes.string.cast(v));
   },

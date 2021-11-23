@@ -49,7 +49,7 @@ const order = [
 ];
 
 
-let src = ';let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each,_1,_2,_3,_$;' +
+let src = ';let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;' +
   order.map(name => fs.readFileSync('./' + name + '.js'))
     .map(wrap)
     .map(cleanComments)

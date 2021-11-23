@@ -191,49 +191,6 @@ function handleType(type){
   });
 };
 
-const skipedProto = {};
-
-[1,2,3].forEach(n => nice['_' + n] = a => a[n - 1]);
-_1 = nice._1;
-_2 = nice._2;
-_3 = nice._3;
-_$ = nice._$ = a => a;
-
-function _skipArgs(init, called) {
-  const {_1,_2,_3,_$} = nice;
-  const res = [];
-  init.forEach(v => v === _$
-    ? res.push(...called)
-    : res.push(( v===_1 || v === _2 || v === _3) ? v(called) : v));
-  return res;
-};
-def(nice, _skipArgs);
-
-
-function skip(f1, args1){
-  const f = create(skipedProto, function (...as) {
-    let res;
-    f.queue.forEach(({action, args}, k) => {
-      const a2 = _skipArgs(args, as);
-      res = k ? action(res, ...a2) : action(...a2);
-    });
-    return res;
-  });
-  f.queue = [];
-  f1 && f.queue.push({action: f1, args: args1});
-  return f;
-};
-
-def(nice, skip);
-
-
-//TODO: restore
-//reflect.on('function', f => f.name && !skipedProto[f.name]
-//  && def(skipedProto, f.name, function(...args){
-//      this.queue.push({action: f, args});
-//      return this;
-//    })
-//);
 
 for(let i in nice.jsTypes) handleType(nice.jsTypes[i]);
 reflect.on('type', handleType);
