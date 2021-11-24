@@ -1,4 +1,4 @@
-;let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;
+let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice._createItem(Anything);

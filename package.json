@@ -23,9 +23,9 @@
     "node": ">=6.0"
   },
   "devDependencies": {
-    "chai": "3.x",
-    "chai-spies": "^0.7.1",
-    "mocha": "^5.2.0"
+    "espree": "9.*",
+    "estraverse": "5.*",
+    "terser": "^5.10.0"
   },
   "repository": {
     "type": "git",

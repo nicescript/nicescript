@@ -1,4 +1,7 @@
 const fs = require('fs');
+const espree = require('espree');
+const estraverse = require('estraverse');
+const terser = require("terser");
 
 const wrap = s => '\n(function(){"use strict";' + s + '\n})();';
 
@@ -49,7 +52,7 @@ const order = [
 ];
 
 
-let src = ';let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;' +
+let src = 'let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;' +
   order.map(name => fs.readFileSync('./' + name + '.js'))
     .map(wrap)
     .map(cleanComments)
@@ -59,10 +62,14 @@ let src = ';let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect
 src += `;nice.version = "${pachageInfo.version}";})();`;
 
 fs.writeFileSync('nice.js', src);
+fs.writeFileSync('nice.min.js', removeTests(src));
+//TODO: fix or remove
+//terser.minify(removeTests(src))
+//  .then(min => fs.writeFileSync('nice.min.js', min.code));
 
-fs.writeFileSync('index.js',
-  'module.exports = function(){' + src + '; return nice;}'
-);
+const nodeSrc = 'module.exports = function(){' + src + '; return nice;}';
+fs.writeFileSync('index.js', nodeSrc);
+
 
 const nice = require('./index.js')();
 
@@ -78,3 +85,25 @@ fs.writeFileSync( 'nice.mjs',
 nice.runTests();
 
 fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.generateDoc()));
+
+
+function removeTests(source) {
+    const nodes = [];
+    const tree = espree.parse(source, { ecmaVersion: 2022 });
+
+    estraverse.traverse(tree, {
+        enter: function (node, parent) {
+          const f = node.callee;
+          if(node.type === 'CallExpression' && f.name === 'Test'
+              && f.object === undefined) {
+            nodes.push(node);
+            return estraverse.VisitorOption.Skip;
+          }
+        },
+    });
+
+    nodes.sort((a, b) => b.end - a.end).forEach(n => {
+        source = source.slice(0, n.start) + source.slice(n.end);
+    });
+    return source;
+}
