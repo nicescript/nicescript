@@ -26,6 +26,9 @@ const basicChecks = {
     if(b && b._isAnything  && '_value' in b)
       b = b._value;
 
+    if(typeof a !== typeof b)
+      return false;
+
     return nice.diff(a, b) === false;
   },
   isTrue: v => v === true,
