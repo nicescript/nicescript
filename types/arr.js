@@ -246,7 +246,7 @@ A.Number('insertAt', (z, i, v) => {
 
 
 A('insertAfter', (z, target, v) => {
-  z.each((v, k) => nice.is(v, target) && z.insertAt(+k+1, v) && nice.Stop());
+  z.each((v, k) => nice.is(v, target) && z.insertAt(+k+1, v) && nice.Stop);
 });
 
 
@@ -368,7 +368,7 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
   a.each((vv, k) => {
     if(f(v, vv) <= 0){
       i = k;
-      return nice.Stop();
+      return nice.Stop;
     }
   });
   return i;

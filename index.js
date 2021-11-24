@@ -2563,7 +2563,8 @@ function isSubType(t){
 };
 nice.jsTypes.isSubType = isSubType;
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";const Stop = nice.Stop;
+nice.Type({
   name: 'Obj',
   extends: nice.Value,
   defaultValueBy: () => ({}),
@@ -2675,16 +2676,13 @@ F(function each(z, f){
   const index = z._value;
   for(let i in index){
     const item = index[i];
-    if(nice.isStop(f(item, i)))
+    if(f(item, i) === Stop)
       break;
   }
 });
 Test("each stop", (each, Obj, Spy) => {
-  const spy = Spy();
-  Obj({qwe: 1, asd: 2}).each(n => {
-    spy(n);
-    return nice.Stop();
-  });
+  const spy = Spy(() => Stop);
+  Obj({qwe: 1, asd: 2}).each(spy);
   expect(spy).calledOnce();
   expect(spy).calledWith(1);
 });
@@ -2776,7 +2774,7 @@ C.Function(function some(c, f){
   c.each((v,k) => {
     if(f(v, k)){
       res = true;
-      return nice.Stop();
+      return Stop;
     }
   });
   return res;
@@ -2802,7 +2800,7 @@ M(function find(c, f){
   c.each((v, k) => {
     if(f(v, k)){
       res = v;
-      return nice.Stop();
+      return Stop;
     }
   });
   return res === undefined ? NotFound() : res;
@@ -2813,7 +2811,7 @@ M(function findKey(c, f){
   c.each((v, k) => {
     if(f(v, k)){
       res = k;
-      return nice.Stop();
+      return Stop;
     }
   });
   return res === undefined ? NotFound() : res;
@@ -2839,7 +2837,7 @@ Check.Obj('includes', (o, t) => {
   o.each(v => {
     if(nice.is(v, t)){
       res = true;
-      return nice.Stop();
+      return Stop;
     }
   });
   return res;
@@ -3181,7 +3179,7 @@ A.Number('insertAt', (z, i, v) => {
   z._value.splice(i, 0, v);
 });
 A('insertAfter', (z, target, v) => {
-  z.each((v, k) => nice.is(v, target) && z.insertAt(+k+1, v) && nice.Stop());
+  z.each((v, k) => nice.is(v, target) && z.insertAt(+k+1, v) && nice.Stop);
 });
 A('remove', (z, k) => {
   k = +k;
@@ -3261,7 +3259,7 @@ M('sortedIndex', (a, v, f = (a, b) => a - b) => {
   a.each((vv, k) => {
     if(f(v, vv) <= 0){
       i = k;
-      return nice.Stop();
+      return nice.Stop;
     }
   });
   return i;
