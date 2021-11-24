@@ -1,4 +1,3 @@
-//TODO: change all actions to use insertAt|removeAt
 nice.Obj.extend({
   name: 'Arr',
   defaultValueBy: () => [],
@@ -7,16 +6,6 @@ nice.Obj.extend({
       as = as[0];
     as.forEach(v => z.push(v));
   },
-//  customCall: (...vs) => {
-//    if(vs.length === 0){
-//      return 'TODO';
-//    } else if (vs.length === 1){
-//      this.push(vs[0]);
-//    } else {
-//      vs.forEach( v => this.push(v));
-//    }
-//  },
-//  itemArgs1: (z, v) => z.push(v),
   itemArgsN: (z, vs) => {
     z.removeAll();
     vs.forEach( v => z.push(v));
@@ -45,23 +34,6 @@ nice.Obj.extend({
   //    }
   //    while(i2 < l2) add(a2[i2], i2++);
     },
-    //TODO: remove??
-//    pop () {
-//      const i = this._items.length - 1;
-//      let e;
-//      if(i >= 0){
-//        e = this._items[i];
-//        this.transa
-//        this.removeAt(i);
-//      }
-//      return e;
-//    },
-
-//    //TODO: remove??
-//    shift () {
-//      return this._items.shift();
-//    },
-
     checkKey (i) {
       if(i._isAnything === true)
         i = i();
@@ -180,9 +152,9 @@ M.Function('reduceRight', (a, f, res) => {
 
 //mappings: indexOf, join, keys, lastIndexOf, flat,flatMap
 
-//,reverse,  ,sort,'.split(',').forEach(name => {
-// F.Array(name, (a, ...bs) => a[name](...bs));
-//});
+//'reverse,sort,'.split(',').forEach(name => {
+//  F.Array(name, (a, ...bs) => a[name](...bs));
+// });
 //'splice'.split(',').forEach(name => {
 // A(name, (a, ...bs) => a._items[name](...bs));
 //});
@@ -438,15 +410,15 @@ Test("removeAll", (Arr, removeAll) => {
 });
 
 
-//M.Number.about('Returns `n` first elements of `a`.')
-//  .test((Arr) => {
-//    expect(Arr(1,2,4).first(2)()).deepEqual([1,2]);
-//  })
-//(function first(a, n) {
-//  const res = a._type();
-//  res._items = a._items.slice(0, n);
-//  return res;
-//});
+M.Number.about('Returns `n` first elements of `a`.')
+  ('firstN', (a, n) => a._type(a._value.slice(0, n)));
+
+
+Test((Arr, firstN) => {
+  const a = Arr([1,2,4]);
+  expect(a.firstN(2)).deepEqual([1,2]);
+  expect(a.firstN(0)).deepEqual([]);
+});
 
 
 typeof Symbol === 'function' && F(Symbol.iterator, z => {

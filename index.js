@@ -1227,6 +1227,8 @@ const basicChecks = {
       a = a._value;
     if(b && b._isAnything  && '_value' in b)
       b = b._value;
+    if(typeof a !== typeof b)
+      return false;
     return nice.diff(a, b) === false;
   },
   isTrue: v => v === true,
@@ -3064,7 +3066,6 @@ nice.Obj.extend({
   
   
     },
-    
     checkKey (i) {
       if(i._isAnything === true)
         i = i();
@@ -3300,6 +3301,13 @@ Test("removeAll", (Arr, removeAll) => {
   let a = Arr(1, 4);
   a.removeAll();
   expect(a.jsValue).deepEqual([]);
+});
+M.Number.about('Returns `n` first elements of `a`.')
+  ('firstN', (a, n) => a._type(a._value.slice(0, n)));
+Test((Arr, firstN) => {
+  const a = Arr([1,2,4]);
+  expect(a.firstN(2)).deepEqual([1,2]);
+  expect(a.firstN(0)).deepEqual([]);
 });
 typeof Symbol === 'function' && F(Symbol.iterator, z => {
   let i = 0;
