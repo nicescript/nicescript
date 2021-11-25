@@ -125,8 +125,7 @@ Input.extend('Checkbox', (z, status) => {
       z.on('domNode', n => node = n);
     }
 
-    //TODO: BUG: nice.Checkbox().html fails
-    value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
+    value.subscribe(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
 
