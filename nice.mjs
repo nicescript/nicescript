@@ -1149,7 +1149,6 @@ reflect.on('type', type => {
         return f(this);
       }
     });
-    
     return this;
   };
 });

@@ -211,8 +211,6 @@ reflect.on('type', type => {
         return f(this);
       }
     });
-
-    //TODO: replace with Mapping??
     return this;
   };
 });
