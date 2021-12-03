@@ -1553,8 +1553,7 @@ Test('Not expect followed by expect.', () => {
   expect(1).is(1).not.is(3);
 });
 })();
-(function(){"use strict";
-nice.Type({
+(function(){"use strict";nice.Type({
   name: 'Spy',
   extends: 'Anything',
   defaultValueBy: () => [],
@@ -1626,6 +1625,7 @@ Test((Spy, calledWith) => {
   expect(spy.calledWith(1, 2)).is(false);
   spy(1, 2);
   expect(spy.calledWith(1, 2)).is(true);
+  expect(spy).calledWith(1, 2);
 });
 })();
 (function(){"use strict";nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);

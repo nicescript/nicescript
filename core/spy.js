@@ -1,5 +1,3 @@
-//TODO: spy should extend function
-
 nice.Type({
   name: 'Spy',
   extends: 'Anything',
@@ -82,7 +80,6 @@ Test((Spy, calledTimes) => {
 });
 
 
-//TODO: write actual arguments in error
 Check.Spy('calledWith', (s, ...as) => s._value.some(a => {
   return as.every((v, k) => nice.is(a[k], v));
 }));
@@ -96,4 +93,5 @@ Test((Spy, calledWith) => {
   expect(spy.calledWith(1, 2)).is(false);
   spy(1, 2);
   expect(spy.calledWith(1, 2)).is(true);
+  expect(spy).calledWith(1, 2);
 });
