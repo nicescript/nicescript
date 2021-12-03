@@ -18,7 +18,7 @@ nice.Type({
         throw `Can't be set to null`;
 
       if(v !== values[k]) {
-        //TODO: should old value be null if it's a new element?
+        //TODO: should old value be null if  it's a new element?
         const old = this._value[k];
         this._value[k] = v;
         this.emit('element', k, v, old);
