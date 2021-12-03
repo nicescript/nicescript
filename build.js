@@ -28,7 +28,6 @@ const order = [
   'core/simple_types',
   'box/box',
   'box/box_set',
-  'box/box_array',
   'box/r_box',
   'box/interval_box',
   'core/stream',
