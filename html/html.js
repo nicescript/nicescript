@@ -205,8 +205,9 @@ reflect.on('extension', ({child, parent}) => {
         return this.attributes.get(property);
       }
     };
-    def(Html.proto, property, f);
-    def(Html.proto, property.toLowerCase(), f);
+    Html.proto[property] = f;
+    const lower = property.toLowerCase();
+    lower !== property && (Html.proto[lower] = f);
   });
 
 Test('Css propperty format', Div => {
