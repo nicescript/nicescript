@@ -3029,8 +3029,7 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   return { next: () => ({ value: z[i], done: ++i > l }) };
 });
 })();
-(function(){"use strict";
-nice.Obj.extend({
+(function(){"use strict";nice.Obj.extend({
   name: 'Arr',
   defaultValueBy: () => [],
   initBy: (z, ...as) => {
@@ -3520,6 +3519,7 @@ Test((Range, toArray) => {
 });
 })();
 (function(){"use strict";
+const runtime = {};
 nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .about('Represents HTML element.')
   .string('tag', 'div')
@@ -3549,10 +3549,10 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
     return z.id();
   })
   .Method('assertClass', z => {
-    const s = '' + z.attributes.get('className') || '';
-    if(s.indexOf(nice.AUTO_PREFIX) < 0){
+    const s = z.attributes.get('className');
+    if(s === undefined || s.indexOf(nice.AUTO_PREFIX) < 0){
       const c = nice.genereteAutoId();
-      z.attributes.set('className', s + ' ' + c);
+      z.attributes.set('className', s !== undefined ? (s + ' ' + c) : c);
     }
     return z;
   })
@@ -3755,6 +3755,7 @@ function dom(e){
       return ls.forEach(f => f(res));
     ls.forEach(f => res.addEventListener(type, f, true));
   });
+  addSelectors(e.cssSelectors, res);
   return res;
 }
 const childrenCounter = (o, v) => {
@@ -3907,7 +3908,7 @@ const getAutoClass = s => s.match(/(_nn_\d+)/)[0];
 if(nice.isEnvBrowser()){
   const styleEl = document.createElement('style');
   document.head.appendChild(styleEl);
-  const styleSheet = styleEl.sheet;
+  runtime.styleSheet = styleEl.sheet;
   function insertBefore(node, newNode){
     node.parentNode.insertBefore(newNode, node);
     return newNode;
@@ -3934,46 +3935,6 @@ def(nice, 'iterateNodesTree', (f, node = document.body) => {
     };
 });
 if(nice.isEnvBrowser()){
-  const styleEl = document.createElement('style');
-  document.head.appendChild(styleEl);
-  const styleSheet = styleEl.sheet;
-  const addRules = (vs, selector, className) => {
-    const rule = assertRule(selector, className);
-    vs.each((value, prop) => rule.style[prop] = value);
-  };
-  const findRule = (selector, className) => {
-    const s = `.${className} ${selector}`.toLowerCase();
-    let rule;
-    for (const r of styleSheet.cssRules)
-      r.selectorText === s && (rule = r);
-    return rule;
-  };
-  const findRuleindex = (selector, className) => {
-    const s = `.${className} ${selector}`.toLowerCase();
-    let res;
-    for (const i in styleSheet.cssRules)
-      styleSheet.cssRules[i].selectorText === s && (res = i);
-    return res;
-  };
-  const assertRule = (selector, className) => {
-    return findRule(selector, className) || styleSheet
-        .cssRules[styleSheet.insertRule(`.${className} ${selector}` + '{}')];
-  };
-  function killSelectors(v) {
-    const c = getAutoClass(v.attributes.get('className'));
-    v.cssSelectors.each((v, k) => killRules(v, k, c));
-  };
-  const killRules = (vs, selector, id) => {
-    const rule = findRule(selector, id);
-    rule && vs.each((value, prop) => rule.style[prop] = null);
-  };
-  const killAllRules = v => {
-    const c = getAutoClass(v.attributes.get('className'));
-    const a = [];
-    [...styleSheet.cssRules].forEach((r, i) =>
-        r.selectorText.indexOf(c) === 1 && a.unshift(i));
-    a.forEach(i => styleSheet.deleteRule(i));
-  };
   function killNode(n){
     n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
     n && nice._eachEach(n.__niceListeners, (listener, i, type) => {
@@ -4025,40 +3986,6 @@ if(nice.isEnvBrowser()){
     e.attachNode(node);
     return node;
   });
-  Func.Html('attachNode', (e, node) => {
-    e._shownNodes = e._shownNodes || new WeakMap();
-    const ss = [];
-    ss.push(e.children.listenItems((v, k) => v.isNothing()
-        ? removeNode(node.childNodes[k], k)
-        : nice.show(v, node, k)
-      ),
-      e.style.listenItems((v, k) => v.isSomething()
-          ? node.style[k] = v
-          : delete node.style[k]
-      ),
-      e.attributes.listenItems((v, k) => v.isSomething()
-          ? node[k] = v
-          : delete node[k]
-      ),
-      e.cssSelectors.listenItems((v, k) => {
-        e._autoClass();
-        (v.isSomething() ? addRules : killRules)
-            (v, k, getAutoClass(node.className));
-      }),
-      e.eventHandlers.listenItems((hs, k) => hs.isSomething()
-        ? hs.each(f => {
-            if(k === 'domNode')
-              return f(node);
-            node.addEventListener(k, f, true);
-            node.__niceListeners = node.__niceListeners || {};
-            node.__niceListeners[k] = node.__niceListeners[k] || [];
-            node.__niceListeners[k].push(f);
-          })
-        : console.log('TODO: Remove, ', k)
-      )
-    );
-    e._shownNodes.set(node, ss);
-  });
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
@@ -4070,13 +3997,47 @@ if(nice.isEnvBrowser()){
     node && node.parentNode.removeChild(node);
     v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
   }
-  function insertAt(parent, node, position){
-    parent.insertBefore(node, parent.childNodes[position]);
-    return node;
-  }
-  
-  
-  
+};
+const addRules = (vs, selector, className) => {
+  const rule = assertRule(selector, className);
+  vs.each((value, prop) => rule.style[prop] = value);
+};
+const findRule = (selector, className) => {
+  const s = `.${className} ${selector}`.toLowerCase();
+  let rule;
+  for (const r of runtime.styleSheet.cssRules)
+    r.selectorText === s && (rule = r);
+  return rule;
+};
+const findRuleindex = (selector, className) => {
+  const s = `.${className} ${selector}`.toLowerCase();
+  let res;
+  const rules = runtime.styleSheet.cssRules;
+  for (const i in rules)
+    rules[i].selectorText === s && (res = i);
+  return res;
+};
+const assertRule = (selector, className) => {
+  return findRule(selector, className) || runtime.styleSheet
+      .cssRules[runtime.styleSheet.insertRule(`.${className}${selector}` + '{}')];
+};
+function killSelectors(v) {
+  const c = getAutoClass(v.attributes.get('className'));
+  v.cssSelectors.each((v, k) => killRules(v, k, c));
+};
+const killRules = (vs, selector, id) => {
+  const rule = findRule(selector, id);
+  rule && vs.each((value, prop) => rule.style[prop] = null);
+};
+const killAllRules = v => {
+  const c = getAutoClass(v.attributes.get('className'));
+  const a = [];
+  [...runtime.styleSheet.cssRules].forEach((r, i) =>
+      r.selectorText.indexOf(c) === 1 && a.unshift(i));
+  a.forEach(i => runtime.styleSheet.deleteRule(i));
+};
+function addSelectors(selectors, node){
+  selectors.each((v, k) => addRules(v, k, getAutoClass(node.className)));
 };
 })();
 (function(){"use strict";const Html = nice.Html;
@@ -4218,8 +4179,7 @@ Input.extend('Checkbox', (z, status) => {
       z.assertId();
       z.on('domNode', n => node = n);
     }
-    
-    value.listen(v => node ? node.checked = v : z.attributes.set('checked', v));
+    value.subscribe(v => node ? node.checked = v : z.attributes.set('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
   Input.extend('Select', (z, values) => {

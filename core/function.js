@@ -26,7 +26,7 @@ const configProto = {
 };
 
 const functionProto = {
-  addSignature (body, types, name, returns){
+  addSignature (body, types, returns){
     let ss = 'signatures' in this
       ? this.signatures
       : this.signatures = new Map();
@@ -131,7 +131,7 @@ function createFunction({ name, body, signature, type, description, returns }){/
   //optimization: maybe signature might be just an array of types??
   const types = signature.map(v => v.type);
   returns && (body.returnType = returns);
-  body && cfg.addSignature(body, types, name, returns);
+  body && cfg.addSignature(body, types, returns);
 //  createMethodBody(types[0], f);
   const f = reflect.compileFunction(cfg);
 
