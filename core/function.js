@@ -136,9 +136,7 @@ function createFunction({ name, body, signature, type, description, returns }){/
   const f = reflect.compileFunction(cfg);
 
   if(name){
-    //TODO:
-//    f.name !== name && nice.rewriteProperty(f, 'name', name);
-//    def(nice, name, f);
+    f.name !== name && nice.rewriteProperty(f, 'name', name);
     nice[name] = f;
     if(!existing){
       reflect.emitAndSave('function', cfg);

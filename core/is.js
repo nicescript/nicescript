@@ -258,7 +258,7 @@ const S = Switch = nice.Switch = (...args) => {
 
 
 reflect.on('Check', ({name}) => name && !common[name]
-  && def(common, name, function (...a) {
+  && (common[name] = function (...a) {
     return this.check((...v) => {
       try {
         return nice[name](...v, ...a);

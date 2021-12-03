@@ -132,7 +132,7 @@ Anything.proto._type = Anything;
 
 
 reflect.on('type', t =>
-  t.name && def(Anything.proto, 'to' + t.name, function (...as) {
+  t.name && (Anything.proto['to' + t.name] = function (...as) {
     return nice._initItem(this, t, as);
   })
 );

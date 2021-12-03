@@ -10,7 +10,8 @@ const toString = v => {
 
 
 reflect.on('Check', ({name}) => {
-  name && def(nice.expectPrototype, name, function(...a){
+//  name && def(nice.expectPrototype, name, function(...a){
+  name && (nice.expectPrototype[name] = function(...a){
     const res = this._preF ? this._preF(nice[name](this.value, ...a)) : nice[name](this.value, ...a);
     if(!res || (res && res._isAnything && res._type === nice.Err)){
       const e = new Error(this.text || ['Expected (', toString(this.value), ')',
