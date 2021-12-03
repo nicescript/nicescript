@@ -34,7 +34,9 @@ function compileStep(step, signatures, name, functionType){
   if(signatures.action){
     res.push(compileCall(signatures, functionType));
   } else {
-    res.push("throw `Function ", name, " do not accept ${args[", step, "]._type.name}`;");
+    res.push(`const cur = args[${step}];
+const type = cur._type === undefined ? typeof cur : cur._type.name;
+throw "Function ${name} do not accept " + type + " as #${step+1} argument"; `);
   }
   return res.join('\n');
 }

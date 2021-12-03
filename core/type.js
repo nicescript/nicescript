@@ -1,5 +1,3 @@
-//TODO: make type name creation independent
-
 def(nice, function extend(child, parent){
   if(parent.extensible === false)
     throw `Type ${parent.name} is not extensible.`;

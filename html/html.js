@@ -1,4 +1,3 @@
-//TODO: throw error when adding object that is not Html
 const runtime = {};
 
 nice.Type('Html', (z, tag) => tag && (z.tag = tag))
@@ -85,7 +84,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
         return z.children.push(c.toString());
 
       if(!c || !nice.isAnything(c))
-        return z.children.push('Bad child: ' + c);
+        return z.children.push('Bad child: ' + JSON.stringify(c));
 
       c.up = z;
       c._up_ = z;
@@ -289,12 +288,14 @@ function dom(e){
   e.eventHandlers.each((ls, type) => {
     if(type === 'domNode')
       return ls.forEach(f => f(res));
-    ls.forEach(f => res.addEventListener(type, f, true));
 
-//TODO:
-//            node.__niceListeners = node.__niceListeners || {};
-//            node.__niceListeners[k] = node.__niceListeners[k] || [];
-//            node.__niceListeners[k].push(f);
+    res.__niceListeners = res.__niceListeners || {};
+    res.__niceListeners[type] = res.__niceListeners[type] || [];
+
+    ls.forEach(f => {
+      res.addEventListener(type, f, true);
+      res.__niceListeners[type].push(f);
+    });
   });
 
   addSelectors(e.cssSelectors, res);
