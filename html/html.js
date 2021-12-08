@@ -1,3 +1,5 @@
+//TODO: separate attributes and tagValues
+
 const runtime = {};
 
 nice.Type('Html', (z, tag) => tag && (z.tag = tag))
@@ -28,14 +30,6 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
     z.id() || z.id(nice.genereteAutoId());
     return z.id();
   })
-  .Method('assertClass', z => {
-    const s = z.attributes.get('className');
-    if(s === undefined || s.indexOf(nice.AUTO_PREFIX) < 0){
-      const c = nice.genereteAutoId();
-      z.attributes.set('className', s !== undefined ? (s + ' ' + c) : c);
-    }
-    return z;
-  })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
     const current = z.attributes.get('className') || '';
     if(!vs.length)
@@ -48,7 +42,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .ReadOnly(text)
   .ReadOnly(html)
-  .ReadOnly(dom)
+  .ReadOnly('dom', createDom)
   .Method.about('Scroll browser screen to an element.')(function scrollTo(z, offset = 10){
     z.on('domNode', n => {
       n && window.scrollTo(n.offsetLeft - offset, n.offsetTop - offset);
@@ -128,6 +122,7 @@ Test("Html children Arr", (Div, Arr) => {
   expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
 });
 
+
 nice.Type('Style')
   .about('Represents CSS style.');
 
@@ -135,7 +130,7 @@ const Style = nice.Style;
 
 defGet(Html.proto, function hover(){
   const style = Style();
-  this.assertClass();
+  this.needAutoClass = true;
   this.cssSelectors.set(':hover', style);
   return style;
 });
@@ -143,10 +138,9 @@ defGet(Html.proto, function hover(){
 
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
-//  const existing = this.cssSelectors.get(s);
   if(this.cssSelectors.has(s))
     return this.cssSelectors.get(s);
-  this.assertClass();
+  this.needAutoClass = true;
   const style = Style();
   style.up = this;
   this.cssSelectors.set(s, style);
@@ -171,6 +165,7 @@ reflect.on('extension', ({child, parent}) => {
     addCreator(child);
   }
 });
+
 
 //removed: src removed to avoid conflict with 'src' attribute
 'alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,appearance,backdropFilter,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,blockSize,border,borderBlockEnd,borderBlockEndColor,borderBlockEndStyle,borderBlockEndWidth,borderBlockStart,borderBlockStartColor,borderBlockStartStyle,borderBlockStartWidth,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderInlineEnd,borderInlineEndColor,borderInlineEndStyle,borderInlineEndWidth,borderInlineStart,borderInlineStartColor,borderInlineStartStyle,borderInlineStartWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,caretColor,clear,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,colorScheme,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,contain,containIntrinsicSize,content,counterIncrement,counterReset,cursor,cx,cy,d,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontDisplay,fontFamily,fontFeatureSettings,fontKerning,fontOpticalSizing,fontSize,fontStretch,fontStyle,fontVariant,fontVariantCaps,fontVariantEastAsian,fontVariantLigatures,fontVariantNumeric,fontVariationSettings,fontWeight,gap,grid,gridArea,gridAutoColumns,gridAutoFlow,gridAutoRows,gridColumn,gridColumnEnd,gridColumnGap,gridColumnStart,gridGap,gridRow,gridRowEnd,gridRowGap,gridRowStart,gridTemplate,gridTemplateAreas,gridTemplateColumns,gridTemplateRows,height,hyphens,imageOrientation,imageRendering,inlineSize,isolation,justifyContent,justifyItems,justifySelf,left,letterSpacing,lightingColor,lineBreak,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBlockEnd,marginBlockStart,marginBottom,marginInlineEnd,marginInlineStart,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxBlockSize,maxHeight,maxInlineSize,maxWidth,maxZoom,minBlockSize,minHeight,minInlineSize,minWidth,minZoom,mixBlendMode,objectFit,objectPosition,offset,offsetDistance,offsetPath,offsetRotate,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowAnchor,overflowWrap,overflowX,overflowY,overscrollBehavior,overscrollBehaviorBlock,overscrollBehaviorInline,overscrollBehaviorX,overscrollBehaviorY,padding,paddingBlockEnd,paddingBlockStart,paddingBottom,paddingInlineEnd,paddingInlineStart,paddingLeft,paddingRight,paddingTop,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,placeContent,placeItems,placeSelf,pointerEvents,position,quotes,r,resize,right,rowGap,rubyPosition,rx,ry,scrollBehavior,scrollMargin,scrollMarginBlock,scrollMarginBlockEnd,scrollMarginBlockStart,scrollMarginBottom,scrollMarginInline,scrollMarginInlineEnd,scrollMarginInlineStart,scrollMarginLeft,scrollMarginRight,scrollMarginTop,scrollPadding,scrollPaddingBlock,scrollPaddingBlockEnd,scrollPaddingBlockStart,scrollPaddingBottom,scrollPaddingInline,scrollPaddingInlineEnd,scrollPaddingInlineStart,scrollPaddingLeft,scrollPaddingRight,scrollPaddingTop,scrollSnapAlign,scrollSnapStop,scrollSnapType,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,size,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textDecorationColor,textDecorationLine,textDecorationSkipInk,textDecorationStyle,textIndent,textOrientation,textOverflow,textRendering,textShadow,textSizeAdjust,textTransform,textUnderlinePosition,top,touchAction,transform,transformBox,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userSelect,userZoom,vectorEffect,verticalAlign,visibility,webkitAlignContent,webkitAlignItems,webkitAlignSelf,webkitAnimation,webkitAnimationDelay,webkitAnimationDirection,webkitAnimationDuration,webkitAnimationFillMode,webkitAnimationIterationCount,webkitAnimationName,webkitAnimationPlayState,webkitAnimationTimingFunction,webkitAppRegion,webkitAppearance,webkitBackfaceVisibility,webkitBackgroundClip,webkitBackgroundOrigin,webkitBackgroundSize,webkitBorderAfter,webkitBorderAfterColor,webkitBorderAfterStyle,webkitBorderAfterWidth,webkitBorderBefore,webkitBorderBeforeColor,webkitBorderBeforeStyle,webkitBorderBeforeWidth,webkitBorderBottomLeftRadius,webkitBorderBottomRightRadius,webkitBorderEnd,webkitBorderEndColor,webkitBorderEndStyle,webkitBorderEndWidth,webkitBorderHorizontalSpacing,webkitBorderImage,webkitBorderRadius,webkitBorderStart,webkitBorderStartColor,webkitBorderStartStyle,webkitBorderStartWidth,webkitBorderTopLeftRadius,webkitBorderTopRightRadius,webkitBorderVerticalSpacing,webkitBoxAlign,webkitBoxDecorationBreak,webkitBoxDirection,webkitBoxFlex,webkitBoxOrdinalGroup,webkitBoxOrient,webkitBoxPack,webkitBoxReflect,webkitBoxShadow,webkitBoxSizing,webkitClipPath,webkitColumnBreakAfter,webkitColumnBreakBefore,webkitColumnBreakInside,webkitColumnCount,webkitColumnGap,webkitColumnRule,webkitColumnRuleColor,webkitColumnRuleStyle,webkitColumnRuleWidth,webkitColumnSpan,webkitColumnWidth,webkitColumns,webkitFilter,webkitFlex,webkitFlexBasis,webkitFlexDirection,webkitFlexFlow,webkitFlexGrow,webkitFlexShrink,webkitFlexWrap,webkitFontFeatureSettings,webkitFontSizeDelta,webkitFontSmoothing,webkitHighlight,webkitHyphenateCharacter,webkitJustifyContent,webkitLineBreak,webkitLineClamp,webkitLocale,webkitLogicalHeight,webkitLogicalWidth,webkitMarginAfter,webkitMarginBefore,webkitMarginEnd,webkitMarginStart,webkitMask,webkitMaskBoxImage,webkitMaskBoxImageOutset,webkitMaskBoxImageRepeat,webkitMaskBoxImageSlice,webkitMaskBoxImageSource,webkitMaskBoxImageWidth,webkitMaskClip,webkitMaskComposite,webkitMaskImage,webkitMaskOrigin,webkitMaskPosition,webkitMaskPositionX,webkitMaskPositionY,webkitMaskRepeat,webkitMaskRepeatX,webkitMaskRepeatY,webkitMaskSize,webkitMaxLogicalHeight,webkitMaxLogicalWidth,webkitMinLogicalHeight,webkitMinLogicalWidth,webkitOpacity,webkitOrder,webkitPaddingAfter,webkitPaddingBefore,webkitPaddingEnd,webkitPaddingStart,webkitPerspective,webkitPerspectiveOrigin,webkitPerspectiveOriginX,webkitPerspectiveOriginY,webkitPrintColorAdjust,webkitRtlOrdering,webkitRubyPosition,webkitShapeImageThreshold,webkitShapeMargin,webkitShapeOutside,webkitTapHighlightColor,webkitTextCombine,webkitTextDecorationsInEffect,webkitTextEmphasis,webkitTextEmphasisColor,webkitTextEmphasisPosition,webkitTextEmphasisStyle,webkitTextFillColor,webkitTextOrientation,webkitTextSecurity,webkitTextSizeAdjust,webkitTextStroke,webkitTextStrokeColor,webkitTextStrokeWidth,webkitTransform,webkitTransformOrigin,webkitTransformOriginX,webkitTransformOriginY,webkitTransformOriginZ,webkitTransformStyle,webkitTransition,webkitTransitionDelay,webkitTransitionDuration,webkitTransitionProperty,webkitTransitionTimingFunction,webkitUserDrag,webkitUserModify,webkitUserSelect,webkitWritingMode,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
@@ -209,6 +204,7 @@ reflect.on('extension', ({child, parent}) => {
     lower !== property && (Html.proto[lower] = f);
   });
 
+
 Test('Css propperty format', Div => {
   expect(Div().border('3px', 'silver', 'solid').html)
     .is('<div style="border:3px silver solid"></div>');
@@ -231,12 +227,14 @@ function compileStyle (s){
   return a.join(';');
 };
 
+
 function compileSelectors (h){
   const a = [];
   h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')),
     ' ', k, '{', compileStyle(v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
+
 
 const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
 //nice.ReadOnly.Box('html', ({_value}) => _value && _html(_value));
@@ -262,6 +260,7 @@ function html(z){
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 
+
 function toDom(e) {
   if(e === undefined)
     return document.createTextNode('');
@@ -273,9 +272,8 @@ function toDom(e) {
  };
 
 
-function dom(e){
+function createDom(e){
   const res = document.createElement(e.tag);
-//  const selectors = compileSelectors(e) || '';
 
   e.style.each((v, k) => {
     res.style[k] = '' + v;
@@ -289,15 +287,10 @@ function dom(e){
     if(type === 'domNode')
       return ls.forEach(f => f(res));
 
-    res.__niceListeners = res.__niceListeners || {};
-    res.__niceListeners[type] = res.__niceListeners[type] || [];
-
-    ls.forEach(f => {
-      res.addEventListener(type, f, true);
-      res.__niceListeners[type].push(f);
-    });
+    ls.forEach(f => res.addEventListener(type, f, true));
   });
 
+  e.needAutoClass === true && assertAutoClass(res);
   addSelectors(e.cssSelectors, res);
 
   return res;
@@ -329,7 +322,7 @@ function createSubscription(box, state, dom){
       f.nestedSubscription.parentSubscription = f;
       newState.subscribe(f.nestedSubscription);
     } else {
-      const newDom = nice.refreshElement(newState, f.state, f.dom);
+      const newDom = refreshElement(newState, f.state, f.dom);
       if(newDom !== f.dom){
         f.dom = newDom;
         let parent = f;
@@ -340,7 +333,7 @@ function createSubscription(box, state, dom){
     }
     f.state = newState;
   };
-  dom.boxListener = f;
+  dom.__boxListener = f;
   f.dom = dom;
   f.source = box;
   f.state = state;
@@ -364,17 +357,25 @@ function attachNode(child, parent, position){
 
 
 function detachNode(dom, parentDom){
-  const f = dom.boxListener;
+  const f = dom.__boxListener;
   f !== undefined && f.source.unsubscribe(f);
 
-  const children = dom.childNodes;
+  emptyNode(dom);
+
+  parentDom !== undefined && parentDom.removeChild(dom);
+}
+
+
+function emptyNode(node){
+  const children = node.childNodes;
   if(children !== undefined) {
     for (let child of children) {
       detachNode(child);
     }
   }
 
-  parentDom !== undefined && parentDom.removeChild(dom);
+  const assertedClass = node.assertedClass;
+  assertedClass !== undefined && killAllRules(assertedClass);
 }
 
 
@@ -398,87 +399,87 @@ const extractKey = v => {
 };
 
 
-defAll(nice, {
-  refreshElement(e, old, domNode){
-    const eTag = (e !== undefined) && e._isHtml && e.tag,
-          oldTag = (old !== undefined) && old._isHtml && old.tag;
-    let newDom = domNode;
+function refreshElement(e, old, domNode){
+  const eTag = (e !== undefined) && e._isHtml && e.tag,
+        oldTag = (old !== undefined) && old._isHtml && old.tag;
+  let newDom = domNode;
 
-    if (eTag !== oldTag){
-      newDom = toDom(e);
-//      replaceNode(new, old);
-      const children = domNode.childNodes;
-      if(children !== undefined) {
-        for (let child of children) {
-          detachNode(child);
-        }
-      }
-      domNode.parentNode.replaceChild(newDom, domNode);
-    } else if(!eTag) {
-      domNode.nodeValue = e;
-    } else {
-      //TODO: selectors
-      const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
-      _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
-      _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
+  if (eTag !== oldTag){
+    newDom = toDom(e);
+    emptyNode(domNode);
+    domNode.parentNode.replaceChild(newDom, domNode);
+  } else if(!eTag) {
+    domNode.nodeValue = e;
+  } else {
+    const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
+    _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
+    _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
 
-      const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
-      _each(oldAtrs, (v, k) => (k in newAtrs) || domNode.removeAttribute(k));
-      _each(newAtrs, (v, k) => oldAtrs[k] !== v && domNode.setAttribute(k, v));
+    const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
 
-      const newHandlers = e.eventHandlers._value, oldHandlers = old.eventHandlers._value;
-      nice._eachEach(oldHandlers, (f, i, type) => {
-        if(!(newHandlers[type] && newHandlers[type].includes(f)))
-          domNode.removeEventListener(type, f, true);
-      });
-      nice._eachEach(newHandlers, (f, i, type) => {
-        if(!(oldHandlers[type] && oldHandlers[type].includes(f)))
-          domNode.addEventListener(type, f, true);
-      });
+    _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode[k] = ""));
+    _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode[k] = v));
 
-      nice.refreshChildren(e.children._value, old.children._value, domNode);
-    }
-    return newDom;
-  },
-  refreshChildren(aChildren, bChildren, domNode){
-    const aKeys = aChildren.map(extractKey);
-    const bKeys = bChildren.map(extractKey);
-    const aCount = aKeys.reduce(childrenCounter, {});
-    const bCount = bKeys.reduce(childrenCounter, {});
+    e.needAutoClass === true && assertAutoClass(domNode);
+    refreshSelectors(e.cssSelectors.jsValue, old.cssSelectors.jsValue, domNode);
 
-    let ai = 0, bi = 0;
-    while(ai < aKeys.length){
-      const aChild = aKeys[ai], bChild = bKeys[bi];
-      //TODO: try to compare by value if both new
-      if(aChild === bChild && aChild !== undefined){
-        ai++, bi++;
-      } else if(!bCount[aChild]){//assume insert
+    const newHandlers = e.eventHandlers._value, oldHandlers = old.eventHandlers._value;
+    nice._eachEach(oldHandlers, (f, i, type) => {
+      if(!(newHandlers[type] && newHandlers[type].includes(f)))
+        domNode.removeEventListener(type, f, true);
+    });
+    nice._eachEach(newHandlers, (f, i, type) => {
+      if(!(oldHandlers[type] && oldHandlers[type].includes(f)))
+        domNode.addEventListener(type, f, true);
+    });
+
+    refreshChildren(e.children._value, old.children._value, domNode);
+  }
+  return newDom;
+};
+
+
+function refreshChildren(aChildren, bChildren, domNode){
+  const aKeys = aChildren.map(extractKey);
+  const bKeys = bChildren.map(extractKey);
+  const aCount = aKeys.reduce(childrenCounter, {});
+  const bCount = bKeys.reduce(childrenCounter, {});
+
+  let ai = 0, bi = 0;
+  while(ai < aKeys.length){
+    const aChild = aKeys[ai], bChild = bKeys[bi];
+    //TODO: try to compare by value if both new
+    if(aChild === bChild && aChild !== undefined){
+      ai++, bi++;
+    } else if(!bCount[aChild]){//assume insert
 //        insertAt(domNode, toDom(aChildren[ai]), ai);
-        attachNode(aChildren[ai], domNode, ai);
-        ai++;
-      } else if(!aCount[bChild]) {//assume delete
-        detachNode(domNode.childNodes[ai], domNode);
-        bi++;
-      } else {//assume ugly reorder - brute force
-        //TODO:0 attach|detach node
-//        console.log('ugly');
-        const old = domNode.childNodes[bi];
-        attachNode(aChildren[ai], domNode, bi);
-        old && detachNode(old, domNode);
-
-        ai++, bi++;
-      }
-    };
-    while(bi < bKeys.length){
+      attachNode(aChildren[ai], domNode, ai);
+      ai++;
+    } else if(!aCount[bChild]) {//assume delete
       detachNode(domNode.childNodes[ai], domNode);
       bi++;
+    } else {//assume ugly reorder - brute force
+      //TODO:0 attach|detach node
+//        console.log('ugly');
+      const old = domNode.childNodes[bi];
+      attachNode(aChildren[ai], domNode, bi);
+      old && detachNode(old, domNode);
+
+      ai++, bi++;
     }
-  },
-  htmlEscape: s => (''+s).replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-});
+  };
+  while(bi < bKeys.length){
+    detachNode(domNode.childNodes[ai], domNode);
+    bi++;
+  }
+};
+
+
+nice.htmlEscape = s => (''+s).replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
 
 
 const getAutoClass = s => s.match(/(_nn_\d+)/)[0];
@@ -514,57 +515,9 @@ function insertAt(parent, node, position){
 }
 
 
-def(nice, 'iterateNodesTree', (f, node = document.body) => {
-  f(node);
-  if(node.childNodes)
-    for (let n of node.childNodes) {
-      nice.iterateNodesTree(f, n);
-    };
-});
-
-
-
 if(nice.isEnvBrowser()){
-//  const addStyle = Switch
-//    .Box.use((s, k, node) => {
-//      const f = v => addStyle(v, k, node);
-//      s.listen(f);
-//      nice._set(node, ['styleSubscriptions', k], () => s.unsubscribe(f));
-//    })
-//    .default.use((v, k, node) => node.style[k] = v);
-
-//  const delStyle = Switch
-//    .Box.use((s, k, node) => {
-//      node.styleSubscriptions[k]();
-//      delete node.styleSubscriptions[k];
-//      node.style[k] = '';
-//    })
-//    .default.use((v, k, node) => node.style && (node.style[k] = ''));
-//
-//
-//  const addAttribute = Switch
-//    .Box.use((s, k, node) => {
-//      const f = v => addAttribute(v, k, node);
-//      s.listen(f);
-//      nice._set(node, ['attrSubscriptions', k], () => s.unsubscribe(f));
-//    })
-//    .default.use((v, k, node) => node[k] = v);
-//
-//  const delAttribute = Switch
-//    .Box.use((s, k, node) => {
-//      node.attrSubscriptions[k]();
-//      delete node.attrSubscriptions[k];
-//      node[k] = '';
-//    })
-//    .default.use((v, k, node) => node[k] = '');
-
-
-
   function killNode(n){
     n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
-    n && nice._eachEach(n.__niceListeners, (listener, i, type) => {
-      n.removeEventListener(type, listener);
-    });
   }
 
 
@@ -658,41 +611,6 @@ if(nice.isEnvBrowser()){
     return node;
   });
 
-//  Func.Html('attachNode', (e, node) => {
-//    e._shownNodes = e._shownNodes || new WeakMap();
-//    const ss = [];
-//    ss.push(e.children.listenItems((v, k) => v.isNothing()
-//        ? removeNode(node.childNodes[k], k)
-//        : nice.show(v, node, k)
-//      ),
-//      e.style.listenItems((v, k) => v.isSomething()
-//          ? node.style[k] = v
-//          : delete node.style[k]
-//      ),
-//      e.attributes.listenItems((v, k) => v.isSomething()
-//          ? node[k] = v
-//          : delete node[k]
-//      ),
-//      e.cssSelectors.listenItems((v, k) => {
-//        e._autoClass();
-//        (v.isSomething() ? addRules : killRules)
-//            (v, k, getAutoClass(node.className));
-//      }),
-//      e.eventHandlers.listenItems((hs, k) => hs.isSomething()
-//        ? hs.each(f => {
-//            if(k === 'domNode')
-//              return f(node);
-//            node.addEventListener(k, f, true);
-//            node.__niceListeners = node.__niceListeners || {};
-//            node.__niceListeners[k] = node.__niceListeners[k] || [];
-//            node.__niceListeners[k].push(f);
-//          })
-//        : console.log('TODO: Remove, ', k)
-//      )
-//    );
-//    e._shownNodes.set(node, ss);
-//  });
-
 
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
@@ -701,36 +619,27 @@ if(nice.isEnvBrowser()){
     node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
-
-
-  function removeNode(node, v){
-    node && node.parentNode.removeChild(node);
-    v && v.cssSelectors && v.cssSelectors.size && killAllRules(v);
-  }
 };
 
 const addRules = (vs, selector, className) => {
   const rule = assertRule(selector, className);
-  vs.each((value, prop) => rule.style[prop] = value);
+  vs.each((v, k) => rule.style[k] = v);
+};
+
+
+const changeRules = (values, oldValues, selector, className) => {
+  const rule = assertRule(selector, className);
+  _each(values, (v, k) => rule.style[k] = v);
+  _each(oldValues, (v, k) => k in values || (rule.style[k] = null));
 };
 
 
 const findRule = (selector, className) => {
-  const s = `.${className} ${selector}`.toLowerCase();
+  const s = `.${className}${selector}`.toLowerCase();
   let rule;
   for (const r of runtime.styleSheet.cssRules)
     r.selectorText === s && (rule = r);
   return rule;
-};
-
-
-const findRuleindex = (selector, className) => {
-  const s = `.${className} ${selector}`.toLowerCase();
-  let res;
-  const rules = runtime.styleSheet.cssRules;
-  for (const i in rules)
-    rules[i].selectorText === s && (res = i);
-  return res;
 };
 
 
@@ -739,29 +648,41 @@ const assertRule = (selector, className) => {
       .cssRules[runtime.styleSheet.insertRule(`.${className}${selector}` + '{}')];
 };
 
-//  const killSelectors = (css, className) => {
-//    css.each((v, k) => killRules(v, k, getAutoClass(className)));
-//  };
-function killSelectors(v) {
-  const c = getAutoClass(v.attributes.get('className'));
-  v.cssSelectors.each((v, k) => killRules(v, k, c));
-};
-
 
 const killRules = (vs, selector, id) => {
   const rule = findRule(selector, id);
-  rule && vs.each((value, prop) => rule.style[prop] = null);
+  rule && _each(vs, (value, prop) => rule.style[prop] = null);
 };
 
 
-const killAllRules = v => {
-  const c = getAutoClass(v.attributes.get('className'));
+const killAllRules = className => {
   const a = [];
   [...runtime.styleSheet.cssRules].forEach((r, i) =>
-      r.selectorText.indexOf(c) === 1 && a.unshift(i));
+      r.selectorText.indexOf(className) === 1 && a.unshift(i));
   a.forEach(i => runtime.styleSheet.deleteRule(i));
 };
+
 
 function addSelectors(selectors, node){
   selectors.each((v, k) => addRules(v, k, getAutoClass(node.className)));
 };
+
+
+function refreshSelectors(selectors, oldSelectors, node){
+  const className = getAutoClass(node.className);
+  _each(selectors, (v, k) => changeRules(v, oldSelectors[k], k, className));
+  _each(oldSelectors, (v, k) => (k in selectors) || killRules(v, k, className));
+};
+
+
+function assertAutoClass(node) {
+  const className = node.className || '';
+  if(className.indexOf(nice.AUTO_PREFIX) < 0){
+    let name = node.assertedClass;
+    if(!name){
+      name = nice.genereteAutoId();
+      node.assertedClass = name;
+    }
+    node.className = className !== '' ? (className + ' ' + name) : name;
+  }
+}
