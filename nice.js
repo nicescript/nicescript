@@ -3734,7 +3734,8 @@ function refreshElement(e, old, domNode){
     _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode[k] = ""));
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode[k] = v));
     e.needAutoClass === true && assertAutoClass(domNode);
-    refreshSelectors(e.cssSelectors.jsValue, old.cssSelectors.jsValue, domNode);
+    if(e.needAutoClass || domNode.assertedClass)
+      refreshSelectors(e.cssSelectors.jsValue, old.cssSelectors.jsValue, domNode);
     const newHandlers = e.eventHandlers._value, oldHandlers = old.eventHandlers._value;
     nice._eachEach(oldHandlers, (f, i, type) => {
       if(!(newHandlers[type] && newHandlers[type].includes(f)))
@@ -3756,7 +3757,6 @@ function refreshChildren(aChildren, bChildren, domNode){
   let ai = 0, bi = 0;
   while(ai < aKeys.length){
     const aChild = aKeys[ai], bChild = bKeys[bi];
-    
     if(aChild === bChild && aChild !== undefined){
       ai++, bi++;
     } else if(!bCount[aChild]){
@@ -3911,6 +3911,58 @@ function assertAutoClass(node) {
     node.className = className !== '' ? (className + ' ' + name) : name;
   }
 }
+nice.isEnvBrowser() && Test((Div) => {
+  const testPane = document.createElement('div');
+  document.body.appendChild(testPane);
+  Test((Div, show) => {
+    const div = Div('q')
+      .b('w')
+      .I('e').up
+      .color('red');
+    const node = div.show(testPane);
+    expect(node.textContent).is('qwe');
+    expect(node.style.color).is('red');
+  });
+  Test((Div, Box, show) => {
+    const box = Box('asd');
+    const div = Div(box);
+    const node = div.show(testPane);
+    expect(node.textContent).is('asd');
+    box(Div('zxc'));
+    expect(node.textContent).is('zxc');
+  });
+  Test('Reorder children', (Div, Box, show) => {
+    const d1 = Div('d1');
+    const d2 = Div('d2');
+    const d3 = Div('d3');
+    const box = Box(Div(d1,d2,d3));
+    const div = Div(box);
+    const node = div.show(testPane);
+    expect(node.textContent).is('d1d2d3');
+    box(Div(d2,d3,d1));
+    expect(node.textContent).is('d2d3d1');
+  });
+  Test((Div, Box, Css, show) => {
+    const box = Box(0);
+    const initialRulesCount = runtime.styleSheet.rules.length;
+    const div = Div(RBox(box, a => {
+      return a === 0 ? I('qwe') : B('asd')
+        .Css(':first-child').backgroundColor('red').up;
+    }));
+    const node = div.show(testPane);
+    expect(node.textContent).is('qwe');
+    box(1);
+    expect(node.textContent).is('asd');
+    expect(window.getComputedStyle(node.firstChild).backgroundColor)
+        .is('rgb(255, 0, 0)');
+    box(0);
+    expect(node.textContent).is('qwe');
+    expect(window.getComputedStyle(node.firstChild).backgroundColor)
+        .is('rgba(0, 0, 0, 0)');
+    expect(runtime.styleSheet.rules.length).is(initialRulesCount);
+  });
+  document.body.removeChild(testPane);
+});
 })();
 (function(){"use strict";const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
