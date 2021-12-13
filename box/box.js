@@ -1,5 +1,6 @@
-let autoId = 0;
-const AUTO_PREFIX = '_nn_';
+const IS_READY = 1;
+const IS_LOADING = 2;
+const IS_HOT = 4;
 
 
 nice.Type({
@@ -11,11 +12,18 @@ nice.Type({
     return as.length === 0 ? z._value : z.setState(as[0]);
   },
 
-  initBy: (z, v) => z.setState(v),
+  initBy: (z, v) => {
+    if(v === undefined){
+      z._status = 0;
+      return z;
+    }
+    z.setState(v);
+  },
 
   proto: {
-    setState (v){
+    setState (v) {
       this._value = v;
+      this._status = v === undefined ? 0 : IS_READY;
       this.emit('state', v);
     },
 
@@ -54,6 +62,11 @@ nice.Type({
   }
 });
 
+const Box = nice.Box;
+Box.IS_READY = IS_READY;
+Box.IS_LOADING = IS_LOADING;
+Box.IS_HOT = IS_HOT;
+
 
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 
@@ -69,6 +82,12 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(3);
+});
+
+
+Test('Behaviour with undefined', (Box) => {
+  const b = Box();
+  //TODO: write test
 });
 
 

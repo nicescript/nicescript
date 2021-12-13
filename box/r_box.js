@@ -1,6 +1,4 @@
-const IS_READY = 1;
-const IS_LOADING = 2;
-const IS_HOT = 4;
+const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;
 
 nice.Type({
   name: 'RBox',
@@ -20,7 +18,7 @@ nice.Type({
   customCall: (z, ...as) => {
     if(as.length === 0){
       if(!(z._status & IS_READY))
-        z .attemptCompute();
+        z.attemptColdCompute();
 
       return z._value;
     }
@@ -70,10 +68,25 @@ nice.Type({
     },
 
     attemptCompute(){
-      const ready = this._inputValues.every(v => v !== undefined);
-
-      if(!ready)
+      if(!this._inputValues.every(v => v !== undefined))
         return;
+
+      try {
+        const value = this._by(...this._inputValues);
+        this.setState(value);
+        this._status &= ~IS_LOADING;
+        this._status |= IS_READY;
+      } catch (e) {
+//        this.setState(nice.Err('Fail to compute'));
+        this.setState(e);
+      }
+    },
+
+    attemptColdCompute(){
+      if(!this._inputs.every(v => v._status & IS_READY))
+        return;
+
+      this._inputValues = this._inputs.map(v => v._value);
 
       try {
         const value = this._by(...this._inputValues);
@@ -208,3 +221,9 @@ Test('RBox reconfigure', (Box, RBox, Spy) => {
   expect(b.countListeners('state')).is(0);
 });
 
+
+Test('RBox cold compute', (Box, RBox) => {
+  var a = Box(1);
+  var b = RBox(a, x => x + 3);
+  expect(b()).is(4);
+});

@@ -11,6 +11,7 @@ nice.Type({
     z._ms = ms;
     z._f = f;
     z._interval = null;
+    z._status = 0;
   },
 
   proto: {

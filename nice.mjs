@@ -1809,18 +1809,26 @@ Test('Partial type constructor', (partial) => {
   expect(f('world')).is('Hello world');
 });
 })();
-(function(){"use strict";let autoId = 0;
-const AUTO_PREFIX = '_nn_';
+(function(){"use strict";const IS_READY = 1;
+const IS_LOADING = 2;
+const IS_HOT = 4;
 nice.Type({
   name: 'Box',
   extends: 'Something',
   customCall: (z, ...as) => {
     return as.length === 0 ? z._value : z.setState(as[0]);
   },
-  initBy: (z, v) => z.setState(v),
+  initBy: (z, v) => {
+    if(v === undefined){
+      z._status = 0;
+      return z;
+    }
+    z.setState(v);
+  },
   proto: {
-    setState (v){
+    setState (v) {
       this._value = v;
+      this._status = v === undefined ? 0 : IS_READY;
       this.emit('state', v);
     },
     uniq(){
@@ -1853,6 +1861,10 @@ nice.Type({
     }
   }
 });
+const Box = nice.Box;
+Box.IS_READY = IS_READY;
+Box.IS_LOADING = IS_LOADING;
+Box.IS_HOT = IS_HOT;
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 Test((Box, Spy) => {
   const b = Box();
@@ -1864,6 +1876,10 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(3);
+});
+Test('Behaviour with undefined', (Box) => {
+  const b = Box();
+  
 });
 Test((Box, Spy, uniq) => {
   const b = Box().uniq();
@@ -1993,9 +2009,7 @@ Test((BoxSet, assign, Spy) => {
   expect(spy).calledTwice();
 });
 })();
-(function(){"use strict";const IS_READY = 1;
-const IS_LOADING = 2;
-const IS_HOT = 4;
+(function(){"use strict";const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;
 nice.Type({
   name: 'RBox',
   extends: 'Box',
@@ -2011,7 +2025,7 @@ nice.Type({
   customCall: (z, ...as) => {
     if(as.length === 0){
       if(!(z._status & IS_READY))
-        z .attemptCompute();
+        z.attemptColdCompute();
       return z._value;
     }
     throw `Can't set value for reactive box`;
@@ -2049,9 +2063,21 @@ nice.Type({
       }
     },
     attemptCompute(){
-      const ready = this._inputValues.every(v => v !== undefined);
-      if(!ready)
+      if(!this._inputValues.every(v => v !== undefined))
         return;
+      try {
+        const value = this._by(...this._inputValues);
+        this.setState(value);
+        this._status &= ~IS_LOADING;
+        this._status |= IS_READY;
+      } catch (e) {
+        this.setState(e);
+      }
+    },
+    attemptColdCompute(){
+      if(!this._inputs.every(v => v._status & IS_READY))
+        return;
+      this._inputValues = this._inputs.map(v => v._value);
       try {
         const value = this._by(...this._inputValues);
         this.setState(value);
@@ -2156,6 +2182,11 @@ Test('RBox reconfigure', (Box, RBox, Spy) => {
   a(7);
   expect(spy).calledWith(10);
   expect(b.countListeners('state')).is(0);
+});
+Test('RBox cold compute', (Box, RBox) => {
+  var a = Box(1);
+  var b = RBox(a, x => x + 3);
+  expect(b()).is(4);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -3677,8 +3708,9 @@ function createSubscription(box, state, dom){
 }
 function attachNode(child, parent, position){
   if(child && child._isBox){
-    
-    let state = '-';
+    let state = child();
+    if(state === undefined)
+      state = '';
     let dom = toDom(state);
     insertAt(parent, dom, position);
     child.subscribe(createSubscription(child, state, dom));
@@ -3766,7 +3798,6 @@ function refreshChildren(aChildren, bChildren, domNode){
       detachNode(domNode.childNodes[ai], domNode);
       bi++;
     } else {
-      
       const old = domNode.childNodes[bi];
       attachNode(aChildren[ai], domNode, bi);
       old && detachNode(old, domNode);

@@ -344,9 +344,9 @@ function createSubscription(box, state, dom){
 function attachNode(child, parent, position){
 
   if(child && child._isBox){
-    //TODO: RBox cold compute
-//    let state = child();
-    let state = '-';
+    let state = child();
+    if(state === undefined)
+      state = '';
     let dom = toDom(state);
     insertAt(parent, dom, position);
     child.subscribe(createSubscription(child, state, dom));
@@ -458,7 +458,6 @@ function refreshChildren(aChildren, bChildren, domNode){
       detachNode(domNode.childNodes[ai], domNode);
       bi++;
     } else {//assume ugly reorder - brute force
-      //TODO:0 attach|detach node
       const old = domNode.childNodes[bi];
       attachNode(aChildren[ai], domNode, bi);
       old && detachNode(old, domNode);
