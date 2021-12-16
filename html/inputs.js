@@ -56,6 +56,12 @@ Html.extend('Input', (z, type) => {
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
+Test((Input) => {
+  expect(Input().html).is('<input type="text" value=""></input>');
+  expect(Input('date').html).is('<input type="date" value=""></input>');
+  expect(Input().value('qwe').html).is('<input type="test" value="qwe"></input>');
+});
+
 Html.extend('Button', (z, text = '', action) => {
     z.super('button').on('click', action);
 //    z.attributes.set('value', text);
@@ -96,9 +102,7 @@ Html.extend('Form', (z, handler) => {
         field.name && (input[field.name] = field.value);
       }
 
-//      try C
-        handler(input);
-//      } catch ()
+      handler(input);
     });
   })
   .about('Represents HTML <input type="submit"> element.');

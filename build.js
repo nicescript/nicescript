@@ -30,6 +30,7 @@ const order = [
   'box/box_set',
   'box/r_box',
   'box/interval_box',
+  'box/model',
   'core/stream',
   'core/logic',
   'core/value',
