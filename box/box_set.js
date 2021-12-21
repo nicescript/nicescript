@@ -21,7 +21,7 @@ nice.Type({
         if(v === null)
           delete this._value[k];
         this._value[k] = v;
-        this.emit('value', v, k);
+        this.emit('value', v, ''+k);
       }
       return this;
     },

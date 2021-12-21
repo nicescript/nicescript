@@ -112,17 +112,8 @@ nice.Type({
 
     coolDown(){
       this._status &= ~IS_HOT;
-      for (let [input, f] of this._inputListeners) {
+      for (let [input, f] of this._inputListeners)
         this.detachSource(input);
-//        const source = this._inputs[i];
-//        if(source._isBox){
-//
-//          if(source._isBox)
-//            return source.unsubscribe(f);
-//
-//          return source.off('state', f);
-//        }
-      };
     },
 
     attachSource(source, i){
@@ -139,10 +130,7 @@ nice.Type({
     },
 
     detachSource(source){
-      const f = this._inputListeners.get(source);
-      if(source._isBox){
-        return source.unsubscribe(f);
-      }
+      source._isBox && source.unsubscribe(this._inputListeners.get(source));
     }
   }
 });

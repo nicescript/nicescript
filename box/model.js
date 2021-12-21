@@ -1,4 +1,6 @@
 //QUESTION: make rows of nice.Type
+//TODO: use Model in todo example
+
 nice.Type({
   name: 'Model',
 
@@ -16,18 +18,41 @@ nice.Type({
       let meta = this._meta;
       const lastKey = path.pop();
 
-
       for(const key of path) {
         if(!(key in target)) {
           target[key] = {};
+          this.addKey(meta, key);
         }
         meta = meta?.children?.[key];
         target = target[key];
       }
 
       target[lastKey] = value;
-      meta !== undefined && this.notifyDown(meta, lastKey, value);
+      if(meta !== undefined) {
+        this.notifyDown(meta, lastKey, value);
+        this.addKeysDown(meta, lastKey, value);
+      }
       this.notifyTop(path);
+    },
+
+    addKey (meta, key) {
+      meta !== undefined && meta.keyListener !== undefined
+          && meta.keyListener.set(key, 1);
+    },
+
+    addKeysDown (meta, key, value) {
+      if(meta.keyListener !== undefined){
+        meta.keyListener.set(key, 1);
+      }
+
+      const childMeta = meta?.children?.[key];
+      if(meta === undefined  && typeof value !== 'object')
+        return;
+
+//      for(const k in value) {
+//        if(k in childMeta.listeners)
+//          ;
+//      }
     },
 
     notifyTop (path) {
@@ -72,11 +97,22 @@ nice.Type({
       return result;
     },
 
+    getMeta (...path) {
+      let meta = this._meta;
+      for(const key of path) {
+        if(!(key in meta.children)) {
+          return;
+        }
+        meta = meta.children[key];
+      }
+      return meta;
+    },
+
     assertMeta (...path) {
       let meta = this._meta;
       for(const key of path) {
         if(!(key in meta.children)) {
-          meta.children[key] = { listeners: {}, children: {} };
+          meta.children[key] = { listeners: {}, keyListener: undefined, children: {} };
         }
         meta = meta.children[key];
       }
@@ -90,6 +126,18 @@ nice.Type({
         listeners[key] = nice.Box(this.get(...path, key));
       }
       return listeners[key];
+    },
+
+    keyBox(...path){
+      const meta = this.assertMeta(...path);
+      if(!meta.keyListener){
+        meta.keyListener = nice.BoxSet();
+        const data = this.get(...path);
+        if(typeof data === 'object')
+          for(let i in data)
+            meta.keyListener.set(i, 1);
+      }
+      return meta.keyListener;
     }
   }
 });
@@ -128,4 +176,22 @@ Test('Notify up', (Model, getBox, Spy) => {
   m.set('tasks', 1, 'text', 'Go');
   expect(spy).calledOnce();
   expect(res).deepEqual({text:'Go'});
+});
+
+
+Test((Model, keyBox, Spy) => {
+  const m = Model();
+  m.set('tasks', 7, 'text', 'Wash');
+
+  const spy = Spy();
+  const keys = m.keyBox('tasks');
+  keys.subscribe(spy);
+  expect(spy).calledWith(1, '7');
+
+  m.set('tasks', 11, 'text', 'Go');
+//  expect(spy).calledOnce();
+  expect(spy).calledWith(1, '11');
+
+  m.set('tasks', 11, 'text', 'Go');
+
 });
