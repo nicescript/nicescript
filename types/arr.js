@@ -139,9 +139,14 @@ Test("each", (Arr, Spy, each) => {
 
 
 M.Function('reduce', (a, f, res) => {
-  _each(a, (v, k) => res = f(res, v, k));
+  _each(a._value, (v, k) => res = f(res, v, k));
   return res;
 });
+
+Test((Arr, reduce) => {
+  expect(Arr(1,2,3).reduce((a,b) => a + b, 0)).is(6);
+});
+
 
 M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
@@ -314,7 +319,15 @@ Mapping.Array.Function(function map(a, f){
 
 
 M.Function(function filter(a, f){
-  return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
+  return a.reduce((res, v, k) => {
+    f(v, k, a) && res.push(v);
+    return res;
+  }, Arr());
+});
+
+Test((Arr, filter) => {
+  const a = Arr(1, 2, 3, 4, 5);
+  expect(a.filter(x => x % 2)).deepEqual([1,3,5]);
 });
 
 

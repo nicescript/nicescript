@@ -131,7 +131,7 @@ nice.Type({
     keyBox(...path){
       const meta = this.assertMeta(...path);
       if(!meta.keyListener){
-        meta.keyListener = nice.BoxSet();
+        meta.keyListener = nice.BoxMap();
         const data = this.get(...path);
         if(typeof data === 'object')
           for(let i in data)
@@ -193,5 +193,4 @@ Test((Model, keyBox, Spy) => {
   expect(spy).calledWith(1, '11');
 
   m.set('tasks', 11, 'text', 'Go');
-
 });

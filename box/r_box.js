@@ -54,9 +54,7 @@ nice.Type({
     subscribe(f){
       this.warmUp();
       this.on('state', f);
-      if(this._status & IS_READY){
-        f(this._value);
-      }
+      (this._status & IS_READY) && f(this._value);
     },
 
     unsubscribe(f){

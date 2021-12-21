@@ -1865,6 +1865,9 @@ const Box = nice.Box;
 Box.IS_READY = IS_READY;
 Box.IS_LOADING = IS_LOADING;
 Box.IS_HOT = IS_HOT;
+const boxTargetProto = {
+  
+}
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 Test((Box, Spy) => {
   const b = Box();
@@ -1954,6 +1957,55 @@ Test('Box action', (Box, Spy) => {
     throwF('Use access methods');
   },
   initBy: (z, o) => {
+    z._value = new Set();
+    o && _each(o, (v, k) => z.set(k, v));
+  },
+  proto: {
+    add (v) {
+      const values = this._value;
+      if(!values.has(v)) {
+        values.add(v);
+        this.emit('value', v);
+      }
+      return this;
+    },
+    has (v) {
+      return this._value.has(v);
+    },
+    subscribe (f) {
+      for (let v of this._value) f(v);
+      this.on('value', f);
+    },
+    unsubscribe (f) {
+      this.off('value', f);
+    },
+  }
+});
+nice.eventEmitter(nice.BoxSet.proto);
+Test((BoxSet, Spy) => {
+  const b = BoxSet();
+  const spy = Spy();
+  b.add(1);
+  b.subscribe(spy);
+  expect(spy).calledWith(1);
+  b.add('z');
+  expect(spy).calledWith('z');
+  expect(spy).calledTwice();
+  Test(has => {
+    expect(b.has(1)).is(true);
+    expect(b.has('1')).is(false);
+    expect(b.has('z')).is(true);
+    expect(b.has('@')).is(false);
+  });
+});
+})();
+(function(){"use strict";nice.Type({
+  name: 'BoxMap',
+  extends: 'Something',
+  customCall: (z, ...as) => {
+    throwF('Use access methods');
+  },
+  initBy: (z, o) => {
     z._value = {};
     o && _each(o, (v, k) => z.set(k, v));
   },
@@ -1966,7 +2018,7 @@ Test('Box action', (Box, Spy) => {
         if(v === null)
           delete this._value[k];
         this._value[k] = v;
-        this.emit('value', v, k);
+        this.emit('value', v, ''+k);
       }
       return this;
     },
@@ -1986,9 +2038,9 @@ Test('Box action', (Box, Spy) => {
     }
   }
 });
-nice.eventEmitter(nice.BoxSet.proto);
-Test((BoxSet, Spy) => {
-  const b = BoxSet();
+nice.eventEmitter(nice.BoxMap.proto);
+Test((BoxMap, Spy) => {
+  const b = BoxMap();
   const spy = Spy();
   b.set('a', 1);
   b.subscribe(spy);
@@ -1997,9 +2049,9 @@ Test((BoxSet, Spy) => {
   expect(spy).calledWith(3, 'z');
   expect(spy).calledTwice();
 });
-Action.BoxSet('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
-Test((BoxSet, assign, Spy) => {
-  const b = BoxSet();
+Action.BoxMap('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
+Test((BoxMap, assign, Spy) => {
+  const b = BoxMap();
   const spy = Spy();
   b.set('a', 1);
   b.subscribe(spy);
@@ -2051,9 +2103,7 @@ nice.Type({
     subscribe(f){
       this.warmUp();
       this.on('state', f);
-      if(this._status & IS_READY){
-        f(this._value);
-      }
+      (this._status & IS_READY) && f(this._value);
     },
     unsubscribe(f){
       this.off('state', f);
@@ -2099,9 +2149,8 @@ nice.Type({
     },
     coolDown(){
       this._status &= ~IS_HOT;
-      for (let [input, f] of this._inputListeners) {
+      for (let [input, f] of this._inputListeners)
         this.detachSource(input);
-      };
     },
     attachSource(source, i){
       if(source._isBox){
@@ -2115,10 +2164,7 @@ nice.Type({
       }
     },
     detachSource(source){
-      const f = this._inputListeners.get(source);
-      if(source._isBox){
-        return source.unsubscribe(f);
-      }
+      source._isBox && source.unsubscribe(this._inputListeners.get(source));
     }
   }
 });
@@ -2259,13 +2305,29 @@ nice.Type({
       for(const key of path) {
         if(!(key in target)) {
           target[key] = {};
+          this.addKey(meta, key);
         }
         meta = meta?.children?.[key];
         target = target[key];
       }
       target[lastKey] = value;
-      meta !== undefined && this.notifyDown(meta, lastKey, value);
+      if(meta !== undefined) {
+        this.notifyDown(meta, lastKey, value);
+        this.addKeysDown(meta, lastKey, value);
+      }
       this.notifyTop(path);
+    },
+    addKey (meta, key) {
+      meta !== undefined && meta.keyListener !== undefined
+          && meta.keyListener.set(key, 1);
+    },
+    addKeysDown (meta, key, value) {
+      if(meta.keyListener !== undefined){
+        meta.keyListener.set(key, 1);
+      }
+      const childMeta = meta?.children?.[key];
+      if(meta === undefined  && typeof value !== 'object')
+        return;
     },
     notifyTop (path) {
       let meta = this._meta;
@@ -2301,11 +2363,21 @@ nice.Type({
       }
       return result;
     },
+    getMeta (...path) {
+      let meta = this._meta;
+      for(const key of path) {
+        if(!(key in meta.children)) {
+          return;
+        }
+        meta = meta.children[key];
+      }
+      return meta;
+    },
     assertMeta (...path) {
       let meta = this._meta;
       for(const key of path) {
         if(!(key in meta.children)) {
-          meta.children[key] = { listeners: {}, children: {} };
+          meta.children[key] = { listeners: {}, keyListener: undefined, children: {} };
         }
         meta = meta.children[key];
       }
@@ -2318,6 +2390,17 @@ nice.Type({
         listeners[key] = nice.Box(this.get(...path, key));
       }
       return listeners[key];
+    },
+    keyBox(...path){
+      const meta = this.assertMeta(...path);
+      if(!meta.keyListener){
+        meta.keyListener = nice.BoxMap();
+        const data = this.get(...path);
+        if(typeof data === 'object')
+          for(let i in data)
+            meta.keyListener.set(i, 1);
+      }
+      return meta.keyListener;
     }
   }
 });
@@ -2345,6 +2428,17 @@ Test('Notify up', (Model, getBox, Spy) => {
   m.set('tasks', 1, 'text', 'Go');
   expect(spy).calledOnce();
   expect(res).deepEqual({text:'Go'});
+});
+Test((Model, keyBox, Spy) => {
+  const m = Model();
+  m.set('tasks', 7, 'text', 'Wash');
+  const spy = Spy();
+  const keys = m.keyBox('tasks');
+  keys.subscribe(spy);
+  expect(spy).calledWith(1, '7');
+  m.set('tasks', 11, 'text', 'Go');
+  expect(spy).calledWith(1, '11');
+  m.set('tasks', 11, 'text', 'Go');
 });
 })();
 (function(){"use strict";let autoId = 0;
@@ -3168,8 +3262,11 @@ Test("each", (Arr, Spy, each) => {
   expect(spy).calledWith(2, 1);
 });
 M.Function('reduce', (a, f, res) => {
-  _each(a, (v, k) => res = f(res, v, k));
+  _each(a._value, (v, k) => res = f(res, v, k));
   return res;
+});
+Test((Arr, reduce) => {
+  expect(Arr(1,2,3).reduce((a,b) => a + b, 0)).is(6);
 });
 M.Function('reduceRight', (a, f, res) => {
   a.eachRight((v, k) => res = f(res, v, k));
@@ -3271,7 +3368,14 @@ Mapping.Array.Function(function map(a, f){
   return a.reduce((z, v, k) => { z.push(f(v, k)); return z; }, []);
 });
 M.Function(function filter(a, f){
-  return a.reduceTo(Arr(), (res, v, k) => f(v, k, a) && res.push(v));
+  return a.reduce((res, v, k) => {
+    f(v, k, a) && res.push(v);
+    return res;
+  }, Arr());
+});
+Test((Arr, filter) => {
+  const a = Arr(1, 2, 3, 4, 5);
+  expect(a.filter(x => x % 2)).deepEqual([1,3,5]);
 });
 M(function random(a){
   return a.get(Math.random() * a._value.length | 0);
