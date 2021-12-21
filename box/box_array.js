@@ -13,14 +13,14 @@ nice.Type({
 
   proto: {
     set (k, v) {
-      const values = this._value;
       if(v === null)
         throw `Can't be set to null`;
 
+      const values = this._value;
+
       if(v !== values[k]) {
-        //TODO: should old value be null if  it's a new element?
-        const old = this._value[k];
-        this._value[k] = v;
+        const old = k in values ? values[k] : null;
+        values[k] = v;
         this.emit('element', k, v, old);
       }
       return this;
@@ -66,7 +66,7 @@ nice.Type({
     },
 
     map (f) {
-      const res = nice.BoxArray();//this._value.map(f)
+      const res = nice.BoxArray();
       this.subscribe((index, newValue, oldValue) => {
         if(newValue !== null && oldValue !== null) {
           res.set(index, f(newValue));
@@ -148,16 +148,3 @@ Test((BoxArray, Spy, map) => {
   a.remove(1);
   expect(b()).deepEqual([4,10]);
 });
-
-//Action.BoxSet('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
-//
-//Test((BoxSet, assign, Spy) => {
-//  const b = BoxSet();
-//  const spy = Spy();
-//  b.set('a', 1);
-//  b.subscribe(spy);
-//  expect(spy).calledWith(1, 'a');
-//  b.assign({z: 3});
-//  expect(spy).calledWith(3, 'z');
-//  expect(spy).calledTwice();
-//});

@@ -29,6 +29,7 @@ const order = [
   'box/box',
   'box/box_set',
   'box/box_map',
+  'box/box_array',
   'box/r_box',
   'box/interval_box',
   'box/model',

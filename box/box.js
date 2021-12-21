@@ -67,10 +67,6 @@ Box.IS_READY = IS_READY;
 Box.IS_LOADING = IS_LOADING;
 Box.IS_HOT = IS_HOT;
 
-const boxTargetProto = {
-  
-}
-
 
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 
