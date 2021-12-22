@@ -21,7 +21,7 @@ nice.Type({
       if(v !== values[k]) {
         const old = k in values ? values[k] : null;
         values[k] = v;
-        this.emit('element', k, v, old);
+        this.emit('element', v, k, old, k);
       }
       return this;
     },
@@ -31,12 +31,12 @@ nice.Type({
         return;
       const old = vs[i];
       this._value.splice(i, 1);
-      this.emit('element', i, null, old);
+      this.emit('element', null, null, old, i);
     },
     insert (i, v) {
       const vs = this._value;
       this._value.splice(i, 0, v);
-      this.emit('element', i, v, null);
+      this.emit('element', v, i, null, null);
     },
     setAll (a) {
       if(!Array.isArray(a))
@@ -47,18 +47,20 @@ nice.Type({
       const oldLength = oldValues.length;
 
       a.forEach((v, k) => {
-        this.emit('element', k, v, k >= oldLength ? null : oldValues[k]);
+        this.emit('element', v, k,
+          k >= oldLength ? null : oldValues[k],
+          k >= oldLength ? null : k);
       });
 
       if(newLength < oldLength) {
         for(let i = newLength; i < oldLength ; i++)
-          this.emit('element', i, null, oldValues[i]);
+          this.emit('element', null, null, oldValues[i], i);
       }
 
       this._value = a;
     },
     subscribe (f) {
-      this._value.forEach((v, k) => f(k, v, null));
+      this._value.forEach((v, k) => f(v, k, null, null));
       this.on('element', f);
     },
     unsubscribe (f) {
@@ -67,13 +69,13 @@ nice.Type({
 
     map (f) {
       const res = nice.BoxArray();
-      this.subscribe((index, newValue, oldValue) => {
-        if(newValue !== null && oldValue !== null) {
-          res.set(index, f(newValue));
-        } else if (newValue === null) {
-          res.remove(index);
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        if(value !== null && oldValue !== null) {
+          res.set(index, f(value));
+        } else if (value === null) {
+          res.remove(oldIndex);
         } else {
-          res.insert(index, f(newValue));
+          res.insert(index, f(value));
         }
       });
       return res;
@@ -89,12 +91,12 @@ Test((BoxArray, Spy, set) => {
 
   a.subscribe(spy);
 
-  expect(spy).calledWith(0, 1, null);
-  expect(spy).calledWith(1, 2, null);
+  expect(spy).calledWith(1, 0, null, null);
+  expect(spy).calledWith(2, 1, null, null);
 
   a.set(0, 3);
 
-  expect(spy).calledWith(0, 3, 1);
+  expect(spy).calledWith(3, 0, 1, 0);
 
   expect(spy).calledTimes(3);
   expect(a()).deepEqual([3,2]);
@@ -109,7 +111,7 @@ Test((BoxArray, Spy, insert) => {
 
   a.insert(1, 3);
 
-  expect(spy).calledWith(1, 3, null);
+  expect(spy).calledWith(3, 1, null, null);
 
   expect(spy).calledTimes(3);
   expect(a()).deepEqual([1,3,2]);
@@ -125,7 +127,7 @@ Test((BoxArray, Spy, remove) => {
 
   a.remove(1);
 
-  expect(spy).calledWith(1, null, 2);
+  expect(spy).calledWith(null, null, 2, 1);
 
   expect(spy).calledTimes(4);
   expect(a()).deepEqual([1,3]);

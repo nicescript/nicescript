@@ -14,6 +14,8 @@ nice.Type({
 
   proto: {
     add (v) {
+      if(v === null)
+        throw `BoxSet does not accept null`;
       const values = this._value;
       if(!values.has(v)) {
         values.add(v);
@@ -23,6 +25,10 @@ nice.Type({
     },
     has (v) {
       return this._value.has(v);
+    },
+    delete (v) {
+      this.emit('value', null, v);
+      return this._value.delete(v);
     },
     subscribe (f) {
       for (let v of this._value) f(v);
@@ -56,4 +62,9 @@ Test((BoxSet, Spy) => {
     expect(b.has('@')).is(false);
   });
 
+  Test('delete',  () => {
+    expect(b.delete(1)).is(true);
+    expect(b.has(1)).is(false);
+    expect(spy).calledWith(null, 1);
+  });
 });

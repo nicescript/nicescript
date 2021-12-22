@@ -3,9 +3,7 @@ nice.Type({
 
   extends: 'Something',
 
-  customCall: (z, ...as) => {
-    throwF('Use access methods');
-  },
+  customCall: (z, ...as) => throwF('Use access methods'),
 
   initBy: (z, o) => {
     z._value = {};
