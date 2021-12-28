@@ -1,8 +1,3 @@
-//TODO: change ".value()" logic:
-//1. .value() - get actual (dom element) value
-//2. .value(v) - set value (set dom value ??)
-//3. .boxValue - current ".attachValue" box
-
 const Html = nice.Html;
 
 function defaultSetValue(t, v){
@@ -12,24 +7,16 @@ function defaultSetValue(t, v){
 
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 
-function attachValue(target, setValue = defaultSetValue, value){
-  let node, mute, box;
 
-  if(value && value._isBox){
-    box = value;
-    //TODO: avoid leak
-    setValue(target, value());
-  } else {
-    box = nice.Box(value || "");
-    setValue(target, value || "");
-  }
+function attachValue(target, box, setValue = defaultSetValue){
+  let node, mute;
 
-  def(target, 'value', box);
+  setValue(target, box());
 
   if(IS_BROWSER){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
-      target.value((e.target || e.srcElement).value);
+      box((e.target || e.srcElement).value);
       mute = false;
       return true;
     }));
@@ -40,7 +27,7 @@ function attachValue(target, setValue = defaultSetValue, value){
       node.value = box();
     });
   }
-  target.value.on('state', v => {
+  box.on('state', v => {
     if(mute)
       return;
     node ? node.value = v : setValue(target, v);
@@ -51,10 +38,20 @@ function attachValue(target, setValue = defaultSetValue, value){
 Html.extend('Input', (z, type) => {
     z.tag = 'input';
     z.attributes.set('type', type || 'text');
-//    attachValue(z);
   })
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
+
+
+Input.proto.value = function(v){
+  if(v !== undefined && v._isBox) {
+    attachValue(this, v);
+  } else {
+    this.attributes.set('value', v);
+  }
+  return this;
+};
+
 
 Test((Input) => {
   expect(Input().html).is('<input type="text"></input>');
@@ -63,32 +60,50 @@ Test((Input) => {
 });
 
 
-//env. Test('Box value', (Input, Box) => {
-//  const b = Box();
-//  expect(Input().html).is('<input type="text"></input>');
-//  expect(Input('date').html).is('<input type="date"></input>');
-//  expect(Input().value('qwe').html).is('<input type="text" value="qwe"></input>');
-//});
+Test('Box value html', (Input, Box) => {
+  const b = Box('qwe');
+  const input = Input().value(b);
+  expect(input.html).is('<input type="text" value="qwe"></input>');
+  b('asd');
+  expect(input.html).is('<input type="text" value="asd"></input>');
+});
+
+
+IS_BROWSER && Test('Box value dom', (Input, Box) => {
+  const b = Box('qwe');
+  const input = Input().value(b);
+  expect(input.html).is('<input type="text" value="qwe"></input>');
+  b('asd');
+  expect(input.html).is('<input type="text" value="asd"></input>');
+});
 
 
 Html.extend('Button', (z, text = '', action) => {
-    z.super('button').on('click', action);
-//    z.attributes.set('value', text);
-    z.add(text);
+    z.super('button').type('button').on('click', action).add(text);
   })
   .about('Represents HTML <input type="button"> element.');
 
 
-Input.extend('Textarea', (z, value) => {
+Test((Button) => {
+  const b = Button('qwe');
+  expect(b.html).is('<button type="button">qwe</button>');
+});
+
+
+Input.extend('Textarea', (z, v) => {
     z.tag = 'textarea';
-    attachValue(z, (t, v) =>  t.children.removeAll().push(v), value);
+    if(v !== undefined && v._isBox){
+      attachValue(this, v, (t, v) =>  t.children.removeAll().push(v));
+    } else {
+      z.add(v);
+    };
   })
   .about('Represents HTML <textarea> element.');
 
 
 Test(Textarea => {
   const ta = Textarea('qwe');
-  expect(ta.value()).is('qwe');
+  expect(ta.html).is('<textarea>qwe</textarea>');
 });
 
 
