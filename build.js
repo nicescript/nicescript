@@ -52,7 +52,7 @@ const order = [
 ];
 
 
-let src = 'let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;' +
+let src = 'let nice;(function(){const IS_BROWSER = typeof window !== "undefined";let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;' +
   order.map(name => fs.readFileSync('./' + name + '.js'))
     .map(wrap)
     .map(cleanComments)

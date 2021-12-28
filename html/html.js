@@ -8,7 +8,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
-    if(name === 'domNode' && nice.isEnvBrowser()){
+    if(name === 'domNode' && IS_BROWSER){
       if(!e.id())
         throw `Give element an id to use domNode event.`;
       const el = document.getElementById(e.id());
@@ -482,7 +482,7 @@ nice.htmlEscape = s => (''+s).replace(/&/g, '&amp;')
 const getAutoClass = s => s.match(/(_nn_\d+)/)[0];
 
 
-if(nice.isEnvBrowser()){
+if(IS_BROWSER){
   const styleEl = document.createElement('style');
   document.head.appendChild(styleEl);
   runtime.styleSheet = styleEl.sheet;
@@ -512,7 +512,7 @@ function insertAt(parent, node, position){
 }
 
 
-if(nice.isEnvBrowser()){
+if(IS_BROWSER){
   function killNode(n){
     n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
   }
@@ -685,7 +685,7 @@ function assertAutoClass(node) {
 }
 
 
-nice.isEnvBrowser() && Test((Div) => {
+IS_BROWSER && Test((Div) => {
   const testPane = document.createElement('div');
   document.body.appendChild(testPane);
 

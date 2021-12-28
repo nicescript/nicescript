@@ -61,8 +61,6 @@ const basicChecks = {
     return a === b || b.isPrototypeOf(a);
   },
 
-  isEnvBrowser: () => typeof window !== 'undefined',
-
   throws: (...as) => {
     try{
       as[0]();

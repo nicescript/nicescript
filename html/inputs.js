@@ -26,7 +26,7 @@ function attachValue(target, setValue = defaultSetValue, value){
 
   def(target, 'value', box);
 
-  if(nice.isEnvBrowser()){
+  if(IS_BROWSER){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
       target.value((e.target || e.srcElement).value);
@@ -51,16 +51,25 @@ function attachValue(target, setValue = defaultSetValue, value){
 Html.extend('Input', (z, type) => {
     z.tag = 'input';
     z.attributes.set('type', type || 'text');
-    attachValue(z);
+//    attachValue(z);
   })
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
 Test((Input) => {
-  expect(Input().html).is('<input type="text" value=""></input>');
-  expect(Input('date').html).is('<input type="date" value=""></input>');
-  expect(Input().value('qwe').html).is('<input type="test" value="qwe"></input>');
+  expect(Input().html).is('<input type="text"></input>');
+  expect(Input('date').html).is('<input type="date"></input>');
+  expect(Input().value('qwe').html).is('<input type="text" value="qwe"></input>');
 });
+
+
+//env. Test('Box value', (Input, Box) => {
+//  const b = Box();
+//  expect(Input().html).is('<input type="text"></input>');
+//  expect(Input('date').html).is('<input type="date"></input>');
+//  expect(Input().value('qwe').html).is('<input type="text" value="qwe"></input>');
+//});
+
 
 Html.extend('Button', (z, text = '', action) => {
     z.super('button').on('click', action);
@@ -124,7 +133,7 @@ Input.extend('Checkbox', (z, status) => {
       return true;
     });
 
-    if(nice.isEnvBrowser()){
+    if(IS_BROWSER){
       z.assertId();
       z.on('domNode', n => node = n);
     }
@@ -147,7 +156,7 @@ Input.extend('Checkbox', (z, status) => {
       return true;
     });
 
-    if(nice.isEnvBrowser()){
+    if(IS_BROWSER){
       z.assertId();
       z.on('domNode', n => node = n);
     }
