@@ -258,6 +258,17 @@ defAll(nice, {
   apply: (o, f) => {
     f(o);
     return o;
+  },
+
+  Pipe: (...fs) => {
+    return function(...as){
+      let res = fs[0](...as);
+      const l = fs.length;
+      for(let i = 1; i < l; i++){
+        res = fs[i](res);
+      }
+      return res;
+    };
   }
 });
 defGet = nice.defineGetter;

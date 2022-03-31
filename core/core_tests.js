@@ -82,3 +82,12 @@ Test((times) => {
   expect(x).deepEqual([0,1]);
 });
 
+
+Test((Pipe) => {
+  const x2 = v => v * 2;
+  const plusOne = v => v + 1;
+  const f = Pipe(plusOne, x2, Math.cbrt);
+
+  expect(f(3)).is(2);
+});
+
