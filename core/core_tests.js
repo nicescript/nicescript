@@ -84,10 +84,11 @@ Test((times) => {
 
 
 Test((Pipe) => {
-  const x2 = v => v * 2;
-  const plusOne = v => v + 1;
-  const f = Pipe(plusOne, x2, Math.cbrt);
+  const x2 = a => a * 2;
+  const plusOne = a => a + 1;
+  const plus = (a, b) => a + b;
+  const f = Pipe('count', plusOne, x2, Math.cbrt, [plus, 3]);
 
-  expect(f(3)).is(2);
+  expect(f({count: 3})).is(5);
 });
 

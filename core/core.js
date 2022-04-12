@@ -261,10 +261,20 @@ defAll(nice, {
   },
 
   Pipe: (...fs) => {
-    return function(...as){
-      let res = fs[0](...as);
+    fs = fs.map(f => {
+      if(typeof f === 'string')
+        return o => o[f];
+
+      if(Array.isArray(f)){
+        const as = f.slice(1);
+        return v => f[0](v, ...as);
+      }
+
+      return f;
+    });
+    return function(res){
       const l = fs.length;
-      for(let i = 1; i < l; i++){
+      for(let i = 0; i < l; i++){
         res = fs[i](res);
       }
       return res;

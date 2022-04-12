@@ -20,9 +20,6 @@ const model = Model();
 model.getBox('tasks', 1);
 
 
-
-
-
 const KEY = 'ToDoData';
 
 const Task = Type('Task', (z,s) => s && z.text(s)).str('text').bool('status')();
@@ -47,14 +44,14 @@ const search = Input("search").placeholder('Type to search or add tasks')
 const deleteButton = (state, k) => state && A(() => tasks.remove(k), 'x')
     .textDecoration('none').color('#E33').marginLeft('.5em');
 
-const TaskView = (task, k) => {
+const TaskView = id => RBox(tasks.getBox(id), task => {
   const isHover = Bool();
   
   return Div().padding("1em 0")
     .on('mouseover', () => isHover(true))
     .on('mouseleave', () => isHover(false))
     .Checkbox(task.status)
-      .on('change', e => tasks.get(k).status(e.target.checked))
+      .on('change', e => tasks.get(id).status(e.target.checked))
       .up
     .Span(task.text.or('---'))
       .marginLeft(".5em")
@@ -64,8 +61,8 @@ const TaskView = (task, k) => {
 //    .add(RBox(task.status, s => Span(task.text || '---')
 //        .marginLeft(".5em")
 //        .textDecoration(s() ? 'line-through' : 'none')))
-    .add(deleteButton(isHover, k));
-};    
+    .add(deleteButton(isHover, id));
+});    
 
 
 
@@ -75,8 +72,9 @@ const tasksView = Div()
 
 
 const tasks = model.path('tasks');
-const tasksView = Div()
-  .mapChildren(tasks.keyBox(), id => RBox(tasks.getBox(id), TaskView));
+const tasksView = Div(tasks.keyBox().map(TaskView));
+//  .mapChildren(tasks.keyBox(), id => RBox(tasks.getBox(id), TaskView));
+//  .mapChildren(tasks.keyBox(), TaskView);
 
 //  tasks.filter(t => RegExp(search.value, 'i').test(t.text))
 //    .map(TaskView),

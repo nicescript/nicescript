@@ -1,21 +1,24 @@
 NiceScript
 =========
 
-A naive attempt to simplify life of a fellow JavaScript programmer. 
-[NiceScript.org](http://nicescript.org) 
-[Twitter](https://twitter.com/NiceScriptJS) 
+Set of JavaScript functions that provide following features without compilation 
+or configuration:
+
+* Type System
+* Reactive data flow
+* Create and update HTML and CSS
+* Write tests 
+* Utility functions and control structues
+
+You can use any of them independently or as a whole in any JS project. 
 
 
-Example ( [JS Bin](https://jsbin.com/kenedihasi/edit?html,output) )
+Simple ToDo example ( [JS Bin](https://jsbin.com/kenedihasi/edit?html,output) )
 
 ```javascript
-const { Box, Div, B, Switch } = nice;
+const { Box, RBox, Div, Input } = nice;
 
 const tasks = Box(['Feed the fish', 'Buy milk']);
-
-const decorate = Switch
-  .is('Watch tv')('Read book')
-  .is(/buy/i).use(s => [s, B(' $').color('#3A3')]);
 
 const taskView = t => Div(t)
   .margin('1em 0')
@@ -23,9 +26,13 @@ const taskView = t => Div(t)
   .borderRadius('.5em')
   .backgroundColor('#DEF');
 
-RBox(tasks, ts => Div(ts.map(decorate).map(taskView))).show();
-
-tasks.push('Walk the dog', 'Watch tv');
+const handler = e => 
+    e.key === 'Enter' && (tasks.push(e.target.value), e.target.value = '');
+      
+Div(
+  RBox(tasks, ts => Div(ts.map(taskView))),    
+  Input().padding('.5em').on('keyup', handler)
+).show();
 ```
 
 More examples:

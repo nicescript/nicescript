@@ -123,6 +123,19 @@ Test("Html children Arr", (Div, Arr) => {
 });
 
 
+Html.map = function(f = v => v){
+  return a => this(...a.map(f));
+};
+//v => Div(...v.map(o => Div(JSON.stringify(o)))))
+//v => Div(...v.map(Pipe(JSON.stringify, Div))
+//map($1, Pipe(JSON.stringify, Div))
+//Pipe( map, ..., Div)
+//
+//v => Div.map(v, Pipe(JSON.stringify, Div))
+
+
+
+
 nice.Type('Style')
   .about('Represents CSS style.');
 

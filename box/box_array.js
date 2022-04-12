@@ -20,10 +20,14 @@ nice.Type({
 
       if(v !== values[k]) {
         const old = k in values ? values[k] : null;
+        const oldKey = k in values ? k : null;
         values[k] = v;
-        this.emit('element', v, k, old, k);
+        this.emit('element', v, k, old, oldKey);
       }
       return this;
+    },
+    push (v) {
+      this.set(this._value.length, v);
     },
     remove (i) {
       const vs = this._value;
@@ -77,6 +81,46 @@ nice.Type({
         } else {
           res.insert(index, f(value));
         }
+      });
+      return res;
+    },
+
+    filter (f) {
+      //[1,2,3,4]
+      //[1,3]
+      //{'0':0, 2:1};
+
+      const res = nice.BoxArray();
+      const map = {};//sourceIndex:resIndex
+      const arrayMap = [];
+      //TODO: removal
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        const pass = !!f(value);
+        if(pass) {
+          let i = index;
+          while(i !== 0 && !(i in map)){
+            i--;
+          }
+          res.set(i, value);
+          arrayMap[i] = index;
+          map[index] = i;
+        } else {
+          if(oldIndex !== null){
+//            if(index === null){
+              res.remove(map[oldIndex]);
+              delete map[oldIndex];
+//            }
+          }
+        }
+//
+//
+//        if(value !== null && oldValue !== null) {
+//          res.set(index, f(value));
+//        } else if (value === null) {
+//          res.remove(oldIndex);
+//        } else {
+//          res.insert(index, f(value));
+//        }
       });
       return res;
     }
@@ -149,4 +193,37 @@ Test((BoxArray, Spy, map) => {
 
   a.remove(1);
   expect(b()).deepEqual([4,10]);
+});
+
+
+Test((BoxArray, Spy, filter) => {
+  const a = BoxArray([1,2]);
+  const b = a.filter(x => x % 2);
+
+  expect(b()).deepEqual([1]);
+
+  a.setAll([2,3]);
+  expect(a()).deepEqual([2,3]);
+  expect(b()).deepEqual([3]);
+
+  a.set(2, 5);
+  expect(a()).deepEqual([2,3,5]);
+  expect(b()).deepEqual([3,5]);
+
+  a.set(1, 6);
+  expect(a()).deepEqual([2,6,5]);
+  expect(b()).deepEqual([5]);
+
+  a.remove(1);
+  expect(a()).deepEqual([2,5]);
+  expect(b()).deepEqual([5]);
+
+  a.push(7);
+  expect(a()).deepEqual([2,5,7]);
+  expect(b()).deepEqual([5,7]);
+
+  console.log(a());
+  a.set(1, 10);
+  console.log(a());
+  expect(b()).deepEqual([]);
 });

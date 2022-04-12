@@ -1,4 +1,4 @@
-let nice;(function(){let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;
+let nice;(function(){const IS_BROWSER = typeof window !== "undefined";let create,Div,NotFound,Func,Test,Switch,expect,is,_each,def,defAll,defGet,Anything,Action,Mapping,Check,reflect,Err,each;
 (function(){"use strict";nice = (...a) => {
   if(a.length === 0)
     return nice._createItem(Anything);
@@ -197,6 +197,24 @@ defAll(nice, {
   apply: (o, f) => {
     f(o);
     return o;
+  },
+  Pipe: (...fs) => {
+    fs = fs.map(f => {
+      if(typeof f === 'string')
+        return o => o[f];
+      if(Array.isArray(f)){
+        const as = f.slice(1);
+        return v => f[0](v, ...as);
+      }
+      return f;
+    });
+    return function(res){
+      const l = fs.length;
+      for(let i = 0; i < l; i++){
+        res = fs[i](res);
+      }
+      return res;
+    };
   }
 });
 defGet = nice.defineGetter;
@@ -1256,7 +1274,6 @@ const basicChecks = {
     typeof b === 'string' && (b = nice.Type(b));
     return a === b || b.isPrototypeOf(a);
   },
-  isEnvBrowser: () => typeof window !== 'undefined',
   throws: (...as) => {
     try{
       as[0]();
@@ -1865,9 +1882,6 @@ const Box = nice.Box;
 Box.IS_READY = IS_READY;
 Box.IS_LOADING = IS_LOADING;
 Box.IS_HOT = IS_HOT;
-const boxTargetProto = {
-  
-}
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 Test((Box, Spy) => {
   const b = Box();
@@ -1962,6 +1976,8 @@ Test('Box action', (Box, Spy) => {
   },
   proto: {
     add (v) {
+      if(v === null)
+        throw `BoxSet does not accept null`;
       const values = this._value;
       if(!values.has(v)) {
         values.add(v);
@@ -1971,6 +1987,10 @@ Test('Box action', (Box, Spy) => {
     },
     has (v) {
       return this._value.has(v);
+    },
+    delete (v) {
+      this.emit('value', null, v);
+      return this._value.delete(v);
     },
     subscribe (f) {
       for (let v of this._value) f(v);
@@ -1997,14 +2017,17 @@ Test((BoxSet, Spy) => {
     expect(b.has('z')).is(true);
     expect(b.has('@')).is(false);
   });
+  Test('delete',  () => {
+    expect(b.delete(1)).is(true);
+    expect(b.has(1)).is(false);
+    expect(spy).calledWith(null, 1);
+  });
 });
 })();
 (function(){"use strict";nice.Type({
   name: 'BoxMap',
   extends: 'Something',
-  customCall: (z, ...as) => {
-    throwF('Use access methods');
-  },
+  customCall: (z, ...as) => throwF('Use access methods'),
   initBy: (z, o) => {
     z._value = {};
     o && _each(o, (v, k) => z.set(k, v));
@@ -2077,10 +2100,14 @@ Test((BoxMap, assign, Spy) => {
       const values = this._value;
       if(v !== values[k]) {
         const old = k in values ? values[k] : null;
+        const oldKey = k in values ? k : null;
         values[k] = v;
-        this.emit('element', k, v, old);
+        this.emit('element', v, k, old, oldKey);
       }
       return this;
+    },
+    push (v) {
+      this.set(this._value.length, v);
     },
     remove (i) {
       const vs = this._value;
@@ -2088,12 +2115,12 @@ Test((BoxMap, assign, Spy) => {
         return;
       const old = vs[i];
       this._value.splice(i, 1);
-      this.emit('element', i, null, old);
+      this.emit('element', null, null, old, i);
     },
     insert (i, v) {
       const vs = this._value;
       this._value.splice(i, 0, v);
-      this.emit('element', i, v, null);
+      this.emit('element', v, i, null, null);
     },
     setAll (a) {
       if(!Array.isArray(a))
@@ -2102,16 +2129,18 @@ Test((BoxMap, assign, Spy) => {
       const oldValues = this._value;
       const oldLength = oldValues.length;
       a.forEach((v, k) => {
-        this.emit('element', k, v, k >= oldLength ? null : oldValues[k]);
+        this.emit('element', v, k,
+          k >= oldLength ? null : oldValues[k],
+          k >= oldLength ? null : k);
       });
       if(newLength < oldLength) {
         for(let i = newLength; i < oldLength ; i++)
-          this.emit('element', i, null, oldValues[i]);
+          this.emit('element', null, null, oldValues[i], i);
       }
       this._value = a;
     },
     subscribe (f) {
-      this._value.forEach((v, k) => f(k, v, null));
+      this._value.forEach((v, k) => f(v, k, null, null));
       this.on('element', f);
     },
     unsubscribe (f) {
@@ -2119,13 +2148,40 @@ Test((BoxMap, assign, Spy) => {
     },
     map (f) {
       const res = nice.BoxArray();
-      this.subscribe((index, newValue, oldValue) => {
-        if(newValue !== null && oldValue !== null) {
-          res.set(index, f(newValue));
-        } else if (newValue === null) {
-          res.remove(index);
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        if(value !== null && oldValue !== null) {
+          res.set(index, f(value));
+        } else if (value === null) {
+          res.remove(oldIndex);
         } else {
-          res.insert(index, f(newValue));
+          res.insert(index, f(value));
+        }
+      });
+      return res;
+    },
+    filter (f) {
+      
+      
+      
+      const res = nice.BoxArray();
+      const map = {};
+      const arrayMap = [];
+      
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        const pass = !!f(value);
+        if(pass) {
+          let i = index;
+          while(i !== 0 && !(i in map)){
+            i--;
+          }
+          res.set(i, value);
+          arrayMap[i] = index;
+          map[index] = i;
+        } else {
+          if(oldIndex !== null){
+              res.remove(map[oldIndex]);
+              delete map[oldIndex];
+          }
         }
       });
       return res;
@@ -2137,10 +2193,10 @@ Test((BoxArray, Spy, set) => {
   const a = BoxArray([1,2]);
   const spy = Spy();
   a.subscribe(spy);
-  expect(spy).calledWith(0, 1, null);
-  expect(spy).calledWith(1, 2, null);
+  expect(spy).calledWith(1, 0, null, null);
+  expect(spy).calledWith(2, 1, null, null);
   a.set(0, 3);
-  expect(spy).calledWith(0, 3, 1);
+  expect(spy).calledWith(3, 0, 1, 0);
   expect(spy).calledTimes(3);
   expect(a()).deepEqual([3,2]);
 });
@@ -2149,7 +2205,7 @@ Test((BoxArray, Spy, insert) => {
   const spy = Spy();
   a.subscribe(spy);
   a.insert(1, 3);
-  expect(spy).calledWith(1, 3, null);
+  expect(spy).calledWith(3, 1, null, null);
   expect(spy).calledTimes(3);
   expect(a()).deepEqual([1,3,2]);
 });
@@ -2158,7 +2214,7 @@ Test((BoxArray, Spy, remove) => {
   const spy = Spy();
   a.subscribe(spy);
   a.remove(1);
-  expect(spy).calledWith(1, null, 2);
+  expect(spy).calledWith(null, null, 2, 1);
   expect(spy).calledTimes(4);
   expect(a()).deepEqual([1,3]);
 });
@@ -2173,6 +2229,30 @@ Test((BoxArray, Spy, map) => {
   expect(b()).deepEqual([4,12,10]);
   a.remove(1);
   expect(b()).deepEqual([4,10]);
+});
+Test((BoxArray, Spy, filter) => {
+  const a = BoxArray([1,2]);
+  const b = a.filter(x => x % 2);
+  expect(b()).deepEqual([1]);
+  a.setAll([2,3]);
+  expect(a()).deepEqual([2,3]);
+  expect(b()).deepEqual([3]);
+  a.set(2, 5);
+  expect(a()).deepEqual([2,3,5]);
+  expect(b()).deepEqual([3,5]);
+  a.set(1, 6);
+  expect(a()).deepEqual([2,6,5]);
+  expect(b()).deepEqual([5]);
+  a.remove(1);
+  expect(a()).deepEqual([2,5]);
+  expect(b()).deepEqual([5]);
+  a.push(7);
+  expect(a()).deepEqual([2,5,7]);
+  expect(b()).deepEqual([5,7]);
+  console.log(a());
+  a.set(1, 10);
+  console.log(a());
+  expect(b()).deepEqual([]);
 });
 })();
 (function(){"use strict";const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;
@@ -3766,7 +3846,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
-    if(name === 'domNode' && nice.isEnvBrowser()){
+    if(name === 'domNode' && IS_BROWSER){
       if(!e.id())
         throw `Give element an id to use domNode event.`;
       const el = document.getElementById(e.id());
@@ -3859,6 +3939,9 @@ Test("Html children array", (Div) => {
 Test("Html children Arr", (Div, Arr) => {
   expect(Div(Arr('qwe', 'asd')).html).is('<div>qweasd</div>');
 });
+Html.map = function(f = v => v){
+  return a => this(...a.map(f));
+};
 nice.Type('Style')
   .about('Represents CSS style.');
 const Style = nice.Style;
@@ -4138,7 +4221,7 @@ nice.htmlEscape = s => (''+s).replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 const getAutoClass = s => s.match(/(_nn_\d+)/)[0];
-if(nice.isEnvBrowser()){
+if(IS_BROWSER){
   const styleEl = document.createElement('style');
   document.head.appendChild(styleEl);
   runtime.styleSheet = styleEl.sheet;
@@ -4160,7 +4243,7 @@ function insertAt(parent, node, position){
     : parent.appendChild(node);
   return node;
 }
-if(nice.isEnvBrowser()){
+if(IS_BROWSER){
   function killNode(n){
     n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
   }
@@ -4266,7 +4349,7 @@ function assertAutoClass(node) {
     node.className = className !== '' ? (className + ' ' + name) : name;
   }
 }
-nice.isEnvBrowser() && Test((Div) => {
+IS_BROWSER && Test((Div) => {
   const testPane = document.createElement('div');
   document.body.appendChild(testPane);
   Test((Div, show) => {
@@ -4363,27 +4446,18 @@ const constructors = {
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
 };
 })();
-(function(){"use strict";
-const Html = nice.Html;
+(function(){"use strict";const Html = nice.Html;
 function defaultSetValue(t, v){
   t.attributes.set('value', v);
 };
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
-function attachValue(target, setValue = defaultSetValue, value){
-  let node, mute, box;
-  if(value && value._isBox){
-    box = value;
-    
-    setValue(target, value());
-  } else {
-    box = nice.Box(value || "");
-    setValue(target, value || "");
-  }
-  def(target, 'value', box);
-  if(nice.isEnvBrowser()){
+function attachValue(target, box, setValue = defaultSetValue){
+  let node, mute;
+  setValue(target, box());
+  if(IS_BROWSER){
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
-      target.value((e.target || e.srcElement).value);
+      box((e.target || e.srcElement).value);
       mute = false;
       return true;
     }));
@@ -4393,7 +4467,7 @@ function attachValue(target, setValue = defaultSetValue, value){
       node.value = box();
     });
   }
-  target.value.on('state', v => {
+  box.on('state', v => {
     if(mute)
       return;
     node ? node.value = v : setValue(target, v);
@@ -4403,28 +4477,56 @@ function attachValue(target, setValue = defaultSetValue, value){
 Html.extend('Input', (z, type) => {
     z.tag = 'input';
     z.attributes.set('type', type || 'text');
-    attachValue(z);
   })
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
+Input.proto.value = function(v){
+  if(v !== undefined && v._isBox) {
+    attachValue(this, v);
+  } else {
+    this.attributes.set('value', v);
+  }
+  return this;
+};
 Test((Input) => {
-  expect(Input().html).is('<input type="text" value=""></input>');
-  expect(Input('date').html).is('<input type="date" value=""></input>');
-  expect(Input().value('qwe').html).is('<input type="test" value="qwe"></input>');
+  expect(Input().html).is('<input type="text"></input>');
+  expect(Input('date').html).is('<input type="date"></input>');
+  expect(Input().value('qwe').html).is('<input type="text" value="qwe"></input>');
+});
+Test('Box value html', (Input, Box) => {
+  const b = Box('qwe');
+  const input = Input().value(b);
+  expect(input.html).is('<input type="text" value="qwe"></input>');
+  b('asd');
+  expect(input.html).is('<input type="text" value="asd"></input>');
+});
+IS_BROWSER && Test('Box value dom', (Input, Box) => {
+  const b = Box('qwe');
+  const input = Input().value(b);
+  expect(input.html).is('<input type="text" value="qwe"></input>');
+  b('asd');
+  expect(input.html).is('<input type="text" value="asd"></input>');
 });
 Html.extend('Button', (z, text = '', action) => {
-    z.super('button').on('click', action);
-    z.add(text);
+    z.super('button').type('button').on('click', action).add(text);
   })
   .about('Represents HTML <input type="button"> element.');
-Input.extend('Textarea', (z, value) => {
+Test((Button) => {
+  const b = Button('qwe');
+  expect(b.html).is('<button type="button">qwe</button>');
+});
+Input.extend('Textarea', (z, v) => {
     z.tag = 'textarea';
-    attachValue(z, (t, v) =>  t.children.removeAll().push(v), value);
+    if(v !== undefined && v._isBox){
+      attachValue(this, v, (t, v) =>  t.children.removeAll().push(v));
+    } else {
+      z.add(v);
+    };
   })
   .about('Represents HTML <textarea> element.');
 Test(Textarea => {
   const ta = Textarea('qwe');
-  expect(ta.value()).is('qwe');
+  expect(ta.html).is('<textarea>qwe</textarea>');
 });
 Html.extend('Submit', (z, text, action) => {
     z.tag = 'input';
@@ -4459,7 +4561,7 @@ Input.extend('Checkbox', (z, status) => {
       mute = false;
       return true;
     });
-    if(nice.isEnvBrowser()){
+    if(IS_BROWSER){
       z.assertId();
       z.on('domNode', n => node = n);
     }
@@ -4478,7 +4580,7 @@ Input.extend('Checkbox', (z, status) => {
       mute = false;
       return true;
     });
-    if(nice.isEnvBrowser()){
+    if(IS_BROWSER){
       z.assertId();
       z.on('domNode', n => node = n);
     }
@@ -4657,5 +4759,12 @@ Test('isError', (isError) => {
 Test((times) => {
   const x = times(2, (n, a) => a.push(n), []);
   expect(x).deepEqual([0,1]);
+});
+Test((Pipe) => {
+  const x2 = a => a * 2;
+  const plusOne = a => a + 1;
+  const plus = (a, b) => a + b;
+  const f = Pipe('count', plusOne, x2, Math.cbrt, [plus, 3]);
+  expect(f({count: 3})).is(5);
 });
 })();;nice.version = "0.3.3";})();
