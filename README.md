@@ -4,11 +4,13 @@ NiceScript
 Set of JavaScript functions that provide following features without compilation 
 or configuration:
 
-* Type System
-* Reactive data flow
-* Create and update HTML and CSS
-* Write tests 
+* [Reactive data flow](#boxes)
+* [Type System](#types)
+* [Reactive HTML and CSS](#html)
+* [Unit tests](#tests) 
 * Utility functions and control structues
+
+
 
 You can use any of them independently or as a whole in any JS project. 
 
@@ -44,12 +46,15 @@ More examples:
   ( [Tutorial](https://medium.com/@sergey.kashulin/creating-web-applications-with-nicescript-338184d18331) )
 
 ## Install
+Node.js:
+
 `npm install nicescript`
 
-Then in node.js script:
+use:
 
 `const nice = require('nicescript')();`
 
+&nbsp;
 
 Browser:
 
@@ -59,45 +64,12 @@ or
 
 `<script src="https://cdn.jsdelivr.net/npm/nicescript/nice.js"></script>`
 
-## Tests
-
-  `npm test`
-
 
 ## Basic features
 
-* [Types](#types)
-* [Functions](#functions) - adds couple features to regular JS functions.
-* [Switch](#switch) - finally convenient.
-* [Boxes](#boxes) - to handle state changes.
-* [Html](#html) - use all above to to create html UI.
+
 
 ### Nice values
-
-#### Single values
-```javascript
-const n = nice(5);
-
-//read value
-n();      // 5
-
-//write value
-n(6);     // n
-n();      // 6
-```
-
-#### Object values
-```javascript
-const o = nice.Obj({ a: 1 });
-
-//get value
-o('a');         // 1
-o('b');         // nice.NOT_FOUND
-
-//set value
-o('b', 5);      // o
-o('b');         // 5
-```
 
 ### Types
 
@@ -333,3 +305,47 @@ data('Some data');
 
 div.show(); // will create and attach dome node and update it's state according to boxes states
 ```
+
+
+## Tests
+
+```javascript
+const { expect, TestSet } = nice;
+const app = {};
+
+// Create test set
+const test = nice.TestSet(app);
+
+obj.x2 = x => x*2;
+
+// Create test
+test("Double value", (x2) => {
+  expect(x2(3)).is(6);
+  
+  // nested tests are ok
+  test("Double mapping", () => {
+    expect([1,2].map(x2)).deepEqual([2,4]);
+  });
+});
+
+// Create custom check
+nice.Check('isBig', n => n > 10);
+
+test((x2) => {
+  expect(x2(6)).isBig();
+  expect(x2(4)).not.isBig();
+});
+
+// Run tests
+test.run();
+//Tests done. OK: 3, Error: 0 (1ms)
+
+```
+
+You can use any created `Check` after `expect(value)`
+
+
+### Old
+
+* [Functions](#functions) - adds couple features to regular JS functions.
+* [Switch](#switch) - finally convenient.

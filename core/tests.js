@@ -1,8 +1,26 @@
-Test = def(nice, 'Test', (...a) => {
-  const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
-  const position = nice.parseTraceString(Error().stack.split('\n')[2]);
-  nice.reflect.emitAndSave('test', { body, description, ...position });
+def(nice, 'TestSet', (core) => {
+  const tests = [];
+
+  const res = (...a) => {
+    const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
+    const position = nice.parseTraceString(Error().stack.split('\n')[2]);
+    const test = { body, description, ...position };
+    if(res.runner === false)
+      tests.push(test);
+    else
+      runTest(test, res.runner);
+  };
+
+  res.core = core;
+  res.tests = tests;
+  res.runner = false;
+  res.run = run;
+
+  return res;
 });
+
+Test = nice.TestSet(nice);
+def(nice, 'Test', Test);
 
 const colors = {
   blue: s => '\x1b[34m' + s + '\x1b[0m',
@@ -12,28 +30,38 @@ const colors = {
 };
 
 
-def(nice, 'runTests', (key) => {
+function run(key) {
+  this.runner = {
+    key: key,
+    good: 0,
+    bad: 0,
+    start: Date.now(),
+    core: this.core
+  };
   console.log('');
-  console.log(' ', colors.blue('Running tests'));
+  console.log(colors.blue('Running tests'));
   console.log('');
-  let good = 0, bad = 0, start = Date.now();
-  nice.reflect.on('test', t => {
-    const args = nice.argumentNames(t.body);
-    if(!key || args.includes(key))
-      runTest(t, args.map(n => nice[n])) ? good++ : bad++;
-  });
+  this.tests.forEach(t => runTest(t, this.runner));
   console.log(' ');
+  const { bad, good, start } = this.runner;
   console.log(colors[bad ? 'red' : 'green']
     (`Tests done. OK: ${good}, Error: ${bad}`), `(${Date.now() - start}ms)`);
   console.log('');
-});
+  this.runner = false;
+};
 
 
-function runTest(t, args){
+function runTest(t, runner){
+  const argNames = nice.argumentNames(t.body);
+  if(runner.key && !args.includes(runner.key))
+    return;
+
+  const args = argNames.map(n => runner.core[n]);
+
   try {
 //    console.log('Running', t.description || t.body.toString());
     t.body(...args);
-    return true;
+    runner.good++;
   } catch (e) {
     if(typeof e === 'string') {
       console.log(colors.red('Error while testing ' + (t.description || '')));
@@ -55,6 +83,6 @@ function runTest(t, args){
 
       console.log(a.join('\n'));
     }
-    return false;
+    runner.bad++;
   }
 }

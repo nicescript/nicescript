@@ -82,7 +82,8 @@ fs.writeFileSync( 'nice.mjs',
   + '; export default nice;' );
 
 
-nice.runTests();
+//nice.runTests();
+nice.Test.run();
 
 fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.generateDoc()));
 
