@@ -221,7 +221,7 @@ feedTiger(tiger, 'beef');    // tiger.hungry === false
 #### Switch vs Function overload
 Overloaded Function will search for best match while Switch will use first match.
 ```javascript
-nice.Func.Nothing(() => 1).Null(() => 2)(null);         // 2
+nice.Func.Nothing(() => 1).Null(() => 2)(null);                 // 2
 nice.Switch(null).isNothing.use(() => 1).isNull.use(() => 2);   // 1
 ```
 Besides current implementation of Switch use only first argument.
@@ -233,29 +233,22 @@ Stateful observable components.
 ```javascript
 const { Box, RBox } = nice;
 const b = Box(1);     // create box with 1 in it
+b.subscribe(v => console.log('b:', v));
+//b: 1
+
 b(2);                 // write value
+//b: 2
 b();                  // read value
+//2
 
 // create reactive Box that follows changes in b
 const b2 = RBox(b, n => n * 2);
 b(3);                 // b2() === 6
 ```
 
-Calling [mapping](#mapping) on box will create new box that follows changes in the original.
-```javascript
-const a = nice.Box('qwe');
-// qwe!
-a('asd');
-// asd!
-```
+#### BoxSet
 
-Calling [action](#action) on box will change its content.
-```javascript
-const a = nice.Box([1, 2]).listen(console.log);
-// [1, 2];
-a.push(3);
-// [1, 2, 3];
-```
+
 
 ### Html
 ```javascript
@@ -342,3 +335,21 @@ You can use any created `Check` after `expect(value)`
 
 * [Functions](#functions) - adds couple features to regular JS functions.
 * [Switch](#switch) - finally convenient.
+
+
+---------------
+Calling [mapping](#mapping) on box will create new box that follows changes in the original.
+```javascript
+const a = nice.Box('qwe');
+// qwe!
+a('asd');
+// asd!
+```
+
+Calling [action](#action) on box will change its content.
+```javascript
+const a = nice.Box([1, 2]).listen(console.log);
+// [1, 2];
+a.push(3);
+// [1, 2, 3];
+```

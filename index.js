@@ -1966,17 +1966,6 @@ Test((Box, push, Spy) => {
   expect(b()).deepEqual([1,2]);
   expect(a).deepEqual([1]);
 });
-nice.reflect.on('signature', ({type, name, signature}) => {
-  if(type !== 'Action')
-    return;
-  const first = signature[0];
-  if(name && (!first || first.type !== nice.Box) && (!(name in nice.Box.proto))){
-    nice.Box.proto[name] = function(...as){
-      this(nice[name](this._value, ...as));
-      return this;
-    }
-  };
-});
 nice.eventEmitter(nice.Box.proto);
 Test((Box, Spy) => {
   const b = Box(11);
@@ -1986,11 +1975,6 @@ Test((Box, Spy) => {
   b.on('state', console.log);
   b(22);
   expect(spy).calledWith(22);
-});
-Test('Box action', (Box, Spy) => {
-  const b = Box(2);
-  b.add(3);
-  expect(b()).is(5);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2056,7 +2040,11 @@ Test((BoxSet, Spy) => {
 (function(){"use strict";nice.Type({
   name: 'BoxMap',
   extends: 'Something',
-  customCall: (z, ...as) => throwF('Use access methods'),
+  customCall: (z, ...as) => {
+    if(as.length)
+      throwF('Use access methods to change BoxMap');
+    return z._value;
+  },
   initBy: (z, o) => {
     z._value = {};
     o && _each(o, (v, k) => z.set(k, v));
@@ -2069,7 +2057,8 @@ Test((BoxSet, Spy) => {
       } else {
         if(v === null)
           delete this._value[k];
-        this._value[k] = v;
+        else
+          this._value[k] = v;
         this.emit('value', v, ''+k);
       }
       return this;
@@ -2087,6 +2076,19 @@ Test((BoxSet, Spy) => {
     setState (v){
       this._value = v;
       this.emit('state', v);
+    },
+    map (f) {
+      const res = nice.BoxMap();
+      this.subscribe((v,k) => res.set(k, f(v)));
+      return res;
+    },
+    filter (f) {
+      const res = nice.BoxMap();
+      this.subscribe((v,k) => f(v, k)
+          ? res.set(k, v)
+          : k in res._value && res.set(k, null)
+      );
+      return res;
     }
   }
 });
@@ -2099,7 +2101,9 @@ Test((BoxMap, Spy) => {
   expect(spy).calledWith(1, 'a');
   b.set('z', 3);
   expect(spy).calledWith(3, 'z');
-  expect(spy).calledTwice();
+  b.set('a', null);
+  expect(spy).calledWith(null, 'a');
+  expect(b()).deepEqual({z:3});
 });
 Action.BoxMap('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 Test((BoxMap, assign, Spy) => {
@@ -2111,6 +2115,32 @@ Test((BoxMap, assign, Spy) => {
   b.assign({z: 3});
   expect(spy).calledWith(3, 'z');
   expect(spy).calledTwice();
+  expect(b()).deepEqual({a:1, z:3});
+});
+Test((BoxMap, map, Spy) => {
+  const a = BoxMap({a:1, b:2});
+  const b = a.map(x => x * 2);
+  const spy = Spy();
+  b.subscribe(spy);
+  expect(spy).calledTwice();
+  expect(spy).calledWith(2, 'a');
+  expect(spy).calledWith(4, 'b');
+  a.set('a', 3);
+  expect(spy).calledWith(6, 'a');
+  expect(spy).calledTimes(3);
+  a.set('c', 4);
+  expect(b()).deepEqual({a:6, b:4, c:8});
+});
+Test((BoxMap, filter) => {
+  const a = BoxMap({a:1, b:2, c: 3});
+  const b = a.filter(x => x % 2);
+  expect(b()).deepEqual({a:1, c:3});
+  a.set('a', 4);
+  expect(b()).deepEqual({c:3});
+  a.set('d', 5);
+  expect(b()).deepEqual({c:3, d:5});
+  a.set('z', null);
+  expect(b()).deepEqual({c:3, d:5});
 });
 })();
 (function(){"use strict";nice.Type({

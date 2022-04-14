@@ -148,17 +148,23 @@ Test((Box, push, Spy) => {
 });
 
 
-nice.reflect.on('signature', ({type, name, signature}) => {
-  if(type !== 'Action')
-    return;
-  const first = signature[0];
-  if(name && (!first || first.type !== nice.Box) && (!(name in nice.Box.proto))){
-    nice.Box.proto[name] = function(...as){
-      this(nice[name](this._value, ...as));
-      return this;
-    }
-  };
-});
+// does not work because actions coerse to niceValues
+//nice.reflect.on('signature', ({type, name, signature}) => {
+//  if(type !== 'Action')
+//    return;
+//  const first = signature[0];
+//  if(name && (!first || first.type !== nice.Box) && (!(name in nice.Box.proto))){
+//    nice.Box.proto[name] = function(...as){
+//      this(nice[name](this._value, ...as));
+//      return this;
+//    }
+//  };
+//});
+//Test('Box action', (Box, Spy) => {
+//  const b = Box(2);
+//  b.add(3);
+//  expect(b()).is(5);
+//});
 
 nice.eventEmitter(nice.Box.proto);
 
@@ -175,8 +181,3 @@ Test((Box, Spy) => {
 });
 
 
-Test('Box action', (Box, Spy) => {
-  const b = Box(2);
-  b.add(3);
-  expect(b()).is(5);
-});
