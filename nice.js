@@ -15,6 +15,13 @@ let nice;(function(){const IS_BROWSER = typeof window !== "undefined";let create
   return nice.typeOf(a[0])(...a);
 };
 nice._counter = 0;
+nice.reflect = {
+  functions:{},
+  bodies:[],
+  list (name) {
+    this._events[name].forEach(e => console.log(e));
+  }
+}
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   if(value === undefined && typeof name === 'function'){
     value = name;
@@ -678,7 +685,7 @@ const EventEmitter = {
 };
 nice.eventEmitter = o => defAll(o, EventEmitter);
 def(nice, 'EventEmitter', EventEmitter);
-def(nice, 'reflect', create(EventEmitter, {functions:{}, bodies:[]}));
+create(EventEmitter, nice.reflect);
 reflect = nice.reflect;
 })();
 (function(){"use strict";nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
@@ -1220,7 +1227,7 @@ function runTest(t, runner){
   const argNames = nice.argumentNames(t.body);
   if(runner.key && !args.includes(runner.key))
     return;
-  const args = argNames.map(n => runner.core[n]);
+  const args = argNames.map(n => runner.core[n] || nice[n]);
   try {
     t.body(...args);
     runner.good++;

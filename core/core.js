@@ -22,6 +22,13 @@ nice = (...a) => {
 
 nice._counter = 0;
 
+nice.reflect = {
+  functions:{},
+  bodies:[],
+  list (name) {
+    this._events[name].forEach(e => console.log(e));
+  }
+}
 
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   if(value === undefined && typeof name === 'function'){

@@ -232,23 +232,13 @@ Stateful observable components.
 
 ```javascript
 const { Box, RBox } = nice;
-const b = Box(1);       // create box with 1 in it
+const b = Box(1);     // create box with 1 in it
 b(2);                 // write value
 b();                  // read value
 
-// create Box that follows changes in b
+// create reactive Box that follows changes in b
 const b2 = RBox(b, n => n * 2);
-// short version RBox(b, n => n * 2);
 b(3);                 // b2() === 6
-
-// Named inputs
-const square = Box()
-  .num('x', 5)
-  .num('y', 5)
-  .by((x, y) => x * y);
-
-square();                  // 25
-square.x(10).y(b)();       // 30
 ```
 
 Calling [mapping](#mapping) on box will create new box that follows changes in the original.
@@ -319,13 +309,15 @@ const test = nice.TestSet(app);
 obj.x2 = x => x*2;
 
 // Create test
-test("Double value", (x2) => {
+test("Double value", (x2) => { // x2 found in app 
   expect(x2(3)).is(6);
   
   // nested tests are ok
-  test("Double mapping", () => {
-    expect([1,2].map(x2)).deepEqual([2,4]);
-  });
+  test("Double mapping", (Spy) => { // no app.Spy found so nice.Spy provided
+    const f = Spy(x2);
+    expect([1,2].map(f)).deepEqual([2,4]);
+    expect(f).calledTwice();
+  })
 });
 
 // Create custom check
@@ -344,6 +336,7 @@ test.run();
 
 You can use any created `Check` after `expect(value)`
 
+[Top](#nicescript)
 
 ### Old
 

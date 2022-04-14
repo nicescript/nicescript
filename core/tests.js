@@ -56,7 +56,7 @@ function runTest(t, runner){
   if(runner.key && !args.includes(runner.key))
     return;
 
-  const args = argNames.map(n => runner.core[n]);
+  const args = argNames.map(n => runner.core[n] || nice[n]);
 
   try {
 //    console.log('Running', t.description || t.body.toString());
