@@ -17,20 +17,12 @@ const state = Box(Array(9).fill(null));
 
 const history = Box([state()]);
 
-const wins = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6]
+const winCombinations = [
+  [0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]
 ];
 
-const gameOver = RBox(state, s => {
-  return wins.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a));
-});
+const gameOver = RBox(state, s => 
+  winCombinations.some(l => l.map(i => s[i]).reduce((a, b) => a === b && a)));
     
 const handleClick = i => {
   const current = step() + 1;
@@ -40,7 +32,7 @@ const handleClick = i => {
   a[i] = currentPlayer();
   history.push(a);
   state(a);
-  step.inc();
+  step.add(1);
 };
 
 const sellView = (v, i) => Div(v)

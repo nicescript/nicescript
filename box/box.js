@@ -160,11 +160,14 @@ Test((Box, push, Spy) => {
 //    }
 //  };
 //});
-//Test('Box action', (Box, Spy) => {
-//  const b = Box(2);
-//  b.add(3);
-//  expect(b()).is(5);
-//});
+
+Action.Box('add', (z, n = 1) => z(z() + n));
+
+Test('Box action', (Box, Spy) => {
+  const b = Box(2);
+  b.add(3);
+  expect(b()).is(5);
+});
 
 nice.eventEmitter(nice.Box.proto);
 

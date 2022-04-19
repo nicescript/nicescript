@@ -1966,6 +1966,12 @@ Test((Box, push, Spy) => {
   expect(b()).deepEqual([1,2]);
   expect(a).deepEqual([1]);
 });
+Action.Box('add', (z, n = 1) => z(z() + n));
+Test('Box action', (Box, Spy) => {
+  const b = Box(2);
+  b.add(3);
+  expect(b()).is(5);
+});
 nice.eventEmitter(nice.Box.proto);
 Test((Box, Spy) => {
   const b = Box(11);
@@ -2219,27 +2225,40 @@ Test((BoxMap, filter) => {
       return res;
     },
     filter (f) {
-      
-      
-      
       const res = nice.BoxArray();
-      const map = {};
-      const arrayMap = [];
-      
+      const map = [];
+      const findPosition = stop => {
+        let count = 0;
+        let k = 0;
+        let l = map.length
+        do {
+          if(map[k])
+            count++;
+        } while( ++k < l && k < stop );
+        return count;
+      }
       this.subscribe((value, index, oldValue, oldIndex) => {
         const pass = !!f(value);
+        const oldPass = map[index];
+        if(oldIndex === null)
+          map.splice(index, 0, pass);
+        else {
+          if (index === null)
+            map.splice(oldIndex, 1);
+          else
+            map[index] = pass;
+        }
         if(pass) {
-          let i = index;
-          while(i !== 0 && !(i in map)){
-            i--;
+          if(oldPass) {
+            ;
+          } else {
+            res.insert(findPosition(index), value);
           }
-          res.set(i, value);
-          arrayMap[i] = index;
-          map[index] = i;
         } else {
-          if(oldIndex !== null){
-              res.remove(map[oldIndex]);
-              delete map[oldIndex];
+          if(oldPass) {
+            res.remove(findPosition(index));
+          } else {
+            ;
           }
         }
       });
@@ -2288,6 +2307,28 @@ Test((BoxArray, Spy, map) => {
   expect(b()).deepEqual([4,12,10]);
   a.remove(1);
   expect(b()).deepEqual([4,10]);
+});
+Test((BoxArray, Spy, filter) => {
+  const a = BoxArray([1,2]);
+  const b = a.filter(x => x % 2);
+  expect(b()).deepEqual([1]);
+  a.setAll([2,3]);
+  expect(a()).deepEqual([2,3]);
+  expect(b()).deepEqual([3]);
+  a.set(2, 5);
+  expect(a()).deepEqual([2,3,5]);
+  expect(b()).deepEqual([3,5]);
+  a.set(1, 6);
+  expect(a()).deepEqual([2,6,5]);
+  expect(b()).deepEqual([5]);
+  a.remove(1);
+  expect(a()).deepEqual([2,5]);
+  expect(b()).deepEqual([5]);
+  a.push(7);
+  expect(a()).deepEqual([2,5,7]);
+  expect(b()).deepEqual([5,7]);
+  a.set(1, 10);
+  expect(b()).deepEqual([7]);
 });
 })();
 (function(){"use strict";const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;

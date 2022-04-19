@@ -85,45 +85,90 @@ nice.Type({
       return res;
     },
 
-    filter (f) {
-      //[1,2,3,4]
-      //[1,3]
-      //{'0':0, 2:1};
+//    filter (f) {
+//      //[1,2,3,4]
+//      //[1,3]
+//      //{'0':0, 2:1};
+//
+//      const res = nice.BoxArray();
+//      const map = {};//sourceIndex:resIndex
+//      const arrayMap = [];
+//      //TODO: removal
+//      this.subscribe((value, index, oldValue, oldIndex) => {
+//        const pass = !!f(value);
+//        if(pass) {
+//          let i = index;
+//          while(i !== 0 && !(i in map)){
+//            i--;
+//          }
+//          res.set(i, value);
+//          arrayMap[i] = index;
+//          map[index] = i;
+//        } else {
+//          if(oldIndex !== null){
+////            if(index === null){
+//              res.remove(map[oldIndex]);
+//              delete map[oldIndex];
+////            }
+//          }
+//        }
+////
+////
+////        if(value !== null && oldValue !== null) {
+////          res.set(index, f(value));
+////        } else if (value === null) {
+////          res.remove(oldIndex);
+////        } else {
+////          res.insert(index, f(value));
+////        }
+//      });
+//      return res;
+//    },
 
+    filter (f) {
       const res = nice.BoxArray();
-      const map = {};//sourceIndex:resIndex
-      const arrayMap = [];
-      //TODO: removal
+      const map = [];
+
+      const findPosition = stop => {
+        let count = 0;
+        let k = 0;
+        let l = map.length
+        do {
+          if(map[k])
+            count++;
+        } while( ++k < l && k < stop );
+        return count;
+      }
+
       this.subscribe((value, index, oldValue, oldIndex) => {
         const pass = !!f(value);
+        const oldPass = map[index];
+        if(oldIndex === null)
+          map.splice(index, 0, pass);
+        else {
+          if (index === null)
+            map.splice(oldIndex, 1);
+          else
+            map[index] = pass;
+        }
+
         if(pass) {
-          let i = index;
-          while(i !== 0 && !(i in map)){
-            i--;
+          if(oldPass) {
+            ;//do nothing
+          } else {
+            res.insert(findPosition(index), value);
           }
-          res.set(i, value);
-          arrayMap[i] = index;
-          map[index] = i;
         } else {
-          if(oldIndex !== null){
-//            if(index === null){
-              res.remove(map[oldIndex]);
-              delete map[oldIndex];
-//            }
+          if(oldPass) {
+            res.remove(findPosition(index));
+          } else {
+            ;//do nothing
           }
         }
-//
-//
-//        if(value !== null && oldValue !== null) {
-//          res.set(index, f(value));
-//        } else if (value === null) {
-//          res.remove(oldIndex);
-//        } else {
-//          res.insert(index, f(value));
-//        }
       });
       return res;
     }
+
   }
 });
 
@@ -197,34 +242,32 @@ Test((BoxArray, Spy, map) => {
 
 
 //TODO:
-//Test((BoxArray, Spy, filter) => {
-//  const a = BoxArray([1,2]);
-//  const b = a.filter(x => x % 2);
-//
-//  expect(b()).deepEqual([1]);
-//
-//  a.setAll([2,3]);
-//  expect(a()).deepEqual([2,3]);
-//  expect(b()).deepEqual([3]);
-//
-//  a.set(2, 5);
-//  expect(a()).deepEqual([2,3,5]);
-//  expect(b()).deepEqual([3,5]);
-//
-//  a.set(1, 6);
-//  expect(a()).deepEqual([2,6,5]);
-//  expect(b()).deepEqual([5]);
-//
-//  a.remove(1);
-//  expect(a()).deepEqual([2,5]);
-//  expect(b()).deepEqual([5]);
-//
-//  a.push(7);
-//  expect(a()).deepEqual([2,5,7]);
-//  expect(b()).deepEqual([5,7]);
-//
-//  console.log(a());
-//  a.set(1, 10);
-//  console.log(a());
-//  expect(b()).deepEqual([]);
-//});
+Test((BoxArray, Spy, filter) => {
+  const a = BoxArray([1,2]);
+  const b = a.filter(x => x % 2);
+
+  expect(b()).deepEqual([1]);
+
+  a.setAll([2,3]);
+  expect(a()).deepEqual([2,3]);
+  expect(b()).deepEqual([3]);
+
+  a.set(2, 5);
+  expect(a()).deepEqual([2,3,5]);
+  expect(b()).deepEqual([3,5]);
+
+  a.set(1, 6);
+  expect(a()).deepEqual([2,6,5]);
+  expect(b()).deepEqual([5]);
+
+  a.remove(1);
+  expect(a()).deepEqual([2,5]);
+  expect(b()).deepEqual([5]);
+
+  a.push(7);
+  expect(a()).deepEqual([2,5,7]);
+  expect(b()).deepEqual([5,7]);
+
+  a.set(1, 10);
+  expect(b()).deepEqual([7]);
+});

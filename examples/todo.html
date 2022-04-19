@@ -5,16 +5,12 @@
   </head>
   <body style="margin:0">
 <script>
-const { Type, Arr, Div, Span, Box, Input, A, Switch } = nice;
+const { Type, Arr, Div, Span, Box, RBox, Input, A, Switch } = nice;
 const KEY = 'ToDoData';
 
-const Task = Type('Task', (z,s) => s && z.text(s)).str('text').bool('status')();
 
-const tasks = [Task('Buy milk'), Task("Walk the dog")];
-//const tasks = Switch(localStorage.getItem(KEY))
-//  .isNull.use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
-//  .default.use(s => nice.fromJson(JSON.parse(s)));
-
+const tasks = BoxArray();
+tasks.add()
 //tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.jsValue)));
 
 const create = e => {
@@ -26,13 +22,13 @@ const create = e => {
 const search = Input("search").placeholder('Type to search or add tasks')
   .boxSizing('border-box').width("100%").fontSize("20px").padding('.2em .3em')
   .on('keyup', e => e.keyCode === 13 && create(e))
-  .focus();
+//  .focus();
 
 const deleteButton = (state, k) => state && A(() => tasks.remove(k), 'x')
     .textDecoration('none').color('#E33').marginLeft('.5em');
 
 const TaskView = (task, k) => {
-  const isHover = Bool();
+  const isHover = Box();
   
   return Div().padding("1em 0")
     .on('mouseover', () => isHover(true))
@@ -42,7 +38,7 @@ const TaskView = (task, k) => {
       .up
     .Span(task.text.or('---'))
       .marginLeft(".5em")
-      .textDecoration.by(() => task.status() ? 'line-through' : 'none')
+//      .textDecoration.by(() => task.status() ? 'line-through' : 'none')
 //      .textDecoration(Switch(task.status).isTrue('line-through').else('none'))
       .up
 //    .add(RBox(task.status, s => Span(task.text || '---')
@@ -54,13 +50,12 @@ const TaskView = (task, k) => {
 
 Div(
   search, 
-  tasks.filter(t => RegExp(search.value, 'i').test(t.text))
-    .map(TaskView),
+  Div(...tasks.map(TaskView)),
 //  RBox(search.value, tasks, (s, ts) => 
 //    Div(ts.filter(t => RegExp(s, 'i').test(t.text)).map(TaskView))),
-  By(() => search.value.size.gt(0) && Div().padding("1em 0")
-      .A(create, 'Add: ', search.value).textDecoration('none').up
-      .Span(' [Enter]').color('#999').fontSize('small').up)
+//  RBox(search.value, (s) => s.size.gt(0) && Div().padding("1em 0")
+//      .A(create, 'Add: ', search.value).textDecoration('none').up
+//      .Span(' [Enter]').color('#999').fontSize('small').up)
 //  Switch(search.value)
 //    .not.empty(s => Div().padding("1em 0")
 //      .A(create, 'Add: ', s).textDecoration('none').up
