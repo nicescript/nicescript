@@ -25,7 +25,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .obj('style')
   .obj('attributes')
-  .arr('children')
+//  .arr('children')
   .Method('assertId', z => {
     z.id() || z.id(nice.genereteAutoId());
     return z.id();
@@ -52,12 +52,19 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
+    if(z._children === undefined){
+      z._children = [];
+    } else {
+      if(z._children && z._children._type === nice.BoxArray)
+        throw 'Children of this element already bound to BoxArray';
+    }
+
     children.forEach(c => {
       if(c === undefined || c === null)
         return;
 
       if(typeof c === 'string' || c._isStr)
-        return z.children.push(c);
+        return z._children.push(c);
 
       if(Array.isArray(c))
         return c.forEach(_c => z.add(_c));
@@ -66,23 +73,23 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
         return c.each(_c => z.add(_c));
 
       if(c._isNum || typeof c === 'number')
-        return z.children.push(c);
+        return z._children.push(c);
 
       if(c._isBox)
-        return z.children.push(c);
+        return z._children.push(c);
 
       if(c === z)
-        return z.children.push(`Errro: Can't add element to itself.`);
+        return z._children.push(`Errro: Can't add element to itself.`);
 
       if(c._isErr)
-        return z.children.push(c.toString());
+        return z._children.push(c.toString());
 
       if(!c || !nice.isAnything(c))
-        return z.children.push('Bad child: ' + JSON.stringify(c));
+        return z._children.push('Bad child: ' + JSON.stringify(c));
 
       c.up = z;
       c._up_ = z;
-      z.children.push(c);
+      z._children.push(c);
     });
   });
 
@@ -225,11 +232,13 @@ Test('Css propperty format', Div => {
 
 
 function text(z){
-  return z.children
+  return z._children
+    ? z._children
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(nice.isFunction(v) ? v() : v))
-      .jsValue.join('');
+      .jsValue.join('')
+    : '';
 };
 
 
@@ -268,7 +277,8 @@ function html(z){
   });
 
   let body = '';
-  z.children.each(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
+  z._children &&
+      z._children.forEach(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
 
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
@@ -294,7 +304,7 @@ function createDom(e){
 
   e.attributes.each((v, k) => res[k] = v);
 
-  e.children.each(c => attachNode(c, res));
+  e._children && e._children.forEach(c => attachNode(c, res));
 
   e.eventHandlers.each((ls, type) => {
     if(type === 'domNode')
@@ -447,7 +457,7 @@ function refreshElement(e, old, domNode){
         domNode.addEventListener(type, f, true);
     });
 
-    refreshChildren(e.children._value, old.children._value, domNode);
+    refreshChildren(e._children, old._children, domNode);
   }
   return newDom;
 };
@@ -622,11 +632,26 @@ if(IS_BROWSER){
   });
 
 
+  Func.Html.BoxArray('bindChildren', (z, b) => {
+    z._children = b;
+//    b.subscribe((value, index, oldValue, oldIndex) => {
+//      if(oldIndex !== undefined){
+//
+//      }
+//      if(index !== undefined) {
+//        attachNode()
+//      }
+//    });
+
+//    z._childrenLocked = 'Children of this element already bound to BoxArray';
+  });
+
+
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
     subscriptions && subscriptions.forEach(f => f());
-    node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
+    node && e._children.forEach((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
 };

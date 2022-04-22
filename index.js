@@ -1854,6 +1854,41 @@ Test('Partial type constructor', (partial) => {
   const f = nice.Str.partial('$1', 'Hello');
   expect(f('world')).is('Hello world');
 });
+def(nice, 'sortedIndex', (a, v, f) => {
+  let low = 0,
+      high = a === null ? low : a.length;
+  while (low < high) {
+    var mid = (low + high) >>> 1,
+        vv = a[mid];
+    if (vv !== null && (f === undefined ? vv < v : f(vv, v) < 0)) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return high;
+});
+Test((sortedIndex) => {
+  const a = [1,5,7,8];
+  const f = (a, b) => a - b;
+  expect(sortedIndex(a, 0)).is(0);
+  expect(sortedIndex(a, 0, f)).is(0);
+  expect(sortedIndex(a, 2)).is(1);
+  expect(sortedIndex(a, 2, f)).is(1);
+  expect(sortedIndex(a, 7)).is(2);
+  expect(sortedIndex(a, 7, f)).is(2);
+  expect(sortedIndex(a, 11)).is(4);
+  expect(sortedIndex(a, 11, f)).is(4);
+  expect(sortedIndex([], -11)).is(0);
+  expect(sortedIndex([], 11)).is(0);
+});
+Test((sortedIndex) => {
+  const a = ['a', 'aaa', 'aaaaa', 'aaaaaa'];
+  const f = (a, b) => a.length - b.length;
+  expect(sortedIndex(a, 'aa', f)).is(1);
+  expect(sortedIndex(a, 'aaaa', f)).is(2);
+  expect(sortedIndex(a, '', f)).is(0);
+});
 })();
 (function(){"use strict";const IS_READY = 1;
 const IS_LOADING = 2;
@@ -2224,6 +2259,18 @@ Test((BoxMap, filter) => {
       });
       return res;
     },
+    sort (f) {
+      const res = nice.BoxArray();
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        if(oldIndex !== null) {
+        }
+        if(index !== null) {
+          const position = nice.sortedIndex(res._value, value);
+          res.insert(position, value);
+        }
+      });
+      return res;
+    },
     filter (f) {
       const res = nice.BoxArray();
       const map = [];
@@ -2329,6 +2376,11 @@ Test((BoxArray, Spy, filter) => {
   expect(b()).deepEqual([5,7]);
   a.set(1, 10);
   expect(b()).deepEqual([7]);
+});
+Test((BoxArray, sort) => {
+  const a = BoxArray([3,2,4]);
+  const b = a.sort();
+  expect(b()).deepEqual([2,3,4]);
 });
 })();
 (function(){"use strict";const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;
@@ -3650,16 +3702,6 @@ Test((Arr, filter) => {
 M(function random(a){
   return a.get(Math.random() * a._value.length | 0);
 });
-M('sortedIndex', (a, v, f = (a, b) => a - b) => {
-  let i = a.size;
-  a.each((vv, k) => {
-    if(f(v, vv) <= 0){
-      i = k;
-      return nice.Stop;
-    }
-  });
-  return i;
-});
 M.Array('intersection', (a, b) => {
   const res = Arr();
   a.each(v => b.includes(v) && res.push(v));
@@ -3939,7 +3981,6 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .obj('style')
   .obj('attributes')
-  .arr('children')
   .Method('assertId', z => {
     z.id() || z.id(nice.genereteAutoId());
     return z.id();
@@ -3965,28 +4006,34 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
+    if(z._children === undefined){
+      z._children = [];
+    } else {
+      if(z._children && z._children._type === nice.BoxArray)
+        throw 'Children of this element already bound to BoxArray';
+    }
     children.forEach(c => {
       if(c === undefined || c === null)
         return;
       if(typeof c === 'string' || c._isStr)
-        return z.children.push(c);
+        return z._children.push(c);
       if(Array.isArray(c))
         return c.forEach(_c => z.add(_c));
       if(c._isArr)
         return c.each(_c => z.add(_c));
       if(c._isNum || typeof c === 'number')
-        return z.children.push(c);
+        return z._children.push(c);
       if(c._isBox)
-        return z.children.push(c);
+        return z._children.push(c);
       if(c === z)
-        return z.children.push(`Errro: Can't add element to itself.`);
+        return z._children.push(`Errro: Can't add element to itself.`);
       if(c._isErr)
-        return z.children.push(c.toString());
+        return z._children.push(c.toString());
       if(!c || !nice.isAnything(c))
-        return z.children.push('Bad child: ' + JSON.stringify(c));
+        return z._children.push('Bad child: ' + JSON.stringify(c));
       c.up = z;
       c._up_ = z;
-      z.children.push(c);
+      z._children.push(c);
     });
   });
 nice.ReadOnly.Anything('dom', z => document.createTextNode("" + z._value));
@@ -4090,11 +4137,13 @@ Test('Css propperty format', Div => {
     .is('<div style="border:3px silver solid"></div>');
 });
 function text(z){
-  return z.children
+  return z._children
+    ? z._children
       .map(v => v.text
         ? v.text
         : nice.htmlEscape(nice.isFunction(v) ? v() : v))
-      .jsValue.join('');
+      .jsValue.join('')
+    : '';
 };
 function compileStyle (s){
   let a = [];
@@ -4123,7 +4172,8 @@ function html(z){
     as += ` ${k}="${v}"`;
   });
   let body = '';
-  z.children.each(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
+  z._children &&
+      z._children.forEach(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };
 function toDom(e) {
@@ -4141,7 +4191,7 @@ function createDom(e){
     res.style[k] = '' + v;
   });
   e.attributes.each((v, k) => res[k] = v);
-  e.children.each(c => attachNode(c, res));
+  e._children && e._children.forEach(c => attachNode(c, res));
   e.eventHandlers.each((ls, type) => {
     if(type === 'domNode')
       return ls.forEach(f => f(res));
@@ -4260,7 +4310,7 @@ function refreshElement(e, old, domNode){
       if(!(oldHandlers[type] && oldHandlers[type].includes(f)))
         domNode.addEventListener(type, f, true);
     });
-    refreshChildren(e.children._value, old.children._value, domNode);
+    refreshChildren(e._children, old._children, domNode);
   }
   return newDom;
 };
@@ -4368,11 +4418,14 @@ if(IS_BROWSER){
     e.attachNode(node);
     return node;
   });
+  Func.Html.BoxArray('bindChildren', (z, b) => {
+    z._children = b;
+  });
   Func.Html('hide', (e, node) => {
     const subscriptions = e._shownNodes && e._shownNodes.get(node);
     e._shownNodes.delete(node);
     subscriptions && subscriptions.forEach(f => f());
-    node && e.children.each((c, k) => nice.hide(c, node.childNodes[0]));
+    node && e._children.forEach((c, k) => nice.hide(c, node.childNodes[0]));
     killNode(node);
   });
 };
@@ -4517,6 +4570,7 @@ Html.extend('Img').by((z, src, x, y) => {
 })
   .about('Represents HTML <img> element.');
 const constructors = {
+  BoxArray: (z, b) => z.bindChildren(b),
   Object: (z, o, f) => Object.values(o).forEach((v, k) => z.add(f(v, k))),
   Arr: (z, a, f) => a.each((v, k) => z.add(f(v, k))),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
@@ -4722,12 +4776,16 @@ function addRoute(router, pattern, f){
     return () => f(query);
   };
   res.pattern = pattern;
-  const i = router.queryRoutes
-      .map(r => r.pattern)
-      .sortedIndex(pattern, nice.routeSort);
+  const i = nice.sortedIndex(router.queryRoutes._value, res, routeSort);
   router.queryRoutes.insertAt(i, res);
   return router;
 }
+function routeSort (a, b) {
+  a = a.pattern;
+  b = b.pattern;
+  let res = b[b.length - 1] === '*' ? -1 : 0;
+  return res + b.length - a.length;
+};
 Test((Router, Spy) => {
   const r = Router();
   const f = () => 1;
@@ -4736,7 +4794,9 @@ Test((Router, Spy) => {
   let res;
   const f2 = o => res = o.id;
   r.addRoute('/page/:id', f2);
+  r.addRoute('/pages/:type', f);
   r.resolve('/page/123')();
+  r.addRoute('/pagesddss', f);
   expect(res).is('123');
 });
 nice.Type({

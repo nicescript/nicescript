@@ -348,16 +348,16 @@ M(function random(a){
 //});
 
 
-M('sortedIndex', (a, v, f = (a, b) => a - b) => {
-  let i = a.size;
-  a.each((vv, k) => {
-    if(f(v, vv) <= 0){
-      i = k;
-      return nice.Stop;
-    }
-  });
-  return i;
-});
+//M('sortedIndex', (a, v, f = (a, b) => a - b) => {
+//  let i = a.size;
+//  a.each((vv, k) => {
+//    if(f(v, vv) <= 0){
+//      i = k;
+//      return nice.Stop;
+//    }
+//  });
+//  return i;
+//});
 
 
 M.Array('intersection', (a, b) => {

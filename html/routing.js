@@ -22,6 +22,7 @@ nice.Type('Router')
     return route || (() => `Page "${url}" not found`);
   });
 
+
 function addRoute(router, pattern, f){
   if(!pattern || pattern === '/'){
     router.staticRoutes['/'] = f;
@@ -46,12 +47,19 @@ function addRoute(router, pattern, f){
   };
   res.pattern = pattern;
 
-  const i = router.queryRoutes
-      .map(r => r.pattern)
-      .sortedIndex(pattern, nice.routeSort);
+  const i = nice.sortedIndex(router.queryRoutes._value, res, routeSort);
   router.queryRoutes.insertAt(i, res);
   return router;
 }
+
+
+function routeSort (a, b) {
+  a = a.pattern;
+  b = b.pattern;
+  let res = b[b.length - 1] === '*' ? -1 : 0;
+  return res + b.length - a.length;
+};
+
 
 Test((Router, Spy) => {
   const r = Router();
@@ -64,7 +72,11 @@ Test((Router, Spy) => {
   const f2 = o => res = o.id;
 
   r.addRoute('/page/:id', f2);
+  r.addRoute('/pages/:type', f);
   r.resolve('/page/123')();
+
+  r.addRoute('/pagesddss', f);
+
   expect(res).is('123');
 });
 

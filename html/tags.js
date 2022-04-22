@@ -48,6 +48,7 @@ Html.extend('Img').by((z, src, x, y) => {
 
 
 const constructors = {
+  BoxArray: (z, b) => z.bindChildren(b),
 //  Obj: (z, o, f) => {
 //    const positions = {};
 //    o.listen({

@@ -226,3 +226,54 @@ Test('Partial type constructor', (partial) => {
   expect(f('world')).is('Hello world');
 });
 
+
+def(nice, 'sortedIndex', (a, v, f) => {
+  let low = 0,
+      high = a === null ? low : a.length;
+
+  while (low < high) {
+    var mid = (low + high) >>> 1,
+        vv = a[mid];
+
+//    if (computed !== null && !isSymbol(computed) &&
+//        (retHighest ? (computed <= value) : (computed < value))) {
+//!isSymbol(computed) &&
+    if (vv !== null && (f === undefined ? vv < v : f(vv, v) < 0)) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return high;
+});
+
+
+Test((sortedIndex) => {
+  const a = [1,5,7,8];
+  const f = (a, b) => a - b;
+
+  expect(sortedIndex(a, 0)).is(0);
+  expect(sortedIndex(a, 0, f)).is(0);
+
+  expect(sortedIndex(a, 2)).is(1);
+  expect(sortedIndex(a, 2, f)).is(1);
+
+  expect(sortedIndex(a, 7)).is(2);
+  expect(sortedIndex(a, 7, f)).is(2);
+
+  expect(sortedIndex(a, 11)).is(4);
+  expect(sortedIndex(a, 11, f)).is(4);
+
+  expect(sortedIndex([], -11)).is(0);
+  expect(sortedIndex([], 11)).is(0);
+});
+
+
+Test((sortedIndex) => {
+  const a = ['a', 'aaa', 'aaaaa', 'aaaaaa'];
+  const f = (a, b) => a.length - b.length;
+
+  expect(sortedIndex(a, 'aa', f)).is(1);
+  expect(sortedIndex(a, 'aaaa', f)).is(2);
+  expect(sortedIndex(a, '', f)).is(0);
+});

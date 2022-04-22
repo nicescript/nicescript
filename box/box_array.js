@@ -85,45 +85,23 @@ nice.Type({
       return res;
     },
 
-//    filter (f) {
-//      //[1,2,3,4]
-//      //[1,3]
-//      //{'0':0, 2:1};
-//
-//      const res = nice.BoxArray();
-//      const map = {};//sourceIndex:resIndex
-//      const arrayMap = [];
-//      //TODO: removal
-//      this.subscribe((value, index, oldValue, oldIndex) => {
-//        const pass = !!f(value);
-//        if(pass) {
-//          let i = index;
-//          while(i !== 0 && !(i in map)){
-//            i--;
-//          }
-//          res.set(i, value);
-//          arrayMap[i] = index;
-//          map[index] = i;
-//        } else {
-//          if(oldIndex !== null){
-////            if(index === null){
-//              res.remove(map[oldIndex]);
-//              delete map[oldIndex];
-////            }
-//          }
-//        }
-////
-////
-////        if(value !== null && oldValue !== null) {
-////          res.set(index, f(value));
-////        } else if (value === null) {
-////          res.remove(oldIndex);
-////        } else {
-////          res.insert(index, f(value));
-////        }
-//      });
-//      return res;
-//    },
+
+    sort (f) {
+      const res = nice.BoxArray();
+
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        if(oldIndex !== null) {
+
+        }
+
+        if(index !== null) {
+          const position = nice.sortedIndex(res._value, value);
+          res.insert(position, value);
+        }
+      });
+
+      return res;
+    },
 
     filter (f) {
       const res = nice.BoxArray();
@@ -270,4 +248,13 @@ Test((BoxArray, Spy, filter) => {
 
   a.set(1, 10);
   expect(b()).deepEqual([7]);
+});
+
+
+Test((BoxArray, sort) => {
+  const a = BoxArray([3,2,4]);
+  const b = a.sort();
+
+
+  expect(b()).deepEqual([2,3,4]);
 });
