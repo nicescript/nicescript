@@ -14,7 +14,7 @@ const jsTypesMap = {
   Number: 'Num',
   Boolean: 'Bool',
   String: 'Str',
-  Function: 'Func',
+//  Function: 'Func',
   'undefined': 'Undefined',
   'null': 'Null'
 };
@@ -25,7 +25,7 @@ nice.jsBasicTypesMap = {
   number: 'Num',
   boolean: 'Bool',
   string: 'Str',
-  function: 'Func'
+//  function: 'Func'
 };
 
 nice.typesToJsTypesMap = {
@@ -35,7 +35,7 @@ nice.typesToJsTypesMap = {
   Arr: 'Array',
   Bool: 'Boolean',
   Single: 'primitive',
-  Func: 'Function',
+//  Func: 'Function',
 //  'undefined': 'Undefined',
 //  'null': 'Null'
 }

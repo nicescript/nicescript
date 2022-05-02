@@ -22,11 +22,11 @@ model.getBox('tasks', 1);
 
 const KEY = 'ToDoData';
 
-const Task = Type('Task', (z,s) => s && z.text(s)).str('text').bool('status')();
+//const Task = Type('Task', (z,s) => s && z.text(s)).str('text').bool('status')();
 
-const tasks = Switch(localStorage.getItem(KEY))
-  .isNull().use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
-  .default.use(s => nice.fromJson(JSON.parse(s)));
+//const tasks = Switch(localStorage.getItem(KEY))
+//  .isNull().use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
+//  .default.use(s => nice.fromJson(JSON.parse(s)));
 
 //tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.jsValue)));
 
@@ -36,10 +36,11 @@ const create = e => {
   e.preventDefault();
 };
 
-const search = Input("search").placeholder('Type to search or add tasks')
-  .boxSizing('border-box').width("100%").fontSize("20px").padding('.2em .3em')
-  .on('keyup', e => e.keyCode === 13 && create(e))
-  .focus();
+const search = Div('Type to search or add tasks');
+//const search = Input("search").placeholder('Type to search or add tasks')
+//  .boxSizing('border-box').width("100%").fontSize("20px").padding('.2em .3em')
+//  .on('keyup', e => e.keyCode === 13 && create(e))
+//  .focus();
 
 const deleteButton = (state, k) => state && A(() => tasks.remove(k), 'x')
     .textDecoration('none').color('#E33').marginLeft('.5em');
@@ -66,13 +67,13 @@ const TaskView = id => RBox(tasks.getBox(id), task => {
 
 
 
-const tasksView = Div()
-  .mapChildren(model.keyBox('tasks'), id => 
-    RBox(model.getBox('tasks', id), TaskView));
+//const tasksView = Div()
+//  .mapChildren(model.keyBox('tasks'), id => 
+//    RBox(model.getBox('tasks', id), TaskView));
 
 
-const tasks = model.path('tasks');
-const tasksView = Div(tasks.keyBox().map(TaskView));
+//const tasks = model.path();
+const tasksView = Div(model.keyBox('tasks').map(TaskView));
 //  .mapChildren(tasks.keyBox(), id => RBox(tasks.getBox(id), TaskView));
 //  .mapChildren(tasks.keyBox(), TaskView);
 

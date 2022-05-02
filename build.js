@@ -33,6 +33,7 @@ const order = [
   'box/r_box',
   'box/interval_box',
   'box/model',
+  'box/data_tree',
   'core/stream',
   'core/logic',
   'core/value',

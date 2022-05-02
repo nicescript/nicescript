@@ -79,11 +79,15 @@ function getTranslatorCode(type, name){
 
 
 function getTypeCheckCode(type, name){
+  if(!type.name)
+    console.log('No type name');
+//    throw 'No type name';
+
   return type._isJsType
     ? type.primitiveName
       ? 'typeof ' + name + " === '" + type.primitiveName + "'"
       : name + ' instanceof ' + type.name
-    : name + '._is' + type.name;
+    : name + ' !== undefined && ' + name + '._is' + type.name;
 }
 
 

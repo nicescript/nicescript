@@ -84,7 +84,6 @@ nice.Type({
       }
     },
 
-
     get (...path) {
       let result = this._data;
 //      const lastKey = path.pop();
@@ -137,7 +136,7 @@ nice.Type({
           for(let i in data)
             meta.keyListener.set(i, 1);
       }
-      return meta.keyListener;
+      return meta.keyListener.sort();
     }
   }
 });

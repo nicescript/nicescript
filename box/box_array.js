@@ -91,7 +91,7 @@ nice.Type({
 
       this.subscribe((value, index, oldValue, oldIndex) => {
         if(oldIndex !== null) {
-
+          //TODO:
         }
 
         if(index !== null) {
