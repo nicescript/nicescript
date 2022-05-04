@@ -1957,10 +1957,6 @@ Test((Box, Spy) => {
   expect(spy).calledWith(2);
   expect(spy).calledTimes(3);
 });
-Test('Behaviour with undefined', (Box) => {
-  const b = Box();
-  
-});
 Test((Box, Spy, uniq) => {
   const b = Box().uniq();
   const spy = Spy();
@@ -2263,6 +2259,7 @@ Mapping.BoxMap.BoxMap('sort', (z, index) => {
       if(res._value[i] === k)
         oldI = i;
     }
+    
     const i = nice.sortedIndex(values, v);
     if(oldI !== i){
       values.splice(oldI, 1);
@@ -2370,7 +2367,8 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
       const res = nice.BoxArray();
       this.subscribe((value, index, oldValue, oldIndex) => {
         if(oldIndex !== null) {
-          
+          const position = nice.sortedIndex(res._value, oldValue);
+          res.remove(position);
         }
         if(index !== null) {
           const position = nice.sortedIndex(res._value, value);
@@ -2489,6 +2487,12 @@ Test((BoxArray, sort) => {
   const a = BoxArray([3,2,4]);
   const b = a.sort();
   expect(b()).deepEqual([2,3,4]);
+  a.remove(1);
+  expect(b()).deepEqual([3,4]);
+  a.push(7);
+  a.push(7);
+  a.push(1);
+  expect(b()).deepEqual([1,3,4,7,7]);
 });
 })();
 (function(){"use strict";const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;

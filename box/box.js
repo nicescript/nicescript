@@ -85,12 +85,6 @@ Test((Box, Spy) => {
 });
 
 
-Test('Behaviour with undefined', (Box) => {
-  const b = Box();
-  //TODO: write test
-});
-
-
 Test((Box, Spy, uniq) => {
   const b = Box().uniq();
   const spy = Spy();

@@ -1,3 +1,6 @@
+//TODO: automaticaly unsubscribe reactive boxes //??resubscribe
+//TODO: remova singular nice values (e.g. nice.Num()) or make them useful
+
 const fs = require('fs');
 const espree = require('espree');
 const estraverse = require('estraverse');

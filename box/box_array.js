@@ -91,7 +91,8 @@ nice.Type({
 
       this.subscribe((value, index, oldValue, oldIndex) => {
         if(oldIndex !== null) {
-          //TODO:
+          const position = nice.sortedIndex(res._value, oldValue);
+          res.remove(position);
         }
 
         if(index !== null) {
@@ -257,4 +258,12 @@ Test((BoxArray, sort) => {
 
 
   expect(b()).deepEqual([2,3,4]);
+
+  a.remove(1);
+  expect(b()).deepEqual([3,4]);
+
+  a.push(7);
+  a.push(7);
+  a.push(1);
+  expect(b()).deepEqual([1,3,4,7,7]);
 });
