@@ -86,6 +86,7 @@ nice.Type({
     },
 
 
+      //TODO: f & BoxMap versions
     sort (f) {
       const res = nice.BoxArray();
 
@@ -104,6 +105,7 @@ nice.Type({
       return res;
     },
 
+
     filter (f) {
       const res = nice.BoxArray();
       const map = [];
@@ -111,13 +113,13 @@ nice.Type({
       const findPosition = stop => {
         let count = 0;
         let k = 0;
-        let l = map.length
+        let l = map.length;
         do {
           if(map[k])
             count++;
         } while( ++k < l && k < stop );
         return count;
-      }
+      };
 
       this.subscribe((value, index, oldValue, oldIndex) => {
         const pass = !!f(value);

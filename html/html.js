@@ -30,6 +30,14 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
     z.id() || z.id(nice.genereteAutoId());
     return z.id();
   })
+  .Method('attr', (z, k, ...vs) => {
+    if(vs.length === 0)
+      return z.attributes.get(k);
+
+    z.attributes.set(k, nice.format(...vs));
+
+    return z;
+  })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
     const current = z.attributes.get('className') || '';
     if(!vs.length)
@@ -721,6 +729,13 @@ function assertAutoClass(node) {
     node.className = className !== '' ? (className + ' ' + name) : name;
   }
 }
+
+
+Test((Div, attr) => {
+  const i = Div().attr('alt', 'q');
+  expect(i.attr('alt')).is('q');
+  expect(i.html).is('<div alt="q"></div>');
+});
 
 
 IS_BROWSER && Test((Div) => {

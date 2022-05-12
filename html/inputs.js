@@ -129,7 +129,7 @@ Html.extend('Form', (z, handler) => {
       handler(input);
     });
   })
-  .about('Represents HTML <input type="submit"> element.');
+  .about('Represents HTML Form element.');
 
 
 Input.extend('Checkbox', (z, status) => {

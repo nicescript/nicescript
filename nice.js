@@ -2363,6 +2363,7 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
       });
       return res;
     },
+      
     sort (f) {
       const res = nice.BoxArray();
       this.subscribe((value, index, oldValue, oldIndex) => {
@@ -2383,13 +2384,13 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
       const findPosition = stop => {
         let count = 0;
         let k = 0;
-        let l = map.length
+        let l = map.length;
         do {
           if(map[k])
             count++;
         } while( ++k < l && k < stop );
         return count;
-      }
+      };
       this.subscribe((value, index, oldValue, oldIndex) => {
         const pass = !!f(value);
         const oldPass = map[index];
@@ -4099,6 +4100,12 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
     z.id() || z.id(nice.genereteAutoId());
     return z.id();
   })
+  .Method('attr', (z, k, ...vs) => {
+    if(vs.length === 0)
+      return z.attributes.get(k);
+    z.attributes.set(k, nice.format(...vs));
+    return z;
+  })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
     const current = z.attributes.get('className') || '';
     if(!vs.length)
@@ -4592,6 +4599,11 @@ function assertAutoClass(node) {
     node.className = className !== '' ? (className + ' ' + name) : name;
   }
 }
+Test((Div, attr) => {
+  const i = Div().attr('alt', 'q');
+  expect(i.attr('alt')).is('q');
+  expect(i.html).is('<div alt="q"></div>');
+});
 IS_BROWSER && Test((Div) => {
   const testPane = document.createElement('div');
   document.body.appendChild(testPane);
@@ -4790,7 +4802,7 @@ Html.extend('Form', (z, handler) => {
       handler(input);
     });
   })
-  .about('Represents HTML <input type="submit"> element.');
+  .about('Represents HTML Form element.');
 Input.extend('Checkbox', (z, status) => {
     let node;
     z.tag = 'input';
