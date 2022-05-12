@@ -6,8 +6,8 @@ nice.Type({
 
   extends: 'Something',
 
-  initBy: z => {
-    z._data = {};
+  initBy: (z, data = {}) => {
+    z._data = data;
     z._meta = { listeners: {}, children: {} };
   },
 
