@@ -21,13 +21,13 @@ function attachValue(target, box, setValue = defaultSetValue){
       return true;
     }));
 
-    target.assertId();
+//    target.assertId();
     target.on('domNode', n => {
       node = n;
       node.value = box();
     });
   }
-  box.on('state', v => {
+  box.subscribe(v => {
     if(mute)
       return;
     node ? node.value = v : setValue(target, v);
@@ -35,12 +35,23 @@ function attachValue(target, box, setValue = defaultSetValue){
   return target;
 }
 
+
 Html.extend('Input', (z, type) => {
     z.tag = 'input';
+    z.assertId();
     z.attributes.set('type', type || 'text');
   })
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
+
+
+Input.proto.boxValue = function(initValue = ''){
+  if(this._boxValue)
+    return this._boxValue;
+  const res = Box(initValue);
+  attachValue(this, res);
+  return this._boxValue = res;
+};
 
 
 Input.proto.value = function(v){
@@ -54,27 +65,32 @@ Input.proto.value = function(v){
 
 
 Test((Input) => {
-  expect(Input().html).is('<input type="text"></input>');
-  expect(Input('date').html).is('<input type="date"></input>');
-  expect(Input().value('qwe').html).is('<input type="text" value="qwe"></input>');
+  const i1 = Input();
+  expect(i1.html).is('<input id="' + i1.id() + '" type="text"></input>');
+
+  const i2 = Input('date');
+  expect(i2.html).is('<input id="' + i2.id() + '" type="date"></input>');
+
+  const i3 = Input().value('qwe')
+  expect(i3.html).is('<input id="' + i3.id() + '" type="text" value="qwe"></input>');
 });
 
 
 Test('Box value html', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input type="text" value="qwe"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input type="text" value="asd"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
 });
 
 
 IS_BROWSER && Test('Box value dom', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input type="text" value="qwe"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input type="text" value="asd"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
 });
 
 
@@ -92,6 +108,7 @@ Test((Button) => {
 
 Input.extend('Textarea', (z, v) => {
     z.tag = 'textarea';
+
     if(v !== undefined && v._isBox){
       attachValue(this, v, (t, v) =>  t.children.removeAll().push(v));
     } else {
@@ -109,6 +126,7 @@ Test(Textarea => {
 
 Html.extend('Submit', (z, text, action) => {
     z.tag = 'input';
+    z.assertId();
     z.attributes.set('type', 'submit');
     z.attributes.set('value',  text || 'Submit');
     action && z.on('click', action);
@@ -118,6 +136,7 @@ Html.extend('Submit', (z, text, action) => {
 
 Html.extend('Form', (z, handler) => {
     z.tag = 'form';
+    z.assertId();
     handler && z.on('submit', e => {
       const input = {}, form = e.currentTarget;
       e.preventDefault();
@@ -149,7 +168,7 @@ Input.extend('Checkbox', (z, status) => {
     });
 
     if(IS_BROWSER){
-      z.assertId();
+//      z.assertId();
       z.on('domNode', n => node = n);
     }
 
@@ -172,7 +191,7 @@ Input.extend('Checkbox', (z, status) => {
     });
 
     if(IS_BROWSER){
-      z.assertId();
+//      z.assertId();
       z.on('domNode', n => node = n);
     }
 

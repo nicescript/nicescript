@@ -78,9 +78,12 @@ nice.Type({
         return;
 
       const childMeta = meta.children[key];
-      for(const k in value) {
-        if(k in childMeta.listeners)
-          this.notifyDown(childMeta, k, value[k]);
+
+      if(childMeta !== undefined) {
+        for(const k in value) {
+          if(k in childMeta.listeners)
+            this.notifyDown(childMeta, k, value[k]);
+        }
       }
     },
 
@@ -129,14 +132,17 @@ nice.Type({
 
     keyBox(...path){
       const meta = this.assertMeta(...path);
-      if(!meta.keyListener){
-        meta.keyListener = nice.BoxMap();
-        const data = this.get(...path);
-        if(typeof data === 'object')
-          for(let i in data)
-            meta.keyListener.set(i, 1);
+      if(!meta.keyBox){
+        if(!meta.keyListener){
+          meta.keyListener = nice.BoxMap();
+          const data = this.get(...path);
+          if(typeof data === 'object')
+            for(let i in data)
+              meta.keyListener.set(i, true);
+        }
+        meta.keyBox = meta.keyListener.sort()
       }
-      return meta.keyListener.sort();
+      return meta.keyBox;
     }
   }
 });
@@ -185,11 +191,13 @@ Test((Model, keyBox, Spy) => {
   const spy = Spy();
   const keys = m.keyBox('tasks');
   keys.subscribe(spy);
-  expect(spy).calledWith(1, '7');
+  expect(spy).calledWith('7', 0);
+  expect(spy).calledOnce();
 
   m.set('tasks', 11, 'text', 'Go');
-//  expect(spy).calledOnce();
-  expect(spy).calledWith(1, '11');
+  expect(spy).calledTwice();
+  expect(spy).calledWith('11', 1);
 
   m.set('tasks', 11, 'text', 'Go');
+  expect(spy).calledTwice();
 });

@@ -312,7 +312,10 @@ function createDom(e){
 
   e.attributes.each((v, k) => res[k] = v);
 
-  e._children && e._children.forEach(c => attachNode(c, res));
+  if(e._children)
+    e._children._isBoxArray
+      ? attachBoxArrayChildren(res, e._children)
+      : e._children.forEach(c => attachNode(c, res));
 
   e.eventHandlers.each((ls, type) => {
     if(type === 'domNode')
@@ -388,8 +391,11 @@ function attachNode(child, parent, position){
 
 
 function detachNode(dom, parentDom){
-  const f = dom.__boxListener;
-  f !== undefined && f.source.unsubscribe(f);
+  const bl = dom.__boxListener;
+  bl !== undefined && bl.source.unsubscribe(bl);
+
+  const cl = dom.__childrenListener;
+  cl !== undefined && cl.source.unsubscribe(cl);
 
   emptyNode(dom);
 
@@ -543,6 +549,21 @@ function insertAt(parent, node, position){
 }
 
 
+function attachBoxArrayChildren(node, box) {
+  const f = (v, k, oldV, oldK) => {
+    if(oldK !== null) {
+      const child = node.childNodes[oldK];
+      detachNode(child, node);
+    }
+    if(k !== null)
+      attachNode(v, node, k);
+  };
+  f.source = box;
+  node.__childrenListener = f;
+  box.subscribe(f);
+};
+
+
 if(IS_BROWSER){
   function killNode(n){
     n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
@@ -642,16 +663,6 @@ if(IS_BROWSER){
 
   Func.Html.BoxArray('bindChildren', (z, b) => {
     z._children = b;
-//    b.subscribe((value, index, oldValue, oldIndex) => {
-//      if(oldIndex !== undefined){
-//
-//      }
-//      if(index !== undefined) {
-//        attachNode()
-//      }
-//    });
-
-//    z._childrenLocked = 'Children of this element already bound to BoxArray';
   });
 
 
@@ -781,7 +792,7 @@ IS_BROWSER && Test((Div) => {
   });
 
 
-  Test((Div, Box, Css, show) => {
+  Test((Div, Box, Css, show, I, B) => {
     const box = Box(0);
     const initialRulesCount = runtime.styleSheet.rules.length;
 

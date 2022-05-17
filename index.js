@@ -2783,9 +2783,11 @@ nice.Type({
       if(typeof value !== 'object')
         return;
       const childMeta = meta.children[key];
-      for(const k in value) {
-        if(k in childMeta.listeners)
-          this.notifyDown(childMeta, k, value[k]);
+      if(childMeta !== undefined) {
+        for(const k in value) {
+          if(k in childMeta.listeners)
+            this.notifyDown(childMeta, k, value[k]);
+        }
       }
     },
     get (...path) {
@@ -2828,14 +2830,17 @@ nice.Type({
     },
     keyBox(...path){
       const meta = this.assertMeta(...path);
-      if(!meta.keyListener){
-        meta.keyListener = nice.BoxMap();
-        const data = this.get(...path);
-        if(typeof data === 'object')
-          for(let i in data)
-            meta.keyListener.set(i, 1);
+      if(!meta.keyBox){
+        if(!meta.keyListener){
+          meta.keyListener = nice.BoxMap();
+          const data = this.get(...path);
+          if(typeof data === 'object')
+            for(let i in data)
+              meta.keyListener.set(i, true);
+        }
+        meta.keyBox = meta.keyListener.sort()
       }
-      return meta.keyListener.sort();
+      return meta.keyBox;
     }
   }
 });
@@ -2870,10 +2875,13 @@ Test((Model, keyBox, Spy) => {
   const spy = Spy();
   const keys = m.keyBox('tasks');
   keys.subscribe(spy);
-  expect(spy).calledWith(1, '7');
+  expect(spy).calledWith('7', 0);
+  expect(spy).calledOnce();
   m.set('tasks', 11, 'text', 'Go');
-  expect(spy).calledWith(1, '11');
+  expect(spy).calledTwice();
+  expect(spy).calledWith('11', 1);
   m.set('tasks', 11, 'text', 'Go');
+  expect(spy).calledTwice();
 });
 })();
 (function(){"use strict";
@@ -4312,7 +4320,10 @@ function createDom(e){
     res.style[k] = '' + v;
   });
   e.attributes.each((v, k) => res[k] = v);
-  e._children && e._children.forEach(c => attachNode(c, res));
+  if(e._children)
+    e._children._isBoxArray
+      ? attachBoxArrayChildren(res, e._children)
+      : e._children.forEach(c => attachNode(c, res));
   e.eventHandlers.each((ls, type) => {
     if(type === 'domNode')
       return ls.forEach(f => f(res));
@@ -4373,8 +4384,10 @@ function attachNode(child, parent, position){
   }
 }
 function detachNode(dom, parentDom){
-  const f = dom.__boxListener;
-  f !== undefined && f.source.unsubscribe(f);
+  const bl = dom.__boxListener;
+  bl !== undefined && bl.source.unsubscribe(bl);
+  const cl = dom.__childrenListener;
+  cl !== undefined && cl.source.unsubscribe(cl);
   emptyNode(dom);
   parentDom !== undefined && parentDom.removeChild(dom);
 }
@@ -4490,6 +4503,19 @@ function insertAt(parent, node, position){
     : parent.appendChild(node);
   return node;
 }
+function attachBoxArrayChildren(node, box) {
+  const f = (v, k, oldV, oldK) => {
+    if(oldK !== null) {
+      const child = node.childNodes[oldK];
+      detachNode(child, node);
+    }
+    if(k !== null)
+      attachNode(v, node, k);
+  };
+  f.source = box;
+  node.__childrenListener = f;
+  box.subscribe(f);
+};
 if(IS_BROWSER){
   function killNode(n){
     n && n !== document.body && n.parentNode && n.parentNode.removeChild(n);
@@ -4635,7 +4661,7 @@ IS_BROWSER && Test((Div) => {
     box(Div(d2,d3,d1));
     expect(node.textContent).is('d2d3d1');
   });
-  Test((Div, Box, Css, show) => {
+  Test((Div, Box, Css, show, I, B) => {
     const box = Box(0);
     const initialRulesCount = runtime.styleSheet.rules.length;
     const div = Div(RBox(box, a => {
@@ -4717,13 +4743,12 @@ function attachValue(target, box, setValue = defaultSetValue){
       mute = false;
       return true;
     }));
-    target.assertId();
     target.on('domNode', n => {
       node = n;
       node.value = box();
     });
   }
-  box.on('state', v => {
+  box.subscribe(v => {
     if(mute)
       return;
     node ? node.value = v : setValue(target, v);
@@ -4732,10 +4757,18 @@ function attachValue(target, box, setValue = defaultSetValue){
 }
 Html.extend('Input', (z, type) => {
     z.tag = 'input';
+    z.assertId();
     z.attributes.set('type', type || 'text');
   })
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
+Input.proto.boxValue = function(initValue = ''){
+  if(this._boxValue)
+    return this._boxValue;
+  const res = Box(initValue);
+  attachValue(this, res);
+  return this._boxValue = res;
+};
 Input.proto.value = function(v){
   if(v !== undefined && v._isBox) {
     attachValue(this, v);
@@ -4745,23 +4778,26 @@ Input.proto.value = function(v){
   return this;
 };
 Test((Input) => {
-  expect(Input().html).is('<input type="text"></input>');
-  expect(Input('date').html).is('<input type="date"></input>');
-  expect(Input().value('qwe').html).is('<input type="text" value="qwe"></input>');
+  const i1 = Input();
+  expect(i1.html).is('<input id="' + i1.id() + '" type="text"></input>');
+  const i2 = Input('date');
+  expect(i2.html).is('<input id="' + i2.id() + '" type="date"></input>');
+  const i3 = Input().value('qwe')
+  expect(i3.html).is('<input id="' + i3.id() + '" type="text" value="qwe"></input>');
 });
 Test('Box value html', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input type="text" value="qwe"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input type="text" value="asd"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
 });
 IS_BROWSER && Test('Box value dom', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input type="text" value="qwe"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input type="text" value="asd"></input>');
+  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
 });
 Html.extend('Button', (z, text = '', action) => {
     z.super('button').type('button').on('click', action).add(text);
@@ -4786,6 +4822,7 @@ Test(Textarea => {
 });
 Html.extend('Submit', (z, text, action) => {
     z.tag = 'input';
+    z.assertId();
     z.attributes.set('type', 'submit');
     z.attributes.set('value',  text || 'Submit');
     action && z.on('click', action);
@@ -4793,6 +4830,7 @@ Html.extend('Submit', (z, text, action) => {
   .about('Represents HTML <input type="submit"> element.');
 Html.extend('Form', (z, handler) => {
     z.tag = 'form';
+    z.assertId();
     handler && z.on('submit', e => {
       const input = {}, form = e.currentTarget;
       e.preventDefault();
@@ -4818,7 +4856,6 @@ Input.extend('Checkbox', (z, status) => {
       return true;
     });
     if(IS_BROWSER){
-      z.assertId();
       z.on('domNode', n => node = n);
     }
     value.subscribe(v => node ? node.checked = v : z.attributes.set('checked', v));
@@ -4837,7 +4874,6 @@ Input.extend('Checkbox', (z, status) => {
       return true;
     });
     if(IS_BROWSER){
-      z.assertId();
       z.on('domNode', n => node = n);
     }
     z.options.listenChildren(v => z.add(Html('option').add(v.label)

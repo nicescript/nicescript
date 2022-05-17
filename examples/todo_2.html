@@ -5,12 +5,13 @@
   </head>
   <body style="margin:0">
 <script>
-const { Type, Arr, Div, Span, Box, Input, A, Switch, Model } = nice;
+const { Type, Arr, Div, Span, Input, A, Switch, Model, Box, RBox } = nice;
 
 
 const model = Model();
 
 
+model.set('tasks', '0', 'buy milk');
 
 //model.Action('createTask', text => {
 //  expect(text).isString();
@@ -36,33 +37,31 @@ const create = e => {
   e.preventDefault();
 };
 
-const search = Div('Type to search or add tasks');
-//const search = Input("search").placeholder('Type to search or add tasks')
-//  .boxSizing('border-box').width("100%").fontSize("20px").padding('.2em .3em')
-//  .on('keyup', e => e.keyCode === 13 && create(e))
-//  .focus();
+const search = Input("search").placeholder('Type to search or add tasks')
+  .autocomplete("off").autofocus(true)
+  .boxSizing('border-box').width("100%").fontSize("20px").padding('.2em .3em')
+  .on('keyup', e => e.key === 'Enter' && create(e));
 
 const deleteButton = (state, k) => state && A(() => tasks.remove(k), 'x')
     .textDecoration('none').color('#E33').marginLeft('.5em');
 
-const TaskView = id => RBox(tasks.getBox(id), task => {
-  const isHover = Bool();
-  
-  return Div().padding("1em 0")
-    .on('mouseover', () => isHover(true))
-    .on('mouseleave', () => isHover(false))
-    .Checkbox(task.status)
-      .on('change', e => tasks.get(id).status(e.target.checked))
-      .up
-    .Span(task.text.or('---'))
-      .marginLeft(".5em")
-      .textDecoration.by(() => task.status() ? 'line-through' : 'none')
-//      .textDecoration(Switch(task.status).isTrue('line-through').else('none'))
-      .up
-//    .add(RBox(task.status, s => Span(task.text || '---')
-//        .marginLeft(".5em")
-//        .textDecoration(s() ? 'line-through' : 'none')))
-    .add(deleteButton(isHover, id));
+const TaskView = id => RBox(model.getBox('tasks', id), task => {
+//  const isHover = Box(false);
+  return Div(task).padding("1em 0")
+//    .on('mouseover', () => isHover(true))
+//    .on('mouseleave', () => isHover(false))
+//    .Checkbox(task.status)
+//      .on('change', e => tasks.get(id).status(e.target.checked))
+//      .up
+//    .Span(task)//.text.or('---')
+//      .marginLeft(".5em")
+//      .textDecoration.by(() => task.status() ? 'line-through' : 'none')
+////      .textDecoration(Switch(task.status).isTrue('line-through').else('none'))
+//      .up
+////    .add(RBox(task.status, s => Span(task.text || '---')
+////        .marginLeft(".5em")
+////        .textDecoration(s() ? 'line-through' : 'none')))
+//    .add(deleteButton(isHover, id));
 });    
 
 
@@ -73,7 +72,9 @@ const TaskView = id => RBox(tasks.getBox(id), task => {
 
 
 //const tasks = model.path();
-const tasksView = Div(model.keyBox('tasks').map(TaskView));
+const tasksView = RBox(search.boxValue(), s => {
+  return Div(model.keyBox('tasks').map(TaskView));
+});
 //  .mapChildren(tasks.keyBox(), id => RBox(tasks.getBox(id), TaskView));
 //  .mapChildren(tasks.keyBox(), TaskView);
 
