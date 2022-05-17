@@ -477,7 +477,35 @@ function refreshElement(e, old, domNode){
 };
 
 
+function refreshBoxChildren(aChildren, bChildren, domNode) {
+  let ac = aChildren, bc = bChildren;
+
+  if(bChildren._isBoxArray){
+    while (domNode.firstChild) {
+      //TODO: unsubscribe
+      domNode.removeChild(domNode.lastChild);
+    }
+    bc = [];
+  }
+
+  if(aChildren._isBoxArray)
+    ac  = [];
+
+  refreshChildren(ac, bc, domNode);
+
+  if(aChildren._isBoxArray)
+    attachBoxArrayChildren(domNode, aChildren);
+}
+
+
 function refreshChildren(aChildren, bChildren, domNode){
+  if(aChildren === bChildren)
+    return;
+
+  if(bChildren._isBoxArray || aChildren._isBoxArray){
+    return refreshBoxChildren(aChildren, bChildren, domNode);
+  }
+
   const aKeys = aChildren.map(extractKey);
   const bKeys = bChildren.map(extractKey);
   const aCount = aKeys.reduce(childrenCounter, {});
@@ -561,6 +589,21 @@ function attachBoxArrayChildren(node, box) {
   f.source = box;
   node.__childrenListener = f;
   box.subscribe(f);
+};
+
+
+function detachBoxArrayChildren(node, box) {
+//  const f = (v, k, oldV, oldK) => {
+//    if(oldK !== null) {
+//      const child = node.childNodes[oldK];
+//      detachNode(child, node);
+//    }
+//    if(k !== null)
+//      attachNode(v, node, k);
+//  };
+//  f.source = box;
+//  node.__childrenListener = f;
+  box.unsubscribe(f, node.__childrenListener);
 };
 
 

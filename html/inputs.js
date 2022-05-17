@@ -21,7 +21,6 @@ function attachValue(target, box, setValue = defaultSetValue){
       return true;
     }));
 
-//    target.assertId();
     target.on('domNode', n => {
       node = n;
       node.value = box();
@@ -44,14 +43,13 @@ Html.extend('Input', (z, type) => {
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
-
-Input.proto.boxValue = function(initValue = ''){
+defGet(Input.proto, 'boxValue', function() {
   if(this._boxValue)
     return this._boxValue;
-  const res = Box(initValue);
+  const res = Box('');
   attachValue(this, res);
   return this._boxValue = res;
-};
+});
 
 
 Input.proto.value = function(v){
