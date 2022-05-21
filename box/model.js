@@ -130,7 +130,11 @@ nice.Type({
       return listeners[key];
     },
 
-    keyBox(...path){
+    keys(...path) {
+      return Object.keys(this.get(...path));
+    },
+
+    keyBox(...path) {
       const meta = this.assertMeta(...path);
       if(!meta.keyBox){
         if(!meta.keyListener){
@@ -196,7 +200,7 @@ Test((Model, keyBox, Spy) => {
 
   m.set('tasks', 11, 'text', 'Go');
   expect(spy).calledTwice();
-  expect(spy).calledWith('11', 1);
+  expect(spy).calledWith('11', 0);
 
   m.set('tasks', 11, 'text', 'Go');
   expect(spy).calledTwice();
