@@ -25,11 +25,6 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .obj('style')
   .obj('attributes')
-//  .arr('children')
-  .Method('assertId', z => {
-    z.id() || z.id(nice.genereteAutoId());
-    return z.id();
-  })
   .Method('attr', (z, k, ...vs) => {
     if(vs.length === 0)
       return z.attributes.get(k);
@@ -37,6 +32,15 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
     z.attributes.set(k, nice.format(...vs));
 
     return z;
+  })
+  .obj('properties')
+  .Method('prop', (z, k, v) => {
+    z.properties.set(k, v);
+    return z;
+  })
+  .Method('assertId', z => {
+    z.id() || z.id(nice.genereteAutoId());
+    return z.id();
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
     const current = z.attributes.get('className') || '';
@@ -310,7 +314,9 @@ function createDom(e){
     res.style[k] = '' + v;
   });
 
-  e.attributes.each((v, k) => res[k] = v);
+  e.attributes.each((v, k) => res.setAttribute(k,v));
+
+  e.properties.each((v, k) => res[k] = v);
 
   if(e._children)
     e._children._isBoxArray
@@ -454,8 +460,8 @@ function refreshElement(e, old, domNode){
 
     const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
 
-    _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode[k] = ""));
-    _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode[k] = v));
+    _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
+    _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
 
     e.needAutoClass === true && assertAutoClass(domNode);
     if(e.needAutoClass || domNode.assertedClass)
@@ -506,7 +512,7 @@ function refreshChildren(aChildren, bChildren, domNode){
     return refreshBoxChildren(aChildren, bChildren, domNode);
   }
 
-  const aKeys = aChildren.map(extractKey);
+  const aKeys = aChildren.map(extractKey);//TODO: why do we treat same id as same node??
   const bKeys = bChildren.map(extractKey);
   const aCount = aKeys.reduce(childrenCounter, {});
   const bCount = bKeys.reduce(childrenCounter, {});
@@ -515,8 +521,10 @@ function refreshChildren(aChildren, bChildren, domNode){
   while(ai < aKeys.length){
     const aChild = aKeys[ai], bChild = bKeys[bi];
     if(aChild === bChild && aChild !== undefined){
+      refreshElement(aChildren[ai], bChildren[bi], domNode.childNodes[ai]);
       ai++, bi++;
-    } else if(!bCount[aChild]){//assume insert
+    } else
+    if(!bCount[aChild]){//assume insert
       attachNode(aChildren[ai], domNode, ai);
       ai++;
     } else if(!aCount[bChild]) {//assume delete
@@ -524,8 +532,12 @@ function refreshChildren(aChildren, bChildren, domNode){
       bi++;
     } else {//assume ugly reorder - brute force
       const old = domNode.childNodes[bi];
-      attachNode(aChildren[ai], domNode, bi);
-      old && detachNode(old, domNode);
+      old
+        ? refreshElement(aChildren[ai], bChildren[bi], old)
+        : attachNode(aChildren[ai], domNode, bi);
+
+//      old && detachNode(old, domNode);
+
 
       ai++, bi++;
     }
@@ -858,6 +870,23 @@ IS_BROWSER && Test((Div) => {
         .is('rgba(0, 0, 0, 0)');
     expect(runtime.styleSheet.rules.length).is(initialRulesCount);
   });
+
+  Test((Div, Box, B) => {
+    const box = Box(Div(B(1).id('b1'), B(2)));
+    const div = Div(box).show();
+    expect(div.textContent).is('12');
+
+    box(Div(B(11).id('b1'), B(2)));
+    expect(div.textContent).is('112');
+
+    box(Div(B(2), B(11).id('b1')));
+    expect(div.textContent).is('211');
+  });
+
+  Test((Div, prop) => {
+    expect(nice.Div().prop('qwe', 'asd').show().qwe).is('asd');
+  });
+
 
   document.body.removeChild(testPane);
 });
