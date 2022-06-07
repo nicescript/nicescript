@@ -121,6 +121,66 @@ defAll(nice, {
     const a = s.match(/\/(.*):(\d+):(\d+)/);
     return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
   },
+
+  throttle (f, dt = 250) {
+    let lastT = 0, lastAs = null, lastThis = null, r, timeout = null;
+
+    return function (...as) {
+      const t = Date.now();
+      lastThis = this;
+
+      if((lastT + dt) < t){
+        r = f.apply(lastThis, as);
+        lastT = t;
+      } else {
+        lastAs = as;
+        if(timeout === null){
+          timeout = setTimeout(() => {
+            timeout = null;
+            r = f.apply(lastThis, as);
+            lastT = t;
+            lastAs = null;
+            lastThis = null;
+          }, dt);
+        }
+      }
+
+      return r;
+    };
+  },
+
+  throttleTrailing (f, dt = 250) {
+    let lAs = null, lThis = null, r, t = null;
+
+    return function (...as) {
+      lThis = this;
+
+      lAs = as;
+      if(t === null){
+        t = setTimeout(() => {
+          t = null;
+          r = f.apply(lThis, lAs);
+          lAs = null;
+        }, dt);
+      }
+
+      return r;
+    };
+  },
+
+  throttleLeading (f, dt = 250) {
+    let lastT = 0, r;
+
+    return function (...as) {
+      const t = Date.now();
+
+      if((lastT + dt) < t){
+        r = f.apply(this, as);
+        lastT = t;
+      }
+      return r;
+    };
+  }
 });
 
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);

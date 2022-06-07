@@ -333,6 +333,55 @@ defAll(nice, {
     const a = s.match(/\/(.*):(\d+):(\d+)/);
     return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
   },
+  throttle (f, dt = 250) {
+    let lastT = 0, lastAs = null, lastThis = null, r, timeout = null;
+    return function (...as) {
+      const t = Date.now();
+      lastThis = this;
+      if((lastT + dt) < t){
+        r = f.apply(lastThis, as);
+        lastT = t;
+      } else {
+        lastAs = as;
+        if(timeout === null){
+          timeout = setTimeout(() => {
+            timeout = null;
+            r = f.apply(lastThis, as);
+            lastT = t;
+            lastAs = null;
+            lastThis = null;
+          }, dt);
+        }
+      }
+      return r;
+    };
+  },
+  throttleTrailing (f, dt = 250) {
+    let lAs = null, lThis = null, r, t = null;
+    return function (...as) {
+      lThis = this;
+      lAs = as;
+      if(t === null){
+        t = setTimeout(() => {
+          t = null;
+          r = f.apply(lThis, lAs);
+          lAs = null;
+        }, dt);
+      }
+      return r;
+    };
+  },
+  throttleLeading (f, dt = 250) {
+    let lastT = 0, r;
+    return function (...as) {
+      const t = Date.now();
+      if((lastT + dt) < t){
+        r = f.apply(this, as);
+        lastT = t;
+      }
+      return r;
+    };
+  }
 });
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
 nice._eachEach = (o, f) => {
@@ -2828,7 +2877,10 @@ nice.Type({
       }
       return listeners[key];
     },
-    keyBox(...path){
+    keys(...path) {
+      return Object.keys(this.get(...path));
+    },
+    keyBox(...path) {
       const meta = this.assertMeta(...path);
       if(!meta.keyBox){
         if(!meta.keyListener){
@@ -2879,7 +2931,7 @@ Test((Model, keyBox, Spy) => {
   expect(spy).calledOnce();
   m.set('tasks', 11, 'text', 'Go');
   expect(spy).calledTwice();
-  expect(spy).calledWith('11', 1);
+  expect(spy).calledWith('11', 0);
   m.set('tasks', 11, 'text', 'Go');
   expect(spy).calledTwice();
 });
@@ -3842,6 +3894,12 @@ M.about('Creates new array with `separator` between elments.')
   a.each((v, k) => res.push(v) && (k < last && res.push(separator)));
   return res;
 });
+Mapping.Array('intersperse', (a, separator) => {
+  const res = [];
+  const last = a.length - 1;
+  a.forEach((v, k) => res.push(v) && (k < last && res.push(separator)));
+  return res;
+});
 M.about('Returns last element of `a`.')
   (function last(a) {
   return a._value[a._value.length - 1];
@@ -4104,15 +4162,20 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .obj('style')
   .obj('attributes')
-  .Method('assertId', z => {
-    z.id() || z.id(nice.genereteAutoId());
-    return z.id();
-  })
   .Method('attr', (z, k, ...vs) => {
     if(vs.length === 0)
       return z.attributes.get(k);
     z.attributes.set(k, nice.format(...vs));
     return z;
+  })
+  .obj('properties')
+  .Method('prop', (z, k, v) => {
+    z.properties.set(k, v);
+    return z;
+  })
+  .Method('assertId', z => {
+    z.id() || z.id(nice.genereteAutoId());
+    return z.id();
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
     const current = z.attributes.get('className') || '';
@@ -4319,7 +4382,8 @@ function createDom(e){
   e.style.each((v, k) => {
     res.style[k] = '' + v;
   });
-  e.attributes.each((v, k) => res[k] = v);
+  e.attributes.each((v, k) => res.setAttribute(k,v));
+  e.properties.each((v, k) => res[k] = v);
   if(e._children)
     e._children._isBoxArray
       ? attachBoxArrayChildren(res, e._children)
@@ -4430,8 +4494,8 @@ function refreshElement(e, old, domNode){
     _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
     const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
-    _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode[k] = ""));
-    _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode[k] = v));
+    _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
+    _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
     e.needAutoClass === true && assertAutoClass(domNode);
     if(e.needAutoClass || domNode.assertedClass)
       refreshSelectors(e.cssSelectors.jsValue, old.cssSelectors.jsValue, domNode);
@@ -4477,8 +4541,10 @@ function refreshChildren(aChildren, bChildren, domNode){
   while(ai < aKeys.length){
     const aChild = aKeys[ai], bChild = bKeys[bi];
     if(aChild === bChild && aChild !== undefined){
+      refreshElement(aChildren[ai], bChildren[bi], domNode.childNodes[ai]);
       ai++, bi++;
-    } else if(!bCount[aChild]){
+    } else
+    if(!bCount[aChild]){
       attachNode(aChildren[ai], domNode, ai);
       ai++;
     } else if(!aCount[bChild]) {
@@ -4486,8 +4552,9 @@ function refreshChildren(aChildren, bChildren, domNode){
       bi++;
     } else {
       const old = domNode.childNodes[bi];
-      attachNode(aChildren[ai], domNode, bi);
-      old && detachNode(old, domNode);
+      old
+        ? refreshElement(aChildren[ai], bChildren[bi], old)
+        : attachNode(aChildren[ai], domNode, bi);
       ai++, bi++;
     }
   };
@@ -4702,6 +4769,18 @@ IS_BROWSER && Test((Div) => {
     expect(window.getComputedStyle(node.firstChild).backgroundColor)
         .is('rgba(0, 0, 0, 0)');
     expect(runtime.styleSheet.rules.length).is(initialRulesCount);
+  });
+  Test((Div, Box, B) => {
+    const box = Box(Div(B(1).id('b1'), B(2)));
+    const div = Div(box).show();
+    expect(div.textContent).is('12');
+    box(Div(B(11).id('b1'), B(2)));
+    expect(div.textContent).is('112');
+    box(Div(B(2), B(11).id('b1')));
+    expect(div.textContent).is('211');
+  });
+  Test((Div, prop) => {
+    expect(nice.Div().prop('qwe', 'asd').show().qwe).is('asd');
   });
   document.body.removeChild(testPane);
 });

@@ -5,24 +5,18 @@
   </head>
   <body style="margin:0">
 <script>
-const { Type, Arr, Div, Span, Input, A, Switch, Model, Box, RBox } = nice;
+const { Arr, Div, Span, Input, A, B, intersperse, Switch, Model, Box, RBox } = nice;
 
 
 const model = Model();
 
+const addTask = text => model.set('tasks', nice.generateId(), text);
 
-model.set('tasks', nice.generateId(), 'buy milk');
-model.set('tasks', nice.generateId(), 'feed fish');
+addTask('buy milk');
+addTask('feed fish');
+addTask('water flowers');
 
-//model.Action('createTask', text => {
-//  expect(text).isString();
-//  model.set('tasks', null, { text });
-//});
-
-model.getBox('tasks', 1);
-
-
-const KEY = 'ToDoData';
+//const KEY = 'ToDoData';
 
 //const tasks = Switch(localStorage.getItem(KEY))
 //  .isNull().use(() => Arr(Task('Buy milk'), Task("Walk the dog")))
@@ -31,7 +25,7 @@ const KEY = 'ToDoData';
 //tasks.listen(v => localStorage.setItem(KEY, JSON.stringify(v.jsValue)));
 
 const create = e => {
-  model.set('tasks', nice.generateId(), search.boxValue());
+  addTask(search.boxValue());
   search.boxValue('');
   e.preventDefault();
 };
@@ -46,7 +40,10 @@ const deleteButton = (state, k) => state && A(() => tasks.remove(k), 'x')
 
 const TaskView = id => RBox(model.getBox('tasks', id), task => {
 //  const isHover = Box(false);
-  return Div(task).padding("1em 0")
+  const pattern = search.boxValue();
+  return Div(pattern 
+    ? intersperse(task.split(pattern), B(pattern))
+    : task).margin("1rem 0")
 //    .on('mouseover', () => isHover(true))
 //    .on('mouseleave', () => isHover(false))
 //    .Checkbox(task.status)
@@ -64,18 +61,19 @@ const TaskView = id => RBox(model.getBox('tasks', id), task => {
 });    
 
 
-
-//const tasksView = Div()
-//  .mapChildren(model.keyBox('tasks'), id => 
-//    RBox(model.getBox('tasks', id), TaskView));
-
-
-//const tasks = model.path();
 const tasksView = RBox(search.boxValue, s => {
-  return Div(model.keyBox('tasks').map(TaskView));
+  if(!s)
+    return Div(model.keyBox('tasks').map(TaskView));
+  
+  const found = model.keys('tasks')
+    .filter(id => RegExp(s, 'i').test(model.get('tasks', id)));
+    
+  return found.length
+    ? Div(found.map(TaskView))
+    : Div().margin("1rem 0")
+        .A(create, 'Add: ', s).textDecoration('none').up
+        .Span(' Enter').fontSize('small').color('#999').up;
 });
-//  .mapChildren(tasks.keyBox(), id => RBox(tasks.getBox(id), TaskView));
-//  .mapChildren(tasks.keyBox(), TaskView);
 
 //  tasks.filter(t => RegExp(search.value, 'i').test(t.text))
 //    .map(TaskView),
@@ -96,7 +94,7 @@ const tasksView = RBox(search.boxValue, s => {
 
 Div(search, tasksView)
   .font("20px Arial")
-  .padding("1rem")
+  .margin("1rem")
   .show();
   
 </script>

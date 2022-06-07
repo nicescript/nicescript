@@ -382,6 +382,14 @@ M.about('Creates new array with `separator` between elments.')
   return res;
 });
 
+Mapping.Array('intersperse', (a, separator) => {
+  const res = [];
+  const last = a.length - 1;
+  a.forEach((v, k) => res.push(v) && (k < last && res.push(separator)));
+  return res;
+});
+
+
 M.about('Returns last element of `a`.')
   (function last(a) {
   return a._value[a._value.length - 1];
