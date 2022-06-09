@@ -4345,8 +4345,9 @@ function compileStyle (s){
 };
 function compileSelectors (h){
   const a = [];
-  h.cssSelectors.each((v, k) => a.push('.', getAutoClass(h.attributes.get('className')),
-    ' ', k, '{', compileStyle(v), '}'));
+  h.cssSelectors.each((v, k) => a.push('.',
+    getAutoClass(h.attributes.get('className')),
+    k[0] === ':' ? '' : ' ', k, '{', compileStyle(v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
 const _html = v => v._isAnything ? v.html : nice.htmlEscape(v);
@@ -4683,8 +4684,11 @@ const findRule = (selector, className) => {
   return rule;
 };
 const assertRule = (selector, className) => {
+  const name = selector[0] === ':'
+    ? className + selector
+    : className + ' ' + selector;
   return findRule(selector, className) || runtime.styleSheet
-      .cssRules[runtime.styleSheet.insertRule(`.${className}${selector}` + '{}')];
+      .cssRules[runtime.styleSheet.insertRule(`.${name}` + '{}')];
 };
 const killRules = (vs, selector, id) => {
   const rule = findRule(selector, id);
