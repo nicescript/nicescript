@@ -80,6 +80,7 @@ Test((Router, Spy) => {
   expect(res).is('123');
 });
 
+
 nice.Type({
   name: 'WindowRouter',
 
@@ -104,15 +105,16 @@ nice.Type({
           content = nice.Div(...content);
 
         return content;
-      })).show();
+      }));
+
+      window.addEventListener('load', () => div.show());
 
       window.addEventListener('popstate', function(e) {
         z.currentUrl(e.target.location.pathname);
         return false;
       });
     }
-  },
-
+  }
 })
   .box('currentUrl')
   .Method(go);
@@ -128,12 +130,12 @@ function go(z, originalUrl){
 
   z.currentUrl(url);
 
-//  const title = page.title() || site.title();
-//  window.document.title = title;
-
-  if(location.pathname + location.hash !== url)
-    window.history.pushState(url, url, url);
-//    window.history.pushState(url, title, url);
+  try {
+    if(location.pathname + location.hash !== url)
+      window.history.pushState(url, url, url);
+  } catch (e) {
+    console.log(e);
+  }
 
   window.scrollTo(0, 0);
 }
