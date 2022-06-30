@@ -351,13 +351,19 @@ defAll(nice, {
 
   _decapitalize: s => s[0].toLowerCase() + s.substr(1),
 
-  times: (n, f, payload) => {
+  times: (n, f, a) => {
     n = n > 0 ? n : 0;
     let i = 0;
-    while(i < n){
-      f(i++, payload);
+    if(Array.isArray(a)){
+      while(i < n)
+        a.push(f(i++));
+    } else if (a !== undefined){
+      throw 'Accumulator should be an Array';
+    } else {
+      while(i < n)
+        f(i++);
     }
-    return payload;
+    return a;
   },
 
   fromJson (v) {

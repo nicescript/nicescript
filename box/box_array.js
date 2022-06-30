@@ -123,7 +123,7 @@ nice.Type({
 
       this.subscribe((value, index, oldValue, oldIndex) => {
         const pass = !!f(value);
-        const oldPass = map[index];
+        const oldPass = oldIndex === null ? null : map[index];
         if(oldIndex === null)
           map.splice(index, 0, pass);
         else {

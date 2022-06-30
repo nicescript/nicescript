@@ -64,9 +64,23 @@ nice.registerType({
     },
 
     apply(f){
+      f(this);
+      return this;
+    },
+
+    try(f){
       try {
         f(this);
       } catch (e) { return nice.Err(e) }
+      return this;
+    },
+
+    if(a,b,c){
+      if(a)
+        b(this, a);
+      else if (typeof c === 'function')
+        c(this, a);
+
       return this;
     },
 
