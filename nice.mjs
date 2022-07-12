@@ -2799,6 +2799,9 @@ nice.Type({
   },
   proto: {
     set (...path) {
+      if(path.length === 1){
+        return this.setAll(path[0]);
+      }
       const value = path.pop();
       let target = this._data;
       let meta = this._meta;
@@ -2818,6 +2821,18 @@ nice.Type({
       }
       this.notifyTop(path);
     },
+    setAll (value) {
+      expect(value).isObject();
+      const oldValue = this._data;
+      this._data = value;
+      if(this._meta.keyListener !== undefined){
+        _each(value, (v, k) => {
+          if(!(k in oldValue))
+            this._meta.keyListener.set(k, 1);
+        });
+      };
+      this.notifyAllDown(value);
+    },
     addKey (meta, key) {
       meta !== undefined && meta.keyListener !== undefined
           && meta.keyListener.set(key, 1);
@@ -2827,7 +2842,7 @@ nice.Type({
         meta.keyListener.set(key, 1);
       }
       const childMeta = meta?.children?.[key];
-      if(meta === undefined  && typeof value !== 'object')
+      if(meta === undefined && typeof value !== 'object')
         return;
     },
     notifyTop (path) {
@@ -2853,6 +2868,15 @@ nice.Type({
         for(const k in value) {
           if(k in childMeta.listeners)
             this.notifyDown(childMeta, k, value[k]);
+        }
+      }
+    },
+    notifyAllDown (value) {
+      const meta = this._meta
+      if(meta !== undefined) {
+        for(const k in value) {
+          if(k in meta.listeners)
+            this.notifyDown(meta, k, value[k]);
         }
       }
     },
@@ -2951,6 +2975,15 @@ Test((Model, keyBox, Spy) => {
   expect(spy).calledWith('11', 0);
   m.set('tasks', 11, 'text', 'Go');
   expect(spy).calledTwice();
+});
+Test((Model, Spy) => {
+  const m = Model();
+  const keys = m.keyBox();
+  const spy = Spy();
+  keys.subscribe(spy);
+  m.set({qwe:1});
+  expect(m._data).deepEqual({qwe:1});
+  expect(spy).calledWith('qwe');
 });
 })();
 (function(){"use strict";
