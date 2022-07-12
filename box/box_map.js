@@ -29,6 +29,9 @@ nice.Type({
       }
       return this;
     },
+    delete (k) {
+      return this.set(k, null);
+    },
     get (k) {
       return this._value[k];
     },
@@ -226,7 +229,7 @@ Mapping.BoxMap.BoxMap('sort', (z, index) => {
       if(res._value[i] === k)
         oldI = i;
     }
-    
+
     const i = nice.sortedIndex(values, v);
     if(oldI !== i){
       values.splice(oldI, 1);

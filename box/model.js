@@ -45,9 +45,14 @@ nice.Type({
 
       if(this._meta.keyListener !== undefined){
         _each(value, (v, k) => {
-          if(!(k in oldValue))
+          if(typeof oldValue !== 'object' || !(k in oldValue))
             this._meta.keyListener.set(k, 1);
         });
+        if(typeof oldValue === 'object')
+          _each(oldValue, (v, k) => {
+            if(typeof value !== 'object' || !(k in value))
+              this._meta.keyListener.delete(k);
+          });
       };
       this.notifyAllDown(value);
     },
