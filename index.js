@@ -2166,6 +2166,9 @@ Test((BoxSet, Spy) => {
       }
       return this;
     },
+    delete (k) {
+      return this.set(k, null);
+    },
     get (k) {
       return this._value[k];
     },
@@ -2325,7 +2328,6 @@ Mapping.BoxMap.BoxMap('sort', (z, index) => {
       if(res._value[i] === k)
         oldI = i;
     }
-    
     const i = nice.sortedIndex(values, v);
     if(oldI !== i){
       values.splice(oldI, 1);
@@ -2827,9 +2829,14 @@ nice.Type({
       this._data = value;
       if(this._meta.keyListener !== undefined){
         _each(value, (v, k) => {
-          if(!(k in oldValue))
+          if(typeof oldValue !== 'object' || !(k in oldValue))
             this._meta.keyListener.set(k, 1);
         });
+        if(typeof oldValue === 'object')
+          _each(oldValue, (v, k) => {
+            if(typeof value !== 'object' || !(k in value))
+              this._meta.keyListener.delete(k);
+          });
       };
       this.notifyAllDown(value);
     },
