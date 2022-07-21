@@ -49,7 +49,7 @@ nice.registerType({
 
     toString () {
       return this._type.name + '('
-        + ('_value' in this ? ('' + this._value) : '')
+        + ('_value' in this ? ('' + JSON.stringify(this._value)) : '')
         + ')';
     },
 
