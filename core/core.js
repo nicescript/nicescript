@@ -267,6 +267,7 @@ defAll(nice, {
     return o;
   },
 
+  //TODO: write tests
   Pipe: (...fs) => {
     fs = fs.map(f => {
       if(typeof f === 'string')
