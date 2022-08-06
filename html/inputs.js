@@ -10,13 +10,16 @@ const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 
 function attachValue(target, box, setValue = defaultSetValue){
   let node, mute;
+  const initValue = box();
 
-  setValue(target, box());
+  setValue(target, initValue);
 
   if(IS_BROWSER){
+    let lastValue = initValue;
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
-      box((e.target || e.srcElement).value);
+      const v = (e.target || e.srcElement).value;
+      v !== lastValue && box(lastValue = v)
       mute = false;
       return true;
     }));

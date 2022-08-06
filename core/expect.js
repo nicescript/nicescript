@@ -111,7 +111,7 @@ Test('Not expect followed by expect.', () => {
 
 
 Test('either or', () => {
-  expect(1).either.is(2).is(4).or.is(nice.Div());
+  expect(1).either.is(2).is(1).or.is(nice.Div());
   expect(1).either.is(1).is(2).or.is(nice.Div());
   expect(1).either.is(5).is(2).or.is(1);
   expect('qwe').either.isNumber(2).or.isString();

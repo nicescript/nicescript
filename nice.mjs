@@ -205,6 +205,7 @@ defAll(nice, {
     f(o);
     return o;
   },
+  
   Pipe: (...fs) => {
     fs = fs.map(f => {
       if(typeof f === 'string')
@@ -1706,7 +1707,7 @@ Test('Not expect followed by expect.', () => {
   expect(1).is(1).not.is(3);
 });
 Test('either or', () => {
-  expect(1).either.is(2).is(4).or.is(nice.Div());
+  expect(1).either.is(2).is(1).or.is(nice.Div());
   expect(1).either.is(1).is(2).or.is(nice.Div());
   expect(1).either.is(5).is(2).or.is(1);
   expect('qwe').either.isNumber(2).or.isString();
@@ -4952,11 +4953,14 @@ function defaultSetValue(t, v){
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 function attachValue(target, box, setValue = defaultSetValue){
   let node, mute;
-  setValue(target, box());
+  const initValue = box();
+  setValue(target, initValue);
   if(IS_BROWSER){
+    let lastValue = initValue;
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
-      box((e.target || e.srcElement).value);
+      const v = (e.target || e.srcElement).value;
+      v !== lastValue && box(lastValue = v)
       mute = false;
       return true;
     }));
