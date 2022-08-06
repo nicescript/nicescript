@@ -509,6 +509,9 @@ function refreshChildren(aChildren, bChildren, domNode){
   if(aChildren === bChildren)
     return;
 
+  aChildren = aChildren || [];
+  bChildren = bChildren || [];
+
   if(bChildren._isBoxArray || aChildren._isBoxArray){
     return refreshBoxChildren(aChildren, bChildren, domNode);
   }
