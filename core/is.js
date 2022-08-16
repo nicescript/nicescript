@@ -79,7 +79,7 @@ const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   if(i === 'Function'){
     Check.about(`Checks if \`v\` is \`function\`.`)
-      ('is' + i, v => v._isAnything
+      ('is' + i, v => v && v._isAnything
         ? v._type === nice.Func || v._type === nice.jsTypes.Function
         : typeof v === 'function');
   } else {
@@ -94,11 +94,19 @@ for(let i in nice.jsTypes){
 
 
 reflect.on('type', function defineReducer(type) {
-  type.name && Check
-    .about('Checks if `v` has type `' + type.name + '`')
-    ('is' + type.name, v => v && v._type
+  if(!type.name)
+    return;
+
+  const body = type.singleton
+    ? v => v === type || (v && v._type
         ? (type === v._type || type.isPrototypeOf(v._type))
-        : false);
+        : false)
+    : v => v && v._type
+        ? (type === v._type || type.isPrototypeOf(v._type))
+        : false
+
+  Check.about('Checks if `v` has type `' + type.name + '`')
+    ('is' + type.name, body);
 });
 
 
@@ -333,6 +341,19 @@ Test("not", (Switch) => {
     .default(3);
 
   expect(s).is(2);
+});
+
+
+Test("singleton type", () => {
+  const s = nice.Stop;
+  expect(s).isStop();
+});
+
+
+Test((isFunction) => {
+  expect(isFunction(() => 1)).is(true);
+  expect(isFunction(2)).is(false);
+  expect(isFunction()).is(false);
 });
 
 

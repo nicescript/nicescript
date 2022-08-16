@@ -797,6 +797,7 @@ nice.jsBasicTypes = {
 jsHierarchy['primitive'].split(',').forEach(name => {
   nice.jsTypes[name].primitiveName = name.toLowerCase();
 });
+nice.jsTypes.Function.primitiveName = 'function';
 })();
 (function(){"use strict";nice.registerType({
   name: 'Anything',
@@ -1385,7 +1386,7 @@ const basicJS = 'number,function,string,boolean,symbol'.split(',');
 for(let i in nice.jsTypes){
   if(i === 'Function'){
     Check.about(`Checks if \`v\` is \`function\`.`)
-      ('is' + i, v => v._isAnything
+      ('is' + i, v => v && v._isAnything
         ? v._type === nice.Func || v._type === nice.jsTypes.Function
         : typeof v === 'function');
   } else {
@@ -1397,11 +1398,17 @@ for(let i in nice.jsTypes){
   }
 };
 reflect.on('type', function defineReducer(type) {
-  type.name && Check
-    .about('Checks if `v` has type `' + type.name + '`')
-    ('is' + type.name, v => v && v._type
+  if(!type.name)
+    return;
+  const body = type.singleton
+    ? v => v === type || (v && v._type
         ? (type === v._type || type.isPrototypeOf(v._type))
-        : false);
+        : false)
+    : v => v && v._type
+        ? (type === v._type || type.isPrototypeOf(v._type))
+        : false
+  Check.about('Checks if `v` has type `' + type.name + '`')
+    ('is' + type.name, body);
 });
 const throwF = function(...as) {
   return this.use(() => {
@@ -1592,6 +1599,15 @@ Test("not", (Switch) => {
     .default(3);
   expect(s).is(2);
 });
+Test("singleton type", () => {
+  const s = nice.Stop;
+  expect(s).isStop();
+});
+Test((isFunction) => {
+  expect(isFunction(() => 1)).is(true);
+  expect(isFunction(2)).is(false);
+  expect(isFunction()).is(false);
+});
 Test((Switch, Spy) => {
   const spy1 = Spy();
   const spy2 = Spy(() => 2);
@@ -1720,89 +1736,15 @@ Test('either or', () => {
   }).throws();
 });
 })();
-(function(){"use strict";nice.Type({
-  name: 'Spy',
-  extends: 'Anything',
-  defaultValueBy: () => [],
-  customCall: call,
-  initBy: (z, f) => {
-    typeof f === 'function' ? (z._f = f) : (z._returnValue = f);
-  },
-});
-function call(spy, ...a){
-  spy._logCalls && console.log('Spy called with:', ...a);
-  spy._value.push(a);
-  if(spy._f)
-    return spy._f(...a);
-  return spy._returnValue;
-};
-Test((Spy) => {
-  Test('Use function', () => {
-    expect(Spy(() => 2)()).is(2);
-  });
-  Test('Return value', () => {
-    expect(Spy(2)()).is(2);
-  });
-});
-Action.Spy('logCalls', z => z._logCalls = true);
-Check.Spy('called', s => s._value.length > 0);
-Test((Spy, called) => {
-  const spy = Spy();
-  expect(spy.called()).is(false);
-  spy();
-  expect(spy.called()).is(true);
-});
-Check.Spy('calledOnce', s => s._value.length === 1);
-Test((Spy, calledOnce) => {
-  const spy = Spy();
-  expect(spy.calledOnce()).is(false);
-  spy();
-  expect(spy.calledOnce()).is(true);
-  spy();
-  expect(spy.calledOnce()).is(false);
-});
-Check.Spy('calledTwice', s => s._value.length === 2);
-Test((Spy, calledTwice) => {
-  const spy = Spy();
-  expect(spy.calledTwice()).is(false);
-  spy();
-  spy();
-  expect(spy.calledTwice()).is(true);
-  spy();
-  expect(spy.calledTwice()).is(false);
-});
-Check.Spy('calledTimes', (s, n) => s._value.length === n);
-Test((Spy, calledTimes) => {
-  const spy = Spy();
-  expect(spy.calledTimes(0)).is(true);
-  spy();
-  expect(spy.calledTimes(1)).is(true);
-  spy();
-  expect(spy.calledTimes(2)).is(true);
-  expect(spy.calledTimes(3)).is(false);
-});
-Check.Spy('calledWith', (s, ...as) => s._value.some(a => {
-  return as.every((v, k) => nice.is(a[k], v));
-}));
-Test((Spy, calledWith) => {
-  const spy = Spy();
-  expect(spy.calledWith(1)).is(false);
-  spy(1);
-  expect(spy.calledWith(1)).is(true);
-  expect(spy.calledWith(1, 2)).is(false);
-  spy(1, 2);
-  expect(spy.calledWith(1, 2)).is(true);
-  expect(spy).calledWith(1, 2);
-});
-})();
 (function(){"use strict";nice.Check('isType', v => Anything.isPrototypeOf(v) || v === Anything);
 nice.ReadOnly.Anything(function jsValue(z) { return z._value; });
-function s(name, parent, description, ){
+function s(name, parent, description){
   const value = Object.freeze({ _type: name });
   nice.Type({
     name,
     extends: parent,
     description,
+    singleton: true,
     proto: {
     }
   })();
@@ -2008,6 +1950,81 @@ Test((sortedIndex) => {
   expect(sortedIndex(a, 'aa', f)).is(1);
   expect(sortedIndex(a, 'aaaa', f)).is(2);
   expect(sortedIndex(a, '', f)).is(0);
+});
+})();
+(function(){"use strict";nice.Type({
+  name: 'Spy',
+  extends: 'Anything',
+  defaultValueBy: () => [],
+  customCall: call,
+  initBy: (z, f) => {
+    typeof f === 'function' ? (z._f = f) : (z._returnValue = f);
+  },
+});
+function call(spy, ...a){
+  spy._logCalls && console.log('Spy called with:', ...a);
+  spy._value.push(a);
+  if(spy._f)
+    return spy._f(...a);
+  return spy._returnValue;
+};
+Test((Spy) => {
+  Test('Use function', () => {
+    expect(Spy(() => 2)()).is(2);
+  });
+  Test('Return value', () => {
+    expect(Spy(2)()).is(2);
+  });
+});
+Action.Spy('logCalls', z => z._logCalls = true);
+Check.Spy('called', s => s._value.length > 0);
+Test((Spy, called) => {
+  const spy = Spy();
+  expect(spy.called()).is(false);
+  spy();
+  expect(spy.called()).is(true);
+});
+Check.Spy('calledOnce', s => s._value.length === 1);
+Test((Spy, calledOnce) => {
+  const spy = Spy();
+  expect(spy.calledOnce()).is(false);
+  spy();
+  expect(spy.calledOnce()).is(true);
+  spy();
+  expect(spy.calledOnce()).is(false);
+});
+Check.Spy('calledTwice', s => s._value.length === 2);
+Test((Spy, calledTwice) => {
+  const spy = Spy();
+  expect(spy.calledTwice()).is(false);
+  spy();
+  spy();
+  expect(spy.calledTwice()).is(true);
+  spy();
+  expect(spy.calledTwice()).is(false);
+});
+Check.Spy('calledTimes', (s, n) => s._value.length === n);
+Test((Spy, calledTimes) => {
+  const spy = Spy();
+  expect(spy.calledTimes(0)).is(true);
+  spy();
+  expect(spy.calledTimes(1)).is(true);
+  spy();
+  expect(spy.calledTimes(2)).is(true);
+  expect(spy.calledTimes(3)).is(false);
+});
+Check.Spy('calledWith', (s, ...as) => s._value.some(a => {
+  return as.every((v, k) => nice.is(a[k], v));
+}));
+Test((Spy, calledWith) => {
+  const spy = Spy();
+  expect(spy.calledWith(1)).is(false);
+  spy(1);
+  expect(spy.calledWith(1)).is(true);
+  expect(spy.calledWith(1, 2)).is(false);
+  spy(1, 2);
+  expect(spy.calledWith(1, 2)).is(true);
+  expect(spy).calledWith(1, 2);
 });
 })();
 (function(){"use strict";const IS_READY = 1;
@@ -3511,6 +3528,11 @@ Test((Obj, some) => {
   expect(o.some(v => v % 2)).is(true);
   expect(o.some(v => v < 3)).is(true);
   expect(o.some(v => v < 0)).is(false);
+});
+Test((Obj, some, Stop, Spy) => {
+  const o = Obj({a:1,b:2});
+  const spy = Spy(v => v > 0);
+  expect(o.some(spy)).is(true);
 });
 C.about(`Check if every element in colection matches given check`)
   (function every(c, f){

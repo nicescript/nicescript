@@ -384,6 +384,14 @@ Test((Obj, some) => {
 });
 
 
+Test((Obj, some, Stop, Spy) => {
+  const o = Obj({a:1,b:2});
+  const spy = Spy(v => v > 0);
+
+  expect(o.some(spy)).is(true);
+});
+
+
 C.about(`Check if every element in colection matches given check`)
   (function every(c, f){
     return !!c.reduce((res, v, k) => res && f(v, k), true);

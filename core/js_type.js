@@ -64,3 +64,5 @@ nice.jsBasicTypes = {
 jsHierarchy['primitive'].split(',').forEach(name => {
   nice.jsTypes[name].primitiveName = name.toLowerCase();
 });
+
+nice.jsTypes.Function.primitiveName = 'function';
