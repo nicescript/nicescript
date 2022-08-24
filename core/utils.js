@@ -180,6 +180,24 @@ defAll(nice, {
       }
       return r;
     };
+  },
+
+  _count (o, f){
+    let n = 0;
+    _each(o, (v, k) => f(v,k,o) && n++);
+    return n;
+  },
+
+  _findFirstKeys (o, f, n) {
+    const res = [];
+    for(let k in o){
+      if(f(o[k], k)){
+        res.push(k);
+        if(res.length === n)
+          break;
+      }
+    };
+    return res;
   }
 });
 

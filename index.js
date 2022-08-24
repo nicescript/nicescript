@@ -382,6 +382,22 @@ defAll(nice, {
       }
       return r;
     };
+  },
+  _count (o, f){
+    let n = 0;
+    _each(o, (v, k) => f(v,k,o) && n++);
+    return n;
+  },
+  _findFirstKeys (o, f, n) {
+    const res = [];
+    for(let k in o){
+      if(f(o[k], k)){
+        res.push(k);
+        if(res.length === n)
+          break;
+      }
+    };
+    return res;
   }
 });
 create = nice.create = (proto, o) => Object.setPrototypeOf(o || {}, proto);
@@ -2877,9 +2893,18 @@ nice.Type({
         return this.setAll(path[0]);
       }
       const value = path.pop();
+      const lastKey = path.pop();
+      const [target, meta] = this.assertPath(...path);
+      target[lastKey] = value;
+      if(meta !== undefined) {
+        this.notifyDown(meta, lastKey, value);
+        this.addKeysDown(meta, lastKey, value);
+      }
+      this.notifyTop(path);
+    },
+    assertPath (...path) {
       let target = this._data;
       let meta = this._meta;
-      const lastKey = path.pop();
       for(const key of path) {
         if(!(key in target)) {
           target[key] = {};
@@ -2888,12 +2913,19 @@ nice.Type({
         meta = meta?.children?.[key];
         target = target[key];
       }
-      target[lastKey] = value;
-      if(meta !== undefined) {
-        this.notifyDown(meta, lastKey, value);
-        this.addKeysDown(meta, lastKey, value);
+      return [target, meta];
+    },
+    assign (...path) {
+      const value = path.pop();
+      const lastKey = path.pop();
+      const [target, meta] = this.assertPath(...path);
+      if(!target[lastKey] || typeof target[lastKey] !== 'object'){
+        this.set(...path, lastKey, value);
+      } else {
+        _each(value, (v, k) => {
+          this.assign(...path, lastKey, k, v);
+        });
       }
-      this.notifyTop(path);
     },
     setAll (value) {
       expect(value).isObject();
@@ -3021,6 +3053,13 @@ Test(Model => {
   m.set('tasks', 1, {text: 'Go'});
   expect(m.get('tasks', 1, 'text')).is('Go');
 });
+Test(Model => {
+  const m = Model();
+  m.set('tasks', 1, {text: 'Go'});
+  m.assign('tasks', 1, {status: 'Done'});
+  expect(m.get('tasks', 1, 'text')).is('Go');
+  expect(m.get('tasks', 1, 'status')).is('Done');
+});
 Test((Model, getBox) => {
   const m = Model();
   const b = m.getBox('tasks', 1, 'text');
@@ -3063,6 +3102,19 @@ Test((Model, Spy) => {
   m.set({qwe:1});
   expect(m._data).deepEqual({qwe:1});
   expect(spy).calledWith('qwe');
+});
+Test((Model, Spy) => {
+  const m = Model();
+  m.set('tasks', 7, 'text', 'Wash');
+  let res;
+  const spy = Spy(v => res = v);
+  const box = m.getBox('tasks');
+  box.subscribe(spy);
+  expect(res).deepEqual({7:{text:'Wash'}});
+  expect(spy).calledOnce();
+  m.assign('tasks', 7, 'status', 'Done');
+  expect(res).deepEqual({7:{text:'Wash',status:'Done'}});
+  expect(spy).calledTwice();
 });
 })();
 (function(){"use strict";

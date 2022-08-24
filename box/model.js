@@ -1,5 +1,7 @@
 //QUESTION: make rows of nice.Type
 //TODO: use Model in todo example
+//TODO:0 delete command
+//TODO:0 assign command
 
 nice.Type({
   name: 'Model',
@@ -17,9 +19,20 @@ nice.Type({
         return this.setAll(path[0]);
       }
       const value = path.pop();
+      const lastKey = path.pop();
+      const [target, meta] = this.assertPath(...path);
+
+      target[lastKey] = value;
+      if(meta !== undefined) {
+        this.notifyDown(meta, lastKey, value);
+        this.addKeysDown(meta, lastKey, value);
+      }
+      this.notifyTop(path);
+    },
+
+    assertPath (...path) {
       let target = this._data;
       let meta = this._meta;
-      const lastKey = path.pop();
 
       for(const key of path) {
         if(!(key in target)) {
@@ -29,13 +42,21 @@ nice.Type({
         meta = meta?.children?.[key];
         target = target[key];
       }
+      return [target, meta];
+    },
 
-      target[lastKey] = value;
-      if(meta !== undefined) {
-        this.notifyDown(meta, lastKey, value);
-        this.addKeysDown(meta, lastKey, value);
+    assign (...path) {
+      const value = path.pop();
+      const lastKey = path.pop();
+      const [target, meta] = this.assertPath(...path);
+
+      if(!target[lastKey] || typeof target[lastKey] !== 'object'){
+        this.set(...path, lastKey, value);
+      } else {
+        _each(value, (v, k) => {
+          this.assign(...path, lastKey, k, v);
+        });
       }
-      this.notifyTop(path);
     },
 
     setAll (value) {
@@ -192,6 +213,15 @@ Test(Model => {
 });
 
 
+Test(Model => {
+  const m = Model();
+  m.set('tasks', 1, {text: 'Go'});
+  m.assign('tasks', 1, {status: 'Done'});
+  expect(m.get('tasks', 1, 'text')).is('Go');
+  expect(m.get('tasks', 1, 'status')).is('Done');
+});
+
+
 Test((Model, getBox) => {
   const m = Model();
   const b = m.getBox('tasks', 1, 'text');
@@ -250,4 +280,22 @@ Test((Model, Spy) => {
 
   expect(m._data).deepEqual({qwe:1});
   expect(spy).calledWith('qwe');
+});
+
+
+Test((Model, Spy) => {
+  const m = Model();
+  m.set('tasks', 7, 'text', 'Wash');
+  let res;
+
+  const spy = Spy(v => res = v);
+  const box = m.getBox('tasks');
+  box.subscribe(spy);
+
+  expect(res).deepEqual({7:{text:'Wash'}});
+  expect(spy).calledOnce();
+
+  m.assign('tasks', 7, 'status', 'Done');
+  expect(res).deepEqual({7:{text:'Wash',status:'Done'}});
+  expect(spy).calledTwice();
 });
