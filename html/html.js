@@ -363,6 +363,9 @@ function createSubscription(box, state, dom){
       f.nestedSubscription.parentSubscription = f;
       newState.subscribe(f.nestedSubscription);
     } else {
+      while(newState !== undefined && newState._up_ && newState._up_ !== newState)
+        newState = newState._up_;
+
       const newDom = refreshElement(newState, f.state, f.dom);
       if(newDom !== f.dom){
         f.dom = newDom;

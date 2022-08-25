@@ -60,7 +60,7 @@ const constructors = {
 //      }
 //    }, z.children);
 //  },
-  Object: (z, o, f) => Object.values(o).forEach((v, k) => z.add(f(v, k))),
+  Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
 //  Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
 //  Arr: (z, a, f) => a.listenItems(v => v.isNotFound()
 //    ? z.children.remove(v._name)

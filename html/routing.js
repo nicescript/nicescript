@@ -112,6 +112,9 @@ nice.Type({
         if(Array.isArray(content))
           content = nice.Div(...content);
 
+        while(content !== undefined && content._up_ && content._up_ !== content)
+          content = content._up_;
+
         return content;
       }));
 
