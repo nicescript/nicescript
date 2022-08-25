@@ -1,7 +1,6 @@
 //QUESTION: make rows of nice.Type
 //TODO: use Model in todo example
 //TODO:0 delete command
-//TODO:0 assign command
 
 nice.Type({
   name: 'Model',
