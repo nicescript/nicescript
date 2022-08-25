@@ -90,14 +90,22 @@ nice.Type({
     if(window && window.addEventListener){
       nice.Html.linkRouter = z;
       z.origin = window.location.origin;
+      let lastHandlers = null;
 
       div.add(nice.RBox(z.currentUrl, url => {
+        if(lastHandlers !== null)
+          _each(lastHandlers, (v, k) => window.removeEventListener(k, v));
+
         const route = z.resolve(url);
 
         let content = route();
 
-        if(content.__proto__ === Object.prototype && content.content){
+        if(content.__proto__ === Object.prototype){
           content.title && (window.document.title = content.title);
+          if(content.handlers) {
+            lastHandlers = content.handlers;
+            _each(lastHandlers, (v, k) => window.addEventListener(k, v));
+          }
           content = content.content;
         }
 
