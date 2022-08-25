@@ -1,6 +1,5 @@
 //QUESTION: make rows of nice.Type
 //TODO: use Model in todo example
-//TODO:0 delete command
 
 nice.Type({
   name: 'Model',
@@ -18,10 +17,22 @@ nice.Type({
         return this.setAll(path[0]);
       }
       const value = path.pop();
+
+      if(value === undefined)
+        throw `value is undefined`;
+
       const lastKey = path.pop();
+
+      if(lastKey === undefined)
+        throw `path contains undefined`;
+
       const [target, meta] = this.assertPath(...path);
 
-      target[lastKey] = value;
+      if(value === null) {
+        delete target[lastKey];
+      } else {
+        target[lastKey] = value;
+      }
       if(meta !== undefined) {
         this.notifyDown(meta, lastKey, value);
         this.addKeysDown(meta, lastKey, value);
@@ -34,6 +45,8 @@ nice.Type({
       let meta = this._meta;
 
       for(const key of path) {
+        if(key === undefined)
+          throw `path contains undefined`;
         if(!(key in target)) {
           target[key] = {};
           this.addKey(meta, key);
@@ -46,7 +59,14 @@ nice.Type({
 
     assign (...path) {
       const value = path.pop();
+      if(value === undefined)
+        throw `value is undefined`;
+
       const lastKey = path.pop();
+
+      if(lastKey === undefined)
+        throw `path contains undefined`;
+
       const [target, meta] = this.assertPath(...path);
 
       if(!target[lastKey] || typeof target[lastKey] !== 'object'){
@@ -218,6 +238,16 @@ Test(Model => {
   m.assign('tasks', 1, {status: 'Done'});
   expect(m.get('tasks', 1, 'text')).is('Go');
   expect(m.get('tasks', 1, 'status')).is('Done');
+});
+
+
+Test(Model => {
+  const m = Model();
+  m.set('tasks', 1, {text: 'Go'});
+  m.set('tasks', 2, {text: 'Run'});
+  expect(m.keys('tasks')).deepEqual(['1','2']);
+  m.set('tasks', 1, null);
+  expect(m.keys('tasks')).deepEqual(['2']);
 });
 
 
