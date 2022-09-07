@@ -275,7 +275,7 @@ Test('Notify up', (Model, getBox, Spy) => {
   expect(b()).is(undefined);
 
   m.set('tasks', 1, 'text', 'Go');
-  expect(spy).calledOnce();
+  expect(spy).calledTwice();
   expect(res).deepEqual({text:'Go'});
 });
 

@@ -1,4 +1,4 @@
-const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;
+//idea?? box always have value(even undefined); subscribe always produce call(even undefined)
 
 nice.Type({
   name: 'RBox',
@@ -9,17 +9,15 @@ nice.Type({
     z._by = inputs.pop();
     if(typeof z._by !== 'function')
       throw `RBox only accepts functions`;
-    z._status = 0;
+    z._isHot = false;
     z._inputs = inputs;
     z._inputValues = [];
     z._inputListeners = new Map();
   },
 
   customCall: (z, ...as) => {
-    if(as.length === 0){
-      if(!(z._status & IS_READY))
-        z.attemptColdCompute();
-
+    if(as.length === 0) {
+      z._isHot === true || z.attemptColdCompute();
       return z._value;
     }
 
@@ -44,17 +42,13 @@ nice.Type({
       inputs.forEach(input => {
         oldInputs.includes(input) || this.attachSource(input);
       });
-      if(this._status & IS_HOT)
-        this.attemptCompute();
-
-//      this._status = 0;
-//      this._inputListeners = [];)
+      this._isHot === true && this.attemptCompute();
     },
 
-    subscribe(f){
+    subscribe(f) {
       this.warmUp();
       this.on('state', f);
-      (this._status & IS_READY) && f(this._value);
+      f(this._value);
     },
 
     unsubscribe(f){
@@ -66,50 +60,30 @@ nice.Type({
     },
 
     attemptCompute(){
-      if(!this._inputValues.every(v => v !== undefined))
-        return;
-
       try {
         const value = this._by(...this._inputValues);
         this.setState(value);
-        this._status &= ~IS_LOADING;
-        this._status |= IS_READY;
       } catch (e) {
-//        this.setState(nice.Err('Fail to compute'));
         this.setState(e);
       }
     },
 
     attemptColdCompute(){
-      if(!this._inputs.every(v => v._status & IS_READY))
-        return;
-
-      this._inputValues = this._inputs.map(v => v._value);
-
-      try {
-        const value = this._by(...this._inputValues);
-        this.setState(value);
-        this._status &= ~IS_LOADING;
-        this._status |= IS_READY;
-      } catch (e) {
-//        this.setState(nice.Err('Fail to compute'));
-        this.setState(e);
-      }
+      this._inputValues = this._inputs.map(v => v());
+      this.attemptCompute();
     },
 
     warmUp(){
-      if(this._status & IS_HOT)
+      if(this._isHot === true)
         return ;
-      this._status |= IS_LOADING;
-      this._status |= IS_HOT;
-      this._status &= ~IS_READY;
+      this._isHot = true;
       this._inputs.forEach(input => this.attachSource(input));
       this._inputValues = this._inputs.map(v => v._value);
       this.attemptCompute();
     },
 
     coolDown(){
-      this._status &= ~IS_HOT;
+      this._isHot = false;
       for (let [input, f] of this._inputListeners)
         this.detachSource(input);
     },
@@ -134,19 +108,20 @@ nice.Type({
 });
 
 
-function checkSourceStatus(s){
-  return s._isRBox ? (s._status & IS_READY) : true;
-}
-
-function extractSourceValue(s){
-  return s._isBox ? s._value : s;
-}
-
-
 Test('RBox basic case', (Box, RBox) => {
   const b = Box(1);
   const rb = RBox(b, a => a + 1);
-  rb.warmUp();
+  expect(rb()).is(2);
+  b(3);
+  expect(rb()).is(4);
+});
+
+
+Test('RBox undefined input', (Box, RBox) => {
+  const b = Box();
+  const rb = RBox(b, a => a + 1);
+  expect(isNaN(rb())).is(true);
+  b(1);
   expect(rb()).is(2);
   b(3);
   expect(rb()).is(4);

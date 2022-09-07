@@ -881,6 +881,7 @@ IS_BROWSER && Test((Div) => {
     expect(runtime.styleSheet.rules.length).is(initialRulesCount);
   });
 
+
   Test((Div, Box, B) => {
     const box = Box(Div(B(1).id('b1'), B(2)));
     const div = Div(box).show();
@@ -892,6 +893,16 @@ IS_BROWSER && Test((Div) => {
     box(Div(B(2), B(11).id('b1')));
     expect(div.textContent).is('211');
   });
+
+
+  Test((Div, RBox, Box) => {
+    const b = Box();
+    const rb = RBox(b, v => '12');
+    expect(rb()).is('12');
+//    const div = Div(rb).show();
+//    expect(div.textContent).is('12');
+  });
+
 
   Test((Div, prop) => {
     expect(nice.Div().prop('qwe', 'asd').show().qwe).is('asd');

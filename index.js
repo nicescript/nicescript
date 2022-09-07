@@ -2043,10 +2043,7 @@ Test((Spy, calledWith) => {
   expect(spy).calledWith(1, 2);
 });
 })();
-(function(){"use strict";const IS_READY = 1;
-const IS_LOADING = 2;
-const IS_HOT = 4;
-nice.Type({
+(function(){"use strict";nice.Type({
   name: 'Box',
   extends: 'Something',
   customCall: (z, ...as) => {
@@ -2054,7 +2051,6 @@ nice.Type({
   },
   initBy: (z, v) => {
     if(v === undefined){
-      z._status = 0;
       return z;
     }
     z.setState(v);
@@ -2062,7 +2058,6 @@ nice.Type({
   proto: {
     setState (v) {
       this._value = v;
-      this._status = v === undefined ? 0 : IS_READY;
       this.emit('state', v);
     },
     uniq(){
@@ -2079,7 +2074,6 @@ nice.Type({
     },
     subscribe(f){
       this.on('state', f);
-      if(this._value !== undefined)
         f(this._value);
     },
     unsubscribe(f){
@@ -2096,9 +2090,6 @@ nice.Type({
   }
 });
 const Box = nice.Box;
-Box.IS_READY = IS_READY;
-Box.IS_LOADING = IS_LOADING;
-Box.IS_HOT = IS_HOT;
 Action.Box('assign', (z, o) => z({...z(), ...o}));
 Test((Box, Spy) => {
   const b = Box();
@@ -2107,9 +2098,10 @@ Test((Box, Spy) => {
   b(1);
   b(1);
   b(2);
+  expect(spy).calledWith(undefined);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(3);
+  expect(spy).calledTimes(4);
 });
 Test((Box, Spy, uniq) => {
   const b = Box().uniq();
@@ -2120,13 +2112,12 @@ Test((Box, Spy, uniq) => {
   b(2);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(2);
+  expect(spy).calledTimes(3);
 });
 Test((Box, Spy, deepUniq) => {
-  const b = Box().deepUniq();
+  const b = Box({qwe:1, asd:2}).deepUniq();
   const spy = Spy();
   b.subscribe(spy);
-  b({qwe:1, asd:2});
   b({qwe:1, asd:2});
   b({qwe:1, asd:3});
   expect(spy).calledTimes(2);
@@ -2652,7 +2643,7 @@ Test((BoxArray, sort) => {
   expect(b()).deepEqual([1,3,4,7,7]);
 });
 })();
-(function(){"use strict";const { IS_READY, IS_LOADING, IS_HOT } = nice.Box;
+(function(){"use strict";
 nice.Type({
   name: 'RBox',
   extends: 'Box',
@@ -2660,15 +2651,14 @@ nice.Type({
     z._by = inputs.pop();
     if(typeof z._by !== 'function')
       throw `RBox only accepts functions`;
-    z._status = 0;
+    z._isHot = false;
     z._inputs = inputs;
     z._inputValues = [];
     z._inputListeners = new Map();
   },
   customCall: (z, ...as) => {
-    if(as.length === 0){
-      if(!(z._status & IS_READY))
-        z.attemptColdCompute();
+    if(as.length === 0) {
+      z._isHot === true || z.attemptColdCompute();
       return z._value;
     }
     throw `Can't set value for reactive box`;
@@ -2688,13 +2678,12 @@ nice.Type({
       inputs.forEach(input => {
         oldInputs.includes(input) || this.attachSource(input);
       });
-      if(this._status & IS_HOT)
-        this.attemptCompute();
+      this._isHot === true && this.attemptCompute();
     },
-    subscribe(f){
+    subscribe(f) {
       this.warmUp();
       this.on('state', f);
-      (this._status & IS_READY) && f(this._value);
+      f(this._value);
     },
     unsubscribe(f){
       this.off('state', f);
@@ -2704,42 +2693,27 @@ nice.Type({
       }
     },
     attemptCompute(){
-      if(!this._inputValues.every(v => v !== undefined))
-        return;
       try {
         const value = this._by(...this._inputValues);
         this.setState(value);
-        this._status &= ~IS_LOADING;
-        this._status |= IS_READY;
       } catch (e) {
         this.setState(e);
       }
     },
     attemptColdCompute(){
-      if(!this._inputs.every(v => v._status & IS_READY))
-        return;
-      this._inputValues = this._inputs.map(v => v._value);
-      try {
-        const value = this._by(...this._inputValues);
-        this.setState(value);
-        this._status &= ~IS_LOADING;
-        this._status |= IS_READY;
-      } catch (e) {
-        this.setState(e);
-      }
+      this._inputValues = this._inputs.map(v => v());
+      this.attemptCompute();
     },
     warmUp(){
-      if(this._status & IS_HOT)
+      if(this._isHot === true)
         return ;
-      this._status |= IS_LOADING;
-      this._status |= IS_HOT;
-      this._status &= ~IS_READY;
+      this._isHot = true;
       this._inputs.forEach(input => this.attachSource(input));
       this._inputValues = this._inputs.map(v => v._value);
       this.attemptCompute();
     },
     coolDown(){
-      this._status &= ~IS_HOT;
+      this._isHot = false;
       for (let [input, f] of this._inputListeners)
         this.detachSource(input);
     },
@@ -2759,16 +2733,18 @@ nice.Type({
     }
   }
 });
-function checkSourceStatus(s){
-  return s._isRBox ? (s._status & IS_READY) : true;
-}
-function extractSourceValue(s){
-  return s._isBox ? s._value : s;
-}
 Test('RBox basic case', (Box, RBox) => {
   const b = Box(1);
   const rb = RBox(b, a => a + 1);
-  rb.warmUp();
+  expect(rb()).is(2);
+  b(3);
+  expect(rb()).is(4);
+});
+Test('RBox undefined input', (Box, RBox) => {
+  const b = Box();
+  const rb = RBox(b, a => a + 1);
+  expect(isNaN(rb())).is(true);
+  b(1);
   expect(rb()).is(2);
   b(3);
   expect(rb()).is(4);
@@ -2837,7 +2813,6 @@ Test('RBox cold compute', (Box, RBox) => {
     z._ms = ms;
     z._f = f;
     z._interval = null;
-    z._status = 0;
   },
   proto: {
     subscribe(f){
@@ -3099,7 +3074,7 @@ Test('Notify up', (Model, getBox, Spy) => {
   b.subscribe(spy);
   expect(b()).is(undefined);
   m.set('tasks', 1, 'text', 'Go');
-  expect(spy).calledOnce();
+  expect(spy).calledTwice();
   expect(res).deepEqual({text:'Go'});
 });
 Test((Model, keyBox, Spy) => {
@@ -3140,154 +3115,6 @@ Test((Model, Spy) => {
 });
 })();
 (function(){"use strict";
-})();
-(function(){"use strict";let autoId = 0;
-const AUTO_PREFIX = '_nn_';
-nice.Type({
-  name: 'Stream',
-  extends: 'Something',
-  initBy: (z, cfg) => {
-    z.messages = [];
-  },
-  customCall: (z) => {
-    throw 'Use methods';
-  },
-  proto: {
-    push (m){
-      this.messages.push(m);
-      this.emit('message', m);
-    },
-    subscribe(f){
-      this.messages.forEach(m => f(m));
-      this.on('message', f);
-    },
-    unsubscribe(f){
-      this.off('message', f);
-      if(!this.countListeners('message')){
-        this.emit('noMoreSubscribers', this);
-      }
-    },
-    assertId(){
-      if(!this._id)
-        this._id = nice.generateAutoId();
-      return this._id;
-    },
-    map(f){
-      const res = nice.Stream();
-      this.subscribe(m => res.push(f(m)));
-      return res;
-    },
-    filter(f){
-      const res = nice.Stream();
-      this.subscribe(m => f(m) && res.push(m));
-      return res;
-    },
-    reduce(...as){
-      const box = nice.Box();
-      let hasSeed = as.length > 1;
-      const f = as[0];
-      let value = as[1];
-      this.subscribe(m => {
-        if(!hasSeed){
-          hasSeed = true;
-          value = m;
-        } else {
-          value = f(value, m);
-          box(value);
-        }
-      });
-      return box;
-    },
-    collect(accumulator, f){
-      const box = nice.Box();
-      this.subscribe(m => {
-        f(accumulator, m);
-        box(accumulator);
-      });
-      return box;
-    }
-  }
-});
-Test((Box, assign, Spy) => {
-  const a = {name:'Jo', balance:100};
-  const b = Box(a);
-  b.assign({balance:200});
-  expect(b().name).is('Jo');
-  expect(b().balance).is(200);
-});
-Action.Box('push', (z, v) => {
-  var a = z().slice();
-  a.push(v);
-  z(a);
-});
-Test((Box, push, Spy) => {
-  const a = [1];
-  const b = Box(a);
-  b.push(2);
-  expect(b()).deepEqual([1,2]);
-  expect(a).deepEqual([1]);
-});
-nice.eventEmitter(nice.Stream.proto);
-Test((Stream, Spy) => {
-  const stream = Stream();
-  const spy = Spy();
-  stream.subscribe(spy);
-  stream.push(11);
-  stream.push(22);
-  expect(spy).calledWith(11);
-  expect(spy).calledWith(22);
-  expect(spy).calledTwice();
-});
-Test((Stream, Spy, map) => {
-  const stream = Stream();
-  const stream2 = stream.map(x => 2 * x);
-  const spy = Spy();
-  stream2.subscribe(spy);
-  stream.push(12);
-  stream.push(13);
-  expect(spy).calledWith(24);
-  expect(spy).calledWith(26);
-  expect(spy).calledTwice();
-});
-Test((Stream, Spy, filter) => {
-  const stream = Stream();
-  const stream2 = stream.filter(x => x < 10);
-  const spy = Spy();
-  stream2.subscribe(spy);
-  stream.push(7);
-  stream.push(13);
-  expect(spy).calledWith(7);
-  expect(spy).calledOnce();
-});
-Test((Stream, Spy, reduce) => {
-  const stream = Stream();
-  const spy = Spy();
-  stream.reduce((a,b) => a + b).subscribe(spy);
-  stream.push(7);
-  stream.push(13);
-  expect(spy).calledWith(20);
-  expect(spy).calledOnce();
-});
-Test((Stream, Spy, reduce) => {
-  const stream = Stream();
-  const spy = Spy();
-  stream.reduce((a,b) => a + b, 4).subscribe(spy);
-  stream.push(7);
-  stream.push(13);
-  expect(spy).calledWith(11);
-  expect(spy).calledWith(24);
-  expect(spy).calledTwice();
-});
-Test((Stream, Spy, collect) => {
-  const stream = Stream();
-  const spy = Spy();
-  const array = [];
-  stream.collect(array, (a, v) => a.push(v)).subscribe(spy);
-  stream.push(7);
-  stream.push(13);
-  expect(spy).calledTwice();
-  expect(array).deepEqual([7, 13]);
-});
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
   let v;
@@ -4994,6 +4821,11 @@ IS_BROWSER && Test((Div) => {
     expect(div.textContent).is('112');
     box(Div(B(2), B(11).id('b1')));
     expect(div.textContent).is('211');
+  });
+  Test((Div, RBox, Box) => {
+    const b = Box();
+    const rb = RBox(b, v => '12');
+    expect(rb()).is('12');
   });
   Test((Div, prop) => {
     expect(nice.Div().prop('qwe', 'asd').show().qwe).is('asd');
