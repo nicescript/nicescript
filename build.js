@@ -36,6 +36,7 @@ const order = [
   'box/r_box',
   'box/interval_box',
   'box/model',
+  'box/row_model',
   'box/data_tree',
 //  'core/stream', TODO: change to comply with Box(undefined)
   'core/logic',

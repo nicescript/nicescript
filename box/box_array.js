@@ -37,6 +37,13 @@ nice.Type({
       this._value.splice(i, 1);
       this.emit('element', null, null, old, i);
     },
+    removeValue (v) {
+      const vs = this._value;
+			for(let i = vs.length - 1; i >= 0; i--){
+				if(vs[i] === v)
+					this.remove(i);
+			}
+    },
     insert (i, v) {
       const vs = this._value;
       this._value.splice(i, 0, v);
@@ -188,7 +195,6 @@ Test((BoxArray, Spy, insert) => {
 });
 
 
-
 Test((BoxArray, Spy, remove) => {
   const a = BoxArray([1,2,3]);
   const spy = Spy();
@@ -196,6 +202,22 @@ Test((BoxArray, Spy, remove) => {
   a.subscribe(spy);
 
   a.remove(1);
+
+  expect(spy).calledWith(null, null, 2, 1);
+
+  expect(spy).calledTimes(4);
+  expect(a()).deepEqual([1,3]);
+});
+
+
+
+Test((BoxArray, Spy, removeValue) => {
+  const a = BoxArray([1,2,3]);
+  const spy = Spy();
+
+  a.subscribe(spy);
+
+  a.removeValue(2);
 
   expect(spy).calledWith(null, null, 2, 1);
 
