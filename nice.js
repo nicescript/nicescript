@@ -3217,7 +3217,9 @@ const proto = {
 		const newId = this.templates.length;
 		this.templates.push(a);
 		this.version = this.log.length;
-		this.log.push([-1, newId, ...a]);
+		const row = [-1, newId, ...a];
+		this.log.push(row);
+		this.logSubscriptions.forEach(f => f(row));
 		return newId;
 	},
 	
