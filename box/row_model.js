@@ -70,7 +70,9 @@ const proto = {
 	
 	writeLog(id, o) {
 		this.version = this.log.length;
-		this.log.push([this.findTemplate(o), id, ...Object.values(o)]);
+		const row = [this.findTemplate(o), id, ...Object.values(o)];
+		this.log.push(row);
+		this.logSubscriptions.forEach(f => f(row));
 	},
 	
 	findTemplate(a) {
@@ -115,6 +117,12 @@ const proto = {
 			opFilters.set(value, nice.BoxArray(this.filter(f)));
 		
 		return opFilters.get(value);
+	},
+
+	subscribeLog(f) {
+		if(this.logSubscriptions.includes(f))
+			return;
+		this.logSubscriptions.push(f);
 	}
 };
 
@@ -125,9 +133,11 @@ function RowModel(){
 		rows: [],
 		log: [],
 		rowBoxes: {},
-		filters: {}
+		filters: {},
+		logSubscriptions: []
 	});
 }
+nice.RowModel = RowModel;
 
 RowModel.fromLog = (log) => {
 	const m = RowModel();
@@ -163,7 +173,7 @@ function matchFilter(ff, row){
 
 function isValidValue(v){
 	const t = typeof v;
-	return t === 'string' || t === 'bumber' || t === 'boolean';
+	return t === 'string' || t === 'number' || t === 'boolean';
 }
 
 
