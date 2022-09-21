@@ -77,7 +77,9 @@ nice.Type({
       if(this._isHot === true)
         return ;
       this._isHot = true;
+			this.warming = true;
       this._inputs.forEach(input => this.attachSource(input));
+			delete this.warming;
       this._inputValues = this._inputs.map(v => v._value);
       this.attemptCompute();
     },
@@ -93,7 +95,7 @@ nice.Type({
         const f = state => {
           const position = this._inputs.indexOf(source);
           this._inputValues[position] = state;
-          this.attemptCompute();
+          this.warming || this.attemptCompute();
         };
         this._inputListeners.set(source, f);
 

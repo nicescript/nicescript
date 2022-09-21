@@ -388,9 +388,10 @@ function createSubscription(box, state, dom){
 function attachNode(child, parent, position){
 
   if(child && child._isBox){
-    let state = child();
-    if(state === undefined)
-      state = '';
+    let state = '';
+//		child();
+//    if(state === undefined)
+//      state = '';
     let dom = toDom(state);
     insertAt(parent, dom, position);
     child.subscribe(createSubscription(child, state, dom));

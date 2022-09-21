@@ -2724,7 +2724,9 @@ nice.Type({
       if(this._isHot === true)
         return ;
       this._isHot = true;
+			this.warming = true;
       this._inputs.forEach(input => this.attachSource(input));
+			delete this.warming;
       this._inputValues = this._inputs.map(v => v._value);
       this.attemptCompute();
     },
@@ -2738,7 +2740,7 @@ nice.Type({
         const f = state => {
           const position = this._inputs.indexOf(source);
           this._inputValues[position] = state;
-          this.attemptCompute();
+          this.warming || this.attemptCompute();
         };
         this._inputListeners.set(source, f);
         return source.subscribe(f);
@@ -3144,8 +3146,6 @@ Test((Model, Spy) => {
 const proto = {
 	add(o) {
 		checkObject(o);
-		const templateId = this.findTemplate(o);
-		
 		const id = this.rows.length;
 		this.lastId = id;
 		this.rows.push(o);
@@ -3178,6 +3178,26 @@ const proto = {
 		});	
 	},
 	
+	notifyFiltersOneValue(id, k, newValue, oldValue) {
+		const ff = this.filters;
+		if(newValue === oldValue)
+			return;
+		
+		if(!(k in ff))
+			return;
+		
+		_each(ff[k], (map, operation) => {
+			if(operation === 'eq'){
+				if(map.has(oldValue))
+					map.get(oldValue).removeValue(id);
+				if(map.has(newValue))
+					map.get(newValue).push(id);
+			} else {
+				throw 'Operation ' + operation + " not supported.";
+			}
+		});
+	},
+	
 	get(id) {
 		return this.rows[id];
 	},
@@ -3200,8 +3220,11 @@ const proto = {
 	},
 	
 	writeLog(id, o) {
+		const templateId = this.findTemplate(o);
+		const template = this.templates[templateId];
+		
 		this.version = this.log.length;
-		const row = [this.findTemplate(o), id, ...Object.values(o)];
+		const row = [templateId, id, ...template.map(field => o[field])];
 		this.log.push(row);
 		this.logSubscriptions.forEach(f => f(row));
 	},
@@ -3251,6 +3274,26 @@ const proto = {
 		
 		return opFilters.get(value);
 	},
+	importRow(row) {
+		const m = this;
+		const templateId = row[0];
+		const id = row[1];
+		if(templateId === -1){ 
+			m.templates[id] = row.slice(2);			
+		} else {
+			if(!m.rows[id])
+				m.rows[id] = {};
+			const template = m.templates[templateId];
+			row.slice(2).forEach((v, k) => {
+				const field = template[k];
+				this.notifyFiltersOneValue(id, field, v, m.rows[id][field]);
+				m.rows[id][field] = v;
+			});
+			if(id in this.rowBoxes)
+				this.rowBoxes[id](this.rows[id]);
+		}
+		m.log.push(row.slice());
+	},
 	subscribeLog(f) {
 		if(this.logSubscriptions.includes(f))
 			return;
@@ -3271,22 +3314,12 @@ function RowModel(){
 nice.RowModel = RowModel;
 RowModel.fromLog = (log) => {
 	const m = RowModel();
-	log.forEach(row => {
-		const templateId = row[0];
-		const id = row[1];
-		if(templateId === -1){
-			m.templates[id] = row.slice(2);			
-		} else {
-			if(!m.rows[id])
-				m.rows[id] = {};
-			const template = m.templates[templateId];
-			row.slice(2).forEach((v, k) => {
-				m.rows[id][template[k]] = v;
-			});
-		}
-		m.log.push(row.slice());
-	});
+	log.forEach(row => m.importRow(row));
 	return m;
+};
+RowModel.readOnly = () => {
+	const m = RowModel();
+	['add', 'change'].forEach(a => m[a] = () => { throw "This model is readonly"; });
 };
 function matchFilter(ff, row){
 	let res = true;
@@ -4719,9 +4752,7 @@ function createSubscription(box, state, dom){
 }
 function attachNode(child, parent, position){
   if(child && child._isBox){
-    let state = child();
-    if(state === undefined)
-      state = '';
+    let state = '';
     let dom = toDom(state);
     insertAt(parent, dom, position);
     child.subscribe(createSubscription(child, state, dom));
