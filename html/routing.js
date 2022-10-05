@@ -4,6 +4,7 @@ nice.Type('Router')
   .object('staticRoutes')
   .arr('queryRoutes')
   .Method(addRoute)
+  .Method(addRoutes)
   .Method(function resolve(z, path){
     path[0] === '/' || (path = '/' + path);
     let url = path;
@@ -21,6 +22,11 @@ nice.Type('Router')
     route || z.queryRoutes.some(f => route = f(url, query));
     return route || (() => `Page "${url}" not found`);
   });
+
+
+function addRoutes(router, rr) {
+  _each(rr, (v, k) => addRoute(router, k, v));
+}
 
 
 function addRoute(router, pattern, f){
@@ -78,6 +84,16 @@ Test((Router, Spy) => {
   r.addRoute('/pagesddss', f);
 
   expect(res).is('123');
+});
+
+
+Test((Router, addRoutes) => {
+  const r = Router();
+  const f = () => 1;
+
+  r.addRoutes({'/asd': f});
+  expect(r.resolve('/asd')).is(f);
+  expect(r.resolve('/')).not.is(f);
 });
 
 

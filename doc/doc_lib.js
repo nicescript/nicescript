@@ -17,7 +17,7 @@ nice.generateDoc = () => {
     o.description = s.description;
     //TODO: lookup tests
 //    o.tests = s.tests.map(wrapTest(s));
-    o.type = s.type
+    o.type = s.type;
 
 /*      _each(s, (v, k) => nice.Switch(k)
       //.is('body').use(() => o.source = v.toString())
@@ -33,7 +33,7 @@ nice.generateDoc = () => {
     if(!t.name || t.name[0] === '_')
       return;
     const o = { title: t.name, properties: [] };
-    'description' in t && (o.description = t.description);
+    t.hasOwnProperty('description') && (o.description = t.description);
     t.extends && (o.extends = t.super.name);
     res.types[t.name] = o;
   });

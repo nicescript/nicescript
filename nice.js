@@ -622,7 +622,7 @@ nice.Configurator = (o, ...a) => {
     o.title = [s.type || 'Func', s.name, '(', args.join(', '), ')'].join(' ');
     o.description = s.description;
     
-    o.type = s.type
+    o.type = s.type;
     res.functions.push(o);
     (res.fs[s.name] = res.fs[s.name] || {})[o.title] = o;
   });
@@ -630,7 +630,7 @@ nice.Configurator = (o, ...a) => {
     if(!t.name || t.name[0] === '_')
       return;
     const o = { title: t.name, properties: [] };
-    'description' in t && (o.description = t.description);
+    t.hasOwnProperty('description') && (o.description = t.description);
     t.extends && (o.extends = t.super.name);
     res.types[t.name] = o;
   });
@@ -4509,6 +4509,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
+  .Action('rBox', (z, ...as) => z.add(RBox(...as)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     if(z._children === undefined){
       z._children = [];
@@ -5328,6 +5329,7 @@ nice.Type('Router')
   .object('staticRoutes')
   .arr('queryRoutes')
   .Method(addRoute)
+  .Method(addRoutes)
   .Method(function resolve(z, path){
     path[0] === '/' || (path = '/' + path);
     let url = path;
@@ -5345,6 +5347,9 @@ nice.Type('Router')
     route || z.queryRoutes.some(f => route = f(url, query));
     return route || (() => `Page "${url}" not found`);
   });
+function addRoutes(router, rr) {
+  _each(rr, (v, k) => addRoute(router, k, v));
+}
 function addRoute(router, pattern, f){
   if(!pattern || pattern === '/'){
     router.staticRoutes['/'] = f;
@@ -5388,6 +5393,13 @@ Test((Router, Spy) => {
   r.resolve('/page/123')();
   r.addRoute('/pagesddss', f);
   expect(res).is('123');
+});
+Test((Router, addRoutes) => {
+  const r = Router();
+  const f = () => 1;
+  r.addRoutes({'/asd': f});
+  expect(r.resolve('/asd')).is(f);
+  expect(r.resolve('/')).not.is(f);
 });
 nice.Type({
   name: 'WindowRouter',

@@ -12,7 +12,7 @@
   </head>
   <body>
 <script>
-const { Div, Span, H1, H2, B, A, Input } = nice;
+const { Div, Span, H1, H2, B, A, Input, Box, RBox } = nice;
 
 //const typeView = nice.memoize(title => Div(title).margin('.3em 1em'));
 //const typesPane = Div();
@@ -38,7 +38,7 @@ const foundText = s => Span(s).color('#1fb300');
 const inlineJS = s => Span(s.slice(1,-1))
     .backgroundColor('#eee').padding('0 .2rem').borderRadius('.2rem');
 
-function addTests(ts){
+function addTests(ts = []){
   return div => {
     ts.forEach(t => {
       div.Code(t).up
@@ -70,48 +70,47 @@ const highlightText = (s, re, f = B) => {
 };
 
 
-H1('NiceScript v', nice.version).show();
-
 const search = Input("search").placeholder('Search')
   .padding('.2rem .5rem')
-  .focus();
-
-search.show();
-
+//  .focus();
 
 const functionType = Box('All');
 
-RBox(functionType, t => Span(
-  ['All', 'Check', 'Mapping', 'Action'].map(v => 
-      (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
-).margin('.5rem')).show();
+//RBox(functionType, t => Span(
+//  ['All', 'Check', 'Mapping', 'Action'].map(v => 
+//      (v === t ? B(v) : A(() => functionType(v), v)).padding('.5rem'))
+//).margin('.5rem')).show();
 
 const functionView = f => Div()
-  .H3(...highlightText(f.title.toString(), search.value(), foundText))
+  .H3(...highlightText(f.title.toString(), search.boxValue(), foundText))
     .I(f.functionType).color('#666').marginLeft('1rem').up
     .up
   .p(...highlightText(f.description || '', /`.*?`/g, inlineJS))
   .apply(addTests(f.tests));
 
 const typeView = t => Div()
-  .h3(...highlightText(t.title, search.value(), foundText))
+  .h3(...highlightText(t.title, search.boxValue(), foundText))
   .p(...highlightText(t.description || '', /`.*?`/g, inlineJS));
 
-Div()
+const types = Div()
   .h2('Types')
-  .rBox(search.value, q => {
+  .rBox(search.boxValue, q => {
     q = q.toLowerCase();
     const f = t => !q || t.title.toString().toLowerCase().includes(q);
     return Div(nice.filter(doc.types, f), typeView);
-  })
+  });
+  
+const functions = Div()
   .h2('Functions')
-  .rBox(functionType, search.value, (type, q) => {
+  .rBox(functionType, search.boxValue, (type, q) => {
     q = q.toLowerCase();
     const f = f => (type === 'All' || type === f.type) 
         && (!q || f.title.toString().toLowerCase().includes(q));
     return Div(doc.functions.filter(f), functionView);
-  })
-  .show();
+  });
+
+
+Div(H1('NiceScript v', nice.version), search, functions, types).show();
 
 </script>
   </body>

@@ -63,6 +63,7 @@ nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   })
   .Action.about('Focuses DOM element.')('focus', (z, preventScroll) =>
       z.on('domNode', node => node.focus(preventScroll)))
+  .Action('rBox', (z, ...as) => z.add(RBox(...as)))
   .Action.about('Adds children to an element.')(function add(z, ...children) {
     if(z._children === undefined){
       z._children = [];
