@@ -2141,6 +2141,9 @@ Test((Box, push, Spy) => {
   expect(b()).deepEqual([1,2]);
   expect(a).deepEqual([1]);
 });
+Action.Box('removeValue', (z, v) => {
+  z(z().filter(r => r !== v));
+});
 Action.Box('add', (z, n = 1) => z(z() + n));
 Test('Box action', (Box, Spy) => {
   const b = Box(2);
@@ -2461,6 +2464,7 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
       this.set(this._value.length, v);
     },
     remove (i) {
+      expect(i).isNumber();
       const vs = this._value;
       if(i >= vs.length)
         return;
@@ -2508,11 +2512,11 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
       const res = nice.BoxArray();
       this.subscribe((value, index, oldValue, oldIndex) => {
         if(value !== null && oldValue !== null) {
-          res.set(index, f(value));
+          res.set(index, f(value, index));
         } else if (value === null) {
           res.remove(oldIndex);
         } else {
-          res.insert(index, f(value));
+          res.insert(index, f(value, index));
         }
       });
       return res;
@@ -2535,6 +2539,11 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
     filter (f) {
       const res = nice.BoxArray();
       const map = [];
+      let box;
+      if(f._isBox){
+        box = f;
+        f = f();
+      }
       const findPosition = stop => {
         let count = 0;
         let k = 0;
@@ -2556,19 +2565,23 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
           else
             map[index] = pass;
         }
-        if(pass) {
-          if(oldPass) {
-            ;
-          } else {
-            res.insert(findPosition(index), value);
+        pass && !oldPass && res.insert(findPosition(index), value);
+        !pass && oldPass && res.remove(findPosition(index));
+      });
+      box && box.subscribe(newF => {
+        this._value.forEach((v, k) => {
+          const pass = !!newF(v);
+          const oldPass = map[k];
+          if(pass && !oldPass){
+            map[k] = true;
+            res.insert(findPosition(k), v);
           }
-        } else {
-          if(oldPass) {
-            res.remove(findPosition(index));
-          } else {
-            ;
+          if(!pass && oldPass){
+            map[k] = false;
+            res.remove(findPosition(k));
           }
-        }
+        });
+        f = newF;
       });
       return res;
     }
@@ -3952,6 +3965,23 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   let i = 0;
   const l = z.length;
   return { next: () => ({ value: z[i], done: ++i > l }) };
+});
+nice.Mapping(function wrapMatches (s, re, f = nice.B){
+  if(!re)
+    return [s];
+  typeof re === 'string' && (re = RegExp(re.toLowerCase(), 'gi'));
+  const res = [];
+  let lastIndex = 0;
+  let a = [];
+  let max = 100;
+  while ((a = re.exec(s)) !== null && max--) {
+    const slice = s.slice(lastIndex, a.index);
+    lastIndex = a.index + a[0].length;
+    slice && res.push(slice);
+    res.push(f(a[0]));
+  }
+  res.push(s.substr(lastIndex));
+  return res;
 });
 })();
 (function(){"use strict";nice.Obj.extend({

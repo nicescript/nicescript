@@ -108,3 +108,24 @@ typeof Symbol === 'function' && Func.String(Symbol.iterator, z => {
   const l = z.length;
   return { next: () => ({ value: z[i], done: ++i > l }) };
 });
+
+
+nice.Mapping(function wrapMatches (s, re, f = nice.B){
+  if(!re)
+    return [s];
+  typeof re === 'string' && (re = RegExp(re.toLowerCase(), 'gi'));
+  const res = [];
+  let lastIndex = 0;
+  let a = [];
+  let max = 100;
+
+  while ((a = re.exec(s)) !== null && max--) {
+    const slice = s.slice(lastIndex, a.index);
+    lastIndex = a.index + a[0].length;
+
+    slice && res.push(slice);
+    res.push(f(a[0]));
+  }
+  res.push(s.substr(lastIndex));
+  return res;
+});

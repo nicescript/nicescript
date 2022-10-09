@@ -131,6 +131,11 @@ Test((Box, push, Spy) => {
 });
 
 
+Action.Box('removeValue', (z, v) => {
+  z(z().filter(r => r !== v));
+});
+
+
 // does not work because actions coerse to niceValues
 //nice.reflect.on('signature', ({type, name, signature}) => {
 //  if(type !== 'Action')

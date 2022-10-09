@@ -15,26 +15,27 @@ or configuration:
 You can use any of them independently or as a whole in any JS project. 
 
 
-Simple ToDo example ( [JS Bin](https://jsbin.com/kenedihasi/edit?html,output) )
+Simple ToDo list example. Here you can search, add, and remove tasks. 
+[JS Bin](https://jsbin.com/setizekuqu/edit?html,output) 
 
 ```javascript
 const { Box, RBox, Div, Input } = nice;
 
 const tasks = Box(['Feed the fish', 'Buy milk']);
 
-const taskView = t => Div(t)
-  .margin('1em 0')
-  .padding('.5em')
-  .borderRadius('.5em')
-  .backgroundColor('#DEF');
+const taskView = t => Div()
+    .A(() => tasks.removeValue(t), 'x').float('right').textDecoration('none').up
+  .add(t)
+  .margin('1em 0').padding('.5em').borderRadius('.5em').backgroundColor('#DEF');
 
-const handler = e => 
-    e.key === 'Enter' && (tasks.push(e.target.value), e.target.value = '');
-      
-Div(
-  RBox(tasks, ts => Div(ts.map(taskView))),    
-  Input().padding('.5em').on('keyup', handler)
-).show();
+const input = Input().padding('.5em').width('100%').boxSizing('border-box')
+  .on('keyup', e => e.key === 'Enter' 
+      && (tasks.push(e.target.value), e.target.value = ''));
+  
+const list = RBox(tasks, input.boxValue, (tt, s) => 
+  Div(tt.filter(t => t.toLowerCase().includes(s.toLowerCase())), taskView));
+  
+Div(input, list).font('1.2rem Arial').show();
 ```
 
 More examples:

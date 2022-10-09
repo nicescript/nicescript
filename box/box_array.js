@@ -30,6 +30,7 @@ nice.Type({
       this.set(this._value.length, v);
     },
     remove (i) {
+      expect(i).isNumber();
       const vs = this._value;
       if(i >= vs.length)
         return;
@@ -82,11 +83,11 @@ nice.Type({
       const res = nice.BoxArray();
       this.subscribe((value, index, oldValue, oldIndex) => {
         if(value !== null && oldValue !== null) {
-          res.set(index, f(value));
+          res.set(index, f(value, index));
         } else if (value === null) {
           res.remove(oldIndex);
         } else {
-          res.insert(index, f(value));
+          res.insert(index, f(value, index));
         }
       });
       return res;
@@ -116,6 +117,11 @@ nice.Type({
     filter (f) {
       const res = nice.BoxArray();
       const map = [];
+      let box;
+      if(f._isBox){
+        box = f;
+        f = f();
+      }
 
       const findPosition = stop => {
         let count = 0;
@@ -140,20 +146,30 @@ nice.Type({
             map[index] = pass;
         }
 
-        if(pass) {
-          if(oldPass) {
-            ;//do nothing
-          } else {
-            res.insert(findPosition(index), value);
-          }
-        } else {
-          if(oldPass) {
-            res.remove(findPosition(index));
-          } else {
-            ;//do nothing
-          }
-        }
+        pass && !oldPass && res.insert(findPosition(index), value);
+
+        !pass && oldPass && res.remove(findPosition(index));
       });
+
+      box && box.subscribe(newF => {
+        this._value.forEach((v, k) => {
+          const pass = !!newF(v);
+          const oldPass = map[k];
+
+          if(pass && !oldPass){
+            map[k] = true;
+            res.insert(findPosition(k), v);
+          }
+
+          if(!pass && oldPass){
+            map[k] = false;
+            res.remove(findPosition(k));
+          }
+
+        });
+        f = newF;
+      });
+
       return res;
     }
 

@@ -12,7 +12,7 @@
   </head>
   <body>
 <script>
-const { Div, Span, H1, H2, B, A, Input, Box, RBox } = nice;
+const { Div, Span, H1, H2, B, A, Input, Box, RBox, wrapMatches } = nice;
 
 //const typeView = nice.memoize(title => Div(title).margin('.3em 1em'));
 //const typesPane = Div();
@@ -48,28 +48,6 @@ function addTests(ts = []){
         
 
 const doc = nice.generateDoc();
-
-const highlightText = (s, re, f = B) => {
-  if(!re)
-    return [s];
-  typeof re === 'string' && (re = RegExp(re.toLowerCase(), 'gi'));
-  const res = [];
-  let lastIndex = 0;
-  let a = [];
-  let max = 100;
-  
-  while ((a = re.exec(s)) !== null && max--) {
-    const slice = s.slice(lastIndex, a.index);
-    lastIndex = a.index + a[0].length;
-    
-    slice && res.push(slice);
-    res.push(f(a[0]));
-  }
-  res.push(s.substr(lastIndex));
-  return res;
-};
-
-
 const search = Input("search").placeholder('Search')
   .padding('.2rem .5rem')
 //  .focus();
@@ -82,15 +60,15 @@ const functionType = Box('All');
 //).margin('.5rem')).show();
 
 const functionView = f => Div()
-  .H3(...highlightText(f.title.toString(), search.boxValue(), foundText))
+  .H3(...wrapMatches(f.title.toString(), search.boxValue(), foundText))
     .I(f.functionType).color('#666').marginLeft('1rem').up
     .up
-  .p(...highlightText(f.description || '', /`.*?`/g, inlineJS))
+  .p(...wrapMatches(f.description || '', /`.*?`/g, inlineJS))
   .apply(addTests(f.tests));
 
 const typeView = t => Div()
-  .h3(...highlightText(t.title, search.boxValue(), foundText))
-  .p(...highlightText(t.description || '', /`.*?`/g, inlineJS));
+  .h3(...wrapMatches(t.title, search.boxValue(), foundText))
+  .p(...wrapMatches(t.description || '', /`.*?`/g, inlineJS));
 
 const types = Div()
   .h2('Types')
