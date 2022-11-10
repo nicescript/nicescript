@@ -4,13 +4,12 @@ nice.Type({
   extends: 'Something',
 
   customCall: (z, ...as) => {
-    throwF('Use access methods');
+    if(as.length)
+      SthrowF('Use access methods');
+    return z._value;
   },
 
-  initBy: (z, o) => {
-    z._value = new Set();
-    o && _each(o, (v, k) => z.set(k, v));
-  },
+  initBy: (z, ...a) =>  z._value = new Set(a),
 
   proto: {
     add (v) {
@@ -23,24 +22,55 @@ nice.Type({
       }
       return this;
     },
+
     has (v) {
       return this._value.has(v);
     },
+
     delete (v) {
       this.emit('value', null, v);
       return this._value.delete(v);
     },
+
+    intersection (b) {
+      const av = this._value;
+      const bv = b._value;
+      const res = nice.BoxSet();
+
+      if(av.size > bv.size) {
+        bv.forEach(v => av.has(v) && res.add(v));
+      } else {
+        av.forEach(v => bv.has(v) && res.add(v));
+      }
+
+      this.subscribe((v, oldV) => {
+        v === null
+          ? res.delete(oldV)
+          : bv.has(v) && res.add(v);
+      });
+
+      b.subscribe((v, oldV) => {
+        v === null
+          ? res.delete(oldV)
+          : av.has(v) && res.add(v);
+      });
+
+      return res;
+    },
+
     subscribe (f) {
       for (let v of this._value) f(v);
       this.on('value', f);
     },
+
+    subscribe (f) {
+      for (let v of this._value) f(v);
+      this.on('value', f);
+    },
+
     unsubscribe (f) {
       this.off('value', f);
     },
-//    setState (v){
-//      this._value = v;
-//      this.emit('state', v);
-//    }
   }
 });
 nice.eventEmitter(nice.BoxSet.proto);
@@ -68,3 +98,22 @@ Test((BoxSet, Spy) => {
     expect(spy).calledWith(null, 1);
   });
 });
+
+
+Test((BoxSet, intersection, Spy) => {
+  const a = BoxSet(1,2,3);
+  const b = BoxSet(2,4,6);
+  const c = a.intersection(b);
+
+  expect([...c()]).deepEqual([2]);
+
+  a.add(4);
+  expect([...c()]).deepEqual([2,4]);
+
+  a.delete(2);
+  expect([...c()]).deepEqual([4]);
+
+  b.delete(4);
+  expect([...c()]).deepEqual([]);
+});
+

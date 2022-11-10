@@ -42,6 +42,15 @@ Test((Spy, called) => {
 });
 
 
+Check.Spy('neverCalled', s => s._value.length === 0);
+
+Test((Spy, neverCalled) => {
+  const spy = Spy();
+  expect(spy.neverCalled()).is(true);
+  spy();
+  expect(spy.neverCalled()).is(false);
+});
+
 Check.Spy('calledOnce', s => s._value.length === 1);
 
 Test((Spy, calledOnce) => {

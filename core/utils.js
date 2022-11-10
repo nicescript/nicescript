@@ -119,7 +119,7 @@ defAll(nice, {
 
   parseTraceString (s) {
     const a = s.match(/\/(.*):(\d+):(\d+)/);
-    return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
+    return a ? { location: '/' + a[1], line: +a[2], symbol: +a[3]} : a;
   },
 
   throttle (f, dt = 250) {

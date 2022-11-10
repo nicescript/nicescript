@@ -35,6 +35,7 @@ const order = [
   'box/box_array',
   'box/r_box',
   'box/interval_box',
+  'box/box_index',
   'box/model',
   'box/row_model',
   'box/data_tree',

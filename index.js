@@ -332,7 +332,7 @@ defAll(nice, {
   },
   parseTraceString (s) {
     const a = s.match(/\/(.*):(\d+):(\d+)/);
-    return { location: '/' + a[1], line: +a[2], symbol: +a[3]};
+    return a ? { location: '/' + a[1], line: +a[2], symbol: +a[3]} : a;
   },
   throttle (f, dt = 250) {
     let lastT = 0, lastAs = null, lastThis = null, r, timeout = null;
@@ -1321,7 +1321,10 @@ function runTest(t, runner){
       console.log(e);
     } else {
       const k = 1 + (e.shift || 0);
-      const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
+      const parse = nice.parseTraceString;
+      const stackArray = e.stack.split('\n');
+      const { line, symbol, location } = parse(stackArray[k])
+       || parse(stackArray[k + 1]) || {};
       console.log(colors.red('Error while testing ' + (t.description || '')));
       const dh = line - t.line;
       const a = t.body.toString().split('\n');
@@ -2000,6 +2003,13 @@ Test((Spy, called) => {
   spy();
   expect(spy.called()).is(true);
 });
+Check.Spy('neverCalled', s => s._value.length === 0);
+Test((Spy, neverCalled) => {
+  const spy = Spy();
+  expect(spy.neverCalled()).is(true);
+  spy();
+  expect(spy.neverCalled()).is(false);
+});
 Check.Spy('calledOnce', s => s._value.length === 1);
 Test((Spy, calledOnce) => {
   const spy = Spy();
@@ -2165,12 +2175,11 @@ Test((Box, Spy) => {
   name: 'BoxSet',
   extends: 'Something',
   customCall: (z, ...as) => {
-    throwF('Use access methods');
+    if(as.length)
+      SthrowF('Use access methods');
+    return z._value;
   },
-  initBy: (z, o) => {
-    z._value = new Set();
-    o && _each(o, (v, k) => z.set(k, v));
-  },
+  initBy: (z, ...a) =>  z._value = new Set(a),
   proto: {
     add (v) {
       if(v === null)
@@ -2188,6 +2197,31 @@ Test((Box, Spy) => {
     delete (v) {
       this.emit('value', null, v);
       return this._value.delete(v);
+    },
+    intersection (b) {
+      const av = this._value;
+      const bv = b._value;
+      const res = nice.BoxSet();
+      if(av.size > bv.size) {
+        bv.forEach(v => av.has(v) && res.add(v));
+      } else {
+        av.forEach(v => bv.has(v) && res.add(v));
+      }
+      this.subscribe((v, oldV) => {
+        v === null
+          ? res.delete(oldV)
+          : bv.has(v) && res.add(v);
+      });
+      b.subscribe((v, oldV) => {
+        v === null
+          ? res.delete(oldV)
+          : av.has(v) && res.add(v);
+      });
+      return res;
+    },
+    subscribe (f) {
+      for (let v of this._value) f(v);
+      this.on('value', f);
     },
     subscribe (f) {
       for (let v of this._value) f(v);
@@ -2219,6 +2253,18 @@ Test((BoxSet, Spy) => {
     expect(b.has(1)).is(false);
     expect(spy).calledWith(null, 1);
   });
+});
+Test((BoxSet, intersection, Spy) => {
+  const a = BoxSet(1,2,3);
+  const b = BoxSet(2,4,6);
+  const c = a.intersection(b);
+  expect([...c()]).deepEqual([2]);
+  a.add(4);
+  expect([...c()]).deepEqual([2,4]);
+  a.delete(2);
+  expect([...c()]).deepEqual([4]);
+  b.delete(4);
+  expect([...c()]).deepEqual([]);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2885,6 +2931,135 @@ Test((IntervalBox, RBox, Spy) => {
   });
 });
 })();
+(function(){"use strict";nice.Type({
+  name: 'BoxIndex',
+  extends: 'Something',
+  customCall: (z, ...as) => {
+    if(as.length)
+      throwF('Use access methods to change BoxMap');
+    return z._value;
+  },
+  initBy: z => z._value = new Map(),
+  proto: {
+    add (v, k) {
+      
+      if(Array.isArray(k))
+        throw "Array can't be used as BoxIndex key.";
+      const map = this._value;
+      if(map.has(v)){
+        const current = map.get(v);
+        if(current instanceof Set) {
+          if(!current.has(k)){
+            current.add(k);
+            this.emit('add', v, k);
+          }
+        } else if (current !== k) {
+          map.set(v, new Set([current, k]));
+          this.emit('add', v, k);
+        }
+      } else {
+        map.set(v, k);
+        this.emit('add', v, k);
+      }
+      return this;
+    },
+    delete (v, k) {
+      const map = this._value;
+      if(map.has(v)){
+        const current = map.get(v);
+        if(current instanceof Set) {
+          current.delete(k) && this.emit('delete', v, k);
+          if(current.size === 1)
+            map.set(v, current.values().next().value);
+        } else {
+          if(current === k){
+            map.delete(v);
+            this.emit('delete', v, k);
+          }
+        }
+      }
+      return this;
+    },
+    has (v, k) {
+      const map = this._value;
+      if(map.has(v)){
+        const kk = map.get(v);
+        return (kk instanceof Set) ? kk.has(k) : k === kk;
+      }
+      return false;
+    },
+    iterateValue (v, f) {
+      const map = this._value;
+      if(map.has(v)){
+        const kk = map.get(v);
+        kk instanceof Set ? kk.forEach(_v => f(_v)) : f(kk);
+      }
+      return this;
+    },
+    iterateAll (f) {
+      this._value.forEach((kk, v) => kk instanceof Set
+        ? kk.forEach(k => f(v, k))
+        : f(v, kk));
+    },
+    subscribe ({add, del}) {
+      this.iterateAll(add);
+      this.on('add', add);
+      this.on('delete', del);
+    },
+    unsubscribe ({add, del}) {
+      this.off('add', add);
+      this.off('delete', del);
+    },
+  }
+});
+nice.eventEmitter(nice.BoxIndex.proto);
+Test((BoxIndex, Spy) => {
+  const b = BoxIndex();
+  b.add('qwe', 1);
+  b.add('qwe', 3);
+  b.add('asd', 15);
+  expect(b.has('qwe', 1)).isTrue();
+  expect(b.has('qwe', 3)).isTrue();
+  expect(b.has('qwe', 15)).isFalse();
+  expect(b.has('asd', 15)).isTrue();
+  b.delete('qwe', 3);
+  expect(b.has('qwe', 1)).isTrue();
+  expect(b.has('qwe', 3)).isFalse();
+  const spy = Spy();
+  b.iterateValue('qwe', spy);
+  expect(spy).calledOnce();
+  b.delete('asd', 15);
+  expect(b.has('qwe', 15)).isFalse();
+  const spy2 = Spy();
+  b.iterateValue('asd', spy2);
+  expect(spy2).neverCalled();
+  const spy3 = Spy();
+  b.iterateAll(spy3);
+  expect(spy3).calledOnce();
+});
+Test((BoxIndex, Spy) => {
+  const b = BoxIndex();
+  const add = Spy();
+  const del = Spy();
+  b.subscribe({add, del});
+  b.add('a', 1);
+  expect(add).calledWith('a', 1);
+  b.add('a', 2);
+  expect(add).calledWith('a', 2);
+  b.add('a', 3);
+  expect(add).calledWith('a', 3);
+  expect(del).neverCalled();
+  b.delete('a', 2);
+  expect(del).calledWith('a', 2);
+  b.delete('a', 4);
+  expect(del).calledTimes(1);
+  b.delete('a', 1);
+  b.delete('a', 3);
+  b.delete('a', 3);
+  expect(del).calledTimes(3);
+  expect(add).calledTimes(3);
+});
+})();
 (function(){"use strict";
 nice.Type({
   name: 'Model',
@@ -3168,7 +3343,6 @@ const proto = {
 		this.notifyFilters(id, o);
 		return id;
 	},
-	
 	notifyFilters(id, newValues, oldValues) {
 		const ff = this.filters;
 		_each(newValues, (v, k) => {
@@ -3188,17 +3362,14 @@ const proto = {
 					throw 'Operation ' + operation + " not supported.";
 				}
 			});
-		});	
+		});
 	},
-	
 	notifyFiltersOneValue(id, k, newValue, oldValue) {
 		const ff = this.filters;
 		if(newValue === oldValue)
 			return;
-		
 		if(!(k in ff))
 			return;
-		
 		_each(ff[k], (map, operation) => {
 			if(operation === 'eq'){
 				if(map.has(oldValue))
@@ -3210,17 +3381,14 @@ const proto = {
 			}
 		});
 	},
-	
 	get(id) {
 		return this.rows[id];
 	},
-	
 	filter(...f) {
 		const res = [];
 		this.rows.forEach((row, id) => matchFilter(f, row) && res.push(id));
 		return res;
 	},
-	
 	change(id, o){
 		checkObject(o);
 		
@@ -3231,17 +3399,14 @@ const proto = {
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
 	},
-	
 	writeLog(id, o) {
 		const templateId = this.findTemplate(o);
 		const template = this.templates[templateId];
-		
 		this.version = this.log.length;
 		const row = [templateId, id, ...template.map(field => o[field])];
 		this.log.push(row);
 		this.logSubscriptions.forEach(f => f(row));
 	},
-	
 	findTemplate(a) {
 		if(!Array.isArray(a))
 			a = Object.keys(a);
@@ -3249,7 +3414,6 @@ const proto = {
 		const id = this.templates.findIndex(r => nice.deepEqual(r, a));
 		if(id !== -1)
 			return id;
-		
 		const newId = this.templates.length;
 		this.templates.push(a);
 		this.version = this.log.length;
@@ -3258,33 +3422,26 @@ const proto = {
 		this.logSubscriptions.forEach(f => f(row));
 		return newId;
 	},
-	
 	rowBox(id) {
 		if(!(id in this.rowBoxes)){
 			this.rowBoxes[id] = nice.Box(this.rows[id]);
 		}
 		return	this.rowBoxes[id];
 	},
-	
 	filterBox(...ff) {
 		if(ff[1])
 			throw 'TODO:';
-		
 		const f = ff[0];
 		const [field, value, operation = 'eq'] = f;
 		expect(field).isString();
 		expect(operation).isString();
-		
 		if(!(field in this.filters))
 			this.filters[field] = {};
-		
 		if(!(operation in this.filters[field]))
 			this.filters[field][operation] = new Map();
-		
 		const opFilters = this.filters[field][operation];
 		if(!opFilters.has(value))
 			opFilters.set(value, nice.BoxArray(this.filter(f)));
-		
 		return opFilters.get(value);
 	},
 	importRow(row) {
@@ -3292,7 +3449,7 @@ const proto = {
 		const templateId = row[0];
 		const id = row[1];
 		if(templateId === -1){ 
-			m.templates[id] = row.slice(2);			
+			m.templates[id] = row.slice(2);
 		} else {
 			if(!m.rows[id])
 				m.rows[id] = {};
@@ -3319,6 +3476,7 @@ function RowModel(){
 		templates: [],
 		rows: [],
 		log: [],
+		indexes: {},
 		rowBoxes: {},
 		filters: {},
 		logSubscriptions: []
@@ -3340,7 +3498,7 @@ function matchFilter(ff, row){
 		const [ field, value ] = f;
 		if(row[field] !== value)
 			res = false;
-	});	
+	});
 	return res;
 }
 function isValidValue(v){
@@ -3358,17 +3516,14 @@ Test(() => {
 	const o = {name:'Joe'};
 	const joeId = m.add(o);
 	const janeId = m.add({name:"Jane"});
-		
 	Test(() => {
 		expect(m.get(joeId)).deepEqual(o);
 	});
-	
 	Test(() => {
 		expect(() => m.add({name:undefined})).throws();
 		expect(() => m.change(joeId, {name:undefined})).throws();
 		expect(m.get(joeId)).deepEqual(o);
 	});
-	
 	Test(() => {
 		m.change(joeId, {address:"Home"});
 		expect(m.get(joeId)).deepEqual({name:'Joe',address:"Home"});
@@ -3382,11 +3537,9 @@ Test(() => {
 		const m2 = RowModel.fromLog(m.log);
 		expect(m2.get(joeId)).deepEqual({name:'Joe',address:"Home"});
 	});
-	
 	Test((Spy) => {
 		const b = m.rowBox(joeId);
 		expect(b()).deepEqual(m.get(joeId));
-		
 		const spy = Spy();
 		b.subscribe(spy);
 		m.change(joeId, {address:'Home2'});

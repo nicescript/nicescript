@@ -11,10 +11,6 @@ nice.Type({
     z.messages = [];
   },
 
-  customCall: (z) => {
-    throw 'Use methods';
-  },
-
   proto: {
     push (m){
       this.messages.push(m);

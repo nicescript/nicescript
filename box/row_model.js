@@ -22,7 +22,7 @@ const proto = {
 		this.notifyFilters(id, o);
 		return id;
 	},
-	
+
 	notifyFilters(id, newValues, oldValues) {
 		const ff = this.filters;
 		_each(newValues, (v, k) => {
@@ -42,17 +42,17 @@ const proto = {
 					throw 'Operation ' + operation + " not supported.";
 				}
 			});
-		});	
+		});
 	},
-	
+
 	notifyFiltersOneValue(id, k, newValue, oldValue) {
 		const ff = this.filters;
 		if(newValue === oldValue)
 			return;
-		
+
 		if(!(k in ff))
 			return;
-		
+
 		_each(ff[k], (map, operation) => {
 			if(operation === 'eq'){
 				if(map.has(oldValue))
@@ -64,17 +64,17 @@ const proto = {
 			}
 		});
 	},
-	
+
 	get(id) {
 		return this.rows[id];
 	},
-	
+
 	filter(...f) {
 		const res = [];
 		this.rows.forEach((row, id) => matchFilter(f, row) && res.push(id));
 		return res;
 	},
-	
+
 	change(id, o){
 		checkObject(o);
 		//check id
@@ -85,17 +85,17 @@ const proto = {
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
 	},
-	
+
 	writeLog(id, o) {
 		const templateId = this.findTemplate(o);
 		const template = this.templates[templateId];
-		
+
 		this.version = this.log.length;
 		const row = [templateId, id, ...template.map(field => o[field])];
 		this.log.push(row);
 		this.logSubscriptions.forEach(f => f(row));
 	},
-	
+
 	findTemplate(a) {
 		if(!Array.isArray(a))
 			a = Object.keys(a);
@@ -103,7 +103,7 @@ const proto = {
 		const id = this.templates.findIndex(r => nice.deepEqual(r, a));
 		if(id !== -1)
 			return id;
-		
+
 		const newId = this.templates.length;
 		this.templates.push(a);
 		this.version = this.log.length;
@@ -112,33 +112,33 @@ const proto = {
 		this.logSubscriptions.forEach(f => f(row));
 		return newId;
 	},
-	
+
 	rowBox(id) {
 		if(!(id in this.rowBoxes)){
 			this.rowBoxes[id] = nice.Box(this.rows[id]);
 		}
 		return	this.rowBoxes[id];
 	},
-	
+
 	filterBox(...ff) {
 		if(ff[1])
 			throw 'TODO:';
-		
+
 		const f = ff[0];
 		const [field, value, operation = 'eq'] = f;
 		expect(field).isString();
 		expect(operation).isString();
-		
+
 		if(!(field in this.filters))
 			this.filters[field] = {};
-		
+
 		if(!(operation in this.filters[field]))
 			this.filters[field][operation] = new Map();
-		
+
 		const opFilters = this.filters[field][operation];
 		if(!opFilters.has(value))
 			opFilters.set(value, nice.BoxArray(this.filter(f)));
-		
+
 		return opFilters.get(value);
 	},
 
@@ -147,7 +147,7 @@ const proto = {
 		const templateId = row[0];
 		const id = row[1];
 		if(templateId === -1){ // row is a template
-			m.templates[id] = row.slice(2);			
+			m.templates[id] = row.slice(2);
 		} else {
 			if(!m.rows[id])
 				m.rows[id] = {};
@@ -176,6 +176,7 @@ function RowModel(){
 		templates: [],
 		rows: [],
 		log: [],
+		indexes: {},
 		rowBoxes: {},
 		filters: {},
 		logSubscriptions: []
@@ -202,7 +203,7 @@ function matchFilter(ff, row){
 		const [ field, value ] = f;
 		if(row[field] !== value)
 			res = false;
-	});	
+	});
 	return res;
 }
 
@@ -226,17 +227,17 @@ Test(() => {
 	const o = {name:'Joe'};
 	const joeId = m.add(o);
 	const janeId = m.add({name:"Jane"});
-		
+
 	Test(() => {
 		expect(m.get(joeId)).deepEqual(o);
 	});
-	
+
 	Test(() => {
 		expect(() => m.add({name:undefined})).throws();
 		expect(() => m.change(joeId, {name:undefined})).throws();
 		expect(m.get(joeId)).deepEqual(o);
 	});
-	
+
 	Test(() => {
 		m.change(joeId, {address:"Home"});
 		expect(m.get(joeId)).deepEqual({name:'Joe',address:"Home"});
@@ -258,11 +259,11 @@ Test(() => {
 //		console.log(m2.rows);
 //		console.log(m2.templates);
 	});
-	
+
 	Test((Spy) => {
 		const b = m.rowBox(joeId);
 		expect(b()).deepEqual(m.get(joeId));
-		
+
 		const spy = Spy();
 		b.subscribe(spy);
 		m.change(joeId, {address:'Home2'});

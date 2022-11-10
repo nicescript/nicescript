@@ -69,7 +69,10 @@ function runTest(t, runner){
       console.log(e);
     } else {
       const k = 1 + (e.shift || 0);
-      const { line, symbol, location } = nice.parseTraceString(e.stack.split('\n')[k]);
+      const parse = nice.parseTraceString;
+      const stackArray = e.stack.split('\n');
+      const { line, symbol, location } = parse(stackArray[k])
+       || parse(stackArray[k + 1]) || {};
       console.log(colors.red('Error while testing ' + (t.description || '')));
 
       const dh = line - t.line;
