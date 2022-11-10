@@ -6,6 +6,7 @@ nice.Type({
   extends: 'Box',
 
   initBy: (z, ...inputs) => {
+    z._version = 0;
     z._by = inputs.pop();
     if(typeof z._by !== 'function')
       throw `RBox only accepts functions`;
@@ -90,7 +91,7 @@ nice.Type({
         this.detachSource(input);
     },
 
-    attachSource(source, i){
+    attachSource(source) {
       if(source._isBox){
         const f = state => {
           const position = this._inputs.indexOf(source);
@@ -103,7 +104,7 @@ nice.Type({
       }
     },
 
-    detachSource(source){
+    detachSource(source) {
       source._isBox && source.unsubscribe(this._inputListeners.get(source));
     }
   }

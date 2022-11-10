@@ -1,13 +1,14 @@
 nice.Type({
   name: 'Box',
 
-  extends: 'Something',
+  extends: 'DataSource',
 
   customCall: (z, ...as) => {
     return as.length === 0 ? z._value : z.setState(as[0]);
   },
 
   initBy: (z, v) => {
+    z._version = 0;
     if(v === undefined){
       return z;
     }
@@ -17,6 +18,7 @@ nice.Type({
   proto: {
     setState (v) {
       this._value = v;
+      this._version++;
       this.emit('state', v);
     },
 
@@ -34,9 +36,12 @@ nice.Type({
       return this;
     },
 
-    subscribe(f){
+    subscribe(f, v){
       this.on('state', f);
-//      if(this._value !== undefined)
+      if(v === -1)
+        return;
+
+      if(v === undefined || v < this._version)
         f(this._value);
     },
 
@@ -72,6 +77,21 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(4);
+});
+
+
+Test((Box, Spy) => {
+  const b = Box();
+  const spy = Spy();
+  b.subscribe(spy, -1);
+
+  b(1);
+  b(1);
+  b(2);
+
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(2);
+  expect(spy).calledTimes(3);
 });
 
 
@@ -156,8 +176,6 @@ Test('Box action', (Box, Spy) => {
   b.add(3);
   expect(b()).is(5);
 });
-
-nice.eventEmitter(nice.Box.proto);
 
 
 Test((Box, Spy) => {

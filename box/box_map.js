@@ -1,7 +1,7 @@
 nice.Type({
   name: 'BoxMap',
 
-  extends: 'Something',
+  extends: 'DataSource',
 
   customCall: (z, ...as) => {
     if(as.length)
@@ -58,7 +58,7 @@ nice.Type({
     }
   }
 });
-nice.eventEmitter(nice.BoxMap.proto);
+
 
 Test((BoxMap, Spy) => {
   const b = BoxMap();

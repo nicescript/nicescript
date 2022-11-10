@@ -4,7 +4,7 @@
 nice.Type({
   name: 'Model',
 
-  extends: 'Something',
+  extends: 'DataSource',
 
   initBy: (z, data = {}) => {
     z._data = data;

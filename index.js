@@ -2054,12 +2054,25 @@ Test((Spy, calledWith) => {
 });
 })();
 (function(){"use strict";nice.Type({
-  name: 'Box',
+  name: 'DataSource',
   extends: 'Something',
+  abstract: true,
+  proto: {
+    get version(){
+      return this._version;
+    }
+  }
+});
+nice.eventEmitter(nice.DataSource.proto);
+})();
+(function(){"use strict";nice.Type({
+  name: 'Box',
+  extends: 'DataSource',
   customCall: (z, ...as) => {
     return as.length === 0 ? z._value : z.setState(as[0]);
   },
   initBy: (z, v) => {
+    z._version = 0;
     if(v === undefined){
       return z;
     }
@@ -2068,6 +2081,7 @@ Test((Spy, calledWith) => {
   proto: {
     setState (v) {
       this._value = v;
+      this._version++;
       this.emit('state', v);
     },
     uniq(){
@@ -2082,8 +2096,11 @@ Test((Spy, calledWith) => {
       }
       return this;
     },
-    subscribe(f){
+    subscribe(f, v){
       this.on('state', f);
+      if(v === -1)
+        return;
+      if(v === undefined || v < this._version)
         f(this._value);
     },
     unsubscribe(f){
@@ -2112,6 +2129,17 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(4);
+});
+Test((Box, Spy) => {
+  const b = Box();
+  const spy = Spy();
+  b.subscribe(spy, -1);
+  b(1);
+  b(1);
+  b(2);
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(2);
+  expect(spy).calledTimes(3);
 });
 Test((Box, Spy, uniq) => {
   const b = Box().uniq();
@@ -2160,7 +2188,6 @@ Test('Box action', (Box, Spy) => {
   b.add(3);
   expect(b()).is(5);
 });
-nice.eventEmitter(nice.Box.proto);
 Test((Box, Spy) => {
   const b = Box(11);
   expect(b()).is(11);
@@ -2173,13 +2200,16 @@ Test((Box, Spy) => {
 })();
 (function(){"use strict";nice.Type({
   name: 'BoxSet',
-  extends: 'Something',
+  extends: 'DataSource',
   customCall: (z, ...as) => {
     if(as.length)
       SthrowF('Use access methods');
     return z._value;
   },
-  initBy: (z, ...a) =>  z._value = new Set(a),
+  initBy: (z, ...a) =>  {
+    z._version = 0;
+    z._value = new Set(a);
+  },
   proto: {
     add (v) {
       if(v === null)
@@ -2232,7 +2262,6 @@ Test((Box, Spy) => {
     },
   }
 });
-nice.eventEmitter(nice.BoxSet.proto);
 Test((BoxSet, Spy) => {
   const b = BoxSet();
   const spy = Spy();
@@ -2269,7 +2298,7 @@ Test((BoxSet, intersection, Spy) => {
 })();
 (function(){"use strict";nice.Type({
   name: 'BoxMap',
-  extends: 'Something',
+  extends: 'DataSource',
   customCall: (z, ...as) => {
     if(as.length)
       throwF('Use access methods to change BoxMap');
@@ -2322,7 +2351,6 @@ Test((BoxSet, intersection, Spy) => {
     }
   }
 });
-nice.eventEmitter(nice.BoxMap.proto);
 Test((BoxMap, Spy) => {
   const b = BoxMap();
   const spy = Spy();
@@ -2486,7 +2514,7 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
 })();
 (function(){"use strict";nice.Type({
   name: 'BoxArray',
-  extends: 'Something',
+  extends: 'DataSource',
   customCall: (z, ...as) => as.length === 0 ? z._value : z.setAll(as[0]),
   initBy: (z, v) => {
     z._value = [];
@@ -2633,7 +2661,6 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
     }
   }
 });
-nice.eventEmitter(nice.BoxArray.proto);
 Test((BoxArray, Spy, set) => {
   const a = BoxArray([1,2]);
   const spy = Spy();
@@ -2723,6 +2750,7 @@ nice.Type({
   name: 'RBox',
   extends: 'Box',
   initBy: (z, ...inputs) => {
+    z._version = 0;
     z._by = inputs.pop();
     if(typeof z._by !== 'function')
       throw `RBox only accepts functions`;
@@ -2794,7 +2822,7 @@ nice.Type({
       for (let [input, f] of this._inputListeners)
         this.detachSource(input);
     },
-    attachSource(source, i){
+    attachSource(source) {
       if(source._isBox){
         const f = state => {
           const position = this._inputs.indexOf(source);
@@ -2805,7 +2833,7 @@ nice.Type({
         return source.subscribe(f);
       }
     },
-    detachSource(source){
+    detachSource(source) {
       source._isBox && source.unsubscribe(this._inputListeners.get(source));
     }
   }
@@ -2933,7 +2961,7 @@ Test((IntervalBox, RBox, Spy) => {
 })();
 (function(){"use strict";nice.Type({
   name: 'BoxIndex',
-  extends: 'Something',
+  extends: 'DataSource',
   customCall: (z, ...as) => {
     if(as.length)
       throwF('Use access methods to change BoxMap');
@@ -3012,7 +3040,6 @@ Test((IntervalBox, RBox, Spy) => {
     },
   }
 });
-nice.eventEmitter(nice.BoxIndex.proto);
 Test((BoxIndex, Spy) => {
   const b = BoxIndex();
   b.add('qwe', 1);
@@ -3063,7 +3090,7 @@ Test((BoxIndex, Spy) => {
 (function(){"use strict";
 nice.Type({
   name: 'Model',
-  extends: 'Something',
+  extends: 'DataSource',
   initBy: (z, data = {}) => {
     z._data = data;
     z._meta = { listeners: {}, children: {} };
@@ -3556,8 +3583,6 @@ Test(() => {
 		expect(spy).calledWith(null, null, 2, 1);
 	});
 });
-})();
-(function(){"use strict";
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
   let v;

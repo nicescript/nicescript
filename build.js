@@ -29,6 +29,7 @@ const order = [
   'core/expect',
   'core/simple_types',
   'core/spy',
+  'box/data_source',
   'box/box',
   'box/box_set',
   'box/box_map',
@@ -38,7 +39,6 @@ const order = [
   'box/box_index',
   'box/model',
   'box/row_model',
-  'box/data_tree',
 //  'core/stream', TODO: change to comply with Box(undefined)
   'core/logic',
   'core/value',

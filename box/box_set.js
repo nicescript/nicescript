@@ -1,7 +1,7 @@
 nice.Type({
   name: 'BoxSet',
 
-  extends: 'Something',
+  extends: 'DataSource',
 
   customCall: (z, ...as) => {
     if(as.length)
@@ -9,7 +9,10 @@ nice.Type({
     return z._value;
   },
 
-  initBy: (z, ...a) =>  z._value = new Set(a),
+  initBy: (z, ...a) =>  {
+    z._version = 0;
+    z._value = new Set(a);
+  },
 
   proto: {
     add (v) {
@@ -73,7 +76,7 @@ nice.Type({
     },
   }
 });
-nice.eventEmitter(nice.BoxSet.proto);
+
 
 Test((BoxSet, Spy) => {
   const b = BoxSet();

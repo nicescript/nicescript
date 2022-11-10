@@ -1,7 +1,7 @@
 nice.Type({
   name: 'BoxArray',
 
-  extends: 'Something',
+  extends: 'DataSource',
 
   customCall: (z, ...as) => as.length === 0 ? z._value : z.setAll(as[0]),
 
@@ -176,7 +176,6 @@ nice.Type({
   }
 });
 
-nice.eventEmitter(nice.BoxArray.proto);
 
 Test((BoxArray, Spy, set) => {
   const a = BoxArray([1,2]);

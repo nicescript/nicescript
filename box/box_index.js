@@ -1,7 +1,7 @@
 nice.Type({
   name: 'BoxIndex',
 
-  extends: 'Something',
+  extends: 'DataSource',
 
   customCall: (z, ...as) => {
     if(as.length)
@@ -97,7 +97,6 @@ nice.Type({
 
   }
 });
-nice.eventEmitter(nice.BoxIndex.proto);
 
 
 Test((BoxIndex, Spy) => {
