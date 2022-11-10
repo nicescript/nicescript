@@ -75,6 +75,8 @@ defAll(nice, {
   _createItem(type, args){
     if(!type._isNiceType)
       throw new Error('Bad type');
+    if(type.hasOwnProperty('abstract'))
+      throw new Error(type.name + ' is abstract type.');
     let item;
 
     if(type.isFunction === true){
