@@ -6,8 +6,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .string('tag', 'div')
   .boolean('forceRepaint', false)
-  .obj('eventHandlers')
-  .obj('cssSelectors')
+  .object('eventHandlers')
+  .object('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
     if(name === 'domNode' && IS_BROWSER){
       if(!e.id())
@@ -15,30 +15,18 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       const el = document.getElementById(e.id());
       el && f(el);
     }
-    const handlers = e.eventHandlers._value;
-    handlers[name] ? handlers[name].push(f) : e.eventHandlers.set(name, [f]);
+    const hs = e.eventHandlers();
+    hs[name] ? hs[name].push(f) : e.eventHandlers(name, [f]);
     return e;
   })
   .Action.about('Removes event handler from an element.')(function off(e, name, f){
-    const handlers = e.eventHandlers.get(name);
-    handlers && e.eventHandlers.removeValue(name, f);
+    const handlers = e.eventHandlers(name);
+    handlers && nice.removeValue(handlers, f);
     return e;
   })
-  .obj('style')
+  .object('style')
   .object('attributes')
-  .Method('attr', (z, k, ...vs) => {
-    if(vs.length === 0)
-      return z.attributes(k);
-
-    z.attributes(k, nice.format(...vs));
-
-    return z;
-  })
-  .obj('properties')
-  .Method('prop', (z, k, v) => {
-    z.properties.set(k, v);
-    return z;
-  })
+  .object('properties')
   .Method('assertId', z => {
     z.id() || z.id(nice.genereteAutoId());
     return z.id();
@@ -165,19 +153,19 @@ const Style = nice.Style;
 defGet(Html.proto, function hover(){
   const style = Style();
   this.needAutoClass = true;
-  this.cssSelectors.set(':hover', style);
+  this.cssSelectors(':hover', style);
   return style;
 });
 
 
 def(Html.proto, 'Css', function(s = ''){
   s = s.toLowerCase();
-  if(this.cssSelectors.has(s))
-    return this.cssSelectors.get(s);
+  if(s in this.cssSelectors())
+    return this.cssSelectors(s);
   this.needAutoClass = true;
   const style = Style();
   style.up = this;
-  this.cssSelectors.set(s, style);
+  this.cssSelectors(s, style);
   return style;
 });
 
@@ -205,12 +193,11 @@ reflect.on('extension', ({child, parent}) => {
 'alignContent,alignItems,alignSelf,alignmentBaseline,all,animation,animationDelay,animationDirection,animationDuration,animationFillMode,animationIterationCount,animationName,animationPlayState,animationTimingFunction,appearance,backdropFilter,backfaceVisibility,background,backgroundAttachment,backgroundBlendMode,backgroundClip,backgroundColor,backgroundImage,backgroundOrigin,backgroundPosition,backgroundPositionX,backgroundPositionY,backgroundRepeat,backgroundRepeatX,backgroundRepeatY,backgroundSize,baselineShift,blockSize,border,borderBlockEnd,borderBlockEndColor,borderBlockEndStyle,borderBlockEndWidth,borderBlockStart,borderBlockStartColor,borderBlockStartStyle,borderBlockStartWidth,borderBottom,borderBottomColor,borderBottomLeftRadius,borderBottomRightRadius,borderBottomStyle,borderBottomWidth,borderCollapse,borderColor,borderImage,borderImageOutset,borderImageRepeat,borderImageSlice,borderImageSource,borderImageWidth,borderInlineEnd,borderInlineEndColor,borderInlineEndStyle,borderInlineEndWidth,borderInlineStart,borderInlineStartColor,borderInlineStartStyle,borderInlineStartWidth,borderLeft,borderLeftColor,borderLeftStyle,borderLeftWidth,borderRadius,borderRight,borderRightColor,borderRightStyle,borderRightWidth,borderSpacing,borderStyle,borderTop,borderTopColor,borderTopLeftRadius,borderTopRightRadius,borderTopStyle,borderTopWidth,borderWidth,bottom,boxShadow,boxSizing,breakAfter,breakBefore,breakInside,bufferedRendering,captionSide,caretColor,clear,clip,clipPath,clipRule,color,colorInterpolation,colorInterpolationFilters,colorRendering,colorScheme,columnCount,columnFill,columnGap,columnRule,columnRuleColor,columnRuleStyle,columnRuleWidth,columnSpan,columnWidth,columns,contain,containIntrinsicSize,content,counterIncrement,counterReset,cursor,cx,cy,d,direction,display,dominantBaseline,emptyCells,fill,fillOpacity,fillRule,filter,flex,flexBasis,flexDirection,flexFlow,flexGrow,flexShrink,flexWrap,float,floodColor,floodOpacity,font,fontDisplay,fontFamily,fontFeatureSettings,fontKerning,fontOpticalSizing,fontSize,fontStretch,fontStyle,fontVariant,fontVariantCaps,fontVariantEastAsian,fontVariantLigatures,fontVariantNumeric,fontVariationSettings,fontWeight,gap,grid,gridArea,gridAutoColumns,gridAutoFlow,gridAutoRows,gridColumn,gridColumnEnd,gridColumnGap,gridColumnStart,gridGap,gridRow,gridRowEnd,gridRowGap,gridRowStart,gridTemplate,gridTemplateAreas,gridTemplateColumns,gridTemplateRows,height,hyphens,imageOrientation,imageRendering,inlineSize,isolation,justifyContent,justifyItems,justifySelf,left,letterSpacing,lightingColor,lineBreak,lineHeight,listStyle,listStyleImage,listStylePosition,listStyleType,margin,marginBlockEnd,marginBlockStart,marginBottom,marginInlineEnd,marginInlineStart,marginLeft,marginRight,marginTop,marker,markerEnd,markerMid,markerStart,mask,maskType,maxBlockSize,maxHeight,maxInlineSize,maxWidth,maxZoom,minBlockSize,minHeight,minInlineSize,minWidth,minZoom,mixBlendMode,objectFit,objectPosition,offset,offsetDistance,offsetPath,offsetRotate,opacity,order,orientation,orphans,outline,outlineColor,outlineOffset,outlineStyle,outlineWidth,overflow,overflowAnchor,overflowWrap,overflowX,overflowY,overscrollBehavior,overscrollBehaviorBlock,overscrollBehaviorInline,overscrollBehaviorX,overscrollBehaviorY,padding,paddingBlockEnd,paddingBlockStart,paddingBottom,paddingInlineEnd,paddingInlineStart,paddingLeft,paddingRight,paddingTop,pageBreakAfter,pageBreakBefore,pageBreakInside,paintOrder,perspective,perspectiveOrigin,placeContent,placeItems,placeSelf,pointerEvents,position,quotes,r,resize,right,rowGap,rubyPosition,rx,ry,scrollBehavior,scrollMargin,scrollMarginBlock,scrollMarginBlockEnd,scrollMarginBlockStart,scrollMarginBottom,scrollMarginInline,scrollMarginInlineEnd,scrollMarginInlineStart,scrollMarginLeft,scrollMarginRight,scrollMarginTop,scrollPadding,scrollPaddingBlock,scrollPaddingBlockEnd,scrollPaddingBlockStart,scrollPaddingBottom,scrollPaddingInline,scrollPaddingInlineEnd,scrollPaddingInlineStart,scrollPaddingLeft,scrollPaddingRight,scrollPaddingTop,scrollSnapAlign,scrollSnapStop,scrollSnapType,shapeImageThreshold,shapeMargin,shapeOutside,shapeRendering,size,speak,stopColor,stopOpacity,stroke,strokeDasharray,strokeDashoffset,strokeLinecap,strokeLinejoin,strokeMiterlimit,strokeOpacity,strokeWidth,tabSize,tableLayout,textAlign,textAlignLast,textAnchor,textCombineUpright,textDecoration,textDecorationColor,textDecorationLine,textDecorationSkipInk,textDecorationStyle,textIndent,textOrientation,textOverflow,textRendering,textShadow,textSizeAdjust,textTransform,textUnderlinePosition,top,touchAction,transform,transformBox,transformOrigin,transformStyle,transition,transitionDelay,transitionDuration,transitionProperty,transitionTimingFunction,unicodeBidi,unicodeRange,userSelect,userZoom,vectorEffect,verticalAlign,visibility,webkitAlignContent,webkitAlignItems,webkitAlignSelf,webkitAnimation,webkitAnimationDelay,webkitAnimationDirection,webkitAnimationDuration,webkitAnimationFillMode,webkitAnimationIterationCount,webkitAnimationName,webkitAnimationPlayState,webkitAnimationTimingFunction,webkitAppRegion,webkitAppearance,webkitBackfaceVisibility,webkitBackgroundClip,webkitBackgroundOrigin,webkitBackgroundSize,webkitBorderAfter,webkitBorderAfterColor,webkitBorderAfterStyle,webkitBorderAfterWidth,webkitBorderBefore,webkitBorderBeforeColor,webkitBorderBeforeStyle,webkitBorderBeforeWidth,webkitBorderBottomLeftRadius,webkitBorderBottomRightRadius,webkitBorderEnd,webkitBorderEndColor,webkitBorderEndStyle,webkitBorderEndWidth,webkitBorderHorizontalSpacing,webkitBorderImage,webkitBorderRadius,webkitBorderStart,webkitBorderStartColor,webkitBorderStartStyle,webkitBorderStartWidth,webkitBorderTopLeftRadius,webkitBorderTopRightRadius,webkitBorderVerticalSpacing,webkitBoxAlign,webkitBoxDecorationBreak,webkitBoxDirection,webkitBoxFlex,webkitBoxOrdinalGroup,webkitBoxOrient,webkitBoxPack,webkitBoxReflect,webkitBoxShadow,webkitBoxSizing,webkitClipPath,webkitColumnBreakAfter,webkitColumnBreakBefore,webkitColumnBreakInside,webkitColumnCount,webkitColumnGap,webkitColumnRule,webkitColumnRuleColor,webkitColumnRuleStyle,webkitColumnRuleWidth,webkitColumnSpan,webkitColumnWidth,webkitColumns,webkitFilter,webkitFlex,webkitFlexBasis,webkitFlexDirection,webkitFlexFlow,webkitFlexGrow,webkitFlexShrink,webkitFlexWrap,webkitFontFeatureSettings,webkitFontSizeDelta,webkitFontSmoothing,webkitHighlight,webkitHyphenateCharacter,webkitJustifyContent,webkitLineBreak,webkitLineClamp,webkitLocale,webkitLogicalHeight,webkitLogicalWidth,webkitMarginAfter,webkitMarginBefore,webkitMarginEnd,webkitMarginStart,webkitMask,webkitMaskBoxImage,webkitMaskBoxImageOutset,webkitMaskBoxImageRepeat,webkitMaskBoxImageSlice,webkitMaskBoxImageSource,webkitMaskBoxImageWidth,webkitMaskClip,webkitMaskComposite,webkitMaskImage,webkitMaskOrigin,webkitMaskPosition,webkitMaskPositionX,webkitMaskPositionY,webkitMaskRepeat,webkitMaskRepeatX,webkitMaskRepeatY,webkitMaskSize,webkitMaxLogicalHeight,webkitMaxLogicalWidth,webkitMinLogicalHeight,webkitMinLogicalWidth,webkitOpacity,webkitOrder,webkitPaddingAfter,webkitPaddingBefore,webkitPaddingEnd,webkitPaddingStart,webkitPerspective,webkitPerspectiveOrigin,webkitPerspectiveOriginX,webkitPerspectiveOriginY,webkitPrintColorAdjust,webkitRtlOrdering,webkitRubyPosition,webkitShapeImageThreshold,webkitShapeMargin,webkitShapeOutside,webkitTapHighlightColor,webkitTextCombine,webkitTextDecorationsInEffect,webkitTextEmphasis,webkitTextEmphasisColor,webkitTextEmphasisPosition,webkitTextEmphasisStyle,webkitTextFillColor,webkitTextOrientation,webkitTextSecurity,webkitTextSizeAdjust,webkitTextStroke,webkitTextStrokeColor,webkitTextStrokeWidth,webkitTransform,webkitTransformOrigin,webkitTransformOriginX,webkitTransformOriginY,webkitTransformOriginZ,webkitTransformStyle,webkitTransition,webkitTransitionDelay,webkitTransitionDuration,webkitTransitionProperty,webkitTransitionTimingFunction,webkitUserDrag,webkitUserModify,webkitUserSelect,webkitWritingMode,whiteSpace,widows,width,willChange,wordBreak,wordSpacing,wordWrap,writingMode,x,y,zIndex,zoom'
   .split(',').forEach( property => {
     Html.proto[property] = function(...a) {
-      const s = this.style;
       if(a.length === 0)
-        return s[property]();
+        return this.style(property);
       nice.Switch(a[0])
-        .isObject().use(o => _each(o, (v, k) => s.set(property + nice.capitalize(k), v)))
-        .default.use(() => s.set(property, a.length > 1 ? nice.format(...a) : a[0]))
+        .isObject().use(o => _each(o, (v, k) => this.style(property + nice.capitalize(k), v)))
+        .default.use(() => this.style(property, a.length > 1 ? nice.format(...a) : a[0]))
       return this;
     };
     Style.proto[property] = function(...a) {
@@ -263,7 +250,7 @@ function text(z){
 
 function compileStyle (s){
   let a = [];
-  s.each((v, k) =>
+  _each(s, (v, k) =>
     a.push(k.replace(/([A-Z])/g, "-$1").toLowerCase() + ':' + v));
   return a.join(';');
 };
@@ -271,7 +258,7 @@ function compileStyle (s){
 
 function compileSelectors (h){
   const a = [];
-  h.cssSelectors.each((v, k) => a.push('.',
+  _each(h.cssSelectors(), (v, k) => a.push('.',
     getAutoClass(h.attributes('className')),
     k[0] === ':' ? '' : ' ', k, '{', compileStyle(v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
@@ -288,7 +275,7 @@ function html(z){
   const tag = z.tag();
   const selectors = compileSelectors(z) || '';
   let as = '';
-  let style = compileStyle(z.style);
+  let style = compileStyle(z.style());
   style && (as = ' style="' + style + '"');
 
   _each(z.attributes(), (v, k) => {
@@ -316,20 +303,21 @@ function toDom(e) {
 
 
 function createDom(e){
-  const res = document.createElement(e.tag());
+  const value = e._value;
+  const res = document.createElement(value.tag);
 
-  e.style.each((v, k) => res.style[k] = '' + v);
+  _each(value.style, (v, k) => res.style[k] = '' + v);
 
-  _each(e.attributes(), (v, k) => res.setAttribute(k,v));
+  _each(value.attributes, (v, k) => res.setAttribute(k,v));
 
-  e.properties.each((v, k) => res[k] = v);
+  _each(value.properties, (v, k) => res[k] = v);
 
   if(e._children)
     e._children._isBoxArray
       ? attachBoxArrayChildren(res, e._children)
       : e._children.forEach(c => attachNode(c, res));
 
-  e.eventHandlers.each((ls, type) => {
+  _each(value.eventHandlers, (ls, type) => {
     if(type === 'domNode')
       return ls.forEach(f => f(res));
 
@@ -337,7 +325,7 @@ function createDom(e){
   });
 
   e.needAutoClass === true && assertAutoClass(res);
-  addSelectors(e.cssSelectors, res);
+  addSelectors(value.cssSelectors, res);
 
   return res;
 }
@@ -464,20 +452,22 @@ function refreshElement(e, old, domNode){
   } else if(!eTag) {
     domNode.nodeValue = e;
   } else {
+    const newV = e._value, oldV = old._value;
+
     const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
     _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
 
-    const newAtrs = e.attributes(), oldAtrs = old.attributes();
+    const newAtrs = newV.attributes, oldAtrs = oldV.attributes;
 
     _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
 
     e.needAutoClass === true && assertAutoClass(domNode);
     if(e.needAutoClass || domNode.assertedClass)
-      refreshSelectors(e.cssSelectors.jsValue, old.cssSelectors.jsValue, domNode);
+      refreshSelectors(newV.cssSelectors, newV.cssSelectors, domNode);
 
-    const newHandlers = e.eventHandlers._value, oldHandlers = old.eventHandlers._value;
+    const newHandlers = newV.eventHandlers, oldHandlers = newV.eventHandlers;
     nice._eachEach(oldHandlers, (f, i, type) => {
       if(!(newHandlers[type] && newHandlers[type].includes(f)))
         domNode.removeEventListener(type, f, true);
@@ -779,7 +769,7 @@ const killAllRules = className => {
 
 
 function addSelectors(selectors, node){
-  selectors.each((v, k) => addRules(v, k, getAutoClass(node.className)));
+  _each(selectors, (v, k) => addRules(v, k, getAutoClass(node.className)));
 };
 
 
@@ -801,13 +791,6 @@ function assertAutoClass(node) {
     node.className = className !== '' ? (className + ' ' + name) : name;
   }
 }
-
-
-Test((Div, attr) => {
-  const i = Div().attr('alt', 'q');
-  expect(i.attr('alt')).is('q');
-  expect(i.html).is('<div alt="q"></div>');
-});
 
 
 IS_BROWSER && Test((Div) => {
@@ -901,7 +884,7 @@ IS_BROWSER && Test((Div) => {
 
 
   Test((Div, prop) => {
-    expect(nice.Div().prop('qwe', 'asd').show().qwe).is('asd');
+    expect(nice.Div().properties('qwe', 'asd').show().qwe).is('asd');
   });
 
 

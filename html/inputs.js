@@ -86,9 +86,9 @@ Test('Box value html', (Input, Box) => {
 IS_BROWSER && Test('Box value dom', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
+  expect(input.html).is('<input type="text" id="' + input.id() + '" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
+  expect(input.html).is('<input type="text" id="' + input.id() + '" value="asd"></input>');
 });
 
 
