@@ -1,5 +1,5 @@
 nice.jsTypes = { js: { name: 'js', proto: {}, jsType: true }};
-
+//TODO: fix isPrimitive
 
 const jsHierarchy = {
   js: 'primitive,Object',

@@ -5,6 +5,7 @@ const runtime = {};
 nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .about('Represents HTML element.')
   .string('tag', 'div')
+  .boolean('forceRepaint', false)
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
@@ -712,16 +713,6 @@ if(IS_BROWSER){
     if(e())
       throw `I don't know how to display "true"`;
     return insertAt(parentNode, document.createTextNode(''), position);
-  });
-
-
-  Func.Html('show', (e, parentNode = document.body, position = 0) => {
-    const node = document.createElement(e.tag());
-
-    //don't move this line to bootom. it's here for domNode event
-    insertAt(parentNode, node, position);
-    e.attachNode(node);
-    return node;
   });
 
 

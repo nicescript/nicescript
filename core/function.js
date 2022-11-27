@@ -4,12 +4,12 @@
 
  - Store and use simple js function
 
- - Use function as a dependence for items created with it
+ - //TODO: Use function as a dependence for items created with it(Spy)
 
  -
 
  */
-nice.reflect.reportUse = true;
+//nice.reflect.reportUse = true;
 
 const configProto = {
   next (o) {
@@ -39,6 +39,10 @@ const functionProto = {
         ss = s;
       }
     });
+
+    if(ss.action){
+      throw 'Signature already defined: ' + JSON.stringify(types);
+    }
 
     ss.action = body;
     returns && (ss.returns = returns);
@@ -122,7 +126,6 @@ function createFunction({ name, body, signature, type, description, returns }){/
   if(cfg && cfg.functionType !== type)
     throw `function '${name}' can't have types '${cfg.functionType}' and '${type}' at the same time`;
 
-//  const f = existing || createFunctionBody(type);
   if(!cfg){
     cfg = create(functionProto, { name, functionType: type });
     reflect.functions[name] = cfg;
@@ -132,7 +135,6 @@ function createFunction({ name, body, signature, type, description, returns }){/
   const types = signature.map(v => v.type);
   returns && (body.returnType = returns);
   body && cfg.addSignature(body, types, returns);
-//  createMethodBody(types[0], f);
   const f = reflect.compileFunction(cfg);
 
   if(name){
@@ -155,16 +157,9 @@ nice.reflect.on('signature', s => {
 
   const first = s.signature[0];
   const type = first ? first.type : Anything;
-//  !first && console.log(s.name);
   if(!(s.name in type.proto))
     type.proto[s.name] = function(...a) { return nice[s.name](this, ...a); };
-//    def(type.proto, s.name, function(...a) { return nice[s.name](this, ...a); });
 });
-
-
-//nice.reflect.on('function', (f) =>
-//  Anything && !(f.name in Anything.proto) &&
-//      def(Anything.proto, f.name, function(...a) { return f(this, ...a); }));
 
 
 function signatureError(name, a){
@@ -175,10 +170,6 @@ function signatureError(name, a){
 
 function handleType(type){
   type.name === 'Something' && create(type.proto, functionProto);
-
-//  defGet(functionProto, type.name, function() {
-//    return configurator({ signature: [{type}], existing: this });
-//  });
 
   defGet(configProto, type.name, function() {
     return this.next({signature: [{type}]});
@@ -214,36 +205,3 @@ reflect.on('type', type => {
     return this;
   };
 });
-
-
-//nice.reflect.on('signature', s => {
-////  console.log(s.body);
-//  let res = '';
-//  const a = [];
-//  const b = [];
-//  s.signature.forEach((_s, n) => {
-//    a.push(`if( a${n}.is${_s.type.name} ) { `);
-//    b.unshift(`}`);
-//  });
-//  a.push(s.body.toString())
-//  res = a.join('') + b.join('');
-//  console.log(res);
-//});
-
-
-//Arr -> f
-//Array -> Function -> f
-
-//function qwe(a, f) {
-//  const type = a && a._type;
-//  if (a.type === 'Arr'){
-//    return use(nice.Arr.eachRigth)
-//  } else if(a.type === 'Arr') {
-//    if(f.isFunction){
-//      return use(nice.Array.Function.eachRigth);
-//    } else {
-//      throw error;
-//    }
-//  }
-//  return error;
-//};

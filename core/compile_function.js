@@ -42,7 +42,7 @@ throw "Function ${name} do not accept " + type + " as #${step+1} argument"; `);
 }
 
 
-function compileCall(f, type){
+function compileCall(f, type) {
   if(f.action === undefined)
     throw 'Bad function body';
   if(f.bodyId === undefined){

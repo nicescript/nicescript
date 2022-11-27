@@ -1059,7 +1059,7 @@ throw "Function ${name} do not accept " + type + " as #${step+1} argument"; `);
   }
   return res.join('\n');
 }
-function compileCall(f, type){
+function compileCall(f, type) {
   if(f.action === undefined)
     throw 'Bad function body';
   if(f.bodyId === undefined){
@@ -1119,7 +1119,6 @@ function compareTypes(a, b){
 }
 })();
 (function(){"use strict";
-nice.reflect.reportUse = true;
 const configProto = {
   next (o) {
     const c = Configurator(this.name || o.name);
@@ -1144,6 +1143,9 @@ const functionProto = {
         ss = s;
       }
     });
+    if(ss.action){
+      throw 'Signature already defined: ' + JSON.stringify(types);
+    }
     ss.action = body;
     returns && (ss.returns = returns);
     return this;
@@ -2230,6 +2232,9 @@ Test((Box, Spy) => {
       this.emit('value', null, v);
       return this._value.delete(v);
     },
+    get size() {
+      return this._value.size;
+    },
     intersection (b) {
       const av = this._value;
       const bv = b._value;
@@ -3018,6 +3023,13 @@ Test((IntervalBox, RBox, Spy) => {
       }
       return false;
     },
+    getKeys (v) {
+      if(map.has(v)){
+        const kk = map.get(v);
+        return (kk instanceof Set) ? Array.from(kk) : [kk];
+      }
+      return null;
+    },
     iterateValue (v, f) {
       const map = this._value;
       if(map.has(v)){
@@ -3032,6 +3044,8 @@ Test((IntervalBox, RBox, Spy) => {
         : f(v, kk));
     },
     subscribe ({add, del}) {
+      expect(typeof add).is('function');
+      expect(typeof del).is('function');
       this.iterateAll(add);
       this.on('add', add);
       this.on('delete', del);
@@ -3349,17 +3363,7 @@ Test((Model, Spy) => {
   expect(spy).calledTwice();
 });
 })();
-(function(){"use strict";const api = {
-	change: {
-		add: () => {},
-		change: () => {},
-		transaction: () => {},
-	},
-	get: {
-		row: () => {},
-		filter: () =>	{}
-	},
-};
+(function(){"use strict";
 const proto = {
 	add(o) {
 		checkObject(o);
@@ -3369,60 +3373,36 @@ const proto = {
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
-		this.notifyFilters(id, o);
+		this.notifyIndexes(id, o);
 		return id;
 	},
-	notifyFilters(id, newValues, oldValues) {
-		const ff = this.filters;
-		_each(newValues, (v, k) => {
-			if(!(k in ff))
-				return;
-			_each(ff[k], (map, operation) => {
-				if(operation === 'eq'){
-					if(oldValues !== undefined){
-						if (v === oldValues[v])
-							return;
-						if(map.has(oldValues[k]))
-							map.get(oldValues[k]).removeValue(id);
-					}
-					if(map.has(v))
-						map.get(v).push(id);
-				} else {
-					throw 'Operation ' + operation + " not supported.";
-				}
-			});
-		});
+  assertIndex(field) {
+		const ii = this.indexes;
+    if(!(field in ii))
+      ii[field] = nice.BoxIndex();
+    return ii[field];
+  },
+	notifyIndexes(id, newValues, oldValues) {
+		const ii = this.indexes;
+		_each(oldValues, (v, k) => this.assertIndex(k).delete(v, id));
+		_each(newValues, (v, k) => this.assertIndex(k).add(v, id));
 	},
-	notifyFiltersOneValue(id, k, newValue, oldValue) {
+	notifyIndexOneValue(id, k, newValue, oldValue) {
 		const ff = this.filters;
 		if(newValue === oldValue)
 			return;
-		if(!(k in ff))
-			return;
-		_each(ff[k], (map, operation) => {
-			if(operation === 'eq'){
-				if(map.has(oldValue))
-					map.get(oldValue).removeValue(id);
-				if(map.has(newValue))
-					map.get(newValue).push(id);
-			} else {
-				throw 'Operation ' + operation + " not supported.";
-			}
-		});
-	},
+		const index = this.assertIndex(k);
+    oldValue !== undefined && index.delete(oldValue, id);
+    newValue !== undefined && index.add(newValue, id);
+  },
 	get(id) {
 		return this.rows[id];
-	},
-	filter(...f) {
-		const res = [];
-		this.rows.forEach((row, id) => matchFilter(f, row) && res.push(id));
-		return res;
 	},
 	change(id, o){
 		checkObject(o);
 		
 		
-		this.notifyFilters(id, o, this.rows[id]);
+		this.notifyIndexes(id, o, this.rows[id]);
 		Object.assign(this.rows[id], o);
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
@@ -3457,21 +3437,13 @@ const proto = {
 		}
 		return	this.rowBoxes[id];
 	},
-	filterBox(...ff) {
-		if(ff[1])
-			throw 'TODO:';
-		const f = ff[0];
-		const [field, value, operation = 'eq'] = f;
-		expect(field).isString();
-		expect(operation).isString();
-		if(!(field in this.filters))
-			this.filters[field] = {};
-		if(!(operation in this.filters[field]))
-			this.filters[field][operation] = new Map();
-		const opFilters = this.filters[field][operation];
-		if(!opFilters.has(value))
-			opFilters.set(value, nice.BoxArray(this.filter(f)));
-		return opFilters.get(value);
+  filter(q) {
+    filter({adress: 'home', gender: "male" });
+    filter({adress: 'home', age: { gt: 16 } });
+    filter([{adress: 'home'}, { age: { gt: 16 } }]);
+		const res = [];
+		this.rows.forEach((row, id) => matchFilter(f, row) && res.push(id));
+		return res;
 	},
 	importRow(row) {
 		const m = this;
@@ -3485,7 +3457,7 @@ const proto = {
 			const template = m.templates[templateId];
 			row.slice(2).forEach((v, k) => {
 				const field = template[k];
-				this.notifyFiltersOneValue(id, field, v, m.rows[id][field]);
+				this.notifyIndexOneValue(id, field, v, m.rows[id][field]);
 				m.rows[id][field] = v;
 			});
 			if(id in this.rowBoxes)
@@ -3500,7 +3472,7 @@ const proto = {
 	}
 };
 function RowModel(){
-	return create(proto, {
+  const res = create(proto, {
 		lastId: -1,
 		templates: [],
 		rows: [],
@@ -3510,6 +3482,8 @@ function RowModel(){
 		filters: {},
 		logSubscriptions: []
 	});
+  res.filter = createFilter(res);
+	return res;
 }
 nice.RowModel = RowModel;
 RowModel.fromLog = (log) => {
@@ -3521,7 +3495,7 @@ RowModel.readOnly = () => {
 	const m = RowModel();
 	['add', 'change'].forEach(a => m[a] = () => { throw "This model is readonly"; });
 };
-function matchFilter(ff, row){
+function matchFilter(ff, row) {
 	let res = true;
 	ff.forEach(f => {
 		const [ field, value ] = f;
@@ -3539,6 +3513,37 @@ function checkObject(o){
 		if(!isValidValue(v))
 			throw 'Invalid value ' + ('' + v) + ':' + typeof v;
 	});
+}
+nice.Type({
+  name: 'RowsFilter',
+  extends: 'BoxSet'
+});
+const ops = {
+  eq: { arity: 2, f: (a, b) => a === b }
+};
+function createFilter(model) {
+  const newFilter = (field, opName, ...as) => {
+    expect(field).isString();
+    const filters = model.filters;
+		if(!(field in filters))
+			filters[field] = Object.create(null);
+		if(!(opName in filters[field]))
+			filters[field][opName] = Object.create(null);
+		const opFilters = filters[field][opName];
+    const key = JSON.stringify(as);
+    const op = ops[opName].f;
+		if(!(key in opFilters)) {
+      opFilters[key] = nice.RowsFilter();
+      model.rows.forEach((row, id) => op(row[field], ...as) && opFilters[key].add(id));
+      opFilters[key]._version = model.version;
+    }
+    return opFilters[key];
+  };
+  const filter = (field, value) => newFilter(field, 'eq', value);
+  filter.model = model;
+  _each(ops, (f, opName) =>
+      filter[opName] = (field, value) => newFilter(field, opName, value));
+  return filter;
 }
 Test(() => {
 	const m = RowModel();
@@ -3558,9 +3563,14 @@ Test(() => {
 		expect(m.get(joeId)).deepEqual({name:'Joe',address:"Home"});
 	});
 	Test(() => {
-		const res = m.filter(["address","Home"]);
+		const res = m.filter({"address": "Home"});
 		expect(res).deepEqual([0]);
-		expect(m.filter(["address",'Street'])).deepEqual([]);
+	});
+	Test(() => {
+		const res = m.filter.eq("address", "Home");
+		expect(res.has(0)).is(true);
+		expect(res.size).is(1);
+		expect(m.filter.eq("address", "Home")).is(m.filter("address", "Home"));
 	});
 	Test(() => {
 		const m2 = RowModel.fromLog(m.log);
@@ -3573,16 +3583,6 @@ Test(() => {
 		b.subscribe(spy);
 		m.change(joeId, {address:'Home2'});
 		expect(spy).calledTwice();
-	});
-	Test((Spy) => {
-		const spy = Spy();
-		const res = m.filterBox(['address','Home2']);
-		res.subscribe(spy);
-		expect(spy).calledWith(joeId);
-		const jimId = m.add({address:"Home2"});
-		expect(spy).calledWith(jimId);
-		m.change(jimId, {address:"Home3"});
-		expect(spy).calledWith(null, null, 2, 1);
 	});
 });
 })();
@@ -4664,6 +4664,7 @@ const runtime = {};
 nice.Type('Html', (z, tag) => tag && (z.tag = tag))
   .about('Represents HTML element.')
   .string('tag', 'div')
+  .boolean('forceRepaint', false)
   .obj('eventHandlers')
   .obj('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
@@ -5173,13 +5174,6 @@ if(IS_BROWSER){
     if(e())
       throw `I don't know how to display "true"`;
     return insertAt(parentNode, document.createTextNode(''), position);
-  });
-  Func.Html('show', (e, parentNode = document.body, position = 0) => {
-    const node = document.createElement(e.tag());
-    
-    insertAt(parentNode, node, position);
-    e.attachNode(node);
-    return node;
   });
   Func.Html.BoxArray('bindChildren', (z, b) => {
     z._children = b;
