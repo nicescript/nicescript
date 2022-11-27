@@ -39,8 +39,7 @@ function attachValue(target, box, setValue = defaultSetValue){
 
 
 Html.extend('Input', (z, type) => {
-    z.tag = 'input';
-    z.assertId();
+    z.tag('input').assertId();
     z.attributes.set('type', type || 'text');
   })
   .about('Represents HTML <input> element.');
@@ -55,14 +54,14 @@ defGet(Input.proto, 'boxValue', function() {
 });
 
 
-Input.proto.value = function(v){
+def(Input.proto, 'value', function(v){
   if(v !== undefined && v._isBox) {
     attachValue(this, v);
   } else {
     this.attributes.set('value', v);
   }
   return this;
-};
+});
 
 
 Test((Input) => {
@@ -108,7 +107,7 @@ Test((Button) => {
 
 
 Input.extend('Textarea', (z, v) => {
-    z.tag = 'textarea';
+    z.tag('textarea');
 
     if(v !== undefined && v._isBox){
       attachValue(this, v, (t, v) =>  t.children.removeAll().push(v));
@@ -126,8 +125,7 @@ Test(Textarea => {
 
 
 Html.extend('Submit', (z, text, action) => {
-    z.tag = 'input';
-    z.assertId();
+    z.tag('input').assertId();
     z.attributes.set('type', 'submit');
     z.attributes.set('value',  text || 'Submit');
     action && z.on('click', action);
@@ -136,8 +134,7 @@ Html.extend('Submit', (z, text, action) => {
 
 
 Html.extend('Form', (z, handler) => {
-    z.tag = 'form';
-    z.assertId();
+    z.tag('form').assertId();
     handler && z.on('submit', e => {
       const input = {}, form = e.currentTarget;
       e.preventDefault();
@@ -154,7 +151,7 @@ Html.extend('Form', (z, handler) => {
 
 Input.extend('Checkbox', (z, status) => {
     let node;
-    z.tag = 'input';
+    z.tag('input');
     z.attributes.set('type', 'checkbox');
     const value = Box(status || false);
     def(z, 'checked', value);
@@ -179,7 +176,7 @@ Input.extend('Checkbox', (z, status) => {
 
   Input.extend('Select', (z, values) => {
     let node;
-    z.tag = 'select';
+    z.tag('select');
     const value = Box(null);
     def(z, 'value', value);
 

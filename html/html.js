@@ -2,7 +2,7 @@
 
 const runtime = {};
 
-nice.Type('Html', (z, tag) => tag && (z.tag = tag))
+nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .about('Represents HTML element.')
   .string('tag', 'div')
   .boolean('forceRepaint', false)
@@ -233,7 +233,8 @@ reflect.on('extension', ({child, parent}) => {
         return this.attributes.get(property);
       }
     };
-    Html.proto[property] = f;
+    def(Html.proto, property, f);
+//    Html.proto[property] = f;
     const lower = property.toLowerCase();
     lower !== property && (Html.proto[lower] = f);
   });
@@ -280,7 +281,7 @@ nice.ReadOnly.Arr('html', z => z.reduceTo([], (a, v) => a.push(_html(v)))
     .map(_html).join(''));
 
 function html(z){
-  const tag = z.tag;
+  const tag = z.tag();
   const selectors = compileSelectors(z) || '';
   let as = '';
   let style = compileStyle(z.style);
@@ -311,7 +312,7 @@ function toDom(e) {
 
 
 function createDom(e){
-  const res = document.createElement(e.tag);
+  const res = document.createElement(e.tag());
 
   e.style.each((v, k) => {
     res.style[k] = '' + v;
@@ -450,8 +451,8 @@ const extractKey = v => {
 
 
 function refreshElement(e, old, domNode){
-  const eTag = (e !== undefined) && e._isHtml && e.tag,
-        oldTag = (old !== undefined) && old._isHtml && old.tag;
+  const eTag = (e !== undefined) && e._isHtml && e.tag(),
+        oldTag = (old !== undefined) && old._isHtml && old.tag();
   let newDom = domNode;
 
   if (eTag !== oldTag){

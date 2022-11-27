@@ -3,7 +3,7 @@ const Html = nice.Html;
 'Div,I,B,Span,H1,H2,H3,H4,H5,H6,P,Li,Ul,Ol,Pre,Table,Tr,Td,Th'.split(',').forEach(t => {
   const l = t.toLowerCase();
   Html.extend(t).by((z, a, ...as) => {
-    z.tag = l;
+    z.tag(l);
 
     if(a === undefined)
       return;
@@ -21,8 +21,7 @@ const protocolRe = /^([a-zA-Z0-9]{3,5})\:\/\//;
 
 
 Html.extend('A').by((z, url, ...children) => {
-  z.tag = 'a';
-  z.add(...children);
+  z.tag('a').add(...children);
 
   if (nice.isFunction(url) && !url._isAnything) {
     z.on('click', e => {url(e); e.preventDefault();}).href('#');
@@ -39,8 +38,7 @@ Html.extend('A').by((z, url, ...children) => {
 
 
 Html.extend('Img').by((z, src, x, y) => {
-  z.tag = 'img';
-  z.src(src);
+  z.tag('img').src(src);
   x === undefined || z.width(x);
   y === undefined || z.height(y);
 })

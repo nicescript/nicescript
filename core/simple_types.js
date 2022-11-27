@@ -144,26 +144,76 @@ const defaultValueBy = {
 };
 
 
-['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
-  nice.Anything.configProto[typeName] = function (name, defaultValue) {
-    Object.defineProperty(this.target.proto, name, {
-      get: function(){
-        let v = this._value[name];
-        if(v === undefined){
-          v = this._value[name] = defaultValue !== undefined
-            ? nice.simpleTypes[typeName].cast(defaultValue)
-            : defaultValueBy[typeName]();
-        }
-        return v;
-      },
-      set: function(value){
-        this._value[name] = nice.simpleTypes[typeName].cast(value);
-      },
-      enumerable: true
+//TODO: test function
+['string', 'boolean', 'number', 'function'].forEach(typeName => {
+  def(nice.Anything.configProto, typeName, function (name, defaultValue) {
+    if(defaultValue !== undefined && typeof defaultValue !== typeName)
+      defaultValue = nice.simpleTypes[typeName].cast(defaultValue);
+
+    def(this.target.proto, name, function(...vs){
+      if(vs.length === 0)
+        return name in this._value ? this._value[name] : defaultValue;
+
+      if(typeof vs[0] !== typeName)
+        vs[0] = nice.simpleTypes[typeName].cast(vs[0]);
+
+      this._value[name] = vs[0];
+      return this;
     });
+
     return this;
-  };
+  });
 });
+
+
+def(nice.Anything.configProto, 'object', function (name, defaultValue) {
+  if(defaultValue !== undefined && typeof defaultValue !== 'object')
+    throw `Default value for ${name} should be object.`;
+
+  def(this.target.proto, name, function(...vs){
+    const v = this._value;
+
+    if(vs.length === 0) {
+      if(!(name in v))
+        v[name] = defaultValue ? Object.assign({}, defaultValue) : {};
+      return v[name];
+    }
+
+    if(vs.length === 1)
+      return (name in v ? v.name : defaultValue)[vs[0]];
+
+    if(!(name in v))
+      v[name] = defaultValue ? Object.assign({}, defaultValue) : {};
+
+    v[name][vs[0]] = vs[1];
+    return this;
+  });
+
+  return this;
+});
+
+
+//, 'object', 'function'
+//['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
+//  nice.Anything.configProto[typeName] = function (name, defaultValue) {
+//    Object.defineProperty(this.target.proto, name, {
+//      get: function(){
+//        let v = this._value[name];
+//        if(v === undefined){
+//          v = this._value[name] = defaultValue !== undefined
+//            ? nice.simpleTypes[typeName].cast(defaultValue)
+//            : defaultValueBy[typeName]();
+//        }
+//        return v;
+//      },
+//      set: function(value){
+//        this._value[name] = nice.simpleTypes[typeName].cast(value);
+//      },
+//      enumerable: true
+//    });
+//    return this;
+//  };
+//});
 
 
 //Array
@@ -177,7 +227,7 @@ nice.Anything.configProto.array = function (name, defaultValue = []) {
     },
     set: function(value){
       if(!Array.isArray(value))
-        throw `Can't set ${name}[${typeName}] to ${value}[${typeof value}]`;
+        throw `Can't set ${name}[Array] to ${value}[${typeof value}]`;
       this._value[name] = value;
     },
     enumerable: true
