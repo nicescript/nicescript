@@ -1,7 +1,7 @@
 const Html = nice.Html;
 
 function defaultSetValue(t, v){
-  t.attributes.set('value', v);
+  t.attributes('value', v);
 };
 
 
@@ -38,10 +38,8 @@ function attachValue(target, box, setValue = defaultSetValue){
 }
 
 
-Html.extend('Input', (z, type) => {
-    z.tag('input').assertId();
-    z.attributes.set('type', type || 'text');
-  })
+Html.extend('Input', (z, type) =>
+    z.tag('input').attributes('type', type || 'text').assertId())
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
@@ -58,7 +56,7 @@ def(Input.proto, 'value', function(v){
   if(v !== undefined && v._isBox) {
     attachValue(this, v);
   } else {
-    this.attributes.set('value', v);
+    this.attributes('value', v);
   }
   return this;
 });
@@ -66,22 +64,22 @@ def(Input.proto, 'value', function(v){
 
 Test((Input) => {
   const i1 = Input();
-  expect(i1.html).is('<input id="' + i1.id() + '" type="text"></input>');
+  expect(i1.html).is('<input type="text" id="' + i1.id() + '"></input>');
 
   const i2 = Input('date');
-  expect(i2.html).is('<input id="' + i2.id() + '" type="date"></input>');
+  expect(i2.html).is('<input type="date" id="' + i2.id() + '"></input>');
 
   const i3 = Input().value('qwe')
-  expect(i3.html).is('<input id="' + i3.id() + '" type="text" value="qwe"></input>');
+  expect(i3.html).is('<input type="text" id="' + i3.id() + '" value="qwe"></input>');
 });
 
 
 Test('Box value html', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
+  expect(input.html).is('<input type="text" id="' + input.id() + '" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
+  expect(input.html).is('<input type="text" id="' + input.id() + '" value="asd"></input>');
 });
 
 
@@ -125,9 +123,10 @@ Test(Textarea => {
 
 
 Html.extend('Submit', (z, text, action) => {
-    z.tag('input').assertId();
-    z.attributes.set('type', 'submit');
-    z.attributes.set('value',  text || 'Submit');
+    z.tag('input')
+      .attributes('type', 'submit')
+      .attributes('value',  text || 'Submit')
+      .assertId();
     action && z.on('click', action);
   })
   .about('Represents HTML <input type="submit"> element.');
@@ -152,7 +151,7 @@ Html.extend('Form', (z, handler) => {
 Input.extend('Checkbox', (z, status) => {
     let node;
     z.tag('input');
-    z.attributes.set('type', 'checkbox');
+    z.attributes('type', 'checkbox');
     const value = Box(status || false);
     def(z, 'checked', value);
     def(z, 'value', value);
@@ -170,7 +169,7 @@ Input.extend('Checkbox', (z, status) => {
       z.on('domNode', n => node = n);
     }
 
-    value.subscribe(v => node ? node.checked = v : z.attributes.set('checked', v));
+    value.subscribe(v => node ? node.checked = v : z.attributes('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
 
@@ -194,7 +193,7 @@ Input.extend('Checkbox', (z, status) => {
     }
 
     z.options.listenChildren(v => z.add(Html('option').add(v.label)
-        .apply(o => o.attributes.set('value', v.value)))
+        .apply(o => o.attributes('value', v.value)))
     );
 
     Switch(values)

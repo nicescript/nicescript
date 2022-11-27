@@ -1892,15 +1892,12 @@ def(nice.Anything.configProto, 'object', function (name, defaultValue) {
     throw `Default value for ${name} should be object.`;
   def(this.target.proto, name, function(...vs){
     const v = this._value;
-    if(vs.length === 0) {
-      if(!(name in v))
-        v[name] = defaultValue ? Object.assign({}, defaultValue) : {};
-      return v[name];
-    }
-    if(vs.length === 1)
-      return (name in v ? v.name : defaultValue)[vs[0]];
     if(!(name in v))
       v[name] = defaultValue ? Object.assign({}, defaultValue) : {};
+    if(vs.length === 0)
+      return v[name];
+    if(vs.length === 1)
+      return v[name][vs[0]];
     v[name][vs[0]] = vs[1];
     return this;
   });
@@ -4698,11 +4695,11 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     return e;
   })
   .obj('style')
-  .obj('attributes')
+  .object('attributes')
   .Method('attr', (z, k, ...vs) => {
     if(vs.length === 0)
-      return z.attributes.get(k);
-    z.attributes.set(k, nice.format(...vs));
+      return z.attributes(k);
+    z.attributes(k, nice.format(...vs));
     return z;
   })
   .obj('properties')
@@ -4715,12 +4712,12 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     return z.id();
   })
   .Method.about('Adds values to className attribute.')('class', (z, ...vs) => {
-    const current = z.attributes.get('className') || '';
+    const current = z.attributes('className') || '';
     if(!vs.length)
       return current;
     const a = current ? current.split(' ') : [];
     vs.forEach(v => !v || a.includes(v) || a.push(v));
-    z.attributes.set('className', a.join(' '));
+    z.attributes('className', a.join(' '));
     return z;
   })
   .ReadOnly(text)
@@ -4849,19 +4846,14 @@ reflect.on('extension', ({child, parent}) => {
     };
   });
 'value,checked,accept,accesskey,action,align,alt,async,autocomplete,autofocus,autoplay,autosave,bgcolor,buffered,challenge,charset,cite,code,codebase,cols,colspan,contentEditable,contextmenu,controls,coords,crossorigin,data,datetime,default,defer,dir,dirname,disabled,download,draggable,dropzone,enctype,for,form,formaction,headers,hidden,high,href,hreflang,icon,id,integrity,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,manifest,max,maxlength,media,method,min,multiple,muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,seamless,selected,shape,sizes,slot,spellcheck,src,srcdoc,srclang,srcset,start,step,summary,tabindex,target,title,type,usemap,wrap'
-  .split(',').forEach( property => {
-    const f = function(...a){
+  .split(',').forEach( property => def(Html.proto, property, function(...a){
       if(a.length){
-        this.attributes.set(property, a.length > 1 ? nice.format(...a) : a[0]);
+        this.attributes(property, a.length > 1 ? nice.format(...a) : a[0]);
         return this;
       } else {
-        return this.attributes.get(property);
+        return this.attributes(property);
       }
-    };
-    def(Html.proto, property, f);
-    const lower = property.toLowerCase();
-    lower !== property && (Html.proto[lower] = f);
-  });
+    }));
 Test('Css propperty format', Div => {
   expect(Div().border('3px', 'silver', 'solid').html)
     .is('<div style="border:3px silver solid"></div>');
@@ -4884,7 +4876,7 @@ function compileStyle (s){
 function compileSelectors (h){
   const a = [];
   h.cssSelectors.each((v, k) => a.push('.',
-    getAutoClass(h.attributes.get('className')),
+    getAutoClass(h.attributes('className')),
     k[0] === ':' ? '' : ' ', k, '{', compileStyle(v), '}'));
   return a.length ? '<style>' + a.join('') + '</style>' : '';
 };
@@ -4898,7 +4890,7 @@ function html(z){
   let as = '';
   let style = compileStyle(z.style);
   style && (as = ' style="' + style + '"');
-  z.attributes.each((v, k) => {
+  _each(z.attributes(), (v, k) => {
     k === 'className' && (k = 'class', v.trim());
     as += ` ${k}="${v}"`;
   });
@@ -4918,10 +4910,8 @@ function toDom(e) {
  };
 function createDom(e){
   const res = document.createElement(e.tag());
-  e.style.each((v, k) => {
-    res.style[k] = '' + v;
-  });
-  e.attributes.each((v, k) => res.setAttribute(k,v));
+  e.style.each((v, k) => res.style[k] = '' + v);
+  _each(e.attributes(), (v, k) => res.setAttribute(k,v));
   e.properties.each((v, k) => res[k] = v);
   if(e._children)
     e._children._isBoxArray
@@ -5022,7 +5012,7 @@ function refreshElement(e, old, domNode){
   const eTag = (e !== undefined) && e._isHtml && e.tag(),
         oldTag = (old !== undefined) && old._isHtml && old.tag();
   let newDom = domNode;
-  if (eTag !== oldTag){
+  if (eTag !== oldTag || old.attributes('contentEditable')){
     newDom = toDom(e);
     emptyNode(domNode);
     domNode.parentNode.replaceChild(newDom, domNode);
@@ -5032,7 +5022,7 @@ function refreshElement(e, old, domNode){
     const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
     _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
-    const newAtrs = e.attributes.jsValue, oldAtrs = old.attributes.jsValue;
+    const newAtrs = e.attributes(), oldAtrs = old.attributes();
     _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
     e.needAutoClass === true && assertAutoClass(domNode);
@@ -5372,7 +5362,7 @@ const constructors = {
 })();
 (function(){"use strict";const Html = nice.Html;
 function defaultSetValue(t, v){
-  t.attributes.set('value', v);
+  t.attributes('value', v);
 };
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 function attachValue(target, box, setValue = defaultSetValue){
@@ -5400,10 +5390,8 @@ function attachValue(target, box, setValue = defaultSetValue){
   });
   return target;
 }
-Html.extend('Input', (z, type) => {
-    z.tag('input').assertId();
-    z.attributes.set('type', type || 'text');
-  })
+Html.extend('Input', (z, type) =>
+    z.tag('input').attributes('type', type || 'text').assertId())
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 defGet(Input.proto, 'boxValue', function() {
@@ -5417,24 +5405,24 @@ def(Input.proto, 'value', function(v){
   if(v !== undefined && v._isBox) {
     attachValue(this, v);
   } else {
-    this.attributes.set('value', v);
+    this.attributes('value', v);
   }
   return this;
 });
 Test((Input) => {
   const i1 = Input();
-  expect(i1.html).is('<input id="' + i1.id() + '" type="text"></input>');
+  expect(i1.html).is('<input type="text" id="' + i1.id() + '"></input>');
   const i2 = Input('date');
-  expect(i2.html).is('<input id="' + i2.id() + '" type="date"></input>');
+  expect(i2.html).is('<input type="date" id="' + i2.id() + '"></input>');
   const i3 = Input().value('qwe')
-  expect(i3.html).is('<input id="' + i3.id() + '" type="text" value="qwe"></input>');
+  expect(i3.html).is('<input type="text" id="' + i3.id() + '" value="qwe"></input>');
 });
 Test('Box value html', (Input, Box) => {
   const b = Box('qwe');
   const input = Input().value(b);
-  expect(input.html).is('<input id="' + input.id() + '" type="text" value="qwe"></input>');
+  expect(input.html).is('<input type="text" id="' + input.id() + '" value="qwe"></input>');
   b('asd');
-  expect(input.html).is('<input id="' + input.id() + '" type="text" value="asd"></input>');
+  expect(input.html).is('<input type="text" id="' + input.id() + '" value="asd"></input>');
 });
 IS_BROWSER && Test('Box value dom', (Input, Box) => {
   const b = Box('qwe');
@@ -5465,9 +5453,10 @@ Test(Textarea => {
   expect(ta.html).is('<textarea>qwe</textarea>');
 });
 Html.extend('Submit', (z, text, action) => {
-    z.tag('input').assertId();
-    z.attributes.set('type', 'submit');
-    z.attributes.set('value',  text || 'Submit');
+    z.tag('input')
+      .attributes('type', 'submit')
+      .attributes('value',  text || 'Submit')
+      .assertId();
     action && z.on('click', action);
   })
   .about('Represents HTML <input type="submit"> element.');
@@ -5486,7 +5475,7 @@ Html.extend('Form', (z, handler) => {
 Input.extend('Checkbox', (z, status) => {
     let node;
     z.tag('input');
-    z.attributes.set('type', 'checkbox');
+    z.attributes('type', 'checkbox');
     const value = Box(status || false);
     def(z, 'checked', value);
     def(z, 'value', value);
@@ -5500,7 +5489,7 @@ Input.extend('Checkbox', (z, status) => {
     if(IS_BROWSER){
       z.on('domNode', n => node = n);
     }
-    value.subscribe(v => node ? node.checked = v : z.attributes.set('checked', v));
+    value.subscribe(v => node ? node.checked = v : z.attributes('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
   Input.extend('Select', (z, values) => {
@@ -5519,7 +5508,7 @@ Input.extend('Checkbox', (z, status) => {
       z.on('domNode', n => node = n);
     }
     z.options.listenChildren(v => z.add(Html('option').add(v.label)
-        .apply(o => o.attributes.set('value', v.value)))
+        .apply(o => o.attributes('value', v.value)))
     );
     Switch(values)
       .isObject().each(z.option.bind(z))

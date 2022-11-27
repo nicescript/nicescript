@@ -173,17 +173,14 @@ def(nice.Anything.configProto, 'object', function (name, defaultValue) {
   def(this.target.proto, name, function(...vs){
     const v = this._value;
 
-    if(vs.length === 0) {
-      if(!(name in v))
-        v[name] = defaultValue ? Object.assign({}, defaultValue) : {};
-      return v[name];
-    }
-
-    if(vs.length === 1)
-      return (name in v ? v.name : defaultValue)[vs[0]];
-
     if(!(name in v))
       v[name] = defaultValue ? Object.assign({}, defaultValue) : {};
+
+    if(vs.length === 0)
+      return v[name];
+
+    if(vs.length === 1)
+      return v[name][vs[0]];
 
     v[name][vs[0]] = vs[1];
     return this;
@@ -191,29 +188,6 @@ def(nice.Anything.configProto, 'object', function (name, defaultValue) {
 
   return this;
 });
-
-
-//, 'object', 'function'
-//['string', 'boolean', 'number', 'object', 'function'].forEach(typeName => {
-//  nice.Anything.configProto[typeName] = function (name, defaultValue) {
-//    Object.defineProperty(this.target.proto, name, {
-//      get: function(){
-//        let v = this._value[name];
-//        if(v === undefined){
-//          v = this._value[name] = defaultValue !== undefined
-//            ? nice.simpleTypes[typeName].cast(defaultValue)
-//            : defaultValueBy[typeName]();
-//        }
-//        return v;
-//      },
-//      set: function(value){
-//        this._value[name] = nice.simpleTypes[typeName].cast(value);
-//      },
-//      enumerable: true
-//    });
-//    return this;
-//  };
-//});
 
 
 //Array
