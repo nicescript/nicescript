@@ -18,7 +18,7 @@ nice.Type({
 
   customCall: (z, ...as) => {
     if(as.length === 0) {
-      z._isHot === true || z.attemptColdCompute();
+      z._isHot === true || z.coldCompute();
       return z._value;
     }
 
@@ -69,7 +69,7 @@ nice.Type({
       }
     },
 
-    attemptColdCompute(){
+    coldCompute(){
       this._inputValues = this._inputs.map(v => v());
       this.attemptCompute();
     },
