@@ -69,6 +69,14 @@ nice.Type({
       return false;
     },
 
+    getKeys (v) {
+      if(map.has(v)){
+        const kk = map.get(v);
+        return (kk instanceof Set) ? Array.from(kk) : [kk];
+      }
+      return null;
+    },
+
     iterateValue (v, f) {
       const map = this._value;
       if(map.has(v)){
@@ -85,6 +93,8 @@ nice.Type({
     },
 
     subscribe ({add, del}) {
+      expect(typeof add).is('function');
+      expect(typeof del).is('function');
       this.iterateAll(add);
       this.on('add', add);
       this.on('delete', del);

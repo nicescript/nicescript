@@ -1,14 +1,18 @@
-const api = {
-	change: {
-		add: () => {},
-		change: () => {},
-		transaction: () => {},
-	},
-	get: {
-		row: () => {},
-		filter: () =>	{}
-	},
-};
+//TODO: cache derivatives
+//TODO: gradual client updates
+
+
+//const api = {
+//	change: {
+//		add: () => {},
+//		change: () => {},
+//		transaction: () => {},
+//	},
+//	get: {
+//		row: () => {},
+//		filter: () =>	{}
+//	},
+//};
 
 const proto = {
 	add(o) {
@@ -19,67 +23,103 @@ const proto = {
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
-		this.notifyFilters(id, o);
+//		this.notifyFilters(id, o);
+		this.notifyIndexes(id, o);
 		return id;
 	},
 
-	notifyFilters(id, newValues, oldValues) {
-		const ff = this.filters;
-		_each(newValues, (v, k) => {
-			if(!(k in ff))
-				return;
-			_each(ff[k], (map, operation) => {
-				if(operation === 'eq'){
-					if(oldValues !== undefined){
-						if (v === oldValues[v])
-							return;
-						if(map.has(oldValues[k]))
-							map.get(oldValues[k]).removeValue(id);
-					}
-					if(map.has(v))
-						map.get(v).push(id);
-				} else {
-					throw 'Operation ' + operation + " not supported.";
-				}
-			});
-		});
+  assertIndex(field) {
+		const ii = this.indexes;
+    if(!(field in ii))
+      ii[field] = nice.BoxIndex();
+    return ii[field];
+  },
+
+	notifyIndexes(id, newValues, oldValues) {
+		const ii = this.indexes;
+
+		_each(oldValues, (v, k) => this.assertIndex(k).delete(v, id));
+		_each(newValues, (v, k) => this.assertIndex(k).add(v, id));
+
+//			_each(ff[k], (map, operation) => {
+//				if(operation === 'eq'){
+//					if(oldValues !== undefined){
+//						if (v === oldValues[k])
+//							return;
+//						if(map.has(oldValues[k]))
+//							map.get(oldValues[k]).removeValue(id);
+//					}
+//					if(map.has(v))
+//						map.get(v).push(id);
+//				} else {
+//					throw 'Operation ' + operation + " not supported.";
+//				}
+//			});
+//		});
 	},
 
-	notifyFiltersOneValue(id, k, newValue, oldValue) {
+//	notifyFilters(id, newValues, oldValues) {
+//		const ff = this.filters;
+//		_each(newValues, (v, k) => {
+//			if(!(k in ff))
+//				return;
+//			_each(ff[k], (map, operation) => {
+//				if(operation === 'eq'){
+//					if(oldValues !== undefined){
+//						if (v === oldValues[k])
+//							return;
+//						if(map.has(oldValues[k]))
+//							map.get(oldValues[k]).removeValue(id);
+//					}
+//					if(map.has(v))
+//						map.get(v).push(id);
+//				} else {
+//					throw 'Operation ' + operation + " not supported.";
+//				}
+//			});
+//		});
+//	},
+//
+	notifyIndexOneValue(id, k, newValue, oldValue) {
 		const ff = this.filters;
 		if(newValue === oldValue)
 			return;
 
-		if(!(k in ff))
-			return;
+		const index = this.assertIndex(k);
+    oldValue !== undefined && index.delete(oldValue, id);
+    newValue !== undefined && index.add(newValue, id);
+  },
 
-		_each(ff[k], (map, operation) => {
-			if(operation === 'eq'){
-				if(map.has(oldValue))
-					map.get(oldValue).removeValue(id);
-				if(map.has(newValue))
-					map.get(newValue).push(id);
-			} else {
-				throw 'Operation ' + operation + " not supported.";
-			}
-		});
-	},
+//	notifyFiltersOneValue(id, k, newValue, oldValue) {
+//		const ff = this.filters;
+//		if(newValue === oldValue)
+//			return;
+//
+//		if(!(k in ff))
+//			return;
+//
+//		_each(ff[k], (map, operation) => {
+//			if(operation === 'eq'){
+//				if(map.has(oldValue))
+//					map.get(oldValue).removeValue(id);
+//				if(map.has(newValue))
+//					map.get(newValue).push(id);
+//			} else {
+//				throw 'Operation ' + operation + " not supported.";
+//			}
+//		});
+//	},
 
 	get(id) {
 		return this.rows[id];
-	},
-
-	filter(...f) {
-		const res = [];
-		this.rows.forEach((row, id) => matchFilter(f, row) && res.push(id));
-		return res;
 	},
 
 	change(id, o){
 		checkObject(o);
 		//check id
 		//check object
-		this.notifyFilters(id, o, this.rows[id]);
+//		this.notifyFilters(id, o, this.rows[id]);
+		this.notifyIndexes(id, o, this.rows[id]);
 		Object.assign(this.rows[id], o);
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
@@ -120,28 +160,6 @@ const proto = {
 		return	this.rowBoxes[id];
 	},
 
-	filterBox(...ff) {
-		if(ff[1])
-			throw 'TODO:';
-
-		const f = ff[0];
-		const [field, value, operation = 'eq'] = f;
-		expect(field).isString();
-		expect(operation).isString();
-
-		if(!(field in this.filters))
-			this.filters[field] = {};
-
-		if(!(operation in this.filters[field]))
-			this.filters[field][operation] = new Map();
-
-		const opFilters = this.filters[field][operation];
-		if(!opFilters.has(value))
-			opFilters.set(value, nice.BoxArray(this.filter(f)));
-
-		return opFilters.get(value);
-	},
-
 	importRow(row) {
 		const m = this;
 		const templateId = row[0];
@@ -154,7 +172,8 @@ const proto = {
 			const template = m.templates[templateId];
 			row.slice(2).forEach((v, k) => {
 				const field = template[k];
-				this.notifyFiltersOneValue(id, field, v, m.rows[id][field]);
+				this.notifyIndexOneValue(id, field, v, m.rows[id][field]);
+//				this.notifyFiltersOneValue(id, field, v, m.rows[id][field]);
 				m.rows[id][field] = v;
 			});
 			if(id in this.rowBoxes)
@@ -171,7 +190,7 @@ const proto = {
 };
 
 function RowModel(){
-	return create(proto, {
+  const res = create(proto, {
 		lastId: -1,
 		templates: [],
 		rows: [],
@@ -181,6 +200,31 @@ function RowModel(){
 		filters: {},
 		logSubscriptions: []
 	});
+
+//    filter({adress: 'home', gender: "male" });
+//    filter({adress: 'home', age: { gt: 16 } });
+//    filter([{adress: 'home'}, { age: { gt: 16 } }]);
+
+  function extractOp(o, field) {
+    const [opName, value] = Object.entries(o)[0];
+    return { op, value, field };
+  }
+
+  res.filter = function(o) {
+    const qs = Object.entries(o).map(([field, q]) => typeof q === 'string'
+      ? {field, opName: 'eq', value: q }
+      : extractOp(q, field));
+
+    const filters = qs.map(q => newFilter(res, q));
+
+    console.log(filters);
+    //createFilter(res);
+
+    return filters[0];
+  };
+
+
+	return res;
 }
 nice.RowModel = RowModel;
 
@@ -197,7 +241,7 @@ RowModel.readOnly = () => {
 };
 
 
-function matchFilter(ff, row){
+function matchFilter(ff, row) {
 	let res = true;
 	ff.forEach(f => {
 		const [ field, value ] = f;
@@ -222,11 +266,60 @@ function checkObject(o){
 }
 
 
+nice.Type({
+  name: 'RowsFilter',
+  extends: 'BoxSet'
+});
+
+
+const ops = {
+  eq: { arity: 2, f: (a, b) => a === b }
+};
+
+
+const newFilter = (model, { field, opName, value }) => {
+  expect(field).isString();
+  const filters = model.filters;
+
+  if(!(field in filters))
+    filters[field] = Object.create(null);
+
+  if(!(opName in filters[field]))
+    filters[field][opName] = Object.create(null);
+
+  const opFilters = filters[field][opName];
+  const key = JSON.stringify(value);
+
+  if(!(opName in ops))
+    throw `Unknown operation: ${opName}`;
+
+  const op = ops[opName].f;
+  if(!(key in opFilters)) {
+    opFilters[key] = nice.RowsFilter();
+    model.rows.forEach((row, id) => op(row[field], value) && opFilters[key].add(id));
+    opFilters[key]._version = model.version;
+  }
+  return opFilters[key];
+};
+
+
+function createFilter(model) {
+  const filter = (field, value) => newFilter({field, opName: 'eq', value});
+  filter.model = model;
+
+  _each(ops, (f, opName) =>
+      filter[opName] = (field, value) => newFilter({field, opName, value}));
+
+  return filter;
+}
+
+
 Test(() => {
 	const m = RowModel();
 	const o = {name:'Joe'};
 	const joeId = m.add(o);
-	const janeId = m.add({name:"Jane"});
+	const janeId = m.add({name:"Jane", address: "Home"});
+	const jimId = m.add({name:"Jim", address: "Home2"});
 
 	Test(() => {
 		expect(m.get(joeId)).deepEqual(o);
@@ -241,15 +334,27 @@ Test(() => {
 	Test(() => {
 		m.change(joeId, {address:"Home"});
 		expect(m.get(joeId)).deepEqual({name:'Joe',address:"Home"});
-//		console.log(m.log);
-//		console.log(m.templates);
 	});
 
 	Test(() => {
-		const res = m.filter(["address","Home"]);
-//		expect(res).deepEqual({0:{name:'Joe',address:"Home"}});
-		expect(res).deepEqual([0]);
-		expect(m.filter(["address",'Street'])).deepEqual([]);
+		const res = m.filter({"address": "Home"});
+		expect(res.has(janeId)).is(true);
+		expect(res.has(joeId)).is(true);
+		expect(res.size).is(2);
+	});
+
+  Test(() => {
+		const res = m.filter({address: "Home", name: "Joe"});
+		expect(res.has(joeId)).is(true);
+		expect(res.size).is(1);
+    expect(res).is(m.filter({name: "Joe", address: "Home"}));
+	});
+
+	Test(() => {
+		const res = m.filter({"address": "Home"});
+		expect(res.has(0)).is(true);
+		expect(res.size).is(1);
+		expect(res).is(m.filter({"address": "Home"}));
 	});
 
 	Test(() => {
@@ -270,16 +375,16 @@ Test(() => {
 		expect(spy).calledTwice();
 	});
 
-	Test((Spy) => {
-		const spy = Spy();
-		const res = m.filterBox(['address','Home2']);
-		res.subscribe(spy);
-		expect(spy).calledWith(joeId);
-		const jimId = m.add({address:"Home2"});
-		expect(spy).calledWith(jimId);
-		m.change(jimId, {address:"Home3"});
-		expect(spy).calledWith(null, null, 2, 1);
-	});
+//	Test((Spy) => {
+//		const spy = Spy();
+//		const res = m.filterBox(['address','Home2']);
+//		res.subscribe(spy);
+//		expect(spy).calledWith(joeId);
+//		const jimId = m.add({address:"Home2"});
+//		expect(spy).calledWith(jimId);
+//		m.change(jimId, {address:"Home3"});
+//		expect(spy).calledWith(null, null, 2, 1);
+//	});
 });
 
 

@@ -35,6 +35,10 @@ nice.Type({
       return this._value.delete(v);
     },
 
+    get size() {
+      return this._value.size;
+    },
+
     intersection (b) {
       const av = this._value;
       const bv = b._value;
