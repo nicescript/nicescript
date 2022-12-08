@@ -1,4 +1,5 @@
-//TODO: cache derivatives
+const { _eachEach } = nice;
+////TODO: cache derivatives
 //TODO: gradual client updates
 
 
@@ -24,7 +25,6 @@ const proto = {
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
-//		this.notifyFilters(id, o);
 		this.notifyIndexes(id, o);
 		return id;
 	},
@@ -36,51 +36,35 @@ const proto = {
     return ii[field];
   },
 
+  matchingFilters(field, value){
+    const fs = [];
+    _eachEach(this.filters[field], (filter, kk, op) => {
+      ops[op].f(value, filter.value) && fs.push(filter);
+    });
+    return fs;
+  },
+
 	notifyIndexes(id, newValues, oldValues) {
 		const ii = this.indexes;
 
-		_each(oldValues, (v, k) => this.assertIndex(k).delete(v, id));
-		_each(newValues, (v, k) => this.assertIndex(k).add(v, id));
+    const outList = [];
+    const inList = [];
 
-//			_each(ff[k], (map, operation) => {
-//				if(operation === 'eq'){
-//					if(oldValues !== undefined){
-//						if (v === oldValues[k])
-//							return;
-//						if(map.has(oldValues[k]))
-//							map.get(oldValues[k]).removeValue(id);
-//					}
-//					if(map.has(v))
-//						map.get(v).push(id);
-//				} else {
-//					throw 'Operation ' + operation + " not supported.";
-//				}
-//			});
-//		});
+		_each(oldValues, (v, k) => {
+      this.assertIndex(k).delete(v, id);
+
+      outList.push(...this.matchingFilters(k, v));
+    });
+		_each(newValues, (v, k) => {
+      this.assertIndex(k).add(v, id);
+
+      inList.push(...this.matchingFilters(k, v));
+    });
+
+    outList.forEach(f => inList.includes(f) || f.delete(id));
+    inList.forEach(f => outList.includes(f) || f.add(id));
 	},
 
-//	notifyFilters(id, newValues, oldValues) {
-//		const ff = this.filters;
-//		_each(newValues, (v, k) => {
-//			if(!(k in ff))
-//				return;
-//			_each(ff[k], (map, operation) => {
-//				if(operation === 'eq'){
-//					if(oldValues !== undefined){
-//						if (v === oldValues[k])
-//							return;
-//						if(map.has(oldValues[k]))
-//							map.get(oldValues[k]).removeValue(id);
-//					}
-//					if(map.has(v))
-//						map.get(v).push(id);
-//				} else {
-//					throw 'Operation ' + operation + " not supported.";
-//				}
-//			});
-//		});
-//	},
-//
 	notifyIndexOneValue(id, k, newValue, oldValue) {
 		const ff = this.filters;
 		if(newValue === oldValue)
@@ -89,27 +73,14 @@ const proto = {
 		const index = this.assertIndex(k);
     oldValue !== undefined && index.delete(oldValue, id);
     newValue !== undefined && index.add(newValue, id);
-  },
 
-//	notifyFiltersOneValue(id, k, newValue, oldValue) {
-//		const ff = this.filters;
-//		if(newValue === oldValue)
-//			return;
-//
-//		if(!(k in ff))
-//			return;
-//
-//		_each(ff[k], (map, operation) => {
-//			if(operation === 'eq'){
-//				if(map.has(oldValue))
-//					map.get(oldValue).removeValue(id);
-//				if(map.has(newValue))
-//					map.get(newValue).push(id);
-//			} else {
-//				throw 'Operation ' + operation + " not supported.";
-//			}
-//		});
-//	},
+
+    const outList = this.matchingFilters(k, oldValue);
+    const inList = this.matchingFilters(k, newValue);
+
+    outList.forEach(f => inList.includes(f) || f.delete(id));
+    inList.forEach(f => outList.includes(f) || f.add(id));
+  },
 
 	get(id) {
 		return this.rows[id];
@@ -119,9 +90,8 @@ const proto = {
 		checkObject(o);
 		//check id
 		//check object
-//		this.notifyFilters(id, o, this.rows[id]);
 		this.notifyIndexes(id, o, this.rows[id]);
-    
+
     id in this.rows
   		? Object.assign(this.rows[id], o)
       : (this.rows[id] = o);
@@ -178,7 +148,6 @@ const proto = {
 			row.slice(2).forEach((v, k) => {
 				const field = template[k];
 				this.notifyIndexOneValue(id, field, v, m.rows[id][field]);
-//				this.notifyFiltersOneValue(id, field, v, m.rows[id][field]);
 				m.rows[id][field] = v;
 			});
 			if(id in this.rowBoxes)
@@ -249,8 +218,15 @@ RowModel.fromLog = (log) => {
 };
 
 
-RowModel.readOnly = () => {
-	const m = RowModel();
+RowModel.shadow = (source) => {
+  const m = RowModel.fromLog(source.log);
+  RowModel.readOnly(m);
+  source.subscribeLog(row => m.importRow(row));
+  return m;
+};
+
+
+RowModel.readOnly = (m) => {
 	['add', 'change'].forEach(a => m[a] = () => { throw "This model is readonly"; });
 };
 
@@ -335,7 +311,8 @@ const ops = {
   eq: { arity: 2, f: (a, b) => a === b }
 };
 
-const newFilter = (model, { field, opName, value }) => {
+const newFilter = (model, q) => {
+  const { field, opName, value } = q
   expect(field).isString();
   const filters = model.filters;
 
@@ -354,6 +331,7 @@ const newFilter = (model, { field, opName, value }) => {
   const op = ops[opName].f;
   if(!(key in opFilters)) {
     const filter = opFilters[key] = nice.RowsFilter(model);
+    Object.assign(filter, q);
     model.rows.forEach((row, id) => op(row[field], value) && filter.add(id));
     filter._version = model.version;
     filter._sortKey = model.filterCounter++;
@@ -430,26 +408,31 @@ Test(() => {
 		b.subscribe(spy);
 		m.change(joeId, {address:'Home2'});
 		expect(spy).calledTwice();
+
+
+    expect([...m.filter({ address: "Home" })()]).deepEqual([1]);
+    expect([...m.filter({ address: "Home2" })()]).deepEqual([0,2]);
 	});
 
 	Test(() => {
-		const asc = m.filter({ address: "Home" }).sort('age');
-    expect(asc()).deepEqual([1,0]);
+		const asc = m.filter({ address: "Home2" }).sort('age');
+    expect(asc()).deepEqual([0,2]);
 
-    const desc = m.filter({ address: "Home" }).sort('age', -1);
-    expect(desc()).deepEqual([0,1]);
+    const desc = m.filter({ address: "Home2" }).sort('age', -1);
+    expect(desc()).deepEqual([2,0]);
 	});
 
-//	Test((Spy) => {
-//		const spy = Spy();
-//		const res = m.filterBox(['address','Home2']);
-//		res.subscribe(spy);
-//		expect(spy).calledWith(joeId);
-//		const jimId = m.add({address:"Home2"});
-//		expect(spy).calledWith(jimId);
-//		m.change(jimId, {address:"Home3"});
-//		expect(spy).calledWith(null, null, 2, 1);
-//	});
+  Test(() => {
+    const m2 = RowModel.shadow(m);
+
+    expect(() => m2.add({q:1})).throws();
+
+		const asc = m2.filter({ address: "Home2" }).sort('age');
+    expect(asc()).deepEqual([0,2]);
+
+    m.change(joeId, {address:'Home'});
+    expect(asc()).deepEqual([2]);
+	});
 });
 
 
