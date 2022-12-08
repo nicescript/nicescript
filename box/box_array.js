@@ -7,7 +7,6 @@ nice.Type({
 
   initBy: (z, v) => {
     z._value = [];
-    z._sub
     v && z.setAll(v);
   },
 

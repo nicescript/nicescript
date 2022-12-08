@@ -18,6 +18,7 @@ const proto = {
 	add(o) {
 		checkObject(o);
 		const id = this.rows.length;
+    o.id = id;
 		this.lastId = id;
 		this.rows.push(o);
 		this.writeLog(id, o);
@@ -120,7 +121,11 @@ const proto = {
 		//check object
 //		this.notifyFilters(id, o, this.rows[id]);
 		this.notifyIndexes(id, o, this.rows[id]);
-		Object.assign(this.rows[id], o);
+    
+    id in this.rows
+  		? Object.assign(this.rows[id], o)
+      : (this.rows[id] = o);
+
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
@@ -198,7 +203,9 @@ function RowModel(){
 		indexes: {},
 		rowBoxes: {},
 		filters: {},
-		logSubscriptions: []
+		logSubscriptions: [],
+    filterCounter: 0,
+    compositQueries: {}
 	});
 
 //    filter({adress: 'home', gender: "male" });
@@ -215,10 +222,17 @@ function RowModel(){
       ? {field, opName: 'eq', value: q }
       : extractOp(q, field));
 
-    const filters = qs.map(q => newFilter(res, q));
+    const filters = qs.map(q => newFilter(res, q))
+        .sort((a, b) => a._sortKey - b._sortKey);
 
-    console.log(filters);
-    //createFilter(res);
+    while(filters.length > 1){
+      const f = filters.shift();
+      const f2 = filters[0];
+
+      const key = f._sortKey + '+' + f2._sortKey;
+      filters[0] = res.compositQueries[key] ||
+        (res.compositQueries[key] = f.intersection(f2));      ;
+    }
 
     return filters[0];
   };
@@ -268,14 +282,58 @@ function checkObject(o){
 
 nice.Type({
   name: 'RowsFilter',
-  extends: 'BoxSet'
+  extends: 'BoxSet',
+  initBy: (z, model) => {
+    z.super();
+    z.model = model;
+    z.sortsAsc = nice.memoize(field => nice.SortResult(z, field, 1));
+    z.sortsDesc = nice.memoize(field => nice.SortResult(z, field, -1));
+  }
+});
+
+nice.Mapping.RowsFilter.String('sort', (filter, field, direction = 1) => {//'asc'
+//  console.log(filter.model.indexes);
+
+  return filter[direction > 0 ? 'sortsAsc' : 'sortsDesc' ](field);
+});
+
+
+nice.Type({
+  name: 'SortResult',
+  extends: 'BoxArray',
+  initBy (z, query, field, direction) {
+    z.super();
+    z.query = query;
+    z.field = field;
+    z.direction = direction;
+  },
+
+  customCall: (z, ...as) => {
+    if(as.length === 0) {
+      z._isHot === true || z.coldCompute();
+      return z._value;
+    }
+
+    throw `Can't set value for reactive box`;
+  },
+
+  proto: {
+    coldCompute(){
+      const rows = this.query.model.rows;
+//      console.log(rows);
+      const f = (a, b) => this.direction > 0
+        ? rows[a][this.field] > rows[b][this.field] ? 1 : -1
+        : rows[a][this.field] > rows[b][this.field] ? -1 : 1;
+      const ids = [...this.query()].sort(f);
+      this._value = ids;
+    }
+  }
 });
 
 
 const ops = {
   eq: { arity: 2, f: (a, b) => a === b }
 };
-
 
 const newFilter = (model, { field, opName, value }) => {
   expect(field).isString();
@@ -295,9 +353,10 @@ const newFilter = (model, { field, opName, value }) => {
 
   const op = ops[opName].f;
   if(!(key in opFilters)) {
-    opFilters[key] = nice.RowsFilter();
-    model.rows.forEach((row, id) => op(row[field], value) && opFilters[key].add(id));
-    opFilters[key]._version = model.version;
+    const filter = opFilters[key] = nice.RowsFilter(model);
+    model.rows.forEach((row, id) => op(row[field], value) && filter.add(id));
+    filter._version = model.version;
+    filter._sortKey = model.filterCounter++;
   }
   return opFilters[key];
 };
@@ -316,10 +375,10 @@ function createFilter(model) {
 
 Test(() => {
 	const m = RowModel();
-	const o = {name:'Joe'};
+	const o = { name: 'Joe', age: 34 };
 	const joeId = m.add(o);
-	const janeId = m.add({name:"Jane", address: "Home"});
-	const jimId = m.add({name:"Jim", address: "Home2"});
+	const janeId = m.add({ name: "Jane", age: 23, address: "Home"});
+	const jimId = m.add({ name: "Jim", address: "Home2", age: 45});
 
 	Test(() => {
 		expect(m.get(joeId)).deepEqual(o);
@@ -333,7 +392,7 @@ Test(() => {
 
 	Test(() => {
 		m.change(joeId, {address:"Home"});
-		expect(m.get(joeId)).deepEqual({name:'Joe',address:"Home"});
+		expect(m.get(joeId).address).is("Home");
 	});
 
 	Test(() => {
@@ -352,17 +411,15 @@ Test(() => {
 
 	Test(() => {
 		const res = m.filter({"address": "Home"});
-		expect(res.has(0)).is(true);
-		expect(res.size).is(1);
+		expect(res.has(joeId)).is(true);
+		expect(res.has(janeId)).is(true);
+		expect(res.size).is(2);
 		expect(res).is(m.filter({"address": "Home"}));
 	});
 
 	Test(() => {
 		const m2 = RowModel.fromLog(m.log);
-		expect(m2.get(joeId)).deepEqual({name:'Joe',address:"Home"});
-//		console.log(m2.log);
-//		console.log(m2.rows);
-//		console.log(m2.templates);
+		expect(m2.get(joeId).age).is(34);
 	});
 
 	Test((Spy) => {
@@ -373,6 +430,14 @@ Test(() => {
 		b.subscribe(spy);
 		m.change(joeId, {address:'Home2'});
 		expect(spy).calledTwice();
+	});
+
+	Test(() => {
+		const asc = m.filter({ address: "Home" }).sort('age');
+    expect(asc()).deepEqual([1,0]);
+
+    const desc = m.filter({ address: "Home" }).sort('age', -1);
+    expect(desc()).deepEqual([0,1]);
 	});
 
 //	Test((Spy) => {
