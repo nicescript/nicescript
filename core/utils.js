@@ -24,6 +24,24 @@ defAll(nice, {
     return res;
   },
 
+  _every (o, f) {
+    for(let i in o)
+      if(!f(o[i], i))
+        false;
+    return true;
+  },
+
+  _some (o, f) {
+    for(let i in o)
+      if(f(o[i], i))
+        true;
+    return false;
+  },
+
+  _if(c, f1, f2) {
+    return c ? f1(c) : (typeof f2 === 'function' ? f2(c) : f2);
+  },
+
   orderedStringify: o => o === null
     ? 'null'
     : !nice.isObject(o)
