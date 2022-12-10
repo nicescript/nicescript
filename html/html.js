@@ -454,7 +454,7 @@ function refreshElement(e, old, domNode){
   } else {
     const newV = e._value, oldV = old._value;
 
-    const newStyle = e.style.jsValue, oldStyle = old.style.jsValue;
+    const newStyle = newV.style, oldStyle = oldV.style;
     _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
 

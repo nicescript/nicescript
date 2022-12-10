@@ -115,6 +115,8 @@ nice.Type({
         const route = z.resolve(url);
 
         let content = route();
+        if(content === undefined)
+          return '';
 
         if(content.__proto__ === Object.prototype){
           content.title && (window.document.title = content.title);

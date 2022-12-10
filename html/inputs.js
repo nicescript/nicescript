@@ -175,7 +175,7 @@ Input.extend('Checkbox', (z, status) => {
 
   Input.extend('Select', (z, values) => {
     let node;
-    z.tag('select');
+    z.tag('select').assertId();
     const value = Box(null);
     def(z, 'value', value);
 
@@ -192,18 +192,22 @@ Input.extend('Checkbox', (z, status) => {
       z.on('domNode', n => node = n);
     }
 
-    z.options.listenChildren(v => z.add(Html('option').add(v.label)
-        .apply(o => o.attributes('value', v.value)))
-    );
+    _each(values, (v, k) => {
+      z.add(Html('option').add(v));
+    });
 
-    Switch(values)
-      .isObject().each(z.option.bind(z))
-      .isArray().each(v => Switch(v)
-        .isObject().use(o => z.options.push(o))
-        .default.use(z.option.bind(z)));
+//    z.options.listenChildren(v => z.add(Html('option').add(v.label)
+//        .apply(o => o.attributes('value', v.value)))
+//    );
 
-    value.listen(v => node && z.options.each((o, k) =>
-        o.value == v && (node.selectedIndex = k)));
+//    Switch(values)
+//      .isObject().each(z.option.bind(z))
+//      .isArray().each(v => Switch(v)
+//        .isObject().use(o => z.options.push(o))
+//        .default.use(z.option.bind(z)));
+
+//    value.listen(v => node && z.options.each((o, k) =>
+//        o.value == v && (node.selectedIndex = k)));
   })
   .arr('options')
   .Action.about('Adds Option HTML element to Select HTML element.')

@@ -1,8 +1,4 @@
-const { _eachEach } = nice;
-////TODO: cache derivatives
-//TODO: gradual client updates
-
-
+const { _eachEach, _pick } = nice;
 //const api = {
 //	change: {
 //		add: () => {},
@@ -45,41 +41,31 @@ const proto = {
   },
 
 	notifyIndexes(id, newValues, oldValues) {
-		const ii = this.indexes;
-
-    const outList = [];
-    const inList = [];
-
-		_each(oldValues, (v, k) => {
-      this.assertIndex(k).delete(v, id);
-
-      outList.push(...this.matchingFilters(k, v));
+		_each(oldValues, (v, field) => {
+      this.notifyIndexOneValue(id, field, newValues[field], v);
     });
-		_each(newValues, (v, k) => {
-      this.assertIndex(k).add(v, id);
-
-      inList.push(...this.matchingFilters(k, v));
+		_each(newValues, (v, field) => {
+      !(oldValues && field in oldValues)
+          && this.notifyIndexOneValue(id, field, v);
     });
-
-    outList.forEach(f => inList.includes(f) || f.delete(id));
-    inList.forEach(f => outList.includes(f) || f.add(id));
 	},
 
-	notifyIndexOneValue(id, k, newValue, oldValue) {
+	notifyIndexOneValue(id, field, newValue, oldValue) {
 		const ff = this.filters;
 		if(newValue === oldValue)
 			return;
 
-		const index = this.assertIndex(k);
+		const index = this.assertIndex(field);
     oldValue !== undefined && index.delete(oldValue, id);
     newValue !== undefined && index.add(newValue, id);
 
-
-    const outList = this.matchingFilters(k, oldValue);
-    const inList = this.matchingFilters(k, newValue);
+    const outList = this.matchingFilters(field, oldValue);
+    const inList = this.matchingFilters(field, newValue);
 
     outList.forEach(f => inList.includes(f) || f.delete(id));
     inList.forEach(f => outList.includes(f) || f.add(id));
+
+    _each(this.sortResults[field], s => s.considerChange(id, newValue));
   },
 
 	get(id) {
@@ -89,12 +75,16 @@ const proto = {
 	change(id, o){
 		checkObject(o);
 		//check id
-		//check object
-		this.notifyIndexes(id, o, this.rows[id]);
 
-    id in this.rows
-  		? Object.assign(this.rows[id], o)
-      : (this.rows[id] = o);
+    if(id in this.rows){
+      const row = this.rows[id];
+      const old = _pick(row, Object.keys(o));
+      Object.assign(row, o);
+      _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
+    } else {
+  		this.notifyIndexes(id, o, this.rows[id]);
+      this.rows[id] = o;
+    }
 
 		this.writeLog(id, o);
 		if(id in this.rowBoxes)
@@ -135,7 +125,7 @@ const proto = {
 		return	this.rowBoxes[id];
 	},
 
-	importRow(row) {
+	importLogRow(row) {
 		const m = this;
 		const templateId = row[0];
 		const id = row[1];
@@ -154,24 +144,35 @@ const proto = {
 				this.rowBoxes[id](this.rows[id]);
 		}
 		m.log.push(row.slice());
+    this.version++;
 	},
 
 	subscribeLog(f) {
 		if(this.logSubscriptions.includes(f))
 			return;
 		this.logSubscriptions.push(f);
-	}
+	},
+
+  addSortResult(field, sortResult) {
+    (this.sortResults[field] ??= []).push(sortResult);
+  },
+
+  readOnly() {
+    ['add', 'change'].forEach(a => this[a] = () => { throw "This model is readonly"; });
+  }
 };
 
 function RowModel(){
   const res = create(proto, {
 		lastId: -1,
+    version: 0,
 		templates: [],
 		rows: [],
 		log: [],
 		indexes: {},
 		rowBoxes: {},
 		filters: {},
+    sortResults: {},
 		logSubscriptions: [],
     filterCounter: 0,
     compositQueries: {}
@@ -213,21 +214,16 @@ nice.RowModel = RowModel;
 
 RowModel.fromLog = (log) => {
 	const m = RowModel();
-	log.forEach(row => m.importRow(row));
+	log.forEach(row => m.importLogRow(row));
 	return m;
 };
 
 
 RowModel.shadow = (source) => {
   const m = RowModel.fromLog(source.log);
-  RowModel.readOnly(m);
-  source.subscribeLog(row => m.importRow(row));
+  m.readOnly();
+  source.subscribeLog(row => m.importLogRow(row));
   return m;
-};
-
-
-RowModel.readOnly = (m) => {
-	['add', 'change'].forEach(a => m[a] = () => { throw "This model is readonly"; });
 };
 
 
@@ -279,9 +275,20 @@ nice.Type({
   extends: 'BoxArray',
   initBy (z, query, field, direction) {
     z.super();
+    query.model.addSortResult(field, z);
     z.query = query;
     z.field = field;
     z.direction = direction;
+
+    const rows = query.model.rows;
+    z.sortFunction = direction > 0
+      ? (a, b) => rows[a][field] > rows[b][field] ? 1 : -1
+      : (a, b) => rows[a][field] > rows[b][field] ? -1 : 1;
+
+    query.subscribe((v, oldV) => {
+      oldV !== undefined && z.deleteId(oldV);
+      v !== null && z.insertId(v);
+    });
   },
 
   customCall: (z, ...as) => {
@@ -295,15 +302,53 @@ nice.Type({
 
   proto: {
     coldCompute(){
-      const rows = this.query.model.rows;
 //      console.log(rows);
-      const f = (a, b) => this.direction > 0
-        ? rows[a][this.field] > rows[b][this.field] ? 1 : -1
-        : rows[a][this.field] > rows[b][this.field] ? -1 : 1;
-      const ids = [...this.query()].sort(f);
+      const ids = [...this.query()].sort(this.sortFunction);
       this._value = ids;
+    },
+
+    insertId(id) {
+      this.insert(sortedPosition(this._value, id, this.sortFunction), id);
+    },
+    deleteId(id) {
+      //TODO: replace with binary search
+      this.removeValue(id);
+    },
+    considerChange(id, newValue) {
+      //TODO: optimize
+//      console.log(s.query.has(id));
+      const oldPosition = this._value.indexOf(id);
+      const position = sortedPosition(this._value, id, this.sortFunction);
+      if(oldPosition === position) {
+        return;
+      }
+      if(oldPosition > position) {
+        this.remove(oldPosition);
+        this.insert(position, id);
+      } else {
+        this.insert(position, id);
+        oldPosition >= 0 && this.remove(oldPosition);
+      }
     }
   }
+});
+
+function sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
+  //TODO: binary search
+  let i;
+  for(i in a){
+    if(f(a[i], v) > 0){
+      return +i;
+    }
+  }
+  return a.length;
+}
+
+Test(() => {
+  const a = [1,2,3,4,5,6];
+  expect(sortedPosition(a, 0)).is(0);
+  expect(sortedPosition(a, 2.5)).is(2);
+  expect(sortedPosition(a, 10)).is(6);
 });
 
 
@@ -410,8 +455,10 @@ Test(() => {
 		expect(spy).calledTwice();
 
 
-    expect([...m.filter({ address: "Home" })()]).deepEqual([1]);
-    expect([...m.filter({ address: "Home2" })()]).deepEqual([0,2]);
+    expect([...m.filter({ address: "Home" })()]).deepEqual([janeId]);
+    expect([...m.filter({ address: "Home2" })()]).deepEqual([joeId,jimId]);
+    m.change(joeId, { age: 33 });
+    expect([...m.filter({ address: "Home2" })()]).deepEqual([joeId,jimId]);
 	});
 
 	Test(() => {
@@ -421,6 +468,32 @@ Test(() => {
     const desc = m.filter({ address: "Home2" }).sort('age', -1);
     expect(desc()).deepEqual([2,0]);
 	});
+
+
+  Test((Spy) => {
+    const spy = Spy(console.log);
+    const m3 = RowModel();
+    const joeId = m3.add({ name: 'Joe', age: 34, address: "Home" });
+    const janeId = m3.add({ name: "Jane", age: 23, address: "Home"});
+
+		const asc = m3.filter({ address: "Home" }).sort('age');
+    expect(asc).is(m3.filter({ address: "Home" }).sort('age'));
+    expect(asc()).deepEqual([1,0]);
+
+    asc.subscribe(spy);
+    expect(spy).calledTwice();
+    expect(spy).calledWith(1,0);
+    expect(spy).calledWith(0,1);
+    console.log('CHANGE');
+
+    const a = asc.map(x => x);
+    expect(a()).deepEqual([1,0]);
+    m3.change(joeId, { age: 18 });
+    expect(a()).deepEqual([0,1]);
+    expect(asc()).deepEqual([0,1]);
+	});
+
+
 
   Test(() => {
     const m2 = RowModel.shadow(m);

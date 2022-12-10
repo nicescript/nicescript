@@ -8,6 +8,7 @@ const Html = nice.Html;
     if(a === undefined)
       return;
     const type = nice.getType(a).name;
+    //TODO: use function overload (sub types don't work)
     constructors[type]
       ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol')
         ? (v => (v && v._isLi) ? v : nice.Li(v))
@@ -46,7 +47,7 @@ Html.extend('Img').by((z, src, x, y) => {
 
 
 const constructors = {
-  BoxArray: (z, b) => z.bindChildren(b),
+  BoxArray: (z, b, f) => z.bindChildren(f ?  b.map(f) : b),
 //  Obj: (z, o, f) => {
 //    const positions = {};
 //    o.listen({
