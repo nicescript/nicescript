@@ -258,13 +258,13 @@ defAll(nice, {
   _every (o, f) {
     for(let i in o)
       if(!f(o[i], i))
-        false;
+        return false;
     return true;
   },
   _some (o, f) {
     for(let i in o)
       if(f(o[i], i))
-        true;
+        return true;
     return false;
   },
   _if(c, f1, f2) {
@@ -3402,6 +3402,16 @@ const proto = {
 		this.notifyIndexes(id, o);
 		return id;
 	},
+  delete(id) {
+    const log = [-2, id];
+    this.log.push(log);
+		this.logSubscriptions.forEach(f => f(log));
+    const data = this.rows[id];
+    delete this.rows[id];
+		if(id in this.rowBoxes)
+			this.rowBoxes[id](null);
+    _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
+	},
   assertIndex(field) {
 		const ii = this.indexes;
     if(!(field in ii))
@@ -3446,7 +3456,6 @@ const proto = {
     if(id in this.rows){
       const row = this.rows[id];
       const old = _pick(row, Object.keys(o));
-      
       Object.assign(row, o);
       _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
     } else {
@@ -3492,18 +3501,25 @@ const proto = {
 		const id = row[1];
 		if(templateId === -1){ 
 			m.templates[id] = row.slice(2);
-		} else {
+		} else if(templateId === -2){ 
+      const data = m.rows[id];
+      delete m.rows[id];
+      _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
+		} else if(templateId >= 0){
 			if(!m.rows[id])
 				m.rows[id] = {};
 			const template = m.templates[templateId];
 			row.slice(2).forEach((v, k) => {
 				const field = template[k];
-				this.notifyIndexOneValue(id, field, v, m.rows[id][field]);
-				m.rows[id][field] = v;
+        const data = m.rows[id];
+				this.notifyIndexOneValue(id, field, v, data[field]);
+				data[field] = v;
 			});
 			if(id in this.rowBoxes)
 				this.rowBoxes[id](this.rows[id]);
-		}
+		} else {
+      throw 'Incorect row id';
+    }
 		m.log.push(row.slice());
     this.version++;
 	},
@@ -3761,7 +3777,7 @@ Test(() => {
     expect(desc()).deepEqual([2,0]);
 	});
   Test((Spy) => {
-    const spy = Spy(console.log);
+    const spy = Spy();
     const m3 = RowModel();
     const joeId = m3.add({ name: 'Joe', age: 34, address: "Home" });
     const janeId = m3.add({ name: "Jane", age: 23, address: "Home"});
@@ -3772,7 +3788,6 @@ Test(() => {
     expect(spy).calledTwice();
     expect(spy).calledWith(1,0);
     expect(spy).calledWith(0,1);
-    console.log('CHANGE');
     const a = asc.map(x => x);
     expect(a()).deepEqual([1,0]);
     m3.change(joeId, { age: 18 });
@@ -4940,6 +4955,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z._children.push(c.toString());
       if(!c || !nice.isAnything(c))
         return z._children.push('Bad child: ' + JSON.stringify(c));
+      while(c !== undefined && c._up_ && c._up_ !== c)
+        c = c._up_;
       c.up = z;
       c._up_ = z;
       z._children.push(c);
@@ -5680,15 +5697,12 @@ Input.extend('Checkbox', (z, status) => {
     value.subscribe(v => node ? node.checked = v : z.attributes('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
-  Input.extend('Select', (z, values) => {
+  Input.extend('Select', (z, values, selected) => {
     let node;
     z.tag('select').assertId();
-    const value = Box(null);
-    def(z, 'value', value);
     let mute;
     z.on('change', e => {
       mute = true;
-      value((e.target || e.srcElement).value);
       mute = false;
       return true;
     });
@@ -5696,7 +5710,9 @@ Input.extend('Checkbox', (z, status) => {
       z.on('domNode', n => node = n);
     }
     _each(values, (v, k) => {
-      z.add(Html('option').add(v));
+      const o = Html('option').add(v);
+      selected === v && o.selected(true);
+      z.add(o);
     });
   })
   .arr('options')

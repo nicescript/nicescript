@@ -89,6 +89,9 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(!c || !nice.isAnything(c))
         return z._children.push('Bad child: ' + JSON.stringify(c));
 
+      while(c !== undefined && c._up_ && c._up_ !== c)
+        c = c._up_;
+
       c.up = z;
       c._up_ = z;
       z._children.push(c);

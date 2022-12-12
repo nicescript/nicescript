@@ -173,16 +173,16 @@ Input.extend('Checkbox', (z, status) => {
   })
   .about('Represents HTML <input type="checkbox"> element.');
 
-  Input.extend('Select', (z, values) => {
+  Input.extend('Select', (z, values, selected) => {
     let node;
     z.tag('select').assertId();
-    const value = Box(null);
-    def(z, 'value', value);
+//    const value = Box(null);
+//    def(z, 'value', value);
 
     let mute;
     z.on('change', e => {
       mute = true;
-      value((e.target || e.srcElement).value);
+//      value((e.target || e.srcElement).value);
       mute = false;
       return true;
     });
@@ -193,7 +193,9 @@ Input.extend('Checkbox', (z, status) => {
     }
 
     _each(values, (v, k) => {
-      z.add(Html('option').add(v));
+      const o = Html('option').add(v);
+      selected === v && o.selected(true);
+      z.add(o);
     });
 
 //    z.options.listenChildren(v => z.add(Html('option').add(v.label)

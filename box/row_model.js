@@ -25,6 +25,20 @@ const proto = {
 		return id;
 	},
 
+  delete(id) {
+    //TODO: test
+    const log = [-2, id];
+    this.log.push(log);
+		this.logSubscriptions.forEach(f => f(log));
+
+    const data = this.rows[id];
+    delete this.rows[id];
+
+		if(id in this.rowBoxes)
+			this.rowBoxes[id](null);
+    _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
+	},
+
   assertIndex(field) {
 		const ii = this.indexes;
     if(!(field in ii))
@@ -131,18 +145,25 @@ const proto = {
 		const id = row[1];
 		if(templateId === -1){ // row is a template
 			m.templates[id] = row.slice(2);
-		} else {
+		} else if(templateId === -2){ // row is delete
+      const data = m.rows[id];
+      delete m.rows[id];
+      _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
+		} else if(templateId >= 0){
 			if(!m.rows[id])
 				m.rows[id] = {};
 			const template = m.templates[templateId];
 			row.slice(2).forEach((v, k) => {
 				const field = template[k];
-				this.notifyIndexOneValue(id, field, v, m.rows[id][field]);
-				m.rows[id][field] = v;
+        const data = m.rows[id];
+				this.notifyIndexOneValue(id, field, v, data[field]);
+				data[field] = v;
 			});
 			if(id in this.rowBoxes)
 				this.rowBoxes[id](this.rows[id]);
-		}
+		} else {
+      throw 'Incorect row id';
+    }
 		m.log.push(row.slice());
     this.version++;
 	},
@@ -471,7 +492,7 @@ Test(() => {
 
 
   Test((Spy) => {
-    const spy = Spy(console.log);
+    const spy = Spy();
     const m3 = RowModel();
     const joeId = m3.add({ name: 'Joe', age: 34, address: "Home" });
     const janeId = m3.add({ name: "Jane", age: 23, address: "Home"});
@@ -484,7 +505,6 @@ Test(() => {
     expect(spy).calledTwice();
     expect(spy).calledWith(1,0);
     expect(spy).calledWith(0,1);
-    console.log('CHANGE');
 
     const a = asc.map(x => x);
     expect(a()).deepEqual([1,0]);

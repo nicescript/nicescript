@@ -27,14 +27,14 @@ defAll(nice, {
   _every (o, f) {
     for(let i in o)
       if(!f(o[i], i))
-        false;
+        return false;
     return true;
   },
 
   _some (o, f) {
     for(let i in o)
       if(f(o[i], i))
-        true;
+        return true;
     return false;
   },
 
