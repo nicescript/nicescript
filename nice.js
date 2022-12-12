@@ -3409,7 +3409,7 @@ const proto = {
     const data = this.rows[id];
     delete this.rows[id];
 		if(id in this.rowBoxes)
-			this.rowBoxes[id](null);
+			this.rowBoxes[id](undefined);
     _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
 	},
   assertIndex(field) {
@@ -3655,10 +3655,11 @@ nice.Type({
     considerChange(id, newValue) {
       
       const oldPosition = this._value.indexOf(id);
-      const position = sortedPosition(this._value, id, this.sortFunction);
-      if(oldPosition === position) {
+      if(oldPosition === -1 && (newValue === undefined || newValue !== null))
         return;
-      }
+      const position = sortedPosition(this._value, id, this.sortFunction);
+      if(oldPosition === position)
+        return;
       if(oldPosition > position) {
         this.remove(oldPosition);
         this.insert(position, id);
@@ -3801,6 +3802,13 @@ Test(() => {
     expect(asc()).deepEqual([0,2]);
     m.change(joeId, {address:'Home'});
     expect(asc()).deepEqual([2]);
+	});
+  Test((Spy) => {
+    const spy = Spy();
+    m.rowBox(joeId).subscribe(spy);
+    m.delete(joeId);
+    expect(m.get(joeId)).is(undefined);
+    expect(spy).calledWith(undefined);
 	});
 });
 })();
