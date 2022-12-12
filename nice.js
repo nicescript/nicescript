@@ -3397,20 +3397,21 @@ const proto = {
 		this.lastId = id;
 		this.rows.push(o);
 		this.writeLog(id, o);
+		this.notifyIndexes(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
-		this.notifyIndexes(id, o);
 		return id;
 	},
   delete(id) {
     const log = [-2, id];
     this.log.push(log);
 		this.logSubscriptions.forEach(f => f(log));
+    this.version = this.log.length;
     const data = this.rows[id];
     delete this.rows[id];
+    _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](undefined);
-    _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
 	},
   assertIndex(field) {
 		const ii = this.indexes;
@@ -3445,7 +3446,18 @@ const proto = {
     const inList = this.matchingFilters(field, newValue);
     outList.forEach(f => inList.includes(f) || f.delete(id));
     inList.forEach(f => outList.includes(f) || f.add(id));
-    _each(this.sortResults[field], s => s.considerChange(id, newValue));
+  },
+	notifyAllSorts(id, newValues, oldValues) {
+		_each(oldValues, (v, field) => {
+      this.notifySorts(id, field, newValues[field], v);
+    });
+		_each(newValues, (v, field) => {
+      !(oldValues && field in oldValues)
+          && this.notifySorts(id, field, v);
+    });
+	},
+  notifySorts(id, field, newValue, oldValue){
+    _each(this.sortResults[field], s => s.considerChange(id, newValue, oldValue));
   },
 	get(id) {
 		return this.rows[id];
@@ -3453,16 +3465,18 @@ const proto = {
 	change(id, o){
 		checkObject(o);
 		
+		this.writeLog(id, o);
+    let old;
     if(id in this.rows){
       const row = this.rows[id];
-      const old = _pick(row, Object.keys(o));
+      old = _pick(row, Object.keys(o));
       Object.assign(row, o);
       _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
     } else {
-  		this.notifyIndexes(id, o, this.rows[id]);
       this.rows[id] = o;
+  		this.notifyIndexes(id, o);
     }
-		this.writeLog(id, o);
+    this.notifyAllSorts(id, o, old);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
 	},
@@ -3499,24 +3513,28 @@ const proto = {
 		const m = this;
 		const templateId = row[0];
 		const id = row[1];
+    const rows = m.rows;
 		if(templateId === -1){ 
 			m.templates[id] = row.slice(2);
 		} else if(templateId === -2){ 
-      const data = m.rows[id];
-      delete m.rows[id];
+      const data = rows[id];
+      delete rows[id];
       _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
 		} else if(templateId >= 0){
-			if(!m.rows[id])
-				m.rows[id] = {};
+      const create = id in rows ? false : true;
+			if(create)
+				rows[id] = {};
 			const template = m.templates[templateId];
 			row.slice(2).forEach((v, k) => {
 				const field = template[k];
-        const data = m.rows[id];
-				this.notifyIndexOneValue(id, field, v, data[field]);
-				data[field] = v;
+        const data = rows[id];
+        const oldValue = data[field];
+        data[field] = v;
+				this.notifyIndexOneValue(id, field, v, oldValue);
+        create || this.notifySorts(id, field, v, oldValue);
 			});
 			if(id in this.rowBoxes)
-				this.rowBoxes[id](this.rows[id]);
+				this.rowBoxes[id](rows[id]);
 		} else {
       throw 'Incorect row id';
     }
@@ -3628,6 +3646,9 @@ nice.Type({
     z.sortFunction = direction > 0
       ? (a, b) => rows[a][field] > rows[b][field] ? 1 : -1
       : (a, b) => rows[a][field] > rows[b][field] ? -1 : 1;
+    z.sortValueFunction = direction > 0
+      ? (a, bv) => rows[a][field] > bv ? 1 : -1
+      : (a, bv) => rows[a][field] > bv ? -1 : 1;
     query.subscribe((v, oldV) => {
       oldV !== undefined && z.deleteId(oldV);
       v !== null && z.insertId(v);
@@ -3652,12 +3673,12 @@ nice.Type({
       
       this.removeValue(id);
     },
-    considerChange(id, newValue) {
+    considerChange(id, newValue, oldValue) {
       
       const oldPosition = this._value.indexOf(id);
       if(oldPosition === -1 && (newValue === undefined || newValue !== null))
         return;
-      const position = sortedPosition(this._value, id, this.sortFunction);
+      const position = sortedPosition(this._value, newValue, this.sortValueFunction);
       if(oldPosition === position)
         return;
       if(oldPosition > position) {
