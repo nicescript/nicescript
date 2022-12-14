@@ -267,6 +267,16 @@ defAll(nice, {
         return true;
     return false;
   },
+  sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
+    
+    let i;
+    for(i in a){
+      if(f(a[i], v) > 0){
+        return +i;
+      }
+    }
+    return a.length;
+  },
   _if(c, f1, f2) {
     return c ? f1(c) : (typeof f2 === 'function' ? f2(c) : f2);
   },
@@ -3389,7 +3399,7 @@ Test((Model, Spy) => {
   expect(spy).calledTwice();
 });
 })();
-(function(){"use strict";const { _eachEach, _pick, memoize } = nice;
+(function(){"use strict";const { _eachEach, _pick, memoize, sortedPosition } = nice;
 const proto = {
 	add(o) {
 		checkObject(o);
@@ -3737,22 +3747,6 @@ nice.Type({
       }
     }
   }
-});
-function sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
-  
-  let i;
-  for(i in a){
-    if(f(a[i], v) > 0){
-      return +i;
-    }
-  }
-  return a.length;
-}
-Test(() => {
-  const a = [1,2,3,4,5,6];
-  expect(sortedPosition(a, 0)).is(0);
-  expect(sortedPosition(a, 2.5)).is(2);
-  expect(sortedPosition(a, 10)).is(6);
 });
 const ops = {
   eq: { arity: 2, f: (a, b) => a === b }
@@ -6015,5 +6009,11 @@ Test((Pipe) => {
   const plus = (a, b) => a + b;
   const f = Pipe('count', plusOne, x2, Math.cbrt, [plus, 3]);
   expect(f({count: 3})).is(5);
+});
+Test((sortedPosition) => {
+  const a = [1,2,3,4,5,6];
+  expect(sortedPosition(a, 0)).is(0);
+  expect(sortedPosition(a, 2.5)).is(2);
+  expect(sortedPosition(a, 10)).is(6);
 });
 })();;nice.version = "0.3.3";})();; return nice;}

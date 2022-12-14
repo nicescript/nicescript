@@ -92,3 +92,12 @@ Test((Pipe) => {
   expect(f({count: 3})).is(5);
 });
 
+
+Test((sortedPosition) => {
+  const a = [1,2,3,4,5,6];
+  expect(sortedPosition(a, 0)).is(0);
+  expect(sortedPosition(a, 2.5)).is(2);
+  expect(sortedPosition(a, 10)).is(6);
+});
+
+

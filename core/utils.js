@@ -38,6 +38,17 @@ defAll(nice, {
     return false;
   },
 
+  sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
+    //TODO: binary search
+    let i;
+    for(i in a){
+      if(f(a[i], v) > 0){
+        return +i;
+      }
+    }
+    return a.length;
+  },
+
   _if(c, f1, f2) {
     return c ? f1(c) : (typeof f2 === 'function' ? f2(c) : f2);
   },
