@@ -1,4 +1,4 @@
-const { _eachEach, _pick, memoize } = nice;
+const { _eachEach, _pick, memoize, sortedPosition } = nice;
 //const api = {
 //	change: {
 //		add: () => {},
@@ -438,24 +438,6 @@ nice.Type({
       }
     }
   }
-});
-
-function sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
-  //TODO: binary search
-  let i;
-  for(i in a){
-    if(f(a[i], v) > 0){
-      return +i;
-    }
-  }
-  return a.length;
-}
-
-Test(() => {
-  const a = [1,2,3,4,5,6];
-  expect(sortedPosition(a, 0)).is(0);
-  expect(sortedPosition(a, 2.5)).is(2);
-  expect(sortedPosition(a, 10)).is(6);
 });
 
 
