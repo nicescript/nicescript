@@ -1691,7 +1691,8 @@ function showValue(v) {
   if(v === null)
     return "null:null";
   const type = typeof v;
-  let s = '' + (v && v.toString) ? v.toString() : JSON.stringify(v);
+  let s = '' + ((v && v.toString !== Object.prototype.toString)
+      ? v.toString() : JSON.stringify(v));
   if(type === 'string')
     s = '"' + s + '"';
   if(type === 'object'){
@@ -3388,7 +3389,7 @@ Test((Model, Spy) => {
   expect(spy).calledTwice();
 });
 })();
-(function(){"use strict";const { _eachEach, _pick } = nice;
+(function(){"use strict";const { _eachEach, _pick, memoize } = nice;
 const proto = {
 	add(o) {
 		checkObject(o);
@@ -3459,6 +3460,18 @@ const proto = {
   notifySorts(id, field, newValue, oldValue){
     _each(this.sortResults[field], s => s.considerChange(id, newValue, oldValue));
   },
+	notifyAllOptions(id, newValues, oldValues) {
+		_each(oldValues, (v, field) => {
+      this.notifyOptions(id, field, newValues[field], v);
+    });
+		_each(newValues, (v, field) => {
+      !(oldValues && field in oldValues)
+          && this.notifyOptions(id, field, v);
+    });
+	},
+  notifyOptions(id, field, newValue, oldValue){
+    _each(this.options[field], s => s.considerChange(id, newValue, oldValue));
+  },
 	get(id) {
 		return this.rows[id];
 	},
@@ -3476,6 +3489,7 @@ const proto = {
       this.rows[id] = o;
   		this.notifyIndexes(id, o);
     }
+    this.notifyAllOptions(id, o, old);
     this.notifyAllSorts(id, o, old);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
@@ -3531,6 +3545,7 @@ const proto = {
         const oldValue = data[field];
         data[field] = v;
 				this.notifyIndexOneValue(id, field, v, oldValue);
+        create || this.notifyOptions(id, field, v, oldValue);
         create || this.notifySorts(id, field, v, oldValue);
 			});
 			if(id in this.rowBoxes)
@@ -3549,6 +3564,9 @@ const proto = {
   addSortResult(field, sortResult) {
     (this.sortResults[field] ??= []).push(sortResult);
   },
+  addOptions(field, options) {
+    (this.options[field] ??= []).push(options);
+  },
   readOnly() {
     ['add', 'change'].forEach(a => this[a] = () => { throw "This model is readonly"; });
   }
@@ -3564,9 +3582,10 @@ function RowModel(){
 		rowBoxes: {},
 		filters: {},
     sortResults: {},
+    options: {},
 		logSubscriptions: [],
     filterCounter: 0,
-    compositQueries: {}
+    compositQueries: {},
 	});
   function extractOp(o, field) {
     const [opName, value] = Object.entries(o)[0];
@@ -3620,14 +3639,42 @@ function checkObject(o){
 			throw 'Invalid value ' + ('' + v) + ':' + typeof v;
 	});
 }
+function createOptions(filter, field){
+  const res = nice.BoxMap();
+  const model = filter.model;
+  model.addOptions(field, res);
+  const add = value => {
+    if(value !== undefined){
+      const count = res.get(value) || 0;
+      res.set(value, count + 1);
+    }
+  };
+  const remove = value => {
+    if(value !== undefined){
+      const count = res.get(value) || 0;
+      const newCount = count - 1;
+      newCount ? res.set(value, count - 1) : res.delete(value);
+    }
+  };
+  res.considerChange = (id, newValue, oldValue) => {
+    if(filter.has(id)){
+      remove(oldValue);
+      add(newValue);
+    }
+  };
+  filter.subscribe((id, oldId) =>
+    id ? add(model.get(id)?.[field]) : remove(model.get(oldId)?.[field]));
+  return res;
+};
 nice.Type({
   name: 'RowsFilter',
   extends: 'BoxSet',
   initBy: (z, model) => {
     z.super();
     z.model = model;
-    z.sortsAsc = nice.memoize(field => nice.SortResult(z, field, 1));
-    z.sortsDesc = nice.memoize(field => nice.SortResult(z, field, -1));
+    z.sortsAsc = memoize(field => nice.SortResult(z, field, 1));
+    z.sortsDesc = memoize(field => nice.SortResult(z, field, -1));
+    z.options = memoize(field => createOptions(z, field));
   }
 });
 nice.Mapping.RowsFilter.String('sort', (filter, field, direction = 1) => {
@@ -3745,59 +3792,6 @@ Test(() => {
 	const joeId = m.add(o);
 	const janeId = m.add({ name: "Jane", age: 23, address: "Home"});
 	const jimId = m.add({ name: "Jim", address: "Home2", age: 45});
-	Test(() => {
-		expect(m.get(joeId)).deepEqual(o);
-	});
-	Test(() => {
-		expect(() => m.add({name:undefined})).throws();
-		expect(() => m.change(joeId, {name:undefined})).throws();
-		expect(m.get(joeId)).deepEqual(o);
-	});
-	Test(() => {
-		m.change(joeId, {address:"Home"});
-		expect(m.get(joeId).address).is("Home");
-	});
-	Test(() => {
-		const res = m.filter({"address": "Home"});
-		expect(res.has(janeId)).is(true);
-		expect(res.has(joeId)).is(true);
-		expect(res.size).is(2);
-	});
-  Test(() => {
-		const res = m.filter({address: "Home", name: "Joe"});
-		expect(res.has(joeId)).is(true);
-		expect(res.size).is(1);
-    expect(res).is(m.filter({name: "Joe", address: "Home"}));
-	});
-	Test(() => {
-		const res = m.filter({"address": "Home"});
-		expect(res.has(joeId)).is(true);
-		expect(res.has(janeId)).is(true);
-		expect(res.size).is(2);
-		expect(res).is(m.filter({"address": "Home"}));
-	});
-	Test(() => {
-		const m2 = RowModel.fromLog(m.log);
-		expect(m2.get(joeId).age).is(34);
-	});
-	Test((Spy) => {
-		const b = m.rowBox(joeId);
-		expect(b()).deepEqual(m.get(joeId));
-		const spy = Spy();
-		b.subscribe(spy);
-		m.change(joeId, {address:'Home2'});
-		expect(spy).calledTwice();
-    expect([...m.filter({ address: "Home" })()]).deepEqual([janeId]);
-    expect([...m.filter({ address: "Home2" })()]).deepEqual([joeId,jimId]);
-    m.change(joeId, { age: 33 });
-    expect([...m.filter({ address: "Home2" })()]).deepEqual([joeId,jimId]);
-	});
-	Test(() => {
-		const asc = m.filter({ address: "Home2" }).sort('age');
-    expect(asc()).deepEqual([0,2]);
-    const desc = m.filter({ address: "Home2" }).sort('age', -1);
-    expect(desc()).deepEqual([2,0]);
-	});
   Test((Spy) => {
     const spy = Spy();
     const m3 = RowModel();
@@ -3816,20 +3810,96 @@ Test(() => {
     expect(a()).deepEqual([0,1]);
     expect(asc()).deepEqual([0,1]);
 	});
+});
+})();
+(function(){"use strict";const { RowModel } = nice;
+Test((Spy) => {
+	const m = RowModel();
+  const qHome = m.filter({address:'Home'});
+  const qHome2 = m.filter({address:'Home2'});
+  const optionsHome2age = qHome2.options('age');
+  const sortHome2 = qHome2.sort('age');
+  const sortHome2desc = qHome2.sort('age', -1);
+  expect(qHome()).deepEqual([]);
+  expect(qHome2()).deepEqual([]);
+  expect(sortHome2()).deepEqual([]);
+  expect(sortHome2desc()).deepEqual([]);
+  expect(optionsHome2age()).deepEqual({});
+  const o = { name: 'Joe', age: 34 };
+  const joeId = m.add(o);
+  const janeId = m.add({ name: "Jane", age: 23, address: "Home"});
+  const jimId = m.add({ name: "Jim", address: "Home2", age: 45});
+  const joeBox = m.rowBox(joeId);
+  const joeSpy = Spy();
+  joeBox.subscribe(joeSpy);
   Test(() => {
+		expect(m.get(joeId)).deepEqual(o);
+    expect([...qHome()]).deepEqual([janeId]);
+    expect([...qHome2()]).deepEqual([jimId]);
+    expect(sortHome2()).deepEqual([jimId]);
+    expect(sortHome2desc()).deepEqual([jimId]);
+    expect(optionsHome2age()).deepEqual({45:1});
+    expect(joeBox).is(m.rowBox(joeId));
+  });
+  Test(() => {
+		expect(joeBox()).deepEqual(o);
+		expect(joeSpy).calledTimes(1);
+		m.change(joeId, {age:33});
+		expect(joeSpy).calledTimes(2);
+		expect(joeSpy).calledWith(o);
+	});
+  Test(() => {
+		expect(() => m.add({name:undefined})).throws();
+		expect(() => m.change(joeId, {name:undefined})).throws();
+	});
+  Test('change home', () => {
+    m.change(joeId, {address:"Home"});
+    expect([...qHome()]).deepEqual([janeId, joeId]);
+    expect([...qHome2()]).deepEqual([jimId]);
+    expect(m.get(joeId).address).is("Home");
+  });
+  Test('change home2', () => {
+    m.change(janeId, {address:"Home2"});
+    expect([...qHome()]).deepEqual([joeId]);
+    expect([...qHome2()]).deepEqual([jimId, janeId]);
+    expect(optionsHome2age).deepEqual({23:1,45:1});
+    expect(sortHome2()).deepEqual([janeId,jimId]);
+    expect(sortHome2desc()).deepEqual([jimId,janeId]);
+  });
+  Test('change age', () => {
+    m.change(janeId, {age:46});
+    expect(optionsHome2age()).deepEqual({46:1,45:1});
+    expect(sortHome2()).deepEqual([jimId,janeId]);
+    expect(sortHome2desc()).deepEqual([janeId,jimId]);
+  });
+  Test((fromLog) => {
+		const m2 = RowModel.fromLog(m.log);
+    expect(m2.get(joeId)).deepEqual(o);
+	});
+  Test((shadow) => {
     const m2 = RowModel.shadow(m);
     expect(() => m2.add({q:1})).throws();
 		const asc = m2.filter({ address: "Home2" }).sort('age');
-    expect(asc()).deepEqual([0,2]);
-    m.change(joeId, {address:'Home'});
-    expect(asc()).deepEqual([2]);
+    expect(asc()).deepEqual([jimId,janeId]);
+    m.change(jimId, {address:'Home'});
+    expect(asc()).deepEqual([janeId]);
 	});
-  Test((Spy) => {
-    const spy = Spy();
-    m.rowBox(joeId).subscribe(spy);
+  Test('delete', () => {
     m.delete(joeId);
     expect(m.get(joeId)).is(undefined);
-    expect(spy).calledWith(undefined);
+    expect(joeSpy).calledWith(undefined);
+    expect([...qHome()]).deepEqual([jimId]);
+    expect([...qHome2()]).deepEqual([janeId]);
+    expect(sortHome2()).deepEqual([janeId]);
+    expect(sortHome2desc()).deepEqual([janeId]);
+    m.delete(jimId);
+    console.log(m.rows);
+    console.log(optionsHome2age());
+    expect([...qHome()]).deepEqual([]);
+    expect([...qHome2()]).deepEqual([janeId]);
+    expect(sortHome2()).deepEqual([janeId]);
+    expect(sortHome2desc()).deepEqual([janeId]);
+    expect(optionsHome2age()).deepEqual({46:1});
 	});
 });
 })();

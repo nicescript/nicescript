@@ -20,7 +20,8 @@ function showValue(v) {
 
   const type = typeof v;
 
-  let s = '' + (v && v.toString) ? v.toString() : JSON.stringify(v);
+  let s = '' + ((v && v.toString !== Object.prototype.toString)
+      ? v.toString() : JSON.stringify(v));
 
   if(type === 'string')
     s = '"' + s + '"';

@@ -39,6 +39,7 @@ const order = [
   'box/box_index',
   'box/model',
   'box/row_model',
+  'box/row_model_tests',
 //  'core/stream', TODO: change to comply with Box(undefined)
   'core/logic',
   'core/value',
