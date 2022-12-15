@@ -729,7 +729,8 @@ const EventEmitter = {
       this.emit('newListener', name, f);
       a.push(f);
       const es = this._events;
-      es && es[name] && es[name].forEach(v => f(...v));
+      es && es[name] && es[name].forEach(v =>
+        f.notify ? f.notify(...v) : f(...v));
     }
     return this;
   },
@@ -742,12 +743,16 @@ const EventEmitter = {
     return this;
   },
   emit (name, ...a) {
-    this.listeners(name).forEach(f => Function.prototype.apply.apply(f, [this, a]));
+    this.listeners(name).forEach(f => {
+      f.notify
+        ? f.notify(...a)
+        : Function.prototype.apply.apply(f, [this, a]);
+    });
     return this;
   },
   emitAndSave (name, ...a) {
     assertEvents(this, name).push(a);
-    this.listeners(name).forEach(f => f.apply(this, a));
+    this.emit(name, ...a)
     return this;
   },
   listeners (name) {
@@ -2121,8 +2126,8 @@ nice.eventEmitter(nice.DataSource.proto);
   },
   proto: {
     setState (v) {
+      this._value !== v && this._version++;
       this._value = v;
-      this._version++;
       this.emit('state', v);
     },
     uniq(){
@@ -2142,7 +2147,7 @@ nice.eventEmitter(nice.DataSource.proto);
       if(v === -1)
         return;
       if(v === undefined || v < this._version)
-        f(this._value);
+        f.notify ? f.notify(this._value) : f(this._value);
     },
     unsubscribe(f){
       this.off('state', f);
@@ -2170,6 +2175,17 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(4);
+});
+Test((Box) => {
+  const b = Box();
+  let version = b.version;
+  b(1);
+  expect(b.version).gt(version);
+  version = b.version;
+  b(1);
+  expect(b.version).is(version);
+  b(2);
+  expect(b.version).gt(version);
 });
 Test((Box, Spy) => {
   const b = Box();
@@ -2234,7 +2250,6 @@ Test((Box, Spy) => {
   expect(b()).is(11);
   const spy = Spy();
   b.on('state', spy);
-  b.on('state', console.log);
   b(22);
   expect(spy).calledWith(22);
 });
@@ -2375,6 +2390,9 @@ Test((BoxSet, intersection, Spy) => {
     },
     subscribe (f) {
       _each(this._value, (v, k) => f(v, k, null));
+      this.on('value', f);
+    },
+    subscribeNew (f) {
       this.on('value', f);
     },
     unsubscribe (f) {
@@ -2789,18 +2807,43 @@ Test((BoxArray, sort) => {
 });
 })();
 (function(){"use strict";
+class Connection{
+  constructor(cfg) {
+    Object.assign(this, cfg);
+    this.version = -1;
+  }
+  attach(){
+    const { source } = this;
+    if(source._isBox){
+      return source.subscribe(this);
+    } else {
+    }
+  }
+  detach() {
+    this.source.unsubscribe(this);
+  }
+  notify(v){
+    const target = this.target;
+    this.version = this.source._version;
+    target._inputValues[this.position] = v;
+    target.warming || target.attemptCompute();
+  }
+};
+nice.DataSource.Connection = Connection;
 nice.Type({
   name: 'RBox',
   extends: 'Box',
   initBy: (z, ...inputs) => {
-    z._version = 0;
+    z._version = -1;
     z._by = inputs.pop();
     if(typeof z._by !== 'function')
-      throw `RBox only accepts functions`;
+      throw `Last argument to RBox should be function`;
+    z._ins = inputs.map((source, position) => new Connection({
+      source, target:z, value: undefined, position
+    }));
     z._isHot = false;
-    z._inputs = inputs;
+    z.warming = false;
     z._inputValues = [];
-    z._inputListeners = new Map();
   },
   customCall: (z, ...as) => {
     if(as.length === 0) {
@@ -2811,20 +2854,24 @@ nice.Type({
   },
   proto: {
     reconfigure(...inputs) {
-      const by = inputs.pop();
-      if(typeof by !== 'function')
-        throw `RBox only accepts functions`;
-      const oldInputs = this._inputs;
-      oldInputs.forEach(input => {
-        inputs.includes(input) || this.detachSource(input);
+      const rememberIsHot = this._isHot;
+      this._by = inputs.pop();
+      if(typeof this._by !== 'function')
+        throw `Last argument to RBox should be function`;
+			this.warming = true;
+      inputs.forEach((source, position) => {
+        const old = this._ins[position];
+        if(source !== old.source) {
+          this._isHot && old.detach();
+          const c = new Connection({
+            source, target:this, value: undefined, position
+          });
+          this._isHot && c.attach();
+          this._ins[position] = c;
+        }
       });
-      this._by = by;
-      this._inputs = inputs;
-      this._inputValues = this._inputs.map(v => v._value);
-      inputs.forEach(input => {
-        oldInputs.includes(input) || this.attachSource(input);
-      });
-      this._isHot === true && this.attemptCompute();
+			this.warming = false;
+      this._isHot && this.attemptCompute();
     },
     subscribe(f) {
       this.warmUp();
@@ -2847,37 +2894,32 @@ nice.Type({
       }
     },
     coldCompute(){
-      this._inputValues = this._inputs.map(v => v());
-      this.attemptCompute();
+      let needCompute = false;
+      for (let c of this._ins){
+        const v = c.source();
+        if(c.version < 0 || c.version < c.source._version){
+          this._inputValues[c.position] = v;
+          c.version = c.source._version;
+          needCompute = true;
+        }
+      }
+      needCompute && this.attemptCompute();
     },
     warmUp(){
       if(this._isHot === true)
         return ;
       this._isHot = true;
 			this.warming = true;
-      this._inputs.forEach(input => this.attachSource(input));
-			delete this.warming;
-      this._inputValues = this._inputs.map(v => v._value);
+      for (let c of this._ins)
+        c.attach();
+			this.warming = false;
       this.attemptCompute();
     },
     coolDown(){
       this._isHot = false;
-      for (let [input, f] of this._inputListeners)
-        this.detachSource(input);
-    },
-    attachSource(source) {
-      if(source._isBox){
-        const f = state => {
-          const position = this._inputs.indexOf(source);
-          this._inputValues[position] = state;
-          this.warming || this.attemptCompute();
-        };
-        this._inputListeners.set(source, f);
-        return source.subscribe(f);
-      }
-    },
-    detachSource(source) {
-      source._isBox && source.unsubscribe(this._inputListeners.get(source));
+      this._inputValues = [];
+      for (let c of this._ins)
+        c.detach();
     }
   }
 });
@@ -2917,6 +2959,39 @@ Test('RBox unsubscribe', (Box, RBox, Spy) => {
   expect(spy).calledOnce();
   expect(rb.countListeners('state')).is(0);
   expect(b.countListeners('state')).is(0);
+});
+Test('lazy compute', (Box, RBox, Spy) => {
+  const heavyFunction = Spy(a => a + 1);
+  const b = Box(1);
+  const rb = RBox(b, heavyFunction);
+  expect(heavyFunction).not.called();
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+  b(2);
+  expect(rb()).is(3);
+  expect(heavyFunction).calledTimes(2);
+  expect(rb()).is(3);
+  expect(heavyFunction).calledTimes(2);
+});
+Test('lazy wakeup', (Box, RBox, Spy) => {
+  const spy = Spy();
+  const heavyFunction = Spy(a => a + 1);
+  const b = Box(1);
+  const rb = RBox(b, heavyFunction);
+  expect(heavyFunction).not.called();
+  rb.subscribe(spy);
+  expect(heavyFunction).calledTimes(1);
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+  rb.unsubscribe(spy);
+  expect(heavyFunction).calledTimes(1);
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+  b(2);
+  expect(rb()).is(3);
+  expect(heavyFunction).calledTimes(2);
 });
 Test('RBox 2 sources', (Box, RBox, Spy) => {
   const spy = Spy();
@@ -2968,7 +3043,8 @@ Test('RBox cold compute', (Box, RBox) => {
         this._interval = setInterval(() => this(this._f(this())), this._ms);
         this._value === undefined && this.setState(this._f());
       }
-      this._value !== undefined && f(this._value);
+      if(this._value !== undefined)
+        f.notify ? f.notify(this._value) : f(this._value);
       this.on('state', f);
     },
     unsubscribe(f){
@@ -3399,7 +3475,7 @@ Test((Model, Spy) => {
   expect(spy).calledTwice();
 });
 })();
-(function(){"use strict";const { _eachEach, _pick, memoize, sortedPosition } = nice;
+(function(){"use strict";const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
 const proto = {
 	add(o) {
 		checkObject(o);
@@ -3752,7 +3828,7 @@ const ops = {
   eq: { arity: 2, f: (a, b) => a === b }
 };
 const newFilter = (model, q) => {
-  const { field, opName, value } = q
+  const { field, opName, value } = q;
   expect(field).isString();
   const filters = model.filters;
   if(!(field in filters))
@@ -3780,31 +3856,6 @@ function createFilter(model) {
       filter[opName] = (field, value) => newFilter({field, opName, value}));
   return filter;
 }
-Test(() => {
-	const m = RowModel();
-	const o = { name: 'Joe', age: 34 };
-	const joeId = m.add(o);
-	const janeId = m.add({ name: "Jane", age: 23, address: "Home"});
-	const jimId = m.add({ name: "Jim", address: "Home2", age: 45});
-  Test((Spy) => {
-    const spy = Spy();
-    const m3 = RowModel();
-    const joeId = m3.add({ name: 'Joe', age: 34, address: "Home" });
-    const janeId = m3.add({ name: "Jane", age: 23, address: "Home"});
-		const asc = m3.filter({ address: "Home" }).sort('age');
-    expect(asc).is(m3.filter({ address: "Home" }).sort('age'));
-    expect(asc()).deepEqual([1,0]);
-    asc.subscribe(spy);
-    expect(spy).calledTwice();
-    expect(spy).calledWith(1,0);
-    expect(spy).calledWith(0,1);
-    const a = asc.map(x => x);
-    expect(a()).deepEqual([1,0]);
-    m3.change(joeId, { age: 18 });
-    expect(a()).deepEqual([0,1]);
-    expect(asc()).deepEqual([0,1]);
-	});
-});
 })();
 (function(){"use strict";const { RowModel } = nice;
 Test((Spy) => {
@@ -3887,8 +3938,6 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId]);
     expect(sortHome2desc()).deepEqual([janeId]);
     m.delete(jimId);
-    console.log(m.rows);
-    console.log(optionsHome2age());
     expect([...qHome()]).deepEqual([]);
     expect([...qHome2()]).deepEqual([janeId]);
     expect(sortHome2()).deepEqual([janeId]);

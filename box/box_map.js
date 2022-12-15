@@ -39,6 +39,9 @@ nice.Type({
       _each(this._value, (v, k) => f(v, k, null));
       this.on('value', f);
     },
+    subscribeNew (f) {
+      this.on('value', f);
+    },
     unsubscribe (f) {
       this.off('value', f);
     },

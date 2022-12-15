@@ -1,19 +1,53 @@
 //idea?? box always have value(even undefined); subscribe always produce call(even undefined)
 
+class Connection{
+  constructor(cfg) {
+    Object.assign(this, cfg);
+    this.version = -1;
+  }
+
+  attach(){
+    const { source } = this;
+
+    if(source._isBox){
+      return source.subscribe(this);
+    } else {
+//      throw '';
+    }
+
+  }
+
+  detach() {
+    this.source.unsubscribe(this);
+  }
+
+  notify(v){
+    const target = this.target;
+    this.version = this.source._version;
+    target._inputValues[this.position] = v;
+    target.warming || target.attemptCompute();
+  }
+};
+
+nice.DataSource.Connection = Connection;
+
+
 nice.Type({
   name: 'RBox',
 
   extends: 'Box',
 
   initBy: (z, ...inputs) => {
-    z._version = 0;
+    z._version = -1;
     z._by = inputs.pop();
     if(typeof z._by !== 'function')
-      throw `RBox only accepts functions`;
+      throw `Last argument to RBox should be function`;
+    z._ins = inputs.map((source, position) => new Connection({
+      source, target:z, value: undefined, position
+    }));
     z._isHot = false;
-    z._inputs = inputs;
+    z.warming = false;
     z._inputValues = [];
-    z._inputListeners = new Map();
   },
 
   customCall: (z, ...as) => {
@@ -27,23 +61,26 @@ nice.Type({
 
   proto: {
     reconfigure(...inputs) {
-      const by = inputs.pop();
+      const rememberIsHot = this._isHot;
+      this._by = inputs.pop();
+      if(typeof this._by !== 'function')
+        throw `Last argument to RBox should be function`;
 
-      if(typeof by !== 'function')
-        throw `RBox only accepts functions`;
-
-      const oldInputs = this._inputs;
-      oldInputs.forEach(input => {
-        inputs.includes(input) || this.detachSource(input);
+			this.warming = true;
+      inputs.forEach((source, position) => {
+        const old = this._ins[position];
+        if(source !== old.source) {
+          this._isHot && old.detach();
+          const c = new Connection({
+            source, target:this, value: undefined, position
+          });
+          this._isHot && c.attach();
+          this._ins[position] = c;
+        }
       });
+			this.warming = false;
 
-      this._by = by;
-      this._inputs = inputs;
-      this._inputValues = this._inputs.map(v => v._value);
-      inputs.forEach(input => {
-        oldInputs.includes(input) || this.attachSource(input);
-      });
-      this._isHot === true && this.attemptCompute();
+      this._isHot && this.attemptCompute();
     },
 
     subscribe(f) {
@@ -70,8 +107,17 @@ nice.Type({
     },
 
     coldCompute(){
-      this._inputValues = this._inputs.map(v => v());
-      this.attemptCompute();
+      let needCompute = false;
+      for (let c of this._ins){
+        const v = c.source();
+        if(c.version < 0 || c.version < c.source._version){
+          this._inputValues[c.position] = v;
+          c.version = c.source._version;
+          needCompute = true;
+        }
+      }
+
+      needCompute && this.attemptCompute();
     },
 
     warmUp(){
@@ -79,33 +125,17 @@ nice.Type({
         return ;
       this._isHot = true;
 			this.warming = true;
-      this._inputs.forEach(input => this.attachSource(input));
-			delete this.warming;
-      this._inputValues = this._inputs.map(v => v._value);
+      for (let c of this._ins)
+        c.attach();
+			this.warming = false;
       this.attemptCompute();
     },
 
     coolDown(){
       this._isHot = false;
-      for (let [input, f] of this._inputListeners)
-        this.detachSource(input);
-    },
-
-    attachSource(source) {
-      if(source._isBox){
-        const f = state => {
-          const position = this._inputs.indexOf(source);
-          this._inputValues[position] = state;
-          this.warming || this.attemptCompute();
-        };
-        this._inputListeners.set(source, f);
-
-        return source.subscribe(f);
-      }
-    },
-
-    detachSource(source) {
-      source._isBox && source.unsubscribe(this._inputListeners.get(source));
+      this._inputValues = [];
+      for (let c of this._ins)
+        c.detach();
     }
   }
 });
@@ -153,6 +183,51 @@ Test('RBox unsubscribe', (Box, RBox, Spy) => {
   expect(spy).calledOnce();
   expect(rb.countListeners('state')).is(0);
   expect(b.countListeners('state')).is(0);
+});
+
+
+Test('lazy compute', (Box, RBox, Spy) => {
+  const heavyFunction = Spy(a => a + 1);
+  const b = Box(1);
+  const rb = RBox(b, heavyFunction);
+  expect(heavyFunction).not.called();
+
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+
+  b(2);
+  expect(rb()).is(3);
+  expect(heavyFunction).calledTimes(2);
+
+  expect(rb()).is(3);
+  expect(heavyFunction).calledTimes(2);
+});
+
+
+Test('lazy wakeup', (Box, RBox, Spy) => {
+  const spy = Spy();
+  const heavyFunction = Spy(a => a + 1);
+  const b = Box(1);
+  const rb = RBox(b, heavyFunction);
+  expect(heavyFunction).not.called();
+  rb.subscribe(spy);
+  expect(heavyFunction).calledTimes(1);
+
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+
+  rb.unsubscribe(spy);
+  expect(heavyFunction).calledTimes(1);
+
+  expect(rb()).is(2);
+  expect(heavyFunction).calledTimes(1);
+
+  b(2);
+  expect(rb()).is(3);
+  expect(heavyFunction).calledTimes(2);
 });
 
 

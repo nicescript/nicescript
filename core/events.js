@@ -21,7 +21,9 @@ const EventEmitter = {
       this.emit('newListener', name, f);
       a.push(f);
       const es = this._events;
-      es && es[name] && es[name].forEach(v => f(...v));
+      es && es[name] && es[name].forEach(v =>
+        f.notify ? f.notify(...v) : f(...v));
+//        f(...v));
     }
     return this;
   },
@@ -36,13 +38,17 @@ const EventEmitter = {
   },
 
   emit (name, ...a) {
-    this.listeners(name).forEach(f => Function.prototype.apply.apply(f, [this, a]));
+    this.listeners(name).forEach(f => {
+      f.notify
+        ? f.notify(...a)
+        : Function.prototype.apply.apply(f, [this, a]);
+    });
     return this;
   },
 
   emitAndSave (name, ...a) {
     assertEvents(this, name).push(a);
-    this.listeners(name).forEach(f => f.apply(this, a));
+    this.emit(name, ...a)
     return this;
   },
 

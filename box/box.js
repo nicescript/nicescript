@@ -17,8 +17,8 @@ nice.Type({
 
   proto: {
     setState (v) {
+      this._value !== v && this._version++;
       this._value = v;
-      this._version++;
       this.emit('state', v);
     },
 
@@ -42,7 +42,8 @@ nice.Type({
         return;
 
       if(v === undefined || v < this._version)
-        f(this._value);
+        f.notify ? f.notify(this._value) : f(this._value);
+//        (f.notify ? f.notify : f)(this._value);
     },
 
     unsubscribe(f){
@@ -77,6 +78,22 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(4);
+});
+
+
+Test((Box) => {
+  const b = Box();
+  let version = b.version;
+
+  b(1);
+  expect(b.version).gt(version);
+  version = b.version;
+
+  b(1);
+  expect(b.version).is(version);
+
+  b(2);
+  expect(b.version).gt(version);
 });
 
 
@@ -184,7 +201,7 @@ Test((Box, Spy) => {
 
   const spy = Spy();
   b.on('state', spy);
-  b.on('state', console.log);
+//  b.on('state', console.log);
   b(22);
   expect(spy).calledWith(22);
 });

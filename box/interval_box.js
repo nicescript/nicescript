@@ -19,7 +19,8 @@ nice.Type({
         this._interval = setInterval(() => this(this._f(this())), this._ms);
         this._value === undefined && this.setState(this._f());
       }
-      this._value !== undefined && f(this._value);
+      if(this._value !== undefined)
+        f.notify ? f.notify(this._value) : f(this._value);
       this.on('state', f);
     },
 

@@ -14,3 +14,10 @@ nice.Type({
 
 nice.eventEmitter(nice.DataSource.proto);
 
+
+//{
+//  version: 2,
+//  coldCompute: f,
+//  warmUp: f,
+//  coolDown: f
+//}

@@ -1,4 +1,4 @@
-const { _eachEach, _pick, memoize, sortedPosition } = nice;
+const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
 //const api = {
 //	change: {
 //		add: () => {},
@@ -321,6 +321,11 @@ function createOptions(filter, field){
   const model = filter.model;
   model.addOptions(field, res);
 
+//  res.sortByValue = once(() => {
+//    return ;
+//  });
+//  res.sortByCount = once(() => );
+
   const add = value => {
     if(value !== undefined){
       const count = res.get(value) || 0;
@@ -446,7 +451,7 @@ const ops = {
 };
 
 const newFilter = (model, q) => {
-  const { field, opName, value } = q
+  const { field, opName, value } = q;
   expect(field).isString();
   const filters = model.filters;
 
@@ -483,37 +488,3 @@ function createFilter(model) {
 
   return filter;
 }
-
-
-Test(() => {
-	const m = RowModel();
-	const o = { name: 'Joe', age: 34 };
-	const joeId = m.add(o);
-	const janeId = m.add({ name: "Jane", age: 23, address: "Home"});
-	const jimId = m.add({ name: "Jim", address: "Home2", age: 45});
-
-  Test((Spy) => {
-    const spy = Spy();
-    const m3 = RowModel();
-    const joeId = m3.add({ name: 'Joe', age: 34, address: "Home" });
-    const janeId = m3.add({ name: "Jane", age: 23, address: "Home"});
-
-		const asc = m3.filter({ address: "Home" }).sort('age');
-    expect(asc).is(m3.filter({ address: "Home" }).sort('age'));
-    expect(asc()).deepEqual([1,0]);
-
-    asc.subscribe(spy);
-    expect(spy).calledTwice();
-    expect(spy).calledWith(1,0);
-    expect(spy).calledWith(0,1);
-
-    const a = asc.map(x => x);
-    expect(a()).deepEqual([1,0]);
-    m3.change(joeId, { age: 18 });
-    expect(a()).deepEqual([0,1]);
-    expect(asc()).deepEqual([0,1]);
-	});
-});
-
-
-

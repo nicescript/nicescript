@@ -108,8 +108,6 @@ Test((Spy) => {
 
 
     m.delete(jimId);
-    console.log(m.rows);
-    console.log(optionsHome2age());
     expect([...qHome()]).deepEqual([]);
     expect([...qHome2()]).deepEqual([janeId]);
     expect(sortHome2()).deepEqual([janeId]);
