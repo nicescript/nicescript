@@ -5097,10 +5097,9 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z._children.push(c.toString());
       if(!c || !nice.isAnything(c))
         return z._children.push('Bad child: ' + JSON.stringify(c));
-      while(c !== undefined && c._up_ && c._up_ !== c)
-        c = c._up_;
-      c.up = z;
-      c._up_ = z;
+      if(c !== undefined){
+        c = extractUp(c);
+      }
       z._children.push(c);
     });
   });
@@ -5155,7 +5154,12 @@ def(Html.proto, 'Css', function(s = ''){
 function addCreator(type){
   def(Html.proto, type.name, function (...a){
     const res = type(...a);
+    const parent = this;
     this.add(res);
+    Object.defineProperty(res, 'up', { configurable: true, get(){
+      delete res.up;
+      return parent;
+    }});
     return res;
   });
   const _t = nice._decapitalize(type.name);
@@ -5463,8 +5467,14 @@ if(IS_BROWSER){
     return newNode;
   }
   Func.Html('show', (div, parentNode = document.body, position) => {
-    return insertAt(parentNode, div.dom, position);
+    return insertAt(parentNode, extractUp(div).dom, position);
   });
+}
+function extractUp(e){
+  let up = e.up;
+  if(up && up._isHtml)
+    return extractUp(up);
+  return e;
 }
 function insertAt(parent, node, position){
   typeof position === 'number'
@@ -5651,6 +5661,11 @@ IS_BROWSER && Test((Div) => {
     expect(div.textContent).is('112');
     box(Div(B(2), B(11).id('b1')));
     expect(div.textContent).is('211');
+  });
+  Test((Div) => {
+    const div = Div('1').Div('2').Div('3');
+    const node = div.show(testPane);
+    expect(node.textContent).is('123');
   });
   Test((Div, RBox, Box) => {
     const b = Box();

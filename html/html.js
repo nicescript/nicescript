@@ -89,11 +89,9 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(!c || !nice.isAnything(c))
         return z._children.push('Bad child: ' + JSON.stringify(c));
 
-      while(c !== undefined && c._up_ && c._up_ !== c)
-        c = c._up_;
-
-      c.up = z;
-      c._up_ = z;
+      if(c !== undefined){
+        c = extractUp(c);
+      }
       z._children.push(c);
     });
   });
@@ -176,7 +174,12 @@ def(Html.proto, 'Css', function(s = ''){
 function addCreator(type){
   def(Html.proto, type.name, function (...a){
     const res = type(...a);
+    const parent = this;
     this.add(res);
+    Object.defineProperty(res, 'up', { configurable: true, get(){
+      delete res.up;
+      return parent;
+    }});
     return res;
   });
   const _t = nice._decapitalize(type.name);
@@ -582,8 +585,16 @@ if(IS_BROWSER){
   }
 
   Func.Html('show', (div, parentNode = document.body, position) => {
-    return insertAt(parentNode, div.dom, position);
+    return insertAt(parentNode, extractUp(div).dom, position);
   });
+}
+
+
+function extractUp(e){
+  let up = e.up;
+  if(up && up._isHtml)
+    return extractUp(up);
+  return e;
 }
 
 
@@ -877,12 +888,19 @@ IS_BROWSER && Test((Div) => {
   });
 
 
+  Test((Div) => {
+    const div = Div('1').Div('2').Div('3');
+
+    const node = div.show(testPane);
+
+    expect(node.textContent).is('123');
+  });
+
+
   Test((Div, RBox, Box) => {
     const b = Box();
     const rb = RBox(b, v => '12');
     expect(rb()).is('12');
-//    const div = Div(rb).show();
-//    expect(div.textContent).is('12');
   });
 
 
