@@ -1,8 +1,8 @@
 nice.Type({
   name: 'BoxSortedMap',
-  extends: 'BoxArray',
+  extends: 'DataSource',
   initBy (z, vs, f) {
-    expect(vs).isBoxArray();
+    expect(vs).isBoxMap();
 
     const map = vs();
 
@@ -55,6 +55,23 @@ nice.Type({
         this.insert(position, id);
         oldPosition >= 0 && this.remove(oldPosition);
       }
+    },
+
+    subscribe(f){
+      _each(this._value, (index, position) => f())
     }
   }
+});
+
+
+Test((BoxSortedMap, BoxMap, Spy) => {
+  const map = BoxMap({q:1,a:2,b:3});
+  const sMap = BoxSortedMap(map, 'value');
+//  const array = sMap.map()
+  const spy = Spy();
+  sMap.subscribe(spy);
+  expect(spy).calledTimes(3);
+
+
+
 });

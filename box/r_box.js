@@ -40,8 +40,13 @@ nice.Type({
   initBy: (z, ...inputs) => {
     z._version = -1;
     z._by = inputs.pop();
+
+    if(typeof z._by === 'object')
+      z._by = objectPointers[inputs.length](z._by);
+
     if(typeof z._by !== 'function')
-      throw `Last argument to RBox should be function`;
+      throw `Last argument to RBox should be function or object`;
+
     z._ins = inputs.map((source, position) => new Connection({
       source, target:z, value: undefined, position
     }));
@@ -83,10 +88,9 @@ nice.Type({
       this._isHot && this.attemptCompute();
     },
 
-    subscribe(f) {
+    subscribe(f, v) {
       this.warmUp();
-      this.on('state', f);
-      f(this._value);
+      this.__proto__.__proto__.subscribe.call(this, f, v);
     },
 
     unsubscribe(f){
@@ -139,6 +143,13 @@ nice.Type({
     }
   }
 });
+
+
+const objectPointers = {
+  1: o => k => o[k],
+  2: o => (k1, k2) => o?.[k1]?.[k2],
+  2: o => (k1, k2, k3) => o?.[k1]?.[k2]?.[k3]
+};
 
 
 Test('RBox basic case', (Box, RBox) => {

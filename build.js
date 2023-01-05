@@ -37,6 +37,7 @@ const order = [
   'box/r_box',
   'box/interval_box',
   'box/box_index',
+  'box/box_sorted_map',
   'box/model',
   'box/row_model',
   'box/row_model_tests',
@@ -69,6 +70,7 @@ let src = 'let nice;(function(){const IS_BROWSER = typeof window !== "undefined"
 src += `;nice.version = "${pachageInfo.version}";})();`;
 
 fs.writeFileSync('nice.js', src);
+//TODO: BUG: donesn't work: "Uncaught SyntaxError: Unexpected token ';'"
 fs.writeFileSync('nice.min.js', removeTests(src));
 //TODO: fix or remove
 //terser.minify(removeTests(src))

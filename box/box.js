@@ -37,13 +37,17 @@ nice.Type({
     },
 
     subscribe(f, v){
+      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
+        const o = f;
+        f = x => o[x]?.();
+      }
+
       this.on('state', f);
       if(v === -1)
         return;
 
       if(v === undefined || v < this._version)
         f.notify ? f.notify(this._value) : f(this._value);
-//        (f.notify ? f.notify : f)(this._value);
     },
 
     unsubscribe(f){
@@ -204,6 +208,14 @@ Test((Box, Spy) => {
 //  b.on('state', console.log);
   b(22);
   expect(spy).calledWith(22);
+});
+
+Test((Box, Spy) => {
+  const b = Box(1);
+  const spy1 = Spy();
+  const spy2 = Spy();
+  b.subscribe({ 1: spy1, 2: spy2 });
+  expect(spy1).calledWith();
 });
 
 

@@ -23,7 +23,6 @@ const EventEmitter = {
       const es = this._events;
       es && es[name] && es[name].forEach(v =>
         f.notify ? f.notify(...v) : f(...v));
-//        f(...v));
     }
     return this;
   },

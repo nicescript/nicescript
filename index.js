@@ -577,7 +577,7 @@ defAll(nice, {
     let i = 0;
     if(Array.isArray(a)){
       while(i < n)
-        a.push(f(i++));
+        a.push(f(i++, a));
     } else if (a !== undefined){
       throw 'Accumulator should be an Array';
     } else {
@@ -1400,7 +1400,16 @@ const basicChecks = {
   },
   isTrue: v => v === true,
   isFalse: v => v === false,
-  isAnyOf: (v, ...vs) => vs.includes(v),
+  isAnyOf: (v, ...vs) => {
+    if(v && v._isAnything && '_value' in v)
+      v = v._value;
+    return vs.includes(v);
+  },
+  isNeitherOf: (v, ...vs) => {
+    if(v && v._isAnything && '_value' in v)
+      v = v._value;
+    return !vs.includes(v);
+  },
   isTruly: v => v
     ? v._isAnything
       ? v.isNothing() ? false : !!v()
@@ -2143,6 +2152,10 @@ nice.eventEmitter(nice.DataSource.proto);
       return this;
     },
     subscribe(f, v){
+      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
+        const o = f;
+        f = x => o[x]?.();
+      }
       this.on('state', f);
       if(v === -1)
         return;
@@ -2252,6 +2265,13 @@ Test((Box, Spy) => {
   b.on('state', spy);
   b(22);
   expect(spy).calledWith(22);
+});
+Test((Box, Spy) => {
+  const b = Box(1);
+  const spy1 = Spy();
+  const spy2 = Spy();
+  b.subscribe({ 1: spy1, 2: spy2 });
+  expect(spy1).calledWith();
 });
 })();
 (function(){"use strict";nice.Type({
@@ -2632,7 +2652,7 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
       });
       if(newLength < oldLength) {
         for(let i = newLength; i < oldLength ; i++)
-          this.emit('element', null, null, oldValues[i], i);
+          this.emit('element', null, null, oldValues[newLength], newLength);
       }
       this._value = a;
     },
@@ -2717,6 +2737,32 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
           }
         });
         f = newF;
+      });
+      return res;
+    },
+    window(start, length) {
+      const res = nice.BoxArray();
+      const resValue = res._value;
+      const source = this._value;
+      const within = n => n >= start && n < start + length;
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        if(oldIndex !== null) {
+          within(oldIndex) && res.remove(oldIndex - start);
+          if(oldIndex < start && (index === null || index >= start)) {
+            res.remove(0);
+            if(res._value.length + start < source.length){
+              res.push(source[start + length - 1]);
+            }
+          };
+        }
+        if(index !== null) {
+          within(index) && res.insert(index - start, value);
+          if(index < start && (oldIndex === null || oldIndex >= start)) {
+            res.insert(0, source[start]);
+          };
+        }
+        if(res._value.length > length)
+          res.remove(length);
       });
       return res;
     }
@@ -2805,6 +2851,19 @@ Test((BoxArray, sort) => {
   a.push(1);
   expect(b()).deepEqual([1,3,4,7,7]);
 });
+Test((BoxArray, window) => {
+  const a = BoxArray([1,2,3,4]);
+  const b = a.window(2,2);
+  expect(b()).deepEqual([3,4]);
+  a.remove(2);
+  expect(b()).deepEqual([4]);
+  a.push(5);
+  expect(b()).deepEqual([4,5]);
+  a.insert(0,0);
+  expect(b()).deepEqual([2,4]);
+  a.remove(0);
+  expect(b()).deepEqual([4,5]);
+});
 })();
 (function(){"use strict";
 class Connection{
@@ -2836,8 +2895,10 @@ nice.Type({
   initBy: (z, ...inputs) => {
     z._version = -1;
     z._by = inputs.pop();
+    if(typeof z._by === 'object')
+      z._by = objectPointers[inputs.length](z._by);
     if(typeof z._by !== 'function')
-      throw `Last argument to RBox should be function`;
+      throw `Last argument to RBox should be function or object`;
     z._ins = inputs.map((source, position) => new Connection({
       source, target:z, value: undefined, position
     }));
@@ -2873,10 +2934,9 @@ nice.Type({
 			this.warming = false;
       this._isHot && this.attemptCompute();
     },
-    subscribe(f) {
+    subscribe(f, v) {
       this.warmUp();
-      this.on('state', f);
-      f(this._value);
+      this.__proto__.__proto__.subscribe.call(this, f, v);
     },
     unsubscribe(f){
       this.off('state', f);
@@ -2923,6 +2983,11 @@ nice.Type({
     }
   }
 });
+const objectPointers = {
+  1: o => k => o[k],
+  2: o => (k1, k2) => o?.[k1]?.[k2],
+  2: o => (k1, k2, k3) => o?.[k1]?.[k2]?.[k3]
+};
 Test('RBox basic case', (Box, RBox) => {
   const b = Box(1);
   const rb = RBox(b, a => a + 1);
@@ -3213,6 +3278,65 @@ Test((BoxIndex, Spy) => {
   b.delete('a', 3);
   expect(del).calledTimes(3);
   expect(add).calledTimes(3);
+});
+})();
+(function(){"use strict";nice.Type({
+  name: 'BoxSortedMap',
+  extends: 'DataSource',
+  initBy (z, vs, f) {
+    expect(vs).isBoxMap();
+    const map = vs();
+    if(f === 'value') {
+      f = (k1, k2) => map[k1] > map[k2] ? 1 : -1;
+    } else if ('key') {
+      f = (k1, k2) => k1 > k2 ? 1 : -1;
+    } else {
+      f = (k1, k2) => f(k1, map[k1]) > f(k2, map[k2]) ? 1 : -1;
+    };
+    z.vs = vs;
+    z.f = f;
+  },
+  customCall: (z, ...as) => {
+    throw `Use access methods`;
+  },
+  proto: {
+    coldCompute(){
+      this._value = Object.keys(this.vs()).sort(this.f);
+    },
+    insertId(id) {
+      this.insert(sortedPosition(this._value, id, this.sortFunction), id);
+    },
+    deleteId(id) {
+      
+      this.removeValue(id);
+    },
+    considerChange(id, newValue, oldValue) {
+      
+      const oldPosition = this._value.indexOf(id);
+      if(oldPosition === -1 && (newValue === undefined || newValue !== null))
+        return;
+      const position = sortedPosition(this._value, newValue, this.sortValueFunction);
+      if(oldPosition === position)
+        return;
+      if(oldPosition > position) {
+        this.remove(oldPosition);
+        this.insert(position, id);
+      } else {
+        this.insert(position, id);
+        oldPosition >= 0 && this.remove(oldPosition);
+      }
+    },
+    subscribe(f){
+      _each(this._value, (index, position) => f())
+    }
+  }
+});
+Test((BoxSortedMap, BoxMap, Spy) => {
+  const map = BoxMap({q:1,a:2,b:3});
+  const sMap = BoxSortedMap(map, 'value');
+  const spy = Spy();
+  sMap.subscribe(spy);
+  expect(spy).calledTimes(3);
 });
 })();
 (function(){"use strict";
@@ -5306,6 +5430,7 @@ function createSubscription(box, state, dom){
       const newDom = refreshElement(newState, f.state, f.dom);
       if(newDom !== f.dom){
         f.dom = newDom;
+        f.dom.__boxListener = f;
         let parent = f;
         while (parent = parent.parentSubscription) {
           parent.dom = newDom;
@@ -5366,7 +5491,7 @@ function refreshElement(e, old, domNode){
   const eTag = (e !== undefined) && e._isHtml && e.tag(),
         oldTag = (old !== undefined) && old._isHtml && old.tag();
   let newDom = domNode;
-  if (eTag !== oldTag || (old._isHtml && old.forceRepaint())){
+  if (eTag !== oldTag || (old && old._isHtml && old.forceRepaint())){
     newDom = toDom(e);
     emptyNode(domNode);
     domNode.parentNode.replaceChild(newDom, domNode);
@@ -5374,16 +5499,16 @@ function refreshElement(e, old, domNode){
     domNode.nodeValue = e;
   } else {
     const newV = e._value, oldV = old._value;
-    const newStyle = newV.style, oldStyle = oldV.style;
+    const newStyle = newV.style || {}, oldStyle = oldV.style || {};
     _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
-    const newAtrs = newV.attributes, oldAtrs = oldV.attributes;
+    const newAtrs = newV.attributes || {}, oldAtrs = oldV.attributes || {};
     _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
     e.needAutoClass === true && assertAutoClass(domNode);
     if(e.needAutoClass || domNode.assertedClass)
       refreshSelectors(newV.cssSelectors, newV.cssSelectors, domNode);
-    const newHandlers = newV.eventHandlers, oldHandlers = newV.eventHandlers;
+    const newHandlers = newV.eventHandlers || {}, oldHandlers = newV.eventHandlers || {};
     nice._eachEach(oldHandlers, (f, i, type) => {
       if(!(newHandlers[type] && newHandlers[type].includes(f)))
         domNode.removeEventListener(type, f, true);
@@ -5400,8 +5525,7 @@ function refreshBoxChildren(aChildren, bChildren, domNode) {
   let ac = aChildren, bc = bChildren;
   if(bChildren._isBoxArray){
     while (domNode.firstChild) {
-      
-      domNode.removeChild(domNode.lastChild);
+      detachNode(domNode.lastChild, domNode);
     }
     bc = [];
   }
@@ -5429,19 +5553,21 @@ function refreshChildren(aChildren, bChildren, domNode){
     if(aChild === bChild && aChild !== undefined){
       refreshElement(aChildren[ai], bChildren[bi], domNode.childNodes[ai]);
       ai++, bi++;
-    } else
-    if(!bCount[aChild]){
-      attachNode(aChildren[ai], domNode, ai);
-      ai++;
-    } else if(!aCount[bChild]) {
-      detachNode(domNode.childNodes[ai], domNode);
-      bi++;
     } else {
-      const old = domNode.childNodes[bi];
-      old
-        ? refreshElement(aChildren[ai], bChildren[bi], old)
-        : attachNode(aChildren[ai], domNode, bi);
-      ai++, bi++;
+      if(!bCount[aChild]){
+        attachNode(aChildren[ai], domNode, ai);
+        ai++;
+      } else if(!aCount[bChild]) {
+        detachNode(domNode.childNodes[ai], domNode);
+        bi++;
+      } else {
+        const old = domNode.childNodes[bi];
+        old
+          ? refreshElement(aChildren[ai], bChildren[bi], old)
+          : attachNode(aChildren[ai], domNode, bi);
+  
+        ai++, bi++;
+      }
     }
   };
   while(bi < bKeys.length){
@@ -6080,4 +6206,4 @@ Test((sortedPosition) => {
   expect(sortedPosition(a, 2.5)).is(2);
   expect(sortedPosition(a, 10)).is(6);
 });
-})();;nice.version = "0.3.3";})();; return nice;}
+})();;nice.version = "0.4.0";})();; return nice;}

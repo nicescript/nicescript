@@ -403,7 +403,7 @@ defAll(nice, {
     let i = 0;
     if(Array.isArray(a)){
       while(i < n)
-        a.push(f(i++));
+        a.push(f(i++, a));
     } else if (a !== undefined){
       throw 'Accumulator should be an Array';
     } else {

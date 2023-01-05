@@ -33,7 +33,18 @@ const basicChecks = {
   },
   isTrue: v => v === true,
   isFalse: v => v === false,
-  isAnyOf: (v, ...vs) => vs.includes(v),
+  isAnyOf: (v, ...vs) => {
+    if(v && v._isAnything && '_value' in v)
+      v = v._value;
+
+    return vs.includes(v);
+  },
+  isNeitherOf: (v, ...vs) => {
+    if(v && v._isAnything && '_value' in v)
+      v = v._value;
+
+    return !vs.includes(v);
+  },
   isTruly: v => v
     ? v._isAnything
       ? v.isNothing() ? false : !!v()

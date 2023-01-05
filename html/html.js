@@ -368,6 +368,7 @@ function createSubscription(box, state, dom){
       const newDom = refreshElement(newState, f.state, f.dom);
       if(newDom !== f.dom){
         f.dom = newDom;
+        f.dom.__boxListener = f;
         let parent = f;
         while (parent = parent.parentSubscription) {
           parent.dom = newDom;
@@ -451,7 +452,7 @@ function refreshElement(e, old, domNode){
         oldTag = (old !== undefined) && old._isHtml && old.tag();
   let newDom = domNode;
 
-  if (eTag !== oldTag || (old._isHtml && old.forceRepaint())){
+  if (eTag !== oldTag || (old && old._isHtml && old.forceRepaint())){
     newDom = toDom(e);
     emptyNode(domNode);
     domNode.parentNode.replaceChild(newDom, domNode);
@@ -460,11 +461,11 @@ function refreshElement(e, old, domNode){
   } else {
     const newV = e._value, oldV = old._value;
 
-    const newStyle = newV.style, oldStyle = oldV.style;
+    const newStyle = newV.style || {}, oldStyle = oldV.style || {};
     _each(oldStyle, (v, k) => (k in newStyle) || (domNode.style[k] = ''));
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
 
-    const newAtrs = newV.attributes, oldAtrs = oldV.attributes;
+    const newAtrs = newV.attributes || {}, oldAtrs = oldV.attributes || {};
 
     _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
@@ -473,7 +474,7 @@ function refreshElement(e, old, domNode){
     if(e.needAutoClass || domNode.assertedClass)
       refreshSelectors(newV.cssSelectors, newV.cssSelectors, domNode);
 
-    const newHandlers = newV.eventHandlers, oldHandlers = newV.eventHandlers;
+    const newHandlers = newV.eventHandlers || {}, oldHandlers = newV.eventHandlers || {};
     nice._eachEach(oldHandlers, (f, i, type) => {
       if(!(newHandlers[type] && newHandlers[type].includes(f)))
         domNode.removeEventListener(type, f, true);
@@ -494,8 +495,9 @@ function refreshBoxChildren(aChildren, bChildren, domNode) {
 
   if(bChildren._isBoxArray){
     while (domNode.firstChild) {
-      //TODO: unsubscribe
-      domNode.removeChild(domNode.lastChild);
+//      TODO: unsubscribe
+//      domNode.removeChild(domNode.lastChild);
+      detachNode(domNode.lastChild, domNode);
     }
     bc = [];
   }
@@ -521,7 +523,7 @@ function refreshChildren(aChildren, bChildren, domNode){
     return refreshBoxChildren(aChildren, bChildren, domNode);
   }
 
-  const aKeys = aChildren.map(extractKey);//TODO: why do we treat same id as same node??
+  const aKeys = aChildren.map(extractKey);
   const bKeys = bChildren.map(extractKey);
   const aCount = aKeys.reduce(childrenCounter, {});
   const bCount = bKeys.reduce(childrenCounter, {});
@@ -532,23 +534,24 @@ function refreshChildren(aChildren, bChildren, domNode){
     if(aChild === bChild && aChild !== undefined){
       refreshElement(aChildren[ai], bChildren[bi], domNode.childNodes[ai]);
       ai++, bi++;
-    } else
-    if(!bCount[aChild]){//assume insert
-      attachNode(aChildren[ai], domNode, ai);
-      ai++;
-    } else if(!aCount[bChild]) {//assume delete
-      detachNode(domNode.childNodes[ai], domNode);
-      bi++;
-    } else {//assume ugly reorder - brute force
-      const old = domNode.childNodes[bi];
-      old
-        ? refreshElement(aChildren[ai], bChildren[bi], old)
-        : attachNode(aChildren[ai], domNode, bi);
+    } else {
+      if(!bCount[aChild]){//assume insert
+        attachNode(aChildren[ai], domNode, ai);
+        ai++;
+      } else if(!aCount[bChild]) {//assume delete
+        detachNode(domNode.childNodes[ai], domNode);
+        bi++;
+      } else {//assume ugly reorder - brute force
+        const old = domNode.childNodes[bi];
+        old
+          ? refreshElement(aChildren[ai], bChildren[bi], old)
+          : attachNode(aChildren[ai], domNode, bi);
 
-//      old && detachNode(old, domNode);
+  //      old && detachNode(old, domNode);
 
 
-      ai++, bi++;
+        ai++, bi++;
+      }
     }
   };
   while(bi < bKeys.length){

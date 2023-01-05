@@ -65,7 +65,7 @@ nice.Type({
 
       if(newLength < oldLength) {
         for(let i = newLength; i < oldLength ; i++)
-          this.emit('element', null, null, oldValues[i], i);
+          this.emit('element', null, null, oldValues[newLength], newLength);
       }
 
       this._value = a;
@@ -169,6 +169,36 @@ nice.Type({
         f = newF;
       });
 
+      return res;
+    },
+
+    window(start, length) {
+      const res = nice.BoxArray();
+      const resValue = res._value;
+      const source = this._value;
+
+      const within = n => n >= start && n < start + length;
+      this.subscribe((value, index, oldValue, oldIndex) => {
+        if(oldIndex !== null) {
+          within(oldIndex) && res.remove(oldIndex - start);
+          if(oldIndex < start && (index === null || index >= start)) {
+            res.remove(0);
+            if(res._value.length + start < source.length){
+              res.push(source[start + length - 1]);
+            }
+          };
+        }
+
+        if(index !== null) {
+          within(index) && res.insert(index - start, value);
+          if(index < start && (oldIndex === null || oldIndex >= start)) {
+            res.insert(0, source[start]);
+          };
+        }
+
+        if(res._value.length > length)
+          res.remove(length);
+      });
       return res;
     }
 
@@ -304,4 +334,29 @@ Test((BoxArray, sort) => {
   a.push(7);
   a.push(1);
   expect(b()).deepEqual([1,3,4,7,7]);
+});
+
+
+Test((BoxArray, window) => {
+  const a = BoxArray([1,2,3,4]);
+  const b = a.window(2,2);
+
+
+  expect(b()).deepEqual([3,4]);
+
+  a.remove(2);
+  expect(b()).deepEqual([4]);
+
+  a.push(5);
+  expect(b()).deepEqual([4,5]);
+
+  a.insert(0,0);
+  expect(b()).deepEqual([2,4]);
+
+  a.remove(0);
+  expect(b()).deepEqual([4,5]);
+
+//  a.push(7);
+//  a.push(1);
+//  expect(b()).deepEqual([1,3,4,7,7]);
 });
