@@ -61,7 +61,7 @@ nice.Type({
       return z._value;
     }
 
-    throw `Can't set value for reactive box`;
+    throw `Can't set value to reactive box`;
   },
 
   proto: {
