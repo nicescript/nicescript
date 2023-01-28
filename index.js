@@ -14,13 +14,6 @@ module.exports = function(){let nice;(function(){const IS_BROWSER = typeof windo
     return a[0];
   return nice.typeOf(a[0])(...a);
 };
-nice.reflect = {
-  functions:{},
-  bodies:[],
-  list (name) {
-    this._events[name].forEach(e => console.log(e));
-  }
-}
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   if(value === undefined && typeof name === 'function'){
     value = name;
@@ -42,6 +35,22 @@ defAll(nice, {
   TYPE_KEY: '_nt_',
   SOURCE_ERROR: 'Source error',
   LOCKED_ERROR: 'Item is closed for modification',
+  reflect: {
+    functions:{},
+    bodies:[],
+    list (name) {
+      this._events[name].forEach(e => console.log(e));
+    },
+    registerType (type) {
+      const name = type.name;
+      name[0] !== name[0].toUpperCase() &&
+        nice.error('Please start type name with a upper case letter');
+      nice.types[name] = type;
+      def(nice, name, type);
+      def(type.proto, '_is' + name, true);
+      reflect.emitAndSave('type', type);
+    }
+  },
   curry: (f, arity = f.length) =>(...a) => a.length >= arity
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),
@@ -151,15 +160,6 @@ defAll(nice, {
   checkTypeName (name) {
     /^[A-Z].*/.test(name[0]) ||
       nice.error('Please start type name with a upper case letter');
-  },
-  registerType (type) {
-    const name = type.name;
-    name[0] !== name[0].toUpperCase() &&
-      nice.error('Please start type name with a upper case letter');
-    nice.types[name] = type;
-    def(nice, name, type);
-    def(type.proto, '_is' + name, true);
-    reflect.emitAndSave('type', type);
   },
   _each: (o, f) => {
     if(o)
@@ -846,7 +846,7 @@ jsHierarchy['primitive'].split(',').forEach(name => {
 });
 nice.jsTypes.Function.primitiveName = 'function';
 })();
-(function(){"use strict";nice.registerType({
+(function(){"use strict";reflect.registerType({
   name: 'Anything',
   description: 'Parent type for all types.',
   extend (name, by){
@@ -1000,7 +1000,7 @@ defAll(nice, {
     Object.assign(type, config);
     nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);
     const cfg = create(config.configProto, nice.Configurator(type, ''));
-    config.name && nice.registerType(type);
+    config.name && reflect.registerType(type);
     return cfg;
   },
 });

@@ -1,4 +1,4 @@
-nice.registerType({
+reflect.registerType({
   name: 'Anything',
 
   description: 'Parent type for all types.',

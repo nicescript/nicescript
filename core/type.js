@@ -48,7 +48,7 @@ defAll(nice, {
     nice.extend(type, 'extends' in config ? nice.type(config.extends) : nice.Obj);
 
     const cfg = create(config.configProto, nice.Configurator(type, ''));
-    config.name && nice.registerType(type);
+    config.name && reflect.registerType(type);
     return cfg;
   },
 });

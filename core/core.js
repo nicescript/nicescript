@@ -20,14 +20,6 @@ nice = (...a) => {
   return nice.typeOf(a[0])(...a);
 };
 
-nice.reflect = {
-  functions:{},
-  bodies:[],
-  list (name) {
-    this._events[name].forEach(e => console.log(e));
-  }
-}
-
 Object.defineProperty(nice, 'define', { value: (target, name, value) => {
   if(value === undefined && typeof name === 'function'){
     value = name;
@@ -44,8 +36,6 @@ Object.defineProperty(nice, 'define', { value: (target, name, value) => {
 def = nice.define;
 
 
-
-
 def(nice, 'defineAll', (target, o) => {
   for(let i in o)
     def(target, i, o[i]);
@@ -59,6 +49,24 @@ defAll(nice, {
   TYPE_KEY: '_nt_',
   SOURCE_ERROR: 'Source error',
   LOCKED_ERROR: 'Item is closed for modification',
+  reflect: {
+    functions:{},
+    bodies:[],
+    list (name) {
+      this._events[name].forEach(e => console.log(e));
+    },
+    registerType (type) {
+      const name = type.name;
+
+      name[0] !== name[0].toUpperCase() &&
+        nice.error('Please start type name with a upper case letter');
+
+      nice.types[name] = type;
+      def(nice, name, type);
+      def(type.proto, '_is' + name, true);
+      reflect.emitAndSave('type', type);
+    }
+  },
   curry: (f, arity = f.length) =>(...a) => a.length >= arity
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),
@@ -200,18 +208,6 @@ defAll(nice, {
   checkTypeName (name) {
     /^[A-Z].*/.test(name[0]) ||
       nice.error('Please start type name with a upper case letter');
-  },
-
-  registerType (type) {
-    const name = type.name;
-
-    name[0] !== name[0].toUpperCase() &&
-      nice.error('Please start type name with a upper case letter');
-
-    nice.types[name] = type;
-    def(nice, name, type);
-    def(type.proto, '_is' + name, true);
-    reflect.emitAndSave('type', type);
   },
 
   _each: (o, f) => {
