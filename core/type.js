@@ -10,7 +10,7 @@ def(nice, function extend(child, parent){
   child.super = parent;
 });
 
-
+let _counter = 0;
 defAll(nice, {
   type: t => {
     typeof t === 'string' && (t = nice[t]);
@@ -29,7 +29,7 @@ defAll(nice, {
     nice.isObject(config)
       || nice.error("Need object for type's prototype");
 
-    config.name = config.name || 'Type_' + (nice._counter++);
+    config.name = config.name || 'Type_' + (_counter++);
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};

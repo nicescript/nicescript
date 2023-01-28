@@ -14,7 +14,6 @@ module.exports = function(){let nice;(function(){const IS_BROWSER = typeof windo
     return a[0];
   return nice.typeOf(a[0])(...a);
 };
-nice._counter = 0;
 nice.reflect = {
   functions:{},
   bodies:[],
@@ -970,6 +969,7 @@ reflect.on('type', t =>
   reflect.emitAndSave('extension', { child, parent });
   child.super = parent;
 });
+let _counter = 0;
 defAll(nice, {
   type: t => {
     typeof t === 'string' && (t = nice[t]);
@@ -985,7 +985,7 @@ defAll(nice, {
     }
     nice.isObject(config)
       || nice.error("Need object for type's prototype");
-    config.name = config.name || 'Type_' + (nice._counter++);
+    config.name = config.name || 'Type_' + (_counter++);
     config.types = {};
     config.proto = config.proto || {};
     config.configProto = config.configProto || {};
@@ -5237,7 +5237,6 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     handlers && nice.removeValue(handlers, f);
     return e;
   })
-  .Action('format', (z, ...as) => z.add(nice.format(...as)))
   .object('style')
   .object('attributes')
   .object('properties')

@@ -20,8 +20,6 @@ nice = (...a) => {
   return nice.typeOf(a[0])(...a);
 };
 
-nice._counter = 0;
-
 nice.reflect = {
   functions:{},
   bodies:[],
@@ -220,7 +218,7 @@ defAll(nice, {
     if(o)
       for(let i in o)
         if(i !== nice.TYPE_KEY)
-          f(o[i], i)
+          f(o[i], i);
 //          if(nice.isStop(f(o[i], i)))
 //            break;
     return o;
