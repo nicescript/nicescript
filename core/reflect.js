@@ -1,17 +1,18 @@
 def(nice, 'reflect', {
   functions:{},
+  types:{},
   bodies:[],
   list (name) {
     this._events[name].forEach(e => console.log(e));
   },
-  
+
   registerType (type) {
     const name = type.name;
 
     name[0] !== name[0].toUpperCase() &&
       nice.error('Please start type name with a upper case letter');
 
-    nice.types[name] = type;
+    reflect.types[name] = type;
     def(nice, name, type);
     def(type.proto, '_is' + name, true);
     reflect.emitAndSave('type', type);

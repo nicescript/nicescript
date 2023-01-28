@@ -21,7 +21,7 @@ defAll(nice, {
 
   Type: (config = {}, by) => {
     if(typeof config === 'string'){
-      if(nice.types[config])
+      if(reflect.types[config])
         throw `Type "${config}" already exists`;
       config = {name: config};
     }
