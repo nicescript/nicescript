@@ -33,7 +33,7 @@ reflect.registerType({
     _isAnything: true,
 
     to (type, ...as){
-      nice._initItem(this, type, as);
+      reflect.initItem(this, type, as);
       return this;
     },
 
@@ -138,6 +138,6 @@ Anything.proto._type = Anything;
 
 reflect.on('type', t =>
   t.name && (Anything.proto['to' + t.name] = function (...as) {
-    return nice._initItem(this, t, as);
+    return reflect.initItem(this, t, as);
   })
 );

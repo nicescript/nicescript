@@ -15,6 +15,7 @@ const pachageInfo = JSON.parse(fs.readFileSync('./package.json'));
 
 const order = [
   'core/core',
+  'core/reflect',
   'core/utils',
   'doc/doc_lib',
   'core/utils_object',

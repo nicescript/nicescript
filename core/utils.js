@@ -286,7 +286,7 @@ defAll(nice, {
     if(o && o._isSingleton){
       return o;
     } else if(o && o._isAnything) {
-      res = nice._newItem(o._type);
+      res = reflect.newItem(o._type);
       res._result = nice.cloneDeep(o._getResult());
       return res;
     } else if(Array.isArray(o)) {

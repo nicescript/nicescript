@@ -41,7 +41,7 @@ defAll(nice, {
       config.isFunction = true;
     }
 
-    const type = (...a) => nice._createItem(type, a);
+    const type = (...a) => reflect.createItem(type, a);
 
     Object.defineProperty(type, 'name', { writable: true });
     Object.assign(type, config);

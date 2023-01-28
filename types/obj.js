@@ -69,8 +69,8 @@ nice.Type({
 
       if(childType){
         const child = key in type.defaultArguments
-         ? nice._createItem(childType, type.defaultArguments[key])
-         : nice._createItem(childType);
+         ? reflect.createItem(childType, type.defaultArguments[key])
+         : reflect.createItem(childType);
 
         this._value[key] = child;
         return child;
@@ -86,8 +86,8 @@ nice.Type({
       const childType = (type && type.types[key]) || Anything;
 
       const child = key in type.defaultArguments
-       ? nice._createItem(childType, type.defaultArguments[key])
-       : nice._createItem(childType);
+       ? reflect.createItem(childType, type.defaultArguments[key])
+       : reflect.createItem(childType);
 
       this._value[key] = child;
       return child;
@@ -235,7 +235,7 @@ A('set', (z, key, value, ...tale) => {
 
   if(childType) {
     if(!z._value[_name]){
-      z._value[_name] = nice._createItem(childType);
+      z._value[_name] = reflect.createItem(childType);
     }
     z._value[_name](value, ...tale);
   }
