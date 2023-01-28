@@ -5884,9 +5884,7 @@ IS_BROWSER && Test((Div) => {
     const type = nice.getType(a).name;
     
     constructors[type]
-      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol')
-        ? (v => (v && v._isLi) ? v : nice.Li(v))
-        : (v => v)))
+      ? constructors[type](z, a, as[0] || (v => v))
       : z.add(a, ...as);
   })
     .about('Represents HTML <%s> element.', l);

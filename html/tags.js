@@ -9,10 +9,11 @@ const Html = nice.Html;
       return;
     const type = nice.getType(a).name;
     //TODO: use function overload (sub types don't work)
+//      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol')
+//        ? (v => (v && v._isLi) ? v : nice.Li(v))
+//        : (v => v)))
     constructors[type]
-      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol')
-        ? (v => (v && v._isLi) ? v : nice.Li(v))
-        : (v => v)))
+      ? constructors[type](z, a, as[0] || (v => v))
       : z.add(a, ...as);
   })
     .about('Represents HTML <%s> element.', l);
@@ -48,31 +49,7 @@ Html.extend('Img').by((z, src, x, y) => {
 
 const constructors = {
   BoxArray: (z, b, f) => z.bindChildren(f ?  b.map(f) : b),
-//  Obj: (z, o, f) => {
-//    const positions = {};
-//    o.listen({
-//      onRemove: (v, k) => z.children.remove(positions[k]),
-//      onAdd: (v, k) => {
-//        const i = Object.keys(o()).indexOf(k);
-//        positions[k] = i;
-//        z.children.insertAt(i, f(v, k));
-//      }
-//    }, z.children);
-//  },
   Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-//  Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-//  Arr: (z, a, f) => a.listenItems(v => v.isNotFound()
-//    ? z.children.remove(v._name)
-//    : z.children.insertAt(v._name, f(v, v._name))
-//  , z.children),
   Arr: (z, a, f) => a.each((v, k) => z.add(f(v, k))),
-//  a.listenItems({
-//    NotFound: v => z.children.remove(v._name),
-//    '*': v => z.children.insertAt(v._name, f(v, v._name))
-//  }, z.children),
-//  Arr: (z, a, f) => a.listen({
-//    onRemove: (v, k) => z.children.removeAt(k),
-//    onAdd: (v, k) => z.children.insertAt(k, f(v, k))
-//  }, z.children),
   Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
 };
