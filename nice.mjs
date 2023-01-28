@@ -165,7 +165,7 @@ defAll(nice, {
     if(o)
       for(let i in o)
         if(i !== nice.TYPE_KEY)
-          f(o[i], i)
+          f(o[i], i);
     return o;
   },
   _removeArrayValue: (a, item) => {

@@ -1,7 +1,3 @@
-let autoId = 0;
-const AUTO_PREFIX = '_nn_';
-
-
 nice.Type({
   name: 'Stream',
 

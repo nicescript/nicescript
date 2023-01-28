@@ -297,15 +297,3 @@ let autoId = 0;
 def(nice, 'AUTO_PREFIX', '_nn_');
 def(nice, 'genereteAutoId', () => nice.AUTO_PREFIX + autoId++);
 
-//function refreshSize(item, oldType, type){
-//  const on = type && type !== NotFound;
-//  const off = oldType && oldType !== NotFound;
-//  const parent = item._parent;
-//
-//  if(on && !off){
-//    parent._size = parent._size + 1;
-//  } else if (off && !on){
-//    parent._size = parent._size - 1;
-//  }
-//}
-
