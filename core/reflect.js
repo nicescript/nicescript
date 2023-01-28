@@ -27,15 +27,15 @@ def(nice, 'reflect', {
 
     if(type.isFunction === true){
       item = reflect.newItem();
-      reflect.setType(item, type);
+      Object.setPrototypeOf(item, type.proto);
     } else {
       item = Object.create(type.proto);
-      item._type = type;
-      if("defaultValueBy" in type){
-        item._value = type.defaultValueBy();
-      };
     }
 
+    item._type = type;
+    if("defaultValueBy" in type){
+      item._value = type.defaultValueBy();
+    };
     reflect.initItem(item, type, args);
     return item;
   },
@@ -49,19 +49,6 @@ def(nice, 'reflect', {
       throw type.name + ' doesn\'t know what to do with arguments';
     }
     return z;
-  },
-
-  setType(item, type) {
-    const proto = type.proto;
-    Object.setPrototypeOf(item, proto);
-    item._type = type;
-
-//    type.defaultValueBy && (item._value = type.defaultValueBy());
-    if("defaultValueBy" in type){
-      item._value = type.defaultValueBy();
-    };
-
-    return item;
   },
 
   newItem() {
@@ -85,5 +72,5 @@ def(nice, 'reflect', {
     nice.eraseProperty(f, 'length');
 
     return f;
-  },
+  }
 });

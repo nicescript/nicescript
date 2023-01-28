@@ -108,7 +108,6 @@ defAll(nice, {
 
   eraseProperty: (o, k) => {
     Object.defineProperty(o, k, { writable: true, configurable: true }) && delete o[k];
-//    delete o[k];
   },
 
   rewriteProperty: (o, k, v) => {
