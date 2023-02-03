@@ -19,7 +19,7 @@ Test(Num => {
 });
 
 
-Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);
+Check('between', (n, a, b) => n > a && n < b);
 
 _each({
   integer: n => Number.isInteger(n),

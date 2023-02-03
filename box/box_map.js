@@ -11,7 +11,7 @@ nice.Type({
 
   initBy: (z, o) => {
     z._value = {};
-    o && _each(o, (v, k) => z.set(k, v));
+    _each(o, (v, k) => z.set(k, v));
   },
 
   proto: {

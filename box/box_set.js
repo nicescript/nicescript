@@ -39,6 +39,14 @@ nice.Type({
       return this._value.size;
     },
 
+    forEach (f) {
+      this._value.forEach(f);
+    },
+
+    each (f) {
+      this._value.forEach(f);
+    },
+
     intersection (b) {
       const av = this._value;
       const bv = b._value;

@@ -222,7 +222,7 @@ def(nice, 'genereteAutoId', () => nice.AUTO_PREFIX + autoId++);
     nice.eraseProperty(f, 'name');
     nice.eraseProperty(f, 'length');
     return f;
-  },
+  }
 });
 })();
 (function(){"use strict";const formatRe = /(%([jds%]))/g;
@@ -813,7 +813,6 @@ nice.typesToJsTypesMap = {
   Obj: 'Object',
   Arr: 'Array',
   Bool: 'Boolean',
-  Single: 'primitive',
 }
 for(let i in jsHierarchy)
   jsHierarchy[i].split(',').forEach(name => {
@@ -1694,6 +1693,10 @@ Test((is) => {
   expect(n.is(1)).is(true);
   expect(n.is(2)).is(false);
 });
+Test((between) => {
+  expect(between(1, 2, 3)).is(false);
+  expect(between(2, 1, 3)).is(true);
+});
 })();
 (function(){"use strict";def(nice, 'expectPrototype', {});
 function isFail (v) {
@@ -2370,6 +2373,12 @@ Test('RBox subscribe', (Box, RBox, Spy) => {
     get size() {
       return this._value.size;
     },
+    forEach (f) {
+      this._value.forEach(f);
+    },
+    each (f) {
+      this._value.forEach(f);
+    },
     intersection (b) {
       const av = this._value;
       const bv = b._value;
@@ -2448,7 +2457,7 @@ Test((BoxSet, intersection, Spy) => {
   },
   initBy: (z, o) => {
     z._value = {};
-    o && _each(o, (v, k) => z.set(k, v));
+    _each(o, (v, k) => z.set(k, v));
   },
   proto: {
     set (k, v) {
@@ -5017,7 +5026,7 @@ Test(Num => {
   expect(n).is(3);
   expect(() => n('qwe')).throws();
 });
-Check.Single.Single.Single('between', (n, a, b) => n > a && n < b);
+Check('between', (n, a, b) => n > a && n < b);
 _each({
   integer: n => Number.isInteger(n),
   saveInteger: n => Number.isSaveInteger(n),

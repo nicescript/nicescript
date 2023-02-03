@@ -409,3 +409,9 @@ Test((is) => {
   expect(n.is(1)).is(true);
   expect(n.is(2)).is(false);
 });
+
+
+Test((between) => {
+  expect(between(1, 2, 3)).is(false);
+  expect(between(2, 1, 3)).is(true);
+});

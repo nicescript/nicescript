@@ -34,7 +34,7 @@ nice.typesToJsTypesMap = {
   Obj: 'Object',
   Arr: 'Array',
   Bool: 'Boolean',
-  Single: 'primitive',
+//  Single: 'primitive',
 //  Func: 'Function',
 //  'undefined': 'Undefined',
 //  'null': 'Null'
