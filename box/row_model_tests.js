@@ -121,5 +121,20 @@ Test((Spy) => {
 	});
 
   m.compressField('occupation');
-  console.log(m);
+//  console.log(m);
+});
+
+
+Test((Spy) => {
+	const m = RowModel();
+  m.compressField('type');
+
+  const janeId = m.add({ name: "Jane", type:'person', age: 23});
+  const bimId = m.add({ name: "Bim", type:'dog'});
+//  console.log(m);
+
+  const m2 = RowModel.fromLog(m.log);
+  expect(m2.get(janeId)).deepEqual(m.get(janeId));
+  expect(m.get(bimId)).deepEqual(m2.get(bimId));
+//  console.log(m2);
 });

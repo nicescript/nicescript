@@ -3,6 +3,7 @@ const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
 const TEMPLATE = -1;
 const DELETE = -2;
 const COMPRESS = -3;
+const VALUE = -4;
 
 //const api = {
 //	change: {
@@ -17,13 +18,21 @@ const COMPRESS = -3;
 //};
 
 const proto = {
+  //TODO:
+  /*
+//TODO: id is not necessary
+[ -1, 0, 'age', 'id', 'name' ],
+
+//TODO: 2nd argument is not necessery
+[ 0, 0, 34, 0, 'Joe' ],
+*/
 	add(o) {
 		checkObject(o);
 		const id = this.rows.length;
-    o.id = id;
 		this.lastId = id;
 		this.rows.push(o);
 		this.writeLog(id, o);
+    o._id = id;
 		this.notifyIndexes(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
@@ -185,24 +194,33 @@ const proto = {
 	writeLog(id, o) {
 		const templateId = this.findTemplate(o);
 		const template = this.templates[templateId];
-    this._pushLog([templateId, id, ...template.map(field => o[field])]);
+    const data = [templateId, id];
+    for(let field of template)
+      typeof field === 'string' && data.push(o[field]);
+    this._pushLog(data);
+//    this._pushLog([templateId, id, ...template.map(field => o[field])]);
 	},
+
+  _assertValue(k, v){
+    let id = this.values[k]?.[v];
+    if(id !== undefined)
+      return id;
+
+    id = this.lastValueId++;
+    this.values[k] = this.values[k] || Object.create(null);
+    this.values[k][v] = id;
+    this.valuesIndex[id] = [k, v];
+    this._pushLog([VALUE, id, k, v]);
+    return id;
+  },
 
 	findTemplate(o) {
     const template = [];
-    let vs;
-
     for(let i in o)
-      if(i in this.compressedFields){
-        vs = vs || {};
-        vs[i] = o[i];
-      } else {
-        template.push(i);
-      }
-
-    vs && template.push(vs);
+      template.push(i in this.compressedFields ? this._assertValue(i, o[i]) : i);
 
 		template.sort();
+
 		const id = this.templates.findIndex(r => nice.deepEqual(r, template));
 		if(id !== -1)
 			return id;
@@ -212,19 +230,6 @@ const proto = {
     this._pushLog([TEMPLATE, newId, ...template]);
 		return newId;
 	},
-//	findTemplate(a) {
-//		if(!Array.isArray(a))
-//			a = Object.keys(a);
-//		a.sort();
-//		const id = this.templates.findIndex(r => nice.deepEqual(r, a));
-//		if(id !== -1)
-//			return id;
-//
-//		const newId = this.templates.length;
-//		this.templates.push(a);
-//    this._pushLog([TEMPLATE, newId, ...a]);
-//		return newId;
-//	},
 
 	rowBox(id) {
 		if(!(id in this.rowBoxes)){
@@ -242,25 +247,47 @@ const proto = {
 		if(templateId === TEMPLATE){
 			m.templates[id] = row.slice(2);
 		} else if(templateId === DELETE){
-      const data = rows[id];
+      const oldData = rows[id];
       delete rows[id];
-      _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
+      _each(oldData, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
 		} else if(templateId === COMPRESS){
-      console.log('COMPRESS');
+      this.compressedFields[row[1]] = true;
+		} else if(templateId === VALUE){
+      const [,id, k, value] = row;
+      this.values[k] = this.values[k] || Object.create(null);
+      this.values[k][value] = id;
+      this.valuesIndex[id] = [k, value];
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
 			if(create)
-				rows[id] = {};
+				rows[id] = { _id:id };
 			const template = m.templates[templateId];
-			row.slice(2).forEach((v, k) => {
-				const field = template[k];
-        const data = rows[id];
-        const oldValue = data[field];
-        data[field] = v;
-				this.notifyIndexOneValue(id, field, v, oldValue);
-        create || this.notifyOptions(id, field, v, oldValue);
-        create || this.notifySorts(id, field, v, oldValue);
-			});
+
+      let i = 2;
+      const oldData = rows[id];
+      for(const f of template){
+        let field, value;
+        if(typeof f === 'string'){
+          field = f;
+          value = row[i++];
+        } else {
+          [field, value] = this.valuesIndex[f];
+        }
+        const oldValue = oldData[field];
+        oldData[field] = value;
+				this.notifyIndexOneValue(id, field, value, oldValue);
+        create || this.notifyOptions(id, field, value, oldValue);
+        create || this.notifySorts(id, field, value, oldValue);
+      }
+//			row.slice(2).forEach((v, k) => {
+//				const field = template[k];
+//        const data = rows[id];
+//        const oldValue = data[field];
+//        data[field] = v;
+//				this.notifyIndexOneValue(id, field, v, oldValue);
+//        create || this.notifyOptions(id, field, v, oldValue);
+//        create || this.notifySorts(id, field, v, oldValue);
+//			});
 			if(id in this.rowBoxes)
 				this.rowBoxes[id](rows[id]);
 		} else {
@@ -294,7 +321,10 @@ function RowModel(){
 		lastId: -1,
     version: 0,
 		templates: [],
-		compressedFields: {},
+		compressedFields: Object.create(null),
+		values: Object.create(null),
+		valuesIndex: [],
+		lastValueId: 0,
 		rows: [],
 		log: [],
 		indexes: {},
@@ -563,28 +593,26 @@ function createFilter(model) {
 }
 
 const ffff = () => {
-  const record = { type: 'translation', word: 8453, translation: 'went' };
-
-  const oldTemplate = ['type', 'word', 'translation'];
-  const oldRow = ['translation', 8453, 'went'];
-
-  db.compressField('type');
-  const newTemplate = [{type: 'translation'}, 'word', 'translation'];
-  const newRow = [8453, 'went'];
-  // or
-  const newTemplate = ['word', 'translation'];
-  const newValue = [type, 'translation'];
-  const newTemplateWithValue = [newTemplate, newTemplateValue];
-
-  ///or
-  db.compressField('type');
-  const valueLog = [1, {type: 'translation'}];
-
-  const newTemplate = ['word', 'translation'];
-  const newRow = [8453, 'went', 1];
-
-  const newTemplate = [1, 'word', 'translation'];
-  const newRow = [8453, 'went'];
-
-
+//  const record = { type: 'translation', word: 8453, translation: 'went' };
+//
+//  const oldTemplate = ['type', 'word', 'translation'];
+//  const oldRow = ['translation', 8453, 'went'];
+//
+//  db.compressField('type');
+//  const newTemplate = [{type: 'translation'}, 'word', 'translation'];
+//  const newRow = [8453, 'went'];
+//  // or
+//  const newTemplate = ['word', 'translation'];
+//  const newValue = [type, 'translation'];
+//  const newTemplateWithValue = [newTemplate, newTemplateValue];
+//
+//  ///or
+//  db.compressField('type');
+//  const valueLog = [1, {type: 'translation'}];
+//
+//  const newTemplate = ['word', 'translation'];
+//  const newRow = [8453, 'went', 1];
+//
+//  const newTemplate = [1, 'word', 'translation'];
+//  const newRow = [8453, 'went'];
 };
