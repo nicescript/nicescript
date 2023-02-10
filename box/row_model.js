@@ -1,4 +1,9 @@
 const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
+
+const TEMPLATE = -1;
+const DELETE = -2;
+const COMPRESS = -3;
+
 //const api = {
 //	change: {
 //		add: () => {},
@@ -25,12 +30,52 @@ const proto = {
 		return id;
 	},
 
-  delete(id) {
-    const log = [-2, id];
-    this.log.push(log);
-		this.logSubscriptions.forEach(f => f(log));
-    this.version = this.log.length;
+  find(o) {
+    let res = null;
+    const ii = [];
 
+    for(let k in o) {
+      if(!this.indexes[k])
+        return null;
+
+      const ids = this.indexes[k].getKeys(o[k]);
+      if(ids === null || ids.length === 0)
+        return null;
+
+      res = res === null
+        ? ids
+        : res.filter(id => ids.includes(id));
+    }
+//    console.log(res[0]);
+    return res[0];
+  },
+
+  assert(o) {
+//    this.find(o);
+//    for(let i in this.rows)
+//      if(match(o, this.rows[i]))
+//        return +i;
+
+    return this.find(o) || this.add(o);
+  },
+
+  compressField(f){
+    expect(f).isString();
+    if(f in this.compressedFields)
+      return;
+
+    this.compressedFields[f] = true;
+    this._pushLog([COMPRESS, f]);
+  },
+
+  _pushLog(row){
+    this.log.push(row);
+		this.logSubscriptions.forEach(f => f(row));
+    this.version = this.log.length;
+  },
+
+  delete(id) {
+    this._pushLog([DELETE, id]);
     const data = this.rows[id];
     delete this.rows[id];
 
@@ -140,11 +185,7 @@ const proto = {
 	writeLog(id, o) {
 		const templateId = this.findTemplate(o);
 		const template = this.templates[templateId];
-
-		this.version = this.log.length;
-		const row = [templateId, id, ...template.map(field => o[field])];
-		this.log.push(row);
-		this.logSubscriptions.forEach(f => f(row));
+    this._pushLog([templateId, id, ...template.map(field => o[field])]);
 	},
 
 	findTemplate(a) {
@@ -157,10 +198,7 @@ const proto = {
 
 		const newId = this.templates.length;
 		this.templates.push(a);
-		this.version = this.log.length;
-		const row = [-1, newId, ...a];
-		this.log.push(row);
-		this.logSubscriptions.forEach(f => f(row));
+    this._pushLog([TEMPLATE, newId, ...a]);
 		return newId;
 	},
 
@@ -177,9 +215,9 @@ const proto = {
 		const id = row[1];
     const rows = m.rows;
 
-		if(templateId === -1){ // row is a template
+		if(templateId === TEMPLATE){ // row is a template
 			m.templates[id] = row.slice(2);
-		} else if(templateId === -2){ // row is delete
+		} else if(templateId === DELETE){ // row is delete
       const data = rows[id];
       delete rows[id];
       _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
@@ -230,6 +268,7 @@ function RowModel(){
 		lastId: -1,
     version: 0,
 		templates: [],
+		compressedFields: {},
 		rows: [],
 		log: [],
 		indexes: {},
@@ -299,6 +338,14 @@ function matchFilter(ff, row) {
 			res = false;
 	});
 	return res;
+}
+
+
+function match(q, row) {
+  for(let k in q)
+		if(row[k] !== q[k])
+			return false;
+	return true;
 }
 
 
@@ -488,3 +535,15 @@ function createFilter(model) {
 
   return filter;
 }
+
+const ffff = () => {
+  const record = { type: 'translation', word: 8453, translation: 'went' };
+
+  const oldTemplate = ['type', 'word', 'translation'];
+  const oldRow = ['translation', 8453, 'went'];
+
+  db.compressField('type');
+
+  const newTemplate = [{type: 'translation'}, 'word', 'translation'];
+  const newRow = [8453, 'went'];
+};

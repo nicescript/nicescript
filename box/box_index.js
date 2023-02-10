@@ -70,6 +70,7 @@ nice.Type({
     },
 
     getKeys (v) {
+      const map = this._value;
       if(map.has(v)){
         const kk = map.get(v);
         return (kk instanceof Set) ? Array.from(kk) : [kk];

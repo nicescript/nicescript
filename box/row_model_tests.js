@@ -37,6 +37,11 @@ Test((Spy) => {
   });
 
 
+  Test('assert', () => {
+    expect(m.assert({ name: "Jane" })).is(janeId);
+  });
+
+
   Test(() => {
 		expect(joeBox()).deepEqual(o);
 		expect(joeSpy).calledTimes(1);
@@ -114,4 +119,6 @@ Test((Spy) => {
     expect(sortHome2desc()).deepEqual([janeId]);
     expect(optionsHome2age()).deepEqual({46:1});
 	});
+
+  console.log(m);
 });

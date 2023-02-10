@@ -3273,6 +3273,7 @@ Test((IntervalBox, RBox, Spy) => {
       return false;
     },
     getKeys (v) {
+      const map = this._value;
       if(map.has(v)){
         const kk = map.get(v);
         return (kk instanceof Set) ? Array.from(kk) : [kk];
@@ -3672,6 +3673,9 @@ Test((Model, Spy) => {
 });
 })();
 (function(){"use strict";const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
+const TEMPLATE = -1;
+const DELETE = -2;
+const COMPRESS = -3;
 const proto = {
 	add(o) {
 		checkObject(o);
@@ -3685,11 +3689,38 @@ const proto = {
 			this.rowBoxes[id](this.rows[id]);
 		return id;
 	},
-  delete(id) {
-    const log = [-2, id];
-    this.log.push(log);
-		this.logSubscriptions.forEach(f => f(log));
+  find(o) {
+    let res = null;
+    const ii = [];
+    for(let k in o) {
+      if(!this.indexes[k])
+        return null;
+      const ids = this.indexes[k].getKeys(o[k]);
+      if(ids === null || ids.length === 0)
+        return null;
+      res = res === null
+        ? ids
+        : res.filter(id => ids.includes(id));
+    }
+    return res[0];
+  },
+  assert(o) {
+    return this.find(o) || this.add(o);
+  },
+  compressField(f){
+    expect(f).isString();
+    if(f in this.compressedFields)
+      return;
+    this.compressedFields[f] = true;
+    this._pushLog([COMPRESS, f]);
+  },
+  _pushLog(row){
+    this.log.push(row);
+		this.logSubscriptions.forEach(f => f(row));
     this.version = this.log.length;
+  },
+  delete(id) {
+    this._pushLog([DELETE, id]);
     const data = this.rows[id];
     delete this.rows[id];
     _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
@@ -3779,10 +3810,7 @@ const proto = {
 	writeLog(id, o) {
 		const templateId = this.findTemplate(o);
 		const template = this.templates[templateId];
-		this.version = this.log.length;
-		const row = [templateId, id, ...template.map(field => o[field])];
-		this.log.push(row);
-		this.logSubscriptions.forEach(f => f(row));
+    this._pushLog([templateId, id, ...template.map(field => o[field])]);
 	},
 	findTemplate(a) {
 		if(!Array.isArray(a))
@@ -3793,10 +3821,7 @@ const proto = {
 			return id;
 		const newId = this.templates.length;
 		this.templates.push(a);
-		this.version = this.log.length;
-		const row = [-1, newId, ...a];
-		this.log.push(row);
-		this.logSubscriptions.forEach(f => f(row));
+    this._pushLog([TEMPLATE, newId, ...a]);
 		return newId;
 	},
 	rowBox(id) {
@@ -3810,9 +3835,9 @@ const proto = {
 		const templateId = row[0];
 		const id = row[1];
     const rows = m.rows;
-		if(templateId === -1){ 
+		if(templateId === TEMPLATE){ 
 			m.templates[id] = row.slice(2);
-		} else if(templateId === -2){ 
+		} else if(templateId === DELETE){ 
       const data = rows[id];
       delete rows[id];
       _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
@@ -3858,6 +3883,7 @@ function RowModel(){
 		lastId: -1,
     version: 0,
 		templates: [],
+		compressedFields: {},
 		rows: [],
 		log: [],
 		indexes: {},
@@ -3910,6 +3936,12 @@ function matchFilter(ff, row) {
 			res = false;
 	});
 	return res;
+}
+function match(q, row) {
+  for(let k in q)
+		if(row[k] !== q[k])
+			return false;
+	return true;
 }
 function isValidValue(v){
 	const t = typeof v;
@@ -4052,6 +4084,14 @@ function createFilter(model) {
       filter[opName] = (field, value) => newFilter({field, opName, value}));
   return filter;
 }
+const ffff = () => {
+  const record = { type: 'translation', word: 8453, translation: 'went' };
+  const oldTemplate = ['type', 'word', 'translation'];
+  const oldRow = ['translation', 8453, 'went'];
+  db.compressField('type');
+  const newTemplate = [{type: 'translation'}, 'word', 'translation'];
+  const newRow = [8453, 'went'];
+};
 })();
 (function(){"use strict";const { RowModel } = nice;
 Test((Spy) => {
@@ -4081,6 +4121,9 @@ Test((Spy) => {
     expect(sortHome2desc()).deepEqual([jimId]);
     expect(optionsHome2age()).deepEqual({45:1});
     expect(joeBox).is(m.rowBox(joeId));
+  });
+  Test('assert', () => {
+    expect(m.assert({ name: "Jane" })).is(janeId);
   });
   Test(() => {
 		expect(joeBox()).deepEqual(o);
@@ -4140,6 +4183,7 @@ Test((Spy) => {
     expect(sortHome2desc()).deepEqual([janeId]);
     expect(optionsHome2age()).deepEqual({46:1});
 	});
+  console.log(m);
 });
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
