@@ -120,5 +120,6 @@ Test((Spy) => {
     expect(optionsHome2age()).deepEqual({46:1});
 	});
 
+  m.compressField('occupation');
   console.log(m);
 });

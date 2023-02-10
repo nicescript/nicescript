@@ -188,19 +188,43 @@ const proto = {
     this._pushLog([templateId, id, ...template.map(field => o[field])]);
 	},
 
-	findTemplate(a) {
-		if(!Array.isArray(a))
-			a = Object.keys(a);
-		a.sort();
-		const id = this.templates.findIndex(r => nice.deepEqual(r, a));
+	findTemplate(o) {
+    const template = [];
+    let vs;
+
+    for(let i in o)
+      if(i in this.compressedFields){
+        vs = vs || {};
+        vs[i] = o[i];
+      } else {
+        template.push(i);
+      }
+
+    vs && template.push(vs);
+
+		template.sort();
+		const id = this.templates.findIndex(r => nice.deepEqual(r, template));
 		if(id !== -1)
 			return id;
 
 		const newId = this.templates.length;
-		this.templates.push(a);
-    this._pushLog([TEMPLATE, newId, ...a]);
+		this.templates.push(template);
+    this._pushLog([TEMPLATE, newId, ...template]);
 		return newId;
 	},
+//	findTemplate(a) {
+//		if(!Array.isArray(a))
+//			a = Object.keys(a);
+//		a.sort();
+//		const id = this.templates.findIndex(r => nice.deepEqual(r, a));
+//		if(id !== -1)
+//			return id;
+//
+//		const newId = this.templates.length;
+//		this.templates.push(a);
+//    this._pushLog([TEMPLATE, newId, ...a]);
+//		return newId;
+//	},
 
 	rowBox(id) {
 		if(!(id in this.rowBoxes)){
@@ -215,12 +239,14 @@ const proto = {
 		const id = row[1];
     const rows = m.rows;
 
-		if(templateId === TEMPLATE){ // row is a template
+		if(templateId === TEMPLATE){
 			m.templates[id] = row.slice(2);
-		} else if(templateId === DELETE){ // row is delete
+		} else if(templateId === DELETE){
       const data = rows[id];
       delete rows[id];
       _each(data, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
+		} else if(templateId === COMPRESS){
+      console.log('COMPRESS');
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
 			if(create)
@@ -543,7 +569,22 @@ const ffff = () => {
   const oldRow = ['translation', 8453, 'went'];
 
   db.compressField('type');
-
   const newTemplate = [{type: 'translation'}, 'word', 'translation'];
   const newRow = [8453, 'went'];
+  // or
+  const newTemplate = ['word', 'translation'];
+  const newValue = [type, 'translation'];
+  const newTemplateWithValue = [newTemplate, newTemplateValue];
+
+  ///or
+  db.compressField('type');
+  const valueLog = [1, {type: 'translation'}];
+
+  const newTemplate = ['word', 'translation'];
+  const newRow = [8453, 'went', 1];
+
+  const newTemplate = [1, 'word', 'translation'];
+  const newRow = [8453, 'went'];
+
+
 };
