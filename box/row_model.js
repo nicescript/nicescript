@@ -41,31 +41,44 @@ const proto = {
 
   find(o) {
     let res = null;
-    const ii = [];
 
     for(let k in o) {
+      const v = o[k];
       if(!this.indexes[k])
         return null;
 
-      const ids = this.indexes[k].getKeys(o[k]);
-      if(ids === null || ids.length === 0)
+      const map = this.indexes[k]._value;
+      if(!map.has(v))
         return null;
 
-      res = res === null
-        ? ids
-        : res.filter(id => ids.includes(id));
+      const kk = map.get(v);
+      if(res === null){
+        res = kk;
+      } else {
+        if(kk instanceof Set) {
+          if(res instanceof Set){
+            res = intersectSets(kk, res);
+          } else {
+            if(!kk.has(res))
+              return null;
+          }
+        } else {
+          if(res instanceof Set){
+            if(!res.has(kk))
+              res = kk;
+          } else {
+            if(kk !== res)
+              return null;
+          }
+        }
+      }
     }
-//    console.log(res[0]);
-    return res[0];
+    return res instanceof Set ? firstOfSet(res) : res;
   },
 
   assert(o) {
-//    this.find(o);
-//    for(let i in this.rows)
-//      if(match(o, this.rows[i]))
-//        return +i;
-
-    return this.find(o) || this.add(o);
+    const id = this.find(o);
+    return id === null ? this.add(o) : id;
   },
 
   compressField(f){
@@ -259,12 +272,14 @@ const proto = {
       this.valuesIndex[id] = [k, value];
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
-			if(create)
-				rows[id] = { _id:id };
+      const oldData = rows[id];
+			if(create){
+				rows[id] = { _id: id };
+        this.notifyIndexOneValue(id, '_id', id);
+      }
 			const template = m.templates[templateId];
 
       let i = 2;
-      const oldData = rows[id];
       for(const f of template){
         let field, value;
         if(typeof f === 'string'){
@@ -273,21 +288,12 @@ const proto = {
         } else {
           [field, value] = this.valuesIndex[f];
         }
-        const oldValue = oldData[field];
-        oldData[field] = value;
+        const oldValue = create ? undefined : oldData[field];
+        rows[id][field] = value;
 				this.notifyIndexOneValue(id, field, value, oldValue);
         create || this.notifyOptions(id, field, value, oldValue);
         create || this.notifySorts(id, field, value, oldValue);
       }
-//			row.slice(2).forEach((v, k) => {
-//				const field = template[k];
-//        const data = rows[id];
-//        const oldValue = data[field];
-//        data[field] = v;
-//				this.notifyIndexOneValue(id, field, v, oldValue);
-//        create || this.notifyOptions(id, field, v, oldValue);
-//        create || this.notifySorts(id, field, v, oldValue);
-//			});
 			if(id in this.rowBoxes)
 				this.rowBoxes[id](rows[id]);
 		} else {
@@ -592,7 +598,6 @@ function createFilter(model) {
   return filter;
 }
 
-const ffff = () => {
 //  const record = { type: 'translation', word: 8453, translation: 'went' };
 //
 //  const oldTemplate = ['type', 'word', 'translation'];
@@ -605,14 +610,20 @@ const ffff = () => {
 //  const newTemplate = ['word', 'translation'];
 //  const newValue = [type, 'translation'];
 //  const newTemplateWithValue = [newTemplate, newTemplateValue];
-//
-//  ///or
-//  db.compressField('type');
-//  const valueLog = [1, {type: 'translation'}];
-//
-//  const newTemplate = ['word', 'translation'];
-//  const newRow = [8453, 'went', 1];
-//
-//  const newTemplate = [1, 'word', 'translation'];
-//  const newRow = [8453, 'went'];
-};
+
+
+function intersectSets(a , b){
+  const res = new Set();
+  for (const item of a) {
+    b.has(item) && res.add(item);
+  }
+  return res;
+}
+
+
+function firstOfSet(set){
+  for (const item of set) {
+    return item;
+  }
+  return null;
+}

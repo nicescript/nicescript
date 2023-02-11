@@ -36,6 +36,11 @@ Test((Spy) => {
     expect(joeBox).is(m.rowBox(joeId));
   });
 
+  Test('find', () => {
+//    expect(m.find(o)).is(joeId);
+  });
+
+
 
   Test('assert', () => {
     expect(m.assert({ name: "Jane" })).is(janeId);
@@ -86,6 +91,9 @@ Test((Spy) => {
   Test((fromLog) => {
 		const m2 = RowModel.fromLog(m.log);
     expect(m2.get(joeId)).deepEqual(o);
+//    console.log(m.rows);
+//    console.log(m2.rows);
+    expect(m2.find(o)).is(joeId);
 	});
 
 
@@ -136,5 +144,30 @@ Test((Spy) => {
   const m2 = RowModel.fromLog(m.log);
   expect(m2.get(janeId)).deepEqual(m.get(janeId));
   expect(m.get(bimId)).deepEqual(m2.get(bimId));
+//  console.log(m2);
+});
+
+
+Test((Spy) => {
+	const m = RowModel();
+  m.compressField('type');
+
+  m.assert({ translation: 'nice', type: 'translation', word: 86 });
+  m.assert({ translation: 'well', type: 'translation', word: 86 });
+  m.assert({ translation: 'properly', type: 'translation', word: 86 });
+  m.assert({ translation: 'nicely', type: 'translation', word: 86 });
+  m.assert({ translation: 'good', type: 'translation', word: 86 });
+  m.assert({ translation: 'right', type: 'translation', word: 86 });
+
+  const m2 = RowModel.fromLog(m.log);
+  m2.assert({ translation: 'nice', type: 'translation', word: 86 });
+  m2.assert({ translation: 'well', type: 'translation', word: 86 });
+  m2.assert({ translation: 'properly', type: 'translation', word: 86 });
+  m2.assert({ translation: 'nicely', type: 'translation', word: 86 });
+  m2.assert({ translation: 'good', type: 'translation', word: 86 });
+  m2.assert({ translation: 'right', type: 'translation', word: 86 });
+
+  expect(m2.find({ translation: 'nice', type: 'translation', word: 86 }))
+          .deepEqual(0);
 //  console.log(m2);
 });

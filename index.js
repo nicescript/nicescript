@@ -3694,21 +3694,40 @@ const proto = {
 	},
   find(o) {
     let res = null;
-    const ii = [];
     for(let k in o) {
+      const v = o[k];
       if(!this.indexes[k])
         return null;
-      const ids = this.indexes[k].getKeys(o[k]);
-      if(ids === null || ids.length === 0)
+      const map = this.indexes[k]._value;
+      if(!map.has(v))
         return null;
-      res = res === null
-        ? ids
-        : res.filter(id => ids.includes(id));
+      const kk = map.get(v);
+      if(res === null){
+        res = kk;
+      } else {
+        if(kk instanceof Set) {
+          if(res instanceof Set){
+            res = intersectSets(kk, res);
+          } else {
+            if(!kk.has(res))
+              return null;
+          }
+        } else {
+          if(res instanceof Set){
+            if(!res.has(kk))
+              res = kk;
+          } else {
+            if(kk !== res)
+              return null;
+          }
+        }
+      }
     }
-    return res[0];
+    return res instanceof Set ? firstOfSet(res) : res;
   },
   assert(o) {
-    return this.find(o) || this.add(o);
+    const id = this.find(o);
+    return id === null ? this.add(o) : id;
   },
   compressField(f){
     expect(f).isString();
@@ -3868,11 +3887,13 @@ const proto = {
       this.valuesIndex[id] = [k, value];
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
-			if(create)
-				rows[id] = { _id:id };
+      const oldData = rows[id];
+			if(create){
+				rows[id] = { _id: id };
+        this.notifyIndexOneValue(id, '_id', id);
+      }
 			const template = m.templates[templateId];
       let i = 2;
-      const oldData = rows[id];
       for(const f of template){
         let field, value;
         if(typeof f === 'string'){
@@ -3881,8 +3902,8 @@ const proto = {
         } else {
           [field, value] = this.valuesIndex[f];
         }
-        const oldValue = oldData[field];
-        oldData[field] = value;
+        const oldValue = create ? undefined : oldData[field];
+        rows[id][field] = value;
 				this.notifyIndexOneValue(id, field, value, oldValue);
         create || this.notifyOptions(id, field, value, oldValue);
         create || this.notifySorts(id, field, value, oldValue);
@@ -4119,8 +4140,19 @@ function createFilter(model) {
       filter[opName] = (field, value) => newFilter({field, opName, value}));
   return filter;
 }
-const ffff = () => {
-};
+function intersectSets(a , b){
+  const res = new Set();
+  for (const item of a) {
+    b.has(item) && res.add(item);
+  }
+  return res;
+}
+function firstOfSet(set){
+  for (const item of set) {
+    return item;
+  }
+  return null;
+}
 })();
 (function(){"use strict";const { RowModel } = nice;
 Test((Spy) => {
@@ -4150,6 +4182,8 @@ Test((Spy) => {
     expect(sortHome2desc()).deepEqual([jimId]);
     expect(optionsHome2age()).deepEqual({45:1});
     expect(joeBox).is(m.rowBox(joeId));
+  });
+  Test('find', () => {
   });
   Test('assert', () => {
     expect(m.assert({ name: "Jane" })).is(janeId);
@@ -4188,6 +4222,7 @@ Test((Spy) => {
   Test((fromLog) => {
 		const m2 = RowModel.fromLog(m.log);
     expect(m2.get(joeId)).deepEqual(o);
+    expect(m2.find(o)).is(joeId);
 	});
   Test((shadow) => {
     const m2 = RowModel.shadow(m);
@@ -4222,6 +4257,25 @@ Test((Spy) => {
   const m2 = RowModel.fromLog(m.log);
   expect(m2.get(janeId)).deepEqual(m.get(janeId));
   expect(m.get(bimId)).deepEqual(m2.get(bimId));
+});
+Test((Spy) => {
+	const m = RowModel();
+  m.compressField('type');
+  m.assert({ translation: 'nice', type: 'translation', word: 86 });
+  m.assert({ translation: 'well', type: 'translation', word: 86 });
+  m.assert({ translation: 'properly', type: 'translation', word: 86 });
+  m.assert({ translation: 'nicely', type: 'translation', word: 86 });
+  m.assert({ translation: 'good', type: 'translation', word: 86 });
+  m.assert({ translation: 'right', type: 'translation', word: 86 });
+  const m2 = RowModel.fromLog(m.log);
+  m2.assert({ translation: 'nice', type: 'translation', word: 86 });
+  m2.assert({ translation: 'well', type: 'translation', word: 86 });
+  m2.assert({ translation: 'properly', type: 'translation', word: 86 });
+  m2.assert({ translation: 'nicely', type: 'translation', word: 86 });
+  m2.assert({ translation: 'good', type: 'translation', word: 86 });
+  m2.assert({ translation: 'right', type: 'translation', word: 86 });
+  expect(m2.find({ translation: 'nice', type: 'translation', word: 86 }))
+          .deepEqual(0);
 });
 })();
 (function(){"use strict";Mapping.Anything('or', (...as) => {
