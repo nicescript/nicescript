@@ -8,6 +8,8 @@ const VALUE = -4;
 //const api = {
 //	change: {
 //		add: () => {},
+//		assert: () => {},
+//		find: () => {},
 //		change: () => {},
 //		transaction: () => {},
 //	},
@@ -18,14 +20,8 @@ const VALUE = -4;
 //};
 
 const proto = {
-  //TODO:
-  /*
-//TODO: id is not necessary
-[ -1, 0, 'age', 'id', 'name' ],
+//TODO: ?? dont store itemId|templateId in log
 
-//TODO: 2nd argument is not necessery
-[ 0, 0, 34, 0, 'Joe' ],
-*/
 	add(o) {
 		checkObject(o);
 		const id = this.rows.length;
@@ -627,3 +623,21 @@ function firstOfSet(set){
   }
   return null;
 }
+
+
+nice.Type({
+  name: 'RowModelProxy',
+  extends: 'DataSource',
+});
+nice.Type({
+  name: 'RowModelFilterProxy',
+  extends: 'DataSource',
+});
+nice.Type({
+  name: 'RowModelSortProxy',
+  extends: 'DataSource',
+});
+nice.Type({
+  name: 'RowModelOtptionsProxy',
+  extends: 'DataSource',
+});
