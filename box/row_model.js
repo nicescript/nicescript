@@ -339,15 +339,15 @@ function RowModel(){
     compositQueries: {},
 	});
 
-//    filter({adress: 'home', gender: "male" });
-//    filter({adress: 'home', age: { gt: 16 } });
-//    filter([{adress: 'home'}, { age: { gt: 16 } }]);
-
   function extractOp(o, field) {
     const [opName, value] = Object.entries(o)[0];
     return { op, value, field };
   }
 
+
+//    filter({adress: 'home', gender: "male" });
+//    filter({adress: 'home', age: { gt: 16 } });
+//    filter([{adress: 'home'}, { age: { gt: 16 } }]);
   res.filter = function(o) {
     const qs = Object.entries(o).map(([field, q]) => typeof q === 'string'
       ? {field, opName: 'eq', value: q }
