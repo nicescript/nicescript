@@ -278,9 +278,9 @@ defAll(nice, {
       ? JSON.stringify(o)
       : Array.isArray(o)
         ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
-        : '{' + nice.reduceTo((a, key) => {
+        : '{' + nice.reduceTo(Object.keys(o).sort(), [], (a, key) => {
             a.push("\"" + key + '\":' + nice.orderedStringify(o[key]));
-          }, [], Object.keys(o).sort()).join(',') + '}',
+          }).join(',') + '}',
   objDiggDefault (o, ...a) {
     const v = a.pop(), l = a.length;
     let i = 0;
@@ -492,11 +492,12 @@ defAll(nice, {
     (!nice.isNothing(ba) && nice.isEmpty(ba)) || (del = ba);
     return (add || del) ? { del, add } : false;
   },
-  memoize: f => {
-    const res = (k, ...a) => {
-      if(k in res.cache)
-        return res.cache[k];
-      return res.cache[k] = f(k, ...a);
+  memoize: (f, keyConverter) => {
+    const res = (...a) => {
+      const key = keyConverter ? keyConverter(a) : a[0];
+      if(key in res.cache)
+        return res.cache[key];
+      return res.cache[key] = f(...a);
     };
     res.cache = {};
     return res;
@@ -3678,8 +3679,6 @@ const DELETE = -2;
 const COMPRESS = -3;
 const VALUE = -4;
 const proto = {
-  
-  
 	add(o) {
 		checkObject(o);
 		const id = this.rows.length;
@@ -3738,7 +3737,8 @@ const proto = {
   },
   _pushLog(row){
     this.log.push(row);
-		this.logSubscriptions.forEach(f => f(row));
+    expect(this.version).isNumber();
+		this.logSubscriptions.forEach(f => f(row, this.version));
     this.version = this.log.length;
   },
   delete(id) {
@@ -3952,13 +3952,16 @@ function RowModel(){
     compositQueries: {},
 	});
   function extractOp(o, field) {
-    const [opName, value] = Object.entries(o)[0];
+    const [op, value] = Object.entries(o)[0];
     return { op, value, field };
   }
-  res.filter = function(o) {
-    const qs = Object.entries(o).map(([field, q]) => typeof q === 'string'
-      ? {field, opName: 'eq', value: q }
-      : extractOp(q, field));
+  res.filter = function(o = {}) {
+    const f = ([field, q]) => typeof q === 'string'
+      ? { field, opName: 'eq', value: q }
+      : extractOp(q, field);
+    const qs = Array.isArray(o)
+      ? o.map(v => f(Object.entries(v)[0]))
+      : Object.entries(o).map(f);
     const filters = qs.map(q => newFilter(res, q))
         .sort((a, b) => a._sortKey - b._sortKey);
     while(filters.length > 1){
@@ -4154,6 +4157,42 @@ function firstOfSet(set){
   return null;
 }
 })();
+(function(){"use strict";const { orderedStringify, memoize, Box } = nice;
+nice.Type({
+  name: 'RowModelProxy',
+  extends: 'DataSource',
+  initBy(z, subscribe){
+    z.subscribe = subscribe;
+    z.filters = {};
+    z.filter = memoize(o => nice.RowModelFilterProxy(o, z), JSON.stringify);
+    z.rowBox = memoize(id => {
+      const res = Box();
+      z.subscribe([{action: 'rowBox', args: id }], res);
+      return res;
+    });
+  },
+  proto: {
+  }
+});
+nice.Type({
+  name: 'RowModelFilterProxy',
+  extends: 'BoxSet',
+  initBy(z, args, modelProxy){
+    z.super();
+    modelProxy.subscribe([{action: 'filter', args }], (v, oldV) => {
+      v === null ? z.delete(oldV) : z.add(v);
+    });
+  }
+});
+nice.Type({
+  name: 'RowModelSortProxy',
+  extends: 'DataSource',
+});
+nice.Type({
+  name: 'RowModelOtptionsProxy',
+  extends: 'DataSource',
+});
+})();
 (function(){"use strict";const { RowModel } = nice;
 Test((Spy) => {
 	const m = RowModel();
@@ -4178,6 +4217,7 @@ Test((Spy) => {
 		expect(m.get(joeId)).deepEqual(o);
     expect([...qHome()]).deepEqual([janeId]);
     expect([...qHome2()]).deepEqual([jimId]);
+    expect([...m.filter([o])()]).deepEqual([joeId]);
     expect(sortHome2()).deepEqual([jimId]);
     expect(sortHome2desc()).deepEqual([jimId]);
     expect(optionsHome2age()).deepEqual({45:1});
@@ -4231,6 +4271,17 @@ Test((Spy) => {
     expect(asc()).deepEqual([jimId,janeId]);
     m.change(jimId, {address:'Home'});
     expect(asc()).deepEqual([janeId]);
+	});
+  Test((RowModelProxy) => {
+    const p = RowModelProxy((a, cb) => {
+      let source = m;
+      a.forEach(({action, args}) => source = source[action](args));
+      source.subscribe(cb);
+    });
+    const filter = p.filter({address:'Home'});
+    const filter2 = p.filter({address:'Home2'});
+    expect([...filter()]).deepEqual([...qHome()]);
+    expect([...filter2()]).deepEqual([...qHome2()]);
 	});
   Test('delete', () => {
     m.delete(joeId);
@@ -6411,5 +6462,13 @@ Test((sortedPosition) => {
   expect(sortedPosition(a, 0)).is(0);
   expect(sortedPosition(a, 2.5)).is(2);
   expect(sortedPosition(a, 10)).is(6);
+});
+Test((orderedStringify) => {
+  const o1 = {qwe:1,asd:2};
+  const o2 = {asd:2,qwe:1};
+  const s1 = orderedStringify(o1);
+  const s2 = orderedStringify(o2);
+  expect(s1).is('{"asd":2,"qwe":1}');
+  expect(s1).is(s2);
 });
 })();;nice.version = "0.4.0";})();; return nice;}

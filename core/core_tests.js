@@ -101,5 +101,15 @@ Test((sortedPosition) => {
 });
 
 
+Test((orderedStringify) => {
+  const o1 = {qwe:1,asd:2};
+  const o2 = {asd:2,qwe:1};
+  const s1 = orderedStringify(o1);
+  const s2 = orderedStringify(o2);
+  expect(s1).is('{"asd":2,"qwe":1}');
+  expect(s1).is(s2);
+});
+
+
 
 

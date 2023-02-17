@@ -59,9 +59,9 @@ defAll(nice, {
       ? JSON.stringify(o)
       : Array.isArray(o)
         ? '[' + o.map(v => nice.orderedStringify(v)).join(',') + ']'
-        : '{' + nice.reduceTo((a, key) => {
+        : '{' + nice.reduceTo(Object.keys(o).sort(), [], (a, key) => {
             a.push("\"" + key + '\":' + nice.orderedStringify(o[key]));
-          }, [], Object.keys(o).sort()).join(',') + '}',
+          }).join(',') + '}',
 
   objDiggDefault (o, ...a) {
     const v = a.pop(), l = a.length;
@@ -314,11 +314,12 @@ defAll(nice, {
     return (add || del) ? { del, add } : false;
   },
 
-  memoize: f => {
-    const res = (k, ...a) => {
-      if(k in res.cache)
-        return res.cache[k];
-      return res.cache[k] = f(k, ...a);
+  memoize: (f, keyConverter) => {
+    const res = (...a) => {
+      const key = keyConverter ? keyConverter(a) : a[0];
+      if(key in res.cache)
+        return res.cache[key];
+      return res.cache[key] = f(...a);
     };
     res.cache = {};
     return res;

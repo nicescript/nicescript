@@ -88,7 +88,8 @@ const proto = {
 
   _pushLog(row){
     this.log.push(row);
-		this.logSubscriptions.forEach(f => f(row));
+    expect(this.version).isNumber();
+		this.logSubscriptions.forEach(f => f(row, this.version));
     this.version = this.log.length;
   },
 
@@ -340,7 +341,7 @@ function RowModel(){
 	});
 
   function extractOp(o, field) {
-    const [opName, value] = Object.entries(o)[0];
+    const [op, value] = Object.entries(o)[0];
     return { op, value, field };
   }
 
@@ -348,10 +349,14 @@ function RowModel(){
 //    filter({adress: 'home', gender: "male" });
 //    filter({adress: 'home', age: { gt: 16 } });
 //    filter([{adress: 'home'}, { age: { gt: 16 } }]);
-  res.filter = function(o) {
-    const qs = Object.entries(o).map(([field, q]) => typeof q === 'string'
-      ? {field, opName: 'eq', value: q }
-      : extractOp(q, field));
+  res.filter = function(o = {}) {
+
+    const f = ([field, q]) => typeof q === 'string'
+      ? { field, opName: 'eq', value: q }
+      : extractOp(q, field);
+    const qs = Array.isArray(o)
+      ? o.map(v => f(Object.entries(v)[0]))
+      : Object.entries(o).map(f);
 
     const filters = qs.map(q => newFilter(res, q))
         .sort((a, b) => a._sortKey - b._sortKey);
@@ -623,21 +628,3 @@ function firstOfSet(set){
   }
   return null;
 }
-
-
-nice.Type({
-  name: 'RowModelProxy',
-  extends: 'DataSource',
-});
-nice.Type({
-  name: 'RowModelFilterProxy',
-  extends: 'DataSource',
-});
-nice.Type({
-  name: 'RowModelSortProxy',
-  extends: 'DataSource',
-});
-nice.Type({
-  name: 'RowModelOtptionsProxy',
-  extends: 'DataSource',
-});

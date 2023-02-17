@@ -42,6 +42,7 @@ const order = [
   'box/box_sorted_map',
   'box/model',
   'box/row_model',
+  'box/row_model_proxy',
   'box/row_model_tests',
 //  'core/stream', TODO: change to comply with Box(undefined)
   'core/logic',

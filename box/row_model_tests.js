@@ -29,6 +29,8 @@ Test((Spy) => {
     expect([...qHome()]).deepEqual([janeId]);
     expect([...qHome2()]).deepEqual([jimId]);
 
+    expect([...m.filter([o])()]).deepEqual([joeId]);
+
     expect(sortHome2()).deepEqual([jimId]);
     expect(sortHome2desc()).deepEqual([jimId]);
 
@@ -110,6 +112,21 @@ Test((Spy) => {
 	});
 
 
+  Test((RowModelProxy) => {
+    const p = RowModelProxy((a, cb) => {
+      let source = m;
+      a.forEach(({action, args}) => source = source[action](args));
+      source.subscribe(cb);
+    });
+
+    const filter = p.filter({address:'Home'});
+    const filter2 = p.filter({address:'Home2'});
+
+    expect([...filter()]).deepEqual([...qHome()]);
+    expect([...filter2()]).deepEqual([...qHome2()]);
+	});
+
+
   Test('delete', () => {
     m.delete(joeId);
     expect(m.get(joeId)).is(undefined);
@@ -127,6 +144,7 @@ Test((Spy) => {
     expect(sortHome2desc()).deepEqual([janeId]);
     expect(optionsHome2age()).deepEqual({46:1});
 	});
+
 
   m.compressField('occupation');
 //  console.log(m);
