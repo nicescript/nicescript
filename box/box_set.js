@@ -5,7 +5,7 @@ nice.Type({
 
   customCall: (z, ...as) => {
     if(as.length)
-      SthrowF('Use access methods');
+      throw 'Use access methods';
     return z._value;
   },
 
@@ -87,6 +87,12 @@ nice.Type({
       this.off('value', f);
     },
   }
+});
+
+nice.defineCached(nice.BoxSet.proto, function boxArray() {
+  const ba = BoxArray();
+  this.subscribe((a, b) => a === null ? ba.removeValue(b) : ba.push(a));
+  return ba;
 });
 
 

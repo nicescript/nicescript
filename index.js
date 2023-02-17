@@ -2341,7 +2341,7 @@ Test('RBox subscribe', (Box, RBox, Spy) => {
   extends: 'DataSource',
   customCall: (z, ...as) => {
     if(as.length)
-      SthrowF('Use access methods');
+      throw 'Use access methods';
     return z._value;
   },
   initBy: (z, ...a) =>  {
@@ -2408,6 +2408,11 @@ Test('RBox subscribe', (Box, RBox, Spy) => {
       this.off('value', f);
     },
   }
+});
+nice.defineCached(nice.BoxSet.proto, function boxArray() {
+  const ba = BoxArray();
+  this.subscribe((a, b) => a === null ? ba.removeValue(b) : ba.push(a));
+  return ba;
 });
 Test((BoxSet, Spy) => {
   const b = BoxSet();
@@ -3216,7 +3221,7 @@ Test((IntervalBox, RBox, Spy) => {
   extends: 'DataSource',
   customCall: (z, ...as) => {
     if(as.length)
-      throwF('Use access methods to change BoxMap');
+      throw 'Use access methods to change BoxMap';
     return z._value;
   },
   initBy: z => z._value = new Map(),

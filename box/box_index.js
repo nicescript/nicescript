@@ -5,7 +5,7 @@ nice.Type({
 
   customCall: (z, ...as) => {
     if(as.length)
-      throwF('Use access methods to change BoxMap');
+      throw 'Use access methods to change BoxMap';
     return z._value;
   },
 
