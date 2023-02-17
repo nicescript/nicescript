@@ -112,13 +112,6 @@ defAll(nice, {
       ? f => (f(o), o)
       : (f(o), o),
 
-  types: {},
-
-  checkTypeName (name) {
-    /^[A-Z].*/.test(name[0]) ||
-      nice.error('Please start type name with a upper case letter');
-  },
-
   _each: (o, f) => {
     if(o)
       for(let i in o)
