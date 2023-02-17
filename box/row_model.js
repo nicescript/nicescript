@@ -341,11 +341,12 @@ function RowModel(){
 	});
 
   function extractOp(o, field) {
-    const [op, value] = Object.entries(o)[0];
-    return { op, value, field };
+    const [opName, value] = Object.entries(o)[0];
+    return { opName, value, field };
   }
 
 
+//    filter({ jane }); //full-text
 //    filter({adress: 'home', gender: "male" });
 //    filter({adress: 'home', age: { gt: 16 } });
 //    filter([{adress: 'home'}, { age: { gt: 16 } }]);
@@ -557,7 +558,12 @@ nice.Type({
 
 
 const ops = {
-  eq: { arity: 2, f: (a, b) => a === b }
+  eq: { arity: 2, f: (a, b) => a === b },
+  startsWith: { arity: 2, f: (a, b) => {
+    if(a === undefined || a === null)
+      return false;
+    return ('' + a).toLowerCase().startsWith(b);
+  }}
 };
 
 const newFilter = (model, q) => {

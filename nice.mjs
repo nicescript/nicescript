@@ -3952,8 +3952,8 @@ function RowModel(){
     compositQueries: {},
 	});
   function extractOp(o, field) {
-    const [op, value] = Object.entries(o)[0];
-    return { op, value, field };
+    const [opName, value] = Object.entries(o)[0];
+    return { opName, value, field };
   }
   res.filter = function(o = {}) {
     const f = ([field, q]) => typeof q === 'string'
@@ -4112,7 +4112,12 @@ nice.Type({
   }
 });
 const ops = {
-  eq: { arity: 2, f: (a, b) => a === b }
+  eq: { arity: 2, f: (a, b) => a === b },
+  startsWith: { arity: 2, f: (a, b) => {
+    if(a === undefined || a === null)
+      return false;
+    return ('' + a).toLowerCase().startsWith(b);
+  }}
 };
 const newFilter = (model, q) => {
   const { field, opName, value } = q;
@@ -4198,6 +4203,7 @@ Test((Spy) => {
 	const m = RowModel();
   const qHome = m.filter({address:'Home'});
   const qHome2 = m.filter({address:'Home2'});
+  const qStartWith = m.filter({name: {startsWith: 'jane'}});
   const optionsHome2age = qHome2.options('age');
   const sortHome2 = qHome2.sort('age');
   const sortHome2desc = qHome2.sort('age', -1);
@@ -4216,6 +4222,7 @@ Test((Spy) => {
   Test(() => {
 		expect(m.get(joeId)).deepEqual(o);
     expect([...qHome()]).deepEqual([janeId]);
+    expect([...qStartWith()]).deepEqual([janeId]);
     expect([...qHome2()]).deepEqual([jimId]);
     expect([...m.filter([o])()]).deepEqual([joeId]);
     expect(sortHome2()).deepEqual([jimId]);
