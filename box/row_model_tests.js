@@ -83,6 +83,7 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
   });
+  
 
   Test('change age', () => {
     m.change(janeId, {age:46});

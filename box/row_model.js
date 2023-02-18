@@ -346,10 +346,11 @@ function RowModel(){
   }
 
 
-//    filter({ jane }); //full-text
 //    filter({adress: 'home', gender: "male" });
 //    filter({adress: 'home', age: { gt: 16 } });
 //    filter([{adress: 'home'}, { age: { gt: 16 } }]);
+//TODO:    filter({ jane }); //full-text
+//TODO: filter() | filter({})
   res.filter = function(o = {}) {
 
     const f = ([field, q]) => typeof q === 'string'
@@ -472,8 +473,8 @@ nice.Type({
   initBy: (z, model) => {
     z.super();
     z.model = model;
-    z.sortsAsc = memoize(field => nice.SortResult(z, field, 1));
-    z.sortsDesc = memoize(field => nice.SortResult(z, field, -1));
+    z.sortAsc = memoize(field => nice.SortResult(z, field, 1));
+    z.sortDesc = memoize(field => nice.SortResult(z, field, -1));
     z.options = memoize(field => createOptions(z, field));
   }
 });
@@ -481,7 +482,7 @@ nice.Type({
 nice.Mapping.RowsFilter.String('sort', (filter, field, direction = 1) => {//'asc'
 //  console.log(filter.model.indexes);
 
-  return filter[direction > 0 ? 'sortsAsc' : 'sortsDesc' ](field);
+  return filter[direction > 0 ? 'sortAsc' : 'sortDesc' ](field);
 });
 
 
@@ -529,10 +530,12 @@ nice.Type({
     insertId(id) {
       this.insert(sortedPosition(this._value, id, this.sortFunction), id);
     },
+
     deleteId(id) {
       //TODO: replace with binary search
       this.removeValue(id);
     },
+
     considerChange(id, newValue, oldValue) {
       //TODO: optimize
 //      console.log(s.query.has(id));

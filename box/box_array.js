@@ -206,6 +206,19 @@ nice.Type({
 });
 
 
+nice.BoxArray.subscribeFunction = ba => {
+  return (value, index, oldValue, oldIndex) => {
+    if(value !== null && oldValue !== null) {
+      ba.set(index, value);
+    } else if (value === null) {
+      ba.remove(oldIndex);
+    } else {
+      ba.insert(index, value);
+    }
+  };
+};
+
+
 Test((BoxArray, Spy, set) => {
   const a = BoxArray([1,2]);
   const spy = Spy();

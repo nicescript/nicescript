@@ -2841,6 +2841,17 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
     }
   }
 });
+nice.BoxArray.subscribeFunction = ba => {
+  return (value, index, oldValue, oldIndex) => {
+    if(value !== null && oldValue !== null) {
+      ba.set(index, value);
+    } else if (value === null) {
+      ba.remove(oldIndex);
+    } else {
+      ba.insert(index, value);
+    }
+  };
+};
 Test((BoxArray, Spy, set) => {
   const a = BoxArray([1,2]);
   const spy = Spy();
@@ -4045,13 +4056,13 @@ nice.Type({
   initBy: (z, model) => {
     z.super();
     z.model = model;
-    z.sortsAsc = memoize(field => nice.SortResult(z, field, 1));
-    z.sortsDesc = memoize(field => nice.SortResult(z, field, -1));
+    z.sortAsc = memoize(field => nice.SortResult(z, field, 1));
+    z.sortDesc = memoize(field => nice.SortResult(z, field, -1));
     z.options = memoize(field => createOptions(z, field));
   }
 });
 nice.Mapping.RowsFilter.String('sort', (filter, field, direction = 1) => {
-  return filter[direction > 0 ? 'sortsAsc' : 'sortsDesc' ](field);
+  return filter[direction > 0 ? 'sortAsc' : 'sortDesc' ](field);
 });
 nice.Type({
   name: 'SortResult',
@@ -4162,7 +4173,7 @@ function firstOfSet(set){
   return null;
 }
 })();
-(function(){"use strict";const { orderedStringify, memoize, Box } = nice;
+(function(){"use strict";const { orderedStringify, memoize, Box, BoxArray } = nice;
 nice.Type({
   name: 'RowModelProxy',
   extends: 'DataSource',
@@ -4182,16 +4193,23 @@ nice.Type({
 nice.Type({
   name: 'RowModelFilterProxy',
   extends: 'BoxSet',
-  initBy(z, args, modelProxy){
+  initBy(z, args, model){
     z.super();
-    modelProxy.subscribe([{action: 'filter', args }], (v, oldV) => {
-      v === null ? z.delete(oldV) : z.add(v);
-    });
+    const q = [{action: 'filter', args }];
+    model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
+    z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
   }
 });
 nice.Type({
   name: 'RowModelSortProxy',
-  extends: 'DataSource',
+  extends: 'BoxArray',
+  initBy(z, model, prefix, field, direction){
+    z.super();
+    const action = direction > 0 ? 'sortAsc' : 'sortDesc';
+    const q = [...prefix, { action , args: field }];
+    model.subscribe(q, BoxArray.subscribeFunction(z));
+  }
 });
 nice.Type({
   name: 'RowModelOtptionsProxy',
@@ -4260,6 +4278,7 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
   });
+  
   Test('change age', () => {
     m.change(janeId, {age:46});
     expect(optionsHome2age()).deepEqual({46:1,45:1});

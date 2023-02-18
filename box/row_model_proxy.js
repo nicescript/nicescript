@@ -1,12 +1,10 @@
-const { orderedStringify, memoize, Box } = nice;
+const { orderedStringify, memoize, Box, BoxArray } = nice;
 
 nice.Type({
   name: 'RowModelProxy',
   extends: 'DataSource',
   initBy(z, subscribe){
     z.subscribe = subscribe;
-//    z.sortsAsc = memoize(field => nice.SortResult(z, field, 1));
-//    z.sortsDesc = memoize(field => nice.SortResult(z, field, -1));
     z.filters = {};
     z.filter = memoize(o => nice.RowModelFilterProxy(o, z), JSON.stringify);
     z.rowBox = memoize(id => {
@@ -22,17 +20,27 @@ nice.Type({
 nice.Type({
   name: 'RowModelFilterProxy',
   extends: 'BoxSet',
-  initBy(z, args, modelProxy){
+  initBy(z, args, model){
     z.super();
-    modelProxy.subscribe([{action: 'filter', args }], (v, oldV) => {
-      v === null ? z.delete(oldV) : z.add(v);
-    });
+//    z.args = args;
+
+    const q = [{action: 'filter', args }];
+    model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+
+    z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
+    z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
   }
 });
 
 nice.Type({
   name: 'RowModelSortProxy',
-  extends: 'DataSource',
+  extends: 'BoxArray',
+  initBy(z, model, prefix, field, direction){
+    z.super();
+    const action = direction > 0 ? 'sortAsc' : 'sortDesc';
+    const q = [...prefix, { action , args: field }];
+    model.subscribe(q, BoxArray.subscribeFunction(z));
+  }
 });
 
 nice.Type({
