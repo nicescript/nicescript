@@ -8,33 +8,18 @@ nice.Type({
       throw `1st argument must be number`;
     if(typeof f !== 'function')
       throw `2nd argument must be functions`;
-    z._ms = ms;
-    z._f = f;
-    z._interval = null;
+    let interval = null;
+    z.warmUp = () => {
+      interval = setInterval(() => z(f(z())), ms);
+      z._value === undefined && z.setState(f());
+    };
+    z.coolDown = () => {
+      if(interval !== null){
+        clearInterval(interval);
+        interval = null;
+      }
+    };
   },
-
-  proto: {
-    subscribe(f){
-      if(this._interval === null){
-        this._interval = setInterval(() => this(this._f(this())), this._ms);
-        this._value === undefined && this.setState(this._f());
-      }
-      if(this._value !== undefined)
-        f.notify ? f.notify(this._value) : f(this._value);
-      this.on('state', f);
-    },
-
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        if(this._interval !== null){
-          clearInterval(this._interval);
-          this._interval = null;
-        }
-        this.emit('noMoreSubscribers', this);
-      }
-    },
-  }
 });
 
 Action.Box('changeAfter', (z, ms, f) => setTimeout(() => z(f(z())), ms));
@@ -55,7 +40,7 @@ Test((IntervalBox, RBox, Spy) => {
 
   Test(() => {
     x2.unsubscribe(spy);
-    expect(n._interval).is(null);
+    expect(n._isHot).is(false);
     expect(spy).calledTimes(1);
   });
 });

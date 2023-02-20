@@ -369,7 +369,7 @@ function RowModel(){
 
       const key = f._sortKey + '+' + f2._sortKey;
       filters[0] = res.compositQueries[key] ||
-        (res.compositQueries[key] = f.intersection(f2));      ;
+        (res.compositQueries[key] = f.intersection(f2));
     }
 
     return filters[0];
@@ -480,8 +480,6 @@ nice.Type({
 });
 
 nice.Mapping.RowsFilter.String('sort', (filter, field, direction = 1) => {//'asc'
-//  console.log(filter.model.indexes);
-
   return filter[direction > 0 ? 'sortAsc' : 'sortDesc' ](field);
 });
 
@@ -504,6 +502,8 @@ nice.Type({
     z.sortValueFunction = direction > 0
       ? (a, bv) => rows[a][field] > bv ? 1 : -1
       : (a, bv) => rows[a][field] > bv ? -1 : 1;
+
+    z.take = memoize((a, b) => z.window(a, b), (a, b) => a + '_' + b);
 
     query.subscribe((v, oldV) => {
       oldV !== undefined && z.deleteId(oldV);

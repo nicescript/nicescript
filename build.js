@@ -32,7 +32,7 @@ const order = [
   'core/spy',
   'box/data_source',
   'box/box',
-  'box/lazy_box',
+//  'box/lazy_box',
   'box/box_set',
   'box/box_map',
   'box/box_array',

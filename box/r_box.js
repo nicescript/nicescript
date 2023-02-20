@@ -88,18 +88,18 @@ nice.Type({
       this._isHot && this.attemptCompute();
     },
 
-    subscribe(f, v) {
-      this.warmUp();
-      this.__proto__.__proto__.subscribe.call(this, f, v);
-    },
+//    subscribe(f, v) {
+//      this.warmUp();
+//      this.__proto__.__proto__.subscribe.call(this, f, v);
+//    },
 
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.coolDown();
-        this.emit('noMoreSubscribers', this);
-      }
-    },
+//    unsubscribe(f){
+//      this.off('state', f);
+//      if(!this.countListeners('state')){
+//        this.coolDown();
+//        this.emit('noMoreSubscribers', this);
+//      }
+//    },
 
     attemptCompute(){
       try {
@@ -125,9 +125,6 @@ nice.Type({
     },
 
     warmUp(){
-      if(this._isHot === true)
-        return ;
-      this._isHot = true;
 			this.warming = true;
       for (let c of this._ins)
         c.attach();
@@ -136,7 +133,6 @@ nice.Type({
     },
 
     coolDown(){
-      this._isHot = false;
       this._inputValues = [];
       for (let c of this._ins)
         c.detach();

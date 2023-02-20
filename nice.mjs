@@ -254,15 +254,21 @@ defAll(nice, {
         return true;
     return false;
   },
-  sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
-    
-    let i;
-    for(i in a){
-      if(f(a[i], v) > 0){
-        return +i;
+  sortedPosition(a, v, f = (a, b) => a === b ? 0 : a > b ? 1 : -1){
+    let low = 0;
+    let high = a.length;
+    while (low < high) {
+      let m = (high + low) >> 1;
+      let cmp = f(a[m], v);
+      if (cmp < 0) {
+        low = m + 1;
+      } else if(cmp > 0) {
+        high = m;
+      } else {
+        return m;
       }
     }
-    return a.length;
+    return low;
   },
   _if(c, f1, f2) {
     return c ? f1(c) : (typeof f2 === 'function' ? f2(c) : f2);
@@ -2104,10 +2110,42 @@ Test((Spy, calledWith) => {
   name: 'DataSource',
   extends: 'Something',
   abstract: true,
+  initBy(z){
+    z.subscribers = new Set();
+  },
   proto: {
     get version(){
       return this._version;
-    }
+    },
+    warmUpBy(f){ this.warmUp = f; return this; },
+    coolDownBy(f){ this.warmUp = f; return this; },
+    coldComputeBy(f){ this.warmUp = f; return this; },
+    subscribe(f, v){
+      if(!this.subscribers)
+        this.subscribers = new Set();
+      if(this.warmUp && this._isHot !== true){
+        this.warmUp();
+        this._isHot = true;
+      }
+      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
+        const o = f;
+        f = x => o[x]?.();
+      }
+      this.subscribers.add(f);
+      if(v === -1)
+        return;
+      this.coldCompute && this.coldCompute();
+      if(v === undefined || v < this._version)
+        if(this._value !== undefined)
+          f.notify ? f.notify(this._value) : f(this._value);
+    },
+    unsubscribe(f){
+      this.subscribers.delete(f);
+      if(this.subscribers.size === 0 && this.coolDown){
+        this.coolDown();
+        this._isHot = false;
+      }
+    },
   }
 });
 nice.eventEmitter(nice.DataSource.proto);
@@ -2116,7 +2154,12 @@ nice.eventEmitter(nice.DataSource.proto);
   name: 'Box',
   extends: 'DataSource',
   customCall: (z, ...as) => {
-    return as.length === 0 ? z._value : z.setState(as[0]);
+    if(as.length === 0) {
+      z.coldCompute && !z._isHot && z.coldCompute();
+      return z._value;
+    } else {
+      return z.setState(as[0]);
+    }
   },
   initBy: (z, v) => {
     z._version = 0;
@@ -2129,7 +2172,15 @@ nice.eventEmitter(nice.DataSource.proto);
     setState (v) {
       this._value !== v && this._version++;
       this._value = v;
-      this.emit('state', v);
+      this.notify(v);
+    },
+    notify(v){
+      if(this.subscribers)
+        for (const f of this.subscribers) {
+          f.notify
+            ? f.notify(v)
+            : f(v);
+        }
     },
     uniq(){
       this.setState = function(v){
@@ -2142,23 +2193,6 @@ nice.eventEmitter(nice.DataSource.proto);
         nice.diff(v, this._value) === false || this.__proto__.setState.call(this, v);
       }
       return this;
-    },
-    subscribe(f, v){
-      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
-        const o = f;
-        f = x => o[x]?.();
-      }
-      this.on('state', f);
-      if(v === -1)
-        return;
-      if(v === undefined || v < this._version)
-        f.notify ? f.notify(this._value) : f(this._value);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.emit('noMoreSubscribers', this);
-      }
     },
     assertId(){
       if(!this._id)
@@ -2176,10 +2210,9 @@ Test((Box, Spy) => {
   b(1);
   b(1);
   b(2);
-  expect(spy).calledWith(undefined);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(4);
+  
 });
 Test((Box) => {
   const b = Box();
@@ -2212,7 +2245,6 @@ Test((Box, Spy, uniq) => {
   b(2);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(3);
 });
 Test((Box, Spy, deepUniq) => {
   const b = Box({qwe:1, asd:2}).deepUniq();
@@ -2251,89 +2283,11 @@ Test('Box action', (Box, Spy) => {
   expect(b()).is(5);
 });
 Test((Box, Spy) => {
-  const b = Box(11);
-  expect(b()).is(11);
-  const spy = Spy();
-  b.on('state', spy);
-  b(22);
-  expect(spy).calledWith(22);
-});
-Test((Box, Spy) => {
   const b = Box(1);
   const spy1 = Spy();
   const spy2 = Spy();
   b.subscribe({ 1: spy1, 2: spy2 });
   expect(spy1).calledWith();
-});
-})();
-(function(){"use strict";nice.Type({
-  name: 'LazyBox',
-  extends: 'Box',
-  initBy: (z, f) => {
-    z._version = -1;
-    z._by = f;
-    if(typeof z._by !== 'function')
-      throw `Last argument to RBox should be function or object`;
-    z._isHot = false;
-  },
-  customCall: (z, ...as) => {
-    if(as.length === 0) {
-      z.warmUp();
-      return z._value;
-    }
-    z.setState(as[0]);
-  },
-  proto: {
-    reconfigure(f) {
-      
-    },
-    subscribe(f, v) {
-      this.warmUp();
-      this.__proto__.__proto__.subscribe.call(this, f, v);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.emit('noMoreSubscribers', this);
-      }
-    },
-    warmUp(){
-      if(this._isHot === true)
-        return ;
-      this._isHot = true;
-      try {
-        const v = this._version;
-        const value = this._by(this);
-        if(v === this._version)
-          this.setState(value);
-      } catch (e) {
-        this.setState(e);
-      }
-    },
-  }
-});
-Test((LazyBox, Spy) => {
-  const spy = Spy(() => 2);
-  const b = LazyBox(spy);
-  expect(b()).is(2);
-  expect(b()).is(2);
-  expect(spy).calledOnce();
-});
-Test((LazyBox, Spy) => {
-  const spy = Spy(b => b(2));
-  const b = LazyBox(spy);
-  expect(b()).is(2);
-  expect(b()).is(2);
-  expect(spy).calledOnce();
-});
-Test('RBox subscribe', (Box, RBox, Spy) => {
-  const spy = Spy();
-  const b = Box(1);
-  const rb = RBox(b, a => a + 1);
-  rb.subscribe(spy);
-  expect(spy).calledWith(2);
-  b(3);
-  expect(spy).calledWith(4);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -3018,17 +2972,6 @@ nice.Type({
 			this.warming = false;
       this._isHot && this.attemptCompute();
     },
-    subscribe(f, v) {
-      this.warmUp();
-      this.__proto__.__proto__.subscribe.call(this, f, v);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.coolDown();
-        this.emit('noMoreSubscribers', this);
-      }
-    },
     attemptCompute(){
       try {
         const value = this._by(...this._inputValues);
@@ -3050,9 +2993,6 @@ nice.Type({
       needCompute && this.attemptCompute();
     },
     warmUp(){
-      if(this._isHot === true)
-        return ;
-      this._isHot = true;
 			this.warming = true;
       for (let c of this._ins)
         c.attach();
@@ -3060,7 +3000,6 @@ nice.Type({
       this.attemptCompute();
     },
     coolDown(){
-      this._isHot = false;
       this._inputValues = [];
       for (let c of this._ins)
         c.detach();
@@ -3182,31 +3121,18 @@ Test('RBox cold compute', (Box, RBox) => {
       throw `1st argument must be number`;
     if(typeof f !== 'function')
       throw `2nd argument must be functions`;
-    z._ms = ms;
-    z._f = f;
-    z._interval = null;
+    let interval = null;
+    z.warmUp = () => {
+      interval = setInterval(() => z(f(z())), ms);
+      z._value === undefined && z.setState(f());
+    };
+    z.coolDown = () => {
+      if(interval !== null){
+        clearInterval(interval);
+        interval = null;
+      }
+    };
   },
-  proto: {
-    subscribe(f){
-      if(this._interval === null){
-        this._interval = setInterval(() => this(this._f(this())), this._ms);
-        this._value === undefined && this.setState(this._f());
-      }
-      if(this._value !== undefined)
-        f.notify ? f.notify(this._value) : f(this._value);
-      this.on('state', f);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        if(this._interval !== null){
-          clearInterval(this._interval);
-          this._interval = null;
-        }
-        this.emit('noMoreSubscribers', this);
-      }
-    },
-  }
 });
 Action.Box('changeAfter', (z, ms, f) => setTimeout(() => z(f(z())), ms));
 Test((IntervalBox, RBox, Spy) => {
@@ -3222,7 +3148,7 @@ Test((IntervalBox, RBox, Spy) => {
   });
   Test(() => {
     x2.unsubscribe(spy);
-    expect(n._interval).is(null);
+    expect(n._isHot).is(false);
     expect(spy).calledTimes(1);
   });
 });
@@ -3980,7 +3906,7 @@ function RowModel(){
       const f2 = filters[0];
       const key = f._sortKey + '+' + f2._sortKey;
       filters[0] = res.compositQueries[key] ||
-        (res.compositQueries[key] = f.intersection(f2));      ;
+        (res.compositQueries[key] = f.intersection(f2));
     }
     return filters[0];
   };
@@ -4080,6 +4006,7 @@ nice.Type({
     z.sortValueFunction = direction > 0
       ? (a, bv) => rows[a][field] > bv ? 1 : -1
       : (a, bv) => rows[a][field] > bv ? -1 : 1;
+    z.take = memoize((a, b) => z.window(a, b), (a, b) => a + '_' + b);
     query.subscribe((v, oldV) => {
       oldV !== undefined && z.deleteId(oldV);
       v !== null && z.insertId(v);
@@ -4183,7 +4110,7 @@ nice.Type({
     z.filter = memoize(o => nice.RowModelFilterProxy(o, z), JSON.stringify);
     z.rowBox = memoize(id => {
       const res = Box();
-      z.subscribe([{action: 'rowBox', args: id }], res);
+      z.subscribe([{action: 'rowBox', args: [id] }], (aa) => res(aa[0]));
       return res;
     });
   },
@@ -4193,10 +4120,12 @@ nice.Type({
 nice.Type({
   name: 'RowModelFilterProxy',
   extends: 'BoxSet',
-  initBy(z, args, model){
+  initBy(z, query, model){
     z.super();
-    const q = [{action: 'filter', args }];
-    model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    const q = [{action: 'filter', args: [ query ] }];
+    z.wormUp = () => {
+      model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    };
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
   }
@@ -4207,8 +4136,18 @@ nice.Type({
   initBy(z, model, prefix, field, direction){
     z.super();
     const action = direction > 0 ? 'sortAsc' : 'sortDesc';
-    const q = [...prefix, { action , args: field }];
-    model.subscribe(q, BoxArray.subscribeFunction(z));
+    const q = [...prefix, { action , args: [field] }];
+    z.wormUp = () => {
+      const f = BoxArray.subscribeFunction(z);
+      model.subscribe(q, r => f(...r));
+    };
+    z.take = memoize((a, b) => {
+      const res = BoxArray();
+      const q2 = [...q, {action: 'take', args: [a, b] }];
+      const f = BoxArray.subscribeFunction(res);
+      model.subscribe(q2, r => f(...r));
+      return res;
+    }, (a, b) => a + '_' + b);
   }
 });
 nice.Type({
@@ -4278,7 +4217,6 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
   });
-  
   Test('change age', () => {
     m.change(janeId, {age:46});
     expect(optionsHome2age()).deepEqual({46:1,45:1});
@@ -4297,17 +4235,6 @@ Test((Spy) => {
     expect(asc()).deepEqual([jimId,janeId]);
     m.change(jimId, {address:'Home'});
     expect(asc()).deepEqual([janeId]);
-	});
-  Test((RowModelProxy) => {
-    const p = RowModelProxy((a, cb) => {
-      let source = m;
-      a.forEach(({action, args}) => source = source[action](args));
-      source.subscribe(cb);
-    });
-    const filter = p.filter({address:'Home'});
-    const filter2 = p.filter({address:'Home2'});
-    expect([...filter()]).deepEqual([...qHome()]);
-    expect([...filter2()]).deepEqual([...qHome2()]);
 	});
   Test('delete', () => {
     m.delete(joeId);
@@ -6497,4 +6424,4 @@ Test((orderedStringify) => {
   expect(s1).is('{"asd":2,"qwe":1}');
   expect(s1).is(s2);
 });
-})();;nice.version = "0.4.0";})();; export let length = nice.length,name = nice.name,define = nice.define,defineAll = nice.defineAll,TYPE_KEY = nice.TYPE_KEY,SOURCE_ERROR = nice.SOURCE_ERROR,LOCKED_ERROR = nice.LOCKED_ERROR,curry = nice.curry,valueType = nice.valueType,defineCached = nice.defineCached,defineGetter = nice.defineGetter,_each = nice._each,_removeArrayValue = nice._removeArrayValue,_removeValue = nice._removeValue,serialize = nice.serialize,deserialize = nice.deserialize,apply = nice.apply,Pipe = nice.Pipe,AUTO_PREFIX = nice.AUTO_PREFIX,genereteAutoId = nice.genereteAutoId,reflect = nice.reflect,_map = nice._map,_pick = nice._pick,_size = nice._size,_every = nice._every,_some = nice._some,sortedPosition = nice.sortedPosition,_if = nice._if,orderedStringify = nice.orderedStringify,objDiggDefault = nice.objDiggDefault,objDiggMin = nice.objDiggMin,objDiggMax = nice.objDiggMax,objMax = nice.objMax,objByKeys = nice.objByKeys,eraseProperty = nice.eraseProperty,rewriteProperty = nice.rewriteProperty,stripFunction = nice.stripFunction,stringCutBegining = nice.stringCutBegining,seconds = nice.seconds,minutes = nice.minutes,speedTest = nice.speedTest,generateId = nice.generateId,parseTraceString = nice.parseTraceString,throttle = nice.throttle,throttleTrailing = nice.throttleTrailing,throttleLeading = nice.throttleLeading,_count = nice._count,_findFirstKeys = nice._findFirstKeys,create = nice.create,_eachEach = nice._eachEach,format = nice.format,objectComparer = nice.objectComparer,mapper = nice.mapper,clone = nice.clone,cloneDeep = nice.cloneDeep,diff = nice.diff,memoize = nice.memoize,once = nice.once,argumentNames = nice.argumentNames,prototypes = nice.prototypes,keyPosition = nice.keyPosition,_capitalize = nice._capitalize,_decapitalize = nice._decapitalize,times = nice.times,fromJson = nice.fromJson,Configurator = nice.Configurator,generateDoc = nice.generateDoc,_set = nice._set,_get = nice._get,eventEmitter = nice.eventEmitter,EventEmitter = nice.EventEmitter,jsTypes = nice.jsTypes,jsBasicTypesMap = nice.jsBasicTypesMap,typesToJsTypesMap = nice.typesToJsTypesMap,jsBasicTypes = nice.jsBasicTypes,Anything = nice.Anything,ANYTHING = nice.ANYTHING,extend = nice.extend,type = nice.type,Type = nice.Type,typeOf = nice.typeOf,getType = nice.getType,Func = nice.Func,Action = nice.Action,Mapping = nice.Mapping,Check = nice.Check,ReadOnly = nice.ReadOnly,TestSet = nice.TestSet,Test = nice.Test,isCheck = nice.isCheck,isAction = nice.isAction,isMapping = nice.isMapping,is = nice.is,isExactly = nice.isExactly,deepEqual = nice.deepEqual,isTrue = nice.isTrue,isFalse = nice.isFalse,isAnyOf = nice.isAnyOf,isNeitherOf = nice.isNeitherOf,isTruly = nice.isTruly,isFalsy = nice.isFalsy,isEmpty = nice.isEmpty,isSubType = nice.isSubType,throws = nice.throws,isjs = nice.isjs,isprimitive = nice.isprimitive,isObject = nice.isObject,isString = nice.isString,isBoolean = nice.isBoolean,isNumber = nice.isNumber,isundefined = nice.isundefined,isnull = nice.isnull,isSymbol = nice.isSymbol,isFunction = nice.isFunction,isDate = nice.isDate,isRegExp = nice.isRegExp,isArray = nice.isArray,isError = nice.isError,isArrayBuffer = nice.isArrayBuffer,isDataView = nice.isDataView,isMap = nice.isMap,isWeakMap = nice.isWeakMap,isSet = nice.isSet,isWeakSet = nice.isWeakSet,isPromise = nice.isPromise,isEvalError = nice.isEvalError,isRangeError = nice.isRangeError,isReferenceError = nice.isReferenceError,isSyntaxError = nice.isSyntaxError,isTypeError = nice.isTypeError,isUriError = nice.isUriError,isAnything = nice.isAnything,Switch = nice.Switch,expectPrototype = nice.expectPrototype,expect = nice.expect,isType = nice.isType,Nothing = nice.Nothing,isNothing = nice.isNothing,Undefined = nice.Undefined,isUndefined = nice.isUndefined,Null = nice.Null,isNull = nice.isNull,NotFound = nice.NotFound,isNotFound = nice.isNotFound,Fail = nice.Fail,isFail = nice.isFail,Pending = nice.Pending,isPending = nice.isPending,Stop = nice.Stop,isStop = nice.isStop,NumberError = nice.NumberError,isNumberError = nice.isNumberError,AssignmentError = nice.AssignmentError,isAssignmentError = nice.isAssignmentError,Something = nice.Something,isSomething = nice.isSomething,Ok = nice.Ok,isOk = nice.isOk,simpleTypes = nice.simpleTypes,partial = nice.partial,sortedIndex = nice.sortedIndex,Spy = nice.Spy,isSpy = nice.isSpy,logCalls = nice.logCalls,called = nice.called,neverCalled = nice.neverCalled,calledOnce = nice.calledOnce,calledTwice = nice.calledTwice,calledTimes = nice.calledTimes,calledWith = nice.calledWith,DataSource = nice.DataSource,isDataSource = nice.isDataSource,Box = nice.Box,isBox = nice.isBox,assign = nice.assign,push = nice.push,removeValue = nice.removeValue,add = nice.add,LazyBox = nice.LazyBox,isLazyBox = nice.isLazyBox,BoxSet = nice.BoxSet,isBoxSet = nice.isBoxSet,BoxMap = nice.BoxMap,isBoxMap = nice.isBoxMap,sort = nice.sort,BoxArray = nice.BoxArray,isBoxArray = nice.isBoxArray,RBox = nice.RBox,isRBox = nice.isRBox,IntervalBox = nice.IntervalBox,isIntervalBox = nice.isIntervalBox,changeAfter = nice.changeAfter,BoxIndex = nice.BoxIndex,isBoxIndex = nice.isBoxIndex,BoxSortedMap = nice.BoxSortedMap,isBoxSortedMap = nice.isBoxSortedMap,Model = nice.Model,isModel = nice.isModel,RowModel = nice.RowModel,RowsFilter = nice.RowsFilter,isRowsFilter = nice.isRowsFilter,SortResult = nice.SortResult,isSortResult = nice.isSortResult,RowModelProxy = nice.RowModelProxy,isRowModelProxy = nice.isRowModelProxy,RowModelFilterProxy = nice.RowModelFilterProxy,isRowModelFilterProxy = nice.isRowModelFilterProxy,RowModelSortProxy = nice.RowModelSortProxy,isRowModelSortProxy = nice.isRowModelSortProxy,RowModelOtptionsProxy = nice.RowModelOtptionsProxy,isRowModelOtptionsProxy = nice.isRowModelOtptionsProxy,or = nice.or,and = nice.and,nor = nice.nor,xor = nice.xor,Value = nice.Value,isValue = nice.isValue,Obj = nice.Obj,isObj = nice.isObj,size = nice.size,each = nice.each,has = nice.has,setDefault = nice.setDefault,get = nice.get,set = nice.set,remove = nice.remove,removeAll = nice.removeAll,reduce = nice.reduce,mapToArray = nice.mapToArray,map = nice.map,filter = nice.filter,sum = nice.sum,some = nice.some,every = nice.every,find = nice.find,findKey = nice.findKey,count = nice.count,includes = nice.includes,getProperties = nice.getProperties,reduceTo = nice.reduceTo,Err = nice.Err,isErr = nice.isErr,Single = nice.Single,isSingle = nice.isSingle,Str = nice.Str,isStr = nice.isStr,endsWith = nice.endsWith,startsWith = nice.startsWith,test = nice.test,trimLeft = nice.trimLeft,trimRight = nice.trimRight,trim = nice.trim,truncate = nice.truncate,capitalize = nice.capitalize,deCapitalize = nice.deCapitalize,toLocaleLowerCase = nice.toLocaleLowerCase,toLocaleUpperCase = nice.toLocaleUpperCase,toLowerCase = nice.toLowerCase,toUpperCase = nice.toUpperCase,charAt = nice.charAt,charCodeAt = nice.charCodeAt,codePointAt = nice.codePointAt,concat = nice.concat,indexOf = nice.indexOf,lastIndexOf = nice.lastIndexOf,normalize = nice.normalize,padEnd = nice.padEnd,padStart = nice.padStart,repeat = nice.repeat,substr = nice.substr,substring = nice.substring,slice = nice.slice,split = nice.split,search = nice.search,replace = nice.replace,match = nice.match,localeCompare = nice.localeCompare,fromCharCode = nice.fromCharCode,fromCodePoint = nice.fromCodePoint,wrapMatches = nice.wrapMatches,Arr = nice.Arr,isArr = nice.isArr,reduceRight = nice.reduceRight,join = nice.join,unshift = nice.unshift,pull = nice.pull,insertAt = nice.insertAt,insertAfter = nice.insertAfter,callEach = nice.callEach,eachRight = nice.eachRight,fill = nice.fill,random = nice.random,intersection = nice.intersection,intersperse = nice.intersperse,last = nice.last,first = nice.first,firstN = nice.firstN,Num = nice.Num,isNum = nice.isNum,between = nice.between,integer = nice.integer,saveInteger = nice.saveInteger,finite = nice.finite,lt = nice.lt,lte = nice.lte,gt = nice.gt,gte = nice.gte,difference = nice.difference,product = nice.product,fraction = nice.fraction,reminder = nice.reminder,next = nice.next,previous = nice.previous,acos = nice.acos,asin = nice.asin,atan = nice.atan,ceil = nice.ceil,clz32 = nice.clz32,floor = nice.floor,fround = nice.fround,imul = nice.imul,max = nice.max,min = nice.min,round = nice.round,sqrt = nice.sqrt,trunc = nice.trunc,abs = nice.abs,exp = nice.exp,log = nice.log,atan2 = nice.atan2,pow = nice.pow,sign = nice.sign,asinh = nice.asinh,acosh = nice.acosh,atanh = nice.atanh,hypot = nice.hypot,cbrt = nice.cbrt,cos = nice.cos,sin = nice.sin,tan = nice.tan,sinh = nice.sinh,cosh = nice.cosh,tanh = nice.tanh,log10 = nice.log10,log2 = nice.log2,log1pexpm1 = nice.log1pexpm1,clamp = nice.clamp,inc = nice.inc,dec = nice.dec,divide = nice.divide,multiply = nice.multiply,negate = nice.negate,setMax = nice.setMax,setMin = nice.setMin,Bool = nice.Bool,isBool = nice.isBool,turnOn = nice.turnOn,turnOff = nice.turnOff,toggle = nice.toggle,Range = nice.Range,isRange = nice.isRange,toArray = nice.toArray,within = nice.within,Html = nice.Html,isHtml = nice.isHtml,on = nice.on,off = nice.off,assertId = nice.assertId,scrollTo = nice.scrollTo,focus = nice.focus,rBox = nice.rBox,Style = nice.Style,isStyle = nice.isStyle,htmlEscape = nice.htmlEscape,Div = nice.Div,isDiv = nice.isDiv,I = nice.I,isI = nice.isI,B = nice.B,isB = nice.isB,Span = nice.Span,isSpan = nice.isSpan,H1 = nice.H1,isH1 = nice.isH1,H2 = nice.H2,isH2 = nice.isH2,H3 = nice.H3,isH3 = nice.isH3,H4 = nice.H4,isH4 = nice.isH4,H5 = nice.H5,isH5 = nice.isH5,H6 = nice.H6,isH6 = nice.isH6,P = nice.P,isP = nice.isP,Li = nice.Li,isLi = nice.isLi,Ul = nice.Ul,isUl = nice.isUl,Ol = nice.Ol,isOl = nice.isOl,Pre = nice.Pre,isPre = nice.isPre,Table = nice.Table,isTable = nice.isTable,Tr = nice.Tr,isTr = nice.isTr,Td = nice.Td,isTd = nice.isTd,Th = nice.Th,isTh = nice.isTh,A = nice.A,isA = nice.isA,Img = nice.Img,isImg = nice.isImg,Input = nice.Input,isInput = nice.isInput,Button = nice.Button,isButton = nice.isButton,Textarea = nice.Textarea,isTextarea = nice.isTextarea,Submit = nice.Submit,isSubmit = nice.isSubmit,Form = nice.Form,isForm = nice.isForm,Checkbox = nice.Checkbox,isCheckbox = nice.isCheckbox,Select = nice.Select,isSelect = nice.isSelect,option = nice.option,Router = nice.Router,isRouter = nice.isRouter,addRoute = nice.addRoute,addRoutes = nice.addRoutes,resolve = nice.resolve,WindowRouter = nice.WindowRouter,isWindowRouter = nice.isWindowRouter,go = nice.go,version = nice.version; export default nice;
+})();;nice.version = "0.4.0";})();; export let length = nice.length,name = nice.name,define = nice.define,defineAll = nice.defineAll,TYPE_KEY = nice.TYPE_KEY,SOURCE_ERROR = nice.SOURCE_ERROR,LOCKED_ERROR = nice.LOCKED_ERROR,curry = nice.curry,valueType = nice.valueType,defineCached = nice.defineCached,defineGetter = nice.defineGetter,_each = nice._each,_removeArrayValue = nice._removeArrayValue,_removeValue = nice._removeValue,serialize = nice.serialize,deserialize = nice.deserialize,apply = nice.apply,Pipe = nice.Pipe,AUTO_PREFIX = nice.AUTO_PREFIX,genereteAutoId = nice.genereteAutoId,reflect = nice.reflect,_map = nice._map,_pick = nice._pick,_size = nice._size,_every = nice._every,_some = nice._some,sortedPosition = nice.sortedPosition,_if = nice._if,orderedStringify = nice.orderedStringify,objDiggDefault = nice.objDiggDefault,objDiggMin = nice.objDiggMin,objDiggMax = nice.objDiggMax,objMax = nice.objMax,objByKeys = nice.objByKeys,eraseProperty = nice.eraseProperty,rewriteProperty = nice.rewriteProperty,stripFunction = nice.stripFunction,stringCutBegining = nice.stringCutBegining,seconds = nice.seconds,minutes = nice.minutes,speedTest = nice.speedTest,generateId = nice.generateId,parseTraceString = nice.parseTraceString,throttle = nice.throttle,throttleTrailing = nice.throttleTrailing,throttleLeading = nice.throttleLeading,_count = nice._count,_findFirstKeys = nice._findFirstKeys,create = nice.create,_eachEach = nice._eachEach,format = nice.format,objectComparer = nice.objectComparer,mapper = nice.mapper,clone = nice.clone,cloneDeep = nice.cloneDeep,diff = nice.diff,memoize = nice.memoize,once = nice.once,argumentNames = nice.argumentNames,prototypes = nice.prototypes,keyPosition = nice.keyPosition,_capitalize = nice._capitalize,_decapitalize = nice._decapitalize,times = nice.times,fromJson = nice.fromJson,Configurator = nice.Configurator,generateDoc = nice.generateDoc,_set = nice._set,_get = nice._get,eventEmitter = nice.eventEmitter,EventEmitter = nice.EventEmitter,jsTypes = nice.jsTypes,jsBasicTypesMap = nice.jsBasicTypesMap,typesToJsTypesMap = nice.typesToJsTypesMap,jsBasicTypes = nice.jsBasicTypes,Anything = nice.Anything,ANYTHING = nice.ANYTHING,extend = nice.extend,type = nice.type,Type = nice.Type,typeOf = nice.typeOf,getType = nice.getType,Func = nice.Func,Action = nice.Action,Mapping = nice.Mapping,Check = nice.Check,ReadOnly = nice.ReadOnly,TestSet = nice.TestSet,Test = nice.Test,isCheck = nice.isCheck,isAction = nice.isAction,isMapping = nice.isMapping,is = nice.is,isExactly = nice.isExactly,deepEqual = nice.deepEqual,isTrue = nice.isTrue,isFalse = nice.isFalse,isAnyOf = nice.isAnyOf,isNeitherOf = nice.isNeitherOf,isTruly = nice.isTruly,isFalsy = nice.isFalsy,isEmpty = nice.isEmpty,isSubType = nice.isSubType,throws = nice.throws,isjs = nice.isjs,isprimitive = nice.isprimitive,isObject = nice.isObject,isString = nice.isString,isBoolean = nice.isBoolean,isNumber = nice.isNumber,isundefined = nice.isundefined,isnull = nice.isnull,isSymbol = nice.isSymbol,isFunction = nice.isFunction,isDate = nice.isDate,isRegExp = nice.isRegExp,isArray = nice.isArray,isError = nice.isError,isArrayBuffer = nice.isArrayBuffer,isDataView = nice.isDataView,isMap = nice.isMap,isWeakMap = nice.isWeakMap,isSet = nice.isSet,isWeakSet = nice.isWeakSet,isPromise = nice.isPromise,isEvalError = nice.isEvalError,isRangeError = nice.isRangeError,isReferenceError = nice.isReferenceError,isSyntaxError = nice.isSyntaxError,isTypeError = nice.isTypeError,isUriError = nice.isUriError,isAnything = nice.isAnything,Switch = nice.Switch,expectPrototype = nice.expectPrototype,expect = nice.expect,isType = nice.isType,Nothing = nice.Nothing,isNothing = nice.isNothing,Undefined = nice.Undefined,isUndefined = nice.isUndefined,Null = nice.Null,isNull = nice.isNull,NotFound = nice.NotFound,isNotFound = nice.isNotFound,Fail = nice.Fail,isFail = nice.isFail,Pending = nice.Pending,isPending = nice.isPending,Stop = nice.Stop,isStop = nice.isStop,NumberError = nice.NumberError,isNumberError = nice.isNumberError,AssignmentError = nice.AssignmentError,isAssignmentError = nice.isAssignmentError,Something = nice.Something,isSomething = nice.isSomething,Ok = nice.Ok,isOk = nice.isOk,simpleTypes = nice.simpleTypes,partial = nice.partial,sortedIndex = nice.sortedIndex,Spy = nice.Spy,isSpy = nice.isSpy,logCalls = nice.logCalls,called = nice.called,neverCalled = nice.neverCalled,calledOnce = nice.calledOnce,calledTwice = nice.calledTwice,calledTimes = nice.calledTimes,calledWith = nice.calledWith,DataSource = nice.DataSource,isDataSource = nice.isDataSource,Box = nice.Box,isBox = nice.isBox,assign = nice.assign,push = nice.push,removeValue = nice.removeValue,add = nice.add,BoxSet = nice.BoxSet,isBoxSet = nice.isBoxSet,BoxMap = nice.BoxMap,isBoxMap = nice.isBoxMap,sort = nice.sort,BoxArray = nice.BoxArray,isBoxArray = nice.isBoxArray,RBox = nice.RBox,isRBox = nice.isRBox,IntervalBox = nice.IntervalBox,isIntervalBox = nice.isIntervalBox,changeAfter = nice.changeAfter,BoxIndex = nice.BoxIndex,isBoxIndex = nice.isBoxIndex,BoxSortedMap = nice.BoxSortedMap,isBoxSortedMap = nice.isBoxSortedMap,Model = nice.Model,isModel = nice.isModel,RowModel = nice.RowModel,RowsFilter = nice.RowsFilter,isRowsFilter = nice.isRowsFilter,SortResult = nice.SortResult,isSortResult = nice.isSortResult,RowModelProxy = nice.RowModelProxy,isRowModelProxy = nice.isRowModelProxy,RowModelFilterProxy = nice.RowModelFilterProxy,isRowModelFilterProxy = nice.isRowModelFilterProxy,RowModelSortProxy = nice.RowModelSortProxy,isRowModelSortProxy = nice.isRowModelSortProxy,RowModelOtptionsProxy = nice.RowModelOtptionsProxy,isRowModelOtptionsProxy = nice.isRowModelOtptionsProxy,or = nice.or,and = nice.and,nor = nice.nor,xor = nice.xor,Value = nice.Value,isValue = nice.isValue,Obj = nice.Obj,isObj = nice.isObj,size = nice.size,each = nice.each,has = nice.has,setDefault = nice.setDefault,get = nice.get,set = nice.set,remove = nice.remove,removeAll = nice.removeAll,reduce = nice.reduce,mapToArray = nice.mapToArray,map = nice.map,filter = nice.filter,sum = nice.sum,some = nice.some,every = nice.every,find = nice.find,findKey = nice.findKey,count = nice.count,includes = nice.includes,getProperties = nice.getProperties,reduceTo = nice.reduceTo,Err = nice.Err,isErr = nice.isErr,Single = nice.Single,isSingle = nice.isSingle,Str = nice.Str,isStr = nice.isStr,endsWith = nice.endsWith,startsWith = nice.startsWith,test = nice.test,trimLeft = nice.trimLeft,trimRight = nice.trimRight,trim = nice.trim,truncate = nice.truncate,capitalize = nice.capitalize,deCapitalize = nice.deCapitalize,toLocaleLowerCase = nice.toLocaleLowerCase,toLocaleUpperCase = nice.toLocaleUpperCase,toLowerCase = nice.toLowerCase,toUpperCase = nice.toUpperCase,charAt = nice.charAt,charCodeAt = nice.charCodeAt,codePointAt = nice.codePointAt,concat = nice.concat,indexOf = nice.indexOf,lastIndexOf = nice.lastIndexOf,normalize = nice.normalize,padEnd = nice.padEnd,padStart = nice.padStart,repeat = nice.repeat,substr = nice.substr,substring = nice.substring,slice = nice.slice,split = nice.split,search = nice.search,replace = nice.replace,match = nice.match,localeCompare = nice.localeCompare,fromCharCode = nice.fromCharCode,fromCodePoint = nice.fromCodePoint,wrapMatches = nice.wrapMatches,Arr = nice.Arr,isArr = nice.isArr,reduceRight = nice.reduceRight,join = nice.join,unshift = nice.unshift,pull = nice.pull,insertAt = nice.insertAt,insertAfter = nice.insertAfter,callEach = nice.callEach,eachRight = nice.eachRight,fill = nice.fill,random = nice.random,intersection = nice.intersection,intersperse = nice.intersperse,last = nice.last,first = nice.first,firstN = nice.firstN,Num = nice.Num,isNum = nice.isNum,between = nice.between,integer = nice.integer,saveInteger = nice.saveInteger,finite = nice.finite,lt = nice.lt,lte = nice.lte,gt = nice.gt,gte = nice.gte,difference = nice.difference,product = nice.product,fraction = nice.fraction,reminder = nice.reminder,next = nice.next,previous = nice.previous,acos = nice.acos,asin = nice.asin,atan = nice.atan,ceil = nice.ceil,clz32 = nice.clz32,floor = nice.floor,fround = nice.fround,imul = nice.imul,max = nice.max,min = nice.min,round = nice.round,sqrt = nice.sqrt,trunc = nice.trunc,abs = nice.abs,exp = nice.exp,log = nice.log,atan2 = nice.atan2,pow = nice.pow,sign = nice.sign,asinh = nice.asinh,acosh = nice.acosh,atanh = nice.atanh,hypot = nice.hypot,cbrt = nice.cbrt,cos = nice.cos,sin = nice.sin,tan = nice.tan,sinh = nice.sinh,cosh = nice.cosh,tanh = nice.tanh,log10 = nice.log10,log2 = nice.log2,log1pexpm1 = nice.log1pexpm1,clamp = nice.clamp,inc = nice.inc,dec = nice.dec,divide = nice.divide,multiply = nice.multiply,negate = nice.negate,setMax = nice.setMax,setMin = nice.setMin,Bool = nice.Bool,isBool = nice.isBool,turnOn = nice.turnOn,turnOff = nice.turnOff,toggle = nice.toggle,Range = nice.Range,isRange = nice.isRange,toArray = nice.toArray,within = nice.within,Html = nice.Html,isHtml = nice.isHtml,on = nice.on,off = nice.off,assertId = nice.assertId,scrollTo = nice.scrollTo,focus = nice.focus,rBox = nice.rBox,Style = nice.Style,isStyle = nice.isStyle,htmlEscape = nice.htmlEscape,Div = nice.Div,isDiv = nice.isDiv,I = nice.I,isI = nice.isI,B = nice.B,isB = nice.isB,Span = nice.Span,isSpan = nice.isSpan,H1 = nice.H1,isH1 = nice.isH1,H2 = nice.H2,isH2 = nice.isH2,H3 = nice.H3,isH3 = nice.isH3,H4 = nice.H4,isH4 = nice.isH4,H5 = nice.H5,isH5 = nice.isH5,H6 = nice.H6,isH6 = nice.isH6,P = nice.P,isP = nice.isP,Li = nice.Li,isLi = nice.isLi,Ul = nice.Ul,isUl = nice.isUl,Ol = nice.Ol,isOl = nice.isOl,Pre = nice.Pre,isPre = nice.isPre,Table = nice.Table,isTable = nice.isTable,Tr = nice.Tr,isTr = nice.isTr,Td = nice.Td,isTd = nice.isTd,Th = nice.Th,isTh = nice.isTh,A = nice.A,isA = nice.isA,Img = nice.Img,isImg = nice.isImg,Input = nice.Input,isInput = nice.isInput,Button = nice.Button,isButton = nice.isButton,Textarea = nice.Textarea,isTextarea = nice.isTextarea,Submit = nice.Submit,isSubmit = nice.isSubmit,Form = nice.Form,isForm = nice.isForm,Checkbox = nice.Checkbox,isCheckbox = nice.isCheckbox,Select = nice.Select,isSelect = nice.isSelect,option = nice.option,Router = nice.Router,isRouter = nice.isRouter,addRoute = nice.addRoute,addRoutes = nice.addRoutes,resolve = nice.resolve,WindowRouter = nice.WindowRouter,isWindowRouter = nice.isWindowRouter,go = nice.go,version = nice.version; export default nice;

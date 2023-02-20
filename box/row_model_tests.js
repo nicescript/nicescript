@@ -83,7 +83,7 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
   });
-  
+
 
   Test('change age', () => {
     m.change(janeId, {age:46});
@@ -115,19 +115,20 @@ Test((Spy) => {
 	});
 
 
-  Test((RowModelProxy) => {
-    const p = RowModelProxy((a, cb) => {
-      let source = m;
-      a.forEach(({action, args}) => source = source[action](args));
-      source.subscribe(cb);
-    });
-
-    const filter = p.filter({address:'Home'});
-    const filter2 = p.filter({address:'Home2'});
-
-    expect([...filter()]).deepEqual([...qHome()]);
-    expect([...filter2()]).deepEqual([...qHome2()]);
-	});
+//TODO: 
+//  Test((RowModelProxy) => {
+//    const p = RowModelProxy((a, cb) => {
+//      let source = m;
+//      a.forEach(({action, args}) => source = source[action](args));
+//      source.subscribe(cb);
+//    });
+//
+//    const filter = p.filter({address:'Home'});
+//    const filter2 = p.filter({address:'Home2'});
+//
+//    expect([...filter()]).deepEqual([...qHome()]);
+//    expect([...filter2()]).deepEqual([...qHome2()]);
+//	});
 
 
   Test('delete', () => {

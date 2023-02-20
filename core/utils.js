@@ -38,15 +38,21 @@ defAll(nice, {
     return false;
   },
 
-  sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
-    //TODO: binary search
-    let i;
-    for(i in a){
-      if(f(a[i], v) > 0){
-        return +i;
+  sortedPosition(a, v, f = (a, b) => a === b ? 0 : a > b ? 1 : -1){
+    let low = 0;
+    let high = a.length;// - 1;
+    while (low < high) {
+      let m = (high + low) >> 1;
+      let cmp = f(a[m], v);
+      if (cmp < 0) {
+        low = m + 1;
+      } else if(cmp > 0) {
+        high = m;
+      } else {
+        return m;
       }
     }
-    return a.length;
+    return low;
   },
 
   _if(c, f1, f2) {

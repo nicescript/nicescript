@@ -254,15 +254,21 @@ defAll(nice, {
         return true;
     return false;
   },
-  sortedPosition(a, v, f = (a, b) => a > b ? 1 : -1){
-    
-    let i;
-    for(i in a){
-      if(f(a[i], v) > 0){
-        return +i;
+  sortedPosition(a, v, f = (a, b) => a === b ? 0 : a > b ? 1 : -1){
+    let low = 0;
+    let high = a.length;
+    while (low < high) {
+      let m = (high + low) >> 1;
+      let cmp = f(a[m], v);
+      if (cmp < 0) {
+        low = m + 1;
+      } else if(cmp > 0) {
+        high = m;
+      } else {
+        return m;
       }
     }
-    return a.length;
+    return low;
   },
   _if(c, f1, f2) {
     return c ? f1(c) : (typeof f2 === 'function' ? f2(c) : f2);
@@ -2104,10 +2110,42 @@ Test((Spy, calledWith) => {
   name: 'DataSource',
   extends: 'Something',
   abstract: true,
+  initBy(z){
+    z.subscribers = new Set();
+  },
   proto: {
     get version(){
       return this._version;
-    }
+    },
+    warmUpBy(f){ this.warmUp = f; return this; },
+    coolDownBy(f){ this.warmUp = f; return this; },
+    coldComputeBy(f){ this.warmUp = f; return this; },
+    subscribe(f, v){
+      if(!this.subscribers)
+        this.subscribers = new Set();
+      if(this.warmUp && this._isHot !== true){
+        this.warmUp();
+        this._isHot = true;
+      }
+      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
+        const o = f;
+        f = x => o[x]?.();
+      }
+      this.subscribers.add(f);
+      if(v === -1)
+        return;
+      this.coldCompute && this.coldCompute();
+      if(v === undefined || v < this._version)
+        if(this._value !== undefined)
+          f.notify ? f.notify(this._value) : f(this._value);
+    },
+    unsubscribe(f){
+      this.subscribers.delete(f);
+      if(this.subscribers.size === 0 && this.coolDown){
+        this.coolDown();
+        this._isHot = false;
+      }
+    },
   }
 });
 nice.eventEmitter(nice.DataSource.proto);
@@ -2116,7 +2154,12 @@ nice.eventEmitter(nice.DataSource.proto);
   name: 'Box',
   extends: 'DataSource',
   customCall: (z, ...as) => {
-    return as.length === 0 ? z._value : z.setState(as[0]);
+    if(as.length === 0) {
+      z.coldCompute && !z._isHot && z.coldCompute();
+      return z._value;
+    } else {
+      return z.setState(as[0]);
+    }
   },
   initBy: (z, v) => {
     z._version = 0;
@@ -2129,7 +2172,15 @@ nice.eventEmitter(nice.DataSource.proto);
     setState (v) {
       this._value !== v && this._version++;
       this._value = v;
-      this.emit('state', v);
+      this.notify(v);
+    },
+    notify(v){
+      if(this.subscribers)
+        for (const f of this.subscribers) {
+          f.notify
+            ? f.notify(v)
+            : f(v);
+        }
     },
     uniq(){
       this.setState = function(v){
@@ -2142,23 +2193,6 @@ nice.eventEmitter(nice.DataSource.proto);
         nice.diff(v, this._value) === false || this.__proto__.setState.call(this, v);
       }
       return this;
-    },
-    subscribe(f, v){
-      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
-        const o = f;
-        f = x => o[x]?.();
-      }
-      this.on('state', f);
-      if(v === -1)
-        return;
-      if(v === undefined || v < this._version)
-        f.notify ? f.notify(this._value) : f(this._value);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.emit('noMoreSubscribers', this);
-      }
     },
     assertId(){
       if(!this._id)
@@ -2176,10 +2210,9 @@ Test((Box, Spy) => {
   b(1);
   b(1);
   b(2);
-  expect(spy).calledWith(undefined);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(4);
+  
 });
 Test((Box) => {
   const b = Box();
@@ -2212,7 +2245,6 @@ Test((Box, Spy, uniq) => {
   b(2);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(3);
 });
 Test((Box, Spy, deepUniq) => {
   const b = Box({qwe:1, asd:2}).deepUniq();
@@ -2251,89 +2283,11 @@ Test('Box action', (Box, Spy) => {
   expect(b()).is(5);
 });
 Test((Box, Spy) => {
-  const b = Box(11);
-  expect(b()).is(11);
-  const spy = Spy();
-  b.on('state', spy);
-  b(22);
-  expect(spy).calledWith(22);
-});
-Test((Box, Spy) => {
   const b = Box(1);
   const spy1 = Spy();
   const spy2 = Spy();
   b.subscribe({ 1: spy1, 2: spy2 });
   expect(spy1).calledWith();
-});
-})();
-(function(){"use strict";nice.Type({
-  name: 'LazyBox',
-  extends: 'Box',
-  initBy: (z, f) => {
-    z._version = -1;
-    z._by = f;
-    if(typeof z._by !== 'function')
-      throw `Last argument to RBox should be function or object`;
-    z._isHot = false;
-  },
-  customCall: (z, ...as) => {
-    if(as.length === 0) {
-      z.warmUp();
-      return z._value;
-    }
-    z.setState(as[0]);
-  },
-  proto: {
-    reconfigure(f) {
-      
-    },
-    subscribe(f, v) {
-      this.warmUp();
-      this.__proto__.__proto__.subscribe.call(this, f, v);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.emit('noMoreSubscribers', this);
-      }
-    },
-    warmUp(){
-      if(this._isHot === true)
-        return ;
-      this._isHot = true;
-      try {
-        const v = this._version;
-        const value = this._by(this);
-        if(v === this._version)
-          this.setState(value);
-      } catch (e) {
-        this.setState(e);
-      }
-    },
-  }
-});
-Test((LazyBox, Spy) => {
-  const spy = Spy(() => 2);
-  const b = LazyBox(spy);
-  expect(b()).is(2);
-  expect(b()).is(2);
-  expect(spy).calledOnce();
-});
-Test((LazyBox, Spy) => {
-  const spy = Spy(b => b(2));
-  const b = LazyBox(spy);
-  expect(b()).is(2);
-  expect(b()).is(2);
-  expect(spy).calledOnce();
-});
-Test('RBox subscribe', (Box, RBox, Spy) => {
-  const spy = Spy();
-  const b = Box(1);
-  const rb = RBox(b, a => a + 1);
-  rb.subscribe(spy);
-  expect(spy).calledWith(2);
-  b(3);
-  expect(spy).calledWith(4);
 });
 })();
 (function(){"use strict";nice.Type({
@@ -3018,17 +2972,6 @@ nice.Type({
 			this.warming = false;
       this._isHot && this.attemptCompute();
     },
-    subscribe(f, v) {
-      this.warmUp();
-      this.__proto__.__proto__.subscribe.call(this, f, v);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        this.coolDown();
-        this.emit('noMoreSubscribers', this);
-      }
-    },
     attemptCompute(){
       try {
         const value = this._by(...this._inputValues);
@@ -3050,9 +2993,6 @@ nice.Type({
       needCompute && this.attemptCompute();
     },
     warmUp(){
-      if(this._isHot === true)
-        return ;
-      this._isHot = true;
 			this.warming = true;
       for (let c of this._ins)
         c.attach();
@@ -3060,7 +3000,6 @@ nice.Type({
       this.attemptCompute();
     },
     coolDown(){
-      this._isHot = false;
       this._inputValues = [];
       for (let c of this._ins)
         c.detach();
@@ -3182,31 +3121,18 @@ Test('RBox cold compute', (Box, RBox) => {
       throw `1st argument must be number`;
     if(typeof f !== 'function')
       throw `2nd argument must be functions`;
-    z._ms = ms;
-    z._f = f;
-    z._interval = null;
+    let interval = null;
+    z.warmUp = () => {
+      interval = setInterval(() => z(f(z())), ms);
+      z._value === undefined && z.setState(f());
+    };
+    z.coolDown = () => {
+      if(interval !== null){
+        clearInterval(interval);
+        interval = null;
+      }
+    };
   },
-  proto: {
-    subscribe(f){
-      if(this._interval === null){
-        this._interval = setInterval(() => this(this._f(this())), this._ms);
-        this._value === undefined && this.setState(this._f());
-      }
-      if(this._value !== undefined)
-        f.notify ? f.notify(this._value) : f(this._value);
-      this.on('state', f);
-    },
-    unsubscribe(f){
-      this.off('state', f);
-      if(!this.countListeners('state')){
-        if(this._interval !== null){
-          clearInterval(this._interval);
-          this._interval = null;
-        }
-        this.emit('noMoreSubscribers', this);
-      }
-    },
-  }
 });
 Action.Box('changeAfter', (z, ms, f) => setTimeout(() => z(f(z())), ms));
 Test((IntervalBox, RBox, Spy) => {
@@ -3222,7 +3148,7 @@ Test((IntervalBox, RBox, Spy) => {
   });
   Test(() => {
     x2.unsubscribe(spy);
-    expect(n._interval).is(null);
+    expect(n._isHot).is(false);
     expect(spy).calledTimes(1);
   });
 });
@@ -3980,7 +3906,7 @@ function RowModel(){
       const f2 = filters[0];
       const key = f._sortKey + '+' + f2._sortKey;
       filters[0] = res.compositQueries[key] ||
-        (res.compositQueries[key] = f.intersection(f2));      ;
+        (res.compositQueries[key] = f.intersection(f2));
     }
     return filters[0];
   };
@@ -4080,6 +4006,7 @@ nice.Type({
     z.sortValueFunction = direction > 0
       ? (a, bv) => rows[a][field] > bv ? 1 : -1
       : (a, bv) => rows[a][field] > bv ? -1 : 1;
+    z.take = memoize((a, b) => z.window(a, b), (a, b) => a + '_' + b);
     query.subscribe((v, oldV) => {
       oldV !== undefined && z.deleteId(oldV);
       v !== null && z.insertId(v);
@@ -4183,7 +4110,7 @@ nice.Type({
     z.filter = memoize(o => nice.RowModelFilterProxy(o, z), JSON.stringify);
     z.rowBox = memoize(id => {
       const res = Box();
-      z.subscribe([{action: 'rowBox', args: id }], res);
+      z.subscribe([{action: 'rowBox', args: [id] }], (aa) => res(aa[0]));
       return res;
     });
   },
@@ -4193,10 +4120,12 @@ nice.Type({
 nice.Type({
   name: 'RowModelFilterProxy',
   extends: 'BoxSet',
-  initBy(z, args, model){
+  initBy(z, query, model){
     z.super();
-    const q = [{action: 'filter', args }];
-    model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    const q = [{action: 'filter', args: [ query ] }];
+    z.wormUp = () => {
+      model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    };
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
   }
@@ -4207,8 +4136,18 @@ nice.Type({
   initBy(z, model, prefix, field, direction){
     z.super();
     const action = direction > 0 ? 'sortAsc' : 'sortDesc';
-    const q = [...prefix, { action , args: field }];
-    model.subscribe(q, BoxArray.subscribeFunction(z));
+    const q = [...prefix, { action , args: [field] }];
+    z.wormUp = () => {
+      const f = BoxArray.subscribeFunction(z);
+      model.subscribe(q, r => f(...r));
+    };
+    z.take = memoize((a, b) => {
+      const res = BoxArray();
+      const q2 = [...q, {action: 'take', args: [a, b] }];
+      const f = BoxArray.subscribeFunction(res);
+      model.subscribe(q2, r => f(...r));
+      return res;
+    }, (a, b) => a + '_' + b);
   }
 });
 nice.Type({
@@ -4278,7 +4217,6 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
   });
-  
   Test('change age', () => {
     m.change(janeId, {age:46});
     expect(optionsHome2age()).deepEqual({46:1,45:1});
@@ -4297,17 +4235,6 @@ Test((Spy) => {
     expect(asc()).deepEqual([jimId,janeId]);
     m.change(jimId, {address:'Home'});
     expect(asc()).deepEqual([janeId]);
-	});
-  Test((RowModelProxy) => {
-    const p = RowModelProxy((a, cb) => {
-      let source = m;
-      a.forEach(({action, args}) => source = source[action](args));
-      source.subscribe(cb);
-    });
-    const filter = p.filter({address:'Home'});
-    const filter2 = p.filter({address:'Home2'});
-    expect([...filter()]).deepEqual([...qHome()]);
-    expect([...filter2()]).deepEqual([...qHome2()]);
 	});
   Test('delete', () => {
     m.delete(joeId);

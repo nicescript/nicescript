@@ -9,7 +9,7 @@ nice.Type({
     z.filter = memoize(o => nice.RowModelFilterProxy(o, z), JSON.stringify);
     z.rowBox = memoize(id => {
       const res = Box();
-      z.subscribe([{action: 'rowBox', args: id }], res);
+      z.subscribe([{action: 'rowBox', args: [id] }], (aa) => res(aa[0]));
       return res;
     });
   },
@@ -20,12 +20,13 @@ nice.Type({
 nice.Type({
   name: 'RowModelFilterProxy',
   extends: 'BoxSet',
-  initBy(z, args, model){
+  initBy(z, query, model){
     z.super();
-//    z.args = args;
+    const q = [{action: 'filter', args: [ query ] }];
 
-    const q = [{action: 'filter', args }];
-    model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    z.wormUp = () => {
+      model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+    };
 
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
@@ -38,8 +39,20 @@ nice.Type({
   initBy(z, model, prefix, field, direction){
     z.super();
     const action = direction > 0 ? 'sortAsc' : 'sortDesc';
-    const q = [...prefix, { action , args: field }];
-    model.subscribe(q, BoxArray.subscribeFunction(z));
+    const q = [...prefix, { action , args: [field] }];
+
+    z.wormUp = () => {
+      const f = BoxArray.subscribeFunction(z);
+      model.subscribe(q, r => f(...r));
+    };
+
+    z.take = memoize((a, b) => {
+      const res = BoxArray();
+      const q2 = [...q, {action: 'take', args: [a, b] }];
+      const f = BoxArray.subscribeFunction(res);
+      model.subscribe(q2, r => f(...r));
+      return res;
+    }, (a, b) => a + '_' + b);
   }
 });
 
