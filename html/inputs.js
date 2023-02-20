@@ -8,31 +8,33 @@ function defaultSetValue(t, v){
 const changeEvents = ['change', 'keyup', 'paste', 'search', 'input'];
 
 
-function attachValue(target, box, setValue = defaultSetValue){
+//function attachValue(target, box, setValue = defaultSetValue){
+function attachValue(target, box, valueAttribute = 'value'){
   let node, mute;
   const initValue = box();
 
-  setValue(target, initValue);
+//  setValue(target, initValue);
+  target.attributes(valueAttribute, initValue);
 
   if(IS_BROWSER){
     let lastValue = initValue;
     changeEvents.forEach(k => target.on(k, e => {
       mute = true;
-      const v = (e.target || e.srcElement).value;
-      v !== lastValue && box(lastValue = v)
+      const v = (e.target || e.srcElement)[valueAttribute];
+      v !== lastValue && box(lastValue = v);
       mute = false;
       return true;
     }));
 
     target.on('domNode', n => {
       node = n;
-      node.value = box();
+      node[valueAttribute] = box();
     });
   }
   box.subscribe(v => {
     if(mute)
       return;
-    node ? node.value = v : setValue(target, v);
+    node ? node[valueAttribute] = v : target.attributes(valueAttribute, v);
   });
   return target;
 }
@@ -43,12 +45,11 @@ Html.extend('Input', (z, type) =>
   .about('Represents HTML <input> element.');
 const Input = nice.Input;
 
-defGet(Input.proto, 'boxValue', function() {
-  if(this._boxValue)
-    return this._boxValue;
+
+nice.defineCached(Input.proto, function boxValue() {
   const res = Box('');
   attachValue(this, res);
-  return this._boxValue = res;
+  return res;
 });
 
 
@@ -148,30 +149,42 @@ Html.extend('Form', (z, handler) => {
   .about('Represents HTML Form element.');
 
 
-Input.extend('Checkbox', (z, status) => {
+Input.extend('Checkbox', (z, status = false) => {
     let node;
     z.tag('input');
     z.attributes('type', 'checkbox');
-    const value = Box(status || false);
-    def(z, 'checked', value);
-    def(z, 'value', value);
+    z.attributes('checked', status);
+    z.assertId();
+//    const value = Box(status || false);
+//    def(z, 'checked', value);
+//    def(z, 'value', value);
 
-    let mute;
-    z.on('change', e => {
-      mute = true;
-      value((e.target || e.srcElement).checked);
-      mute = false;
-      return true;
-    });
+//    let mute;
+//    z.on('change', e => {
+//      mute = true;
+//      value((e.target || e.srcElement).checked);
+//      mute = false;
+//      return true;
+//    });
 
-    if(IS_BROWSER){
-//      z.assertId();
-      z.on('domNode', n => node = n);
-    }
+//    if(IS_BROWSER){
+////      z.assertId();
+//      z.on('domNode', n => node = n);
+//    }
 
-    value.subscribe(v => node ? node.checked = v : z.attributes('checked', v));
+//    value.subscribe(v => node ? node.checked = v : z.attributes('checked', v));
   })
   .about('Represents HTML <input type="checkbox"> element.');
+
+
+
+nice.defineCached(nice.Checkbox.proto, function boxValue() {
+  const res = Box(this.attributes('checked'));
+//  attachValue(this, res, (t, v) => t.attributes('checked', v));
+  attachValue(this, res, 'checked');
+  return res;
+});
+
 
   Input.extend('Select', (z, values, selected) => {
     let node;

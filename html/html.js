@@ -366,7 +366,10 @@ function createSubscription(box, state, dom){
       while(newState !== undefined && newState._up_ && newState._up_ !== newState)
         newState = newState._up_;
 
-      const newDom = refreshElement(newState, f.state, f.dom);
+      let old = f.state;
+      while(old._isBox) old = old();
+
+      const newDom = refreshElement(newState, old, f.dom);
       if(newDom !== f.dom){
         f.dom = newDom;
         f.dom.__boxListener = f;
@@ -449,6 +452,8 @@ const extractKey = v => {
 
 
 function refreshElement(e, old, domNode){
+  expect(e).not.isDataSource();
+  expect(old).not.isDataSource();
   const eTag = (e !== undefined) && e._isHtml && e.tag(),
         oldTag = (old !== undefined) && old._isHtml && old.tag();
   let newDom = domNode;

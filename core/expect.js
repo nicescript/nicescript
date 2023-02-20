@@ -41,7 +41,7 @@ reflect.on('Check', ({name}) => {
     const res = this._preF ? this._preF(nice[name](this.value, ...a)) : nice[name](this.value, ...a);
     if(isFail(res)){
       const s = this.text ||
-          `Expected (${showValue(this.value)}) ${this._preMessage|| ''}${composeCallName(name, a)}`;
+          `Expected (${showValue(this.value)}) ${this._preMessage|| ''} ${composeCallName(name, a)}`;
       const e = new Error(s);
       e.shift = ('' + s).split('\n').length;
       throw e;
