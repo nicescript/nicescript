@@ -2931,6 +2931,7 @@ nice.Type({
   name: 'RBox',
   extends: 'Box',
   initBy: (z, ...inputs) => {
+    
     z._version = -1;
     z._by = inputs.pop();
     if(typeof z._by === 'object')
@@ -3748,16 +3749,21 @@ const proto = {
 		return this.rows[id];
 	},
 	change(id, o){
-		checkObject(o);
 		
-		this.writeLog(id, o);
     let old;
     if(id in this.rows){
+      _each(o, (v, k) => {
+        if(!(isValidValue(v) || v === undefined))
+          throw 'Invalid value ' + ('' + v) + ':' + typeof v;
+      });
+  		this.writeLog(id, o);
       const row = this.rows[id];
       old = _pick(row, Object.keys(o));
-      Object.assign(row, o);
+      _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
       _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
     } else {
+      checkObject(o);
+  		this.writeLog(id, o);
       this.rows[id] = o;
   		this.notifyIndexes(id, o);
     }
@@ -3889,13 +3895,15 @@ function RowModel(){
     compositQueries: {},
 	});
   function extractOp(o, field) {
+    if(o === null)
+      return { field, opName: 'null' };
     const [opName, value] = Object.entries(o)[0];
     return { opName, value, field };
   }
   res.filter = function(o = {}) {
-    const f = ([field, q]) => typeof q === 'string'
-      ? { field, opName: 'eq', value: q }
-      : extractOp(q, field);
+    const f = ([field, q]) => typeof q === 'object'
+      ? extractOp(q, field)
+      : { field, opName: 'eq', value: q };
     const qs = Array.isArray(o)
       ? o.map(v => f(Object.entries(v)[0]))
       : Object.entries(o).map(f);
@@ -4050,6 +4058,7 @@ nice.Type({
   }
 });
 const ops = {
+  'null': { arity: 1, f: a => a === undefined },
   eq: { arity: 2, f: (a, b) => a === b },
   startsWith: { arity: 2, f: (a, b) => {
     if(a === undefined || a === null)
@@ -4201,13 +4210,18 @@ Test((Spy) => {
 	});
   Test(() => {
 		expect(() => m.add({name:undefined})).throws();
-		expect(() => m.change(joeId, {name:undefined})).throws();
+		expect(() => m.change(joeId, {name:null})).throws();
 	});
-  Test('change home', () => {
+  Test('change field', () => {
     m.change(joeId, {address:"Home"});
     expect([...qHome()]).deepEqual([janeId, joeId]);
     expect([...qHome2()]).deepEqual([jimId]);
     expect(m.get(joeId).address).is("Home");
+  });
+  Test('delete field', () => {
+    m.change(janeId, { address:undefined });
+    expect([...qHome()]).deepEqual([joeId]);
+    expect(m.get(janeId).address).is(undefined);
   });
   Test('change home2', () => {
     m.change(janeId, {address:"Home2"});
@@ -4225,7 +4239,7 @@ Test((Spy) => {
   });
   Test((fromLog) => {
 		const m2 = RowModel.fromLog(m.log);
-    expect(m2.get(joeId)).deepEqual(o);
+    expect(m2.get(joeId)).deepEqual(m.get(joeId));
     expect(m2.find(o)).is(joeId);
 	});
   Test((shadow) => {

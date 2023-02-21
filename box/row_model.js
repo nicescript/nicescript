@@ -178,18 +178,23 @@ const proto = {
 	},
 
 	change(id, o){
-		checkObject(o);
 		//check id
-
-		this.writeLog(id, o);
     let old;
 
     if(id in this.rows){
+      _each(o, (v, k) => {
+        if(!(isValidValue(v) || v === undefined))
+          throw 'Invalid value ' + ('' + v) + ':' + typeof v;
+      });
+  		this.writeLog(id, o);
       const row = this.rows[id];
       old = _pick(row, Object.keys(o));
-      Object.assign(row, o);
+//      Object.assign(row, o);
+      _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
       _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
     } else {
+      checkObject(o);
+  		this.writeLog(id, o);
       this.rows[id] = o;
   		this.notifyIndexes(id, o);
     }
@@ -341,6 +346,9 @@ function RowModel(){
 	});
 
   function extractOp(o, field) {
+    if(o === null)
+      return { field, opName: 'null' };
+
     const [opName, value] = Object.entries(o)[0];
     return { opName, value, field };
   }
@@ -353,9 +361,9 @@ function RowModel(){
 //TODO: filter() | filter({})
   res.filter = function(o = {}) {
 
-    const f = ([field, q]) => typeof q === 'string'
-      ? { field, opName: 'eq', value: q }
-      : extractOp(q, field);
+    const f = ([field, q]) => typeof q === 'object'
+      ? extractOp(q, field)
+      : { field, opName: 'eq', value: q };
     const qs = Array.isArray(o)
       ? o.map(v => f(Object.entries(v)[0]))
       : Object.entries(o).map(f);
@@ -561,6 +569,7 @@ nice.Type({
 
 
 const ops = {
+  'null': { arity: 1, f: a => a === undefined },
   eq: { arity: 2, f: (a, b) => a === b },
   startsWith: { arity: 2, f: (a, b) => {
     if(a === undefined || a === null)

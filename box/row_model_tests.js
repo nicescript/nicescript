@@ -63,15 +63,21 @@ Test((Spy) => {
 
   Test(() => {
 		expect(() => m.add({name:undefined})).throws();
-		expect(() => m.change(joeId, {name:undefined})).throws();
+		expect(() => m.change(joeId, {name:null})).throws();
 	});
 
 
-  Test('change home', () => {
+  Test('change field', () => {
     m.change(joeId, {address:"Home"});
     expect([...qHome()]).deepEqual([janeId, joeId]);
     expect([...qHome2()]).deepEqual([jimId]);
     expect(m.get(joeId).address).is("Home");
+  });
+
+  Test('delete field', () => {
+    m.change(janeId, { address: undefined });
+    expect([...qHome()]).deepEqual([joeId]);
+    expect(m.get(janeId).address).is(undefined);
   });
 
 
@@ -95,7 +101,8 @@ Test((Spy) => {
 
   Test((fromLog) => {
 		const m2 = RowModel.fromLog(m.log);
-    expect(m2.get(joeId)).deepEqual(o);
+    expect(m2.get(joeId)).deepEqual(m.get(joeId));
+//    expect(m2.get(joeId)).deepEqual(o);
 //    console.log(m.rows);
 //    console.log(m2.rows);
     expect(m2.find(o)).is(joeId);
@@ -115,7 +122,7 @@ Test((Spy) => {
 	});
 
 
-//TODO: 
+//TODO:
 //  Test((RowModelProxy) => {
 //    const p = RowModelProxy((a, cb) => {
 //      let source = m;

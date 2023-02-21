@@ -38,6 +38,7 @@ nice.Type({
   extends: 'Box',
 
   initBy: (z, ...inputs) => {
+    //TODO: throw error on wrong inputs
     z._version = -1;
     z._by = inputs.pop();
 
