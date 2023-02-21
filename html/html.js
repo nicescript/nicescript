@@ -57,7 +57,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     if(z._children === undefined){
       z._children = [];
     } else {
-      if(z._children && z._children._type === nice.BoxArray)
+      if(z._children && z._children._isBoxArray)
         throw 'Children of this element already bound to BoxArray';
     }
 
@@ -87,7 +87,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z._children.push(c.toString());
 
       if(!c || !nice.isAnything(c))
-        return z._children.push('Bad child: ' + JSON.stringify(c));
+        return z._children.push('Bad child: ' +
+              (c && c.toString) ? c.toString() : JSON.stringify(c));
 
       if(c !== undefined){
         c = extractUp(c);

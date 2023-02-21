@@ -5411,7 +5411,7 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
     if(z._children === undefined){
       z._children = [];
     } else {
-      if(z._children && z._children._type === nice.BoxArray)
+      if(z._children && z._children._isBoxArray)
         throw 'Children of this element already bound to BoxArray';
     }
     children.forEach(c => {
@@ -5432,7 +5432,8 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(c._isErr)
         return z._children.push(c.toString());
       if(!c || !nice.isAnything(c))
-        return z._children.push('Bad child: ' + JSON.stringify(c));
+        return z._children.push('Bad child: ' +
+              (c && c.toString) ? c.toString() : JSON.stringify(c));
       if(c !== undefined){
         c = extractUp(c);
       }
@@ -6028,10 +6029,16 @@ IS_BROWSER && Test((Div) => {
     if(a === undefined)
       return;
     const type = nice.getType(a).name;
-    
-    constructors[type]
-      ? constructors[type](z, a, as[0] || (v => v))
-      : z.add(a, ...as);
+    const f = as[0];
+    if(a._isBoxArray){
+      z.bindChildren(f ?  a.map(f) : a);
+    } else if( a._isArr ) {
+      a.each((v, k) => z.add(f ? f(v, k) : v));
+    } else if( type === 'Array' || type === 'Object') {
+      _each(a, (v, k) => z.add(f ? f(v, k) : v));
+    } else {
+      z.add(a, ...as);
+    }
   })
     .about('Represents HTML <%s> element.', l);
 });
@@ -6055,12 +6062,6 @@ Html.extend('Img').by((z, src, x, y) => {
   y === undefined || z.height(y);
 })
   .about('Represents HTML <img> element.');
-const constructors = {
-  BoxArray: (z, b, f) => z.bindChildren(f ?  b.map(f) : b),
-  Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-  Arr: (z, a, f) => a.each((v, k) => z.add(f(v, k))),
-  Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
-};
 })();
 (function(){"use strict";const Html = nice.Html;
 function defaultSetValue(t, v){
@@ -6180,12 +6181,10 @@ Input.extend('Checkbox', (z, status = false) => {
     z.assertId();
   })
   .about('Represents HTML <input type="checkbox"> element.');
-defGet(nice.Checkbox.proto, 'boxValue', function() {
-  if(this._boxValue)
-    return this._boxValue;
+nice.defineCached(nice.Checkbox.proto, function boxValue() {
   const res = Box(this.attributes('checked'));
   attachValue(this, res, 'checked');
-  return this._boxValue = res;
+  return res;
 });
   Input.extend('Select', (z, values, selected) => {
     let node;

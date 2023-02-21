@@ -7,14 +7,19 @@ const Html = nice.Html;
 
     if(a === undefined)
       return;
+
     const type = nice.getType(a).name;
-    //TODO: use function overload (sub types don't work)
-//      ? constructors[type](z, a, as[0] || ((t === 'Li' || t === 'Ol')
-//        ? (v => (v && v._isLi) ? v : nice.Li(v))
-//        : (v => v)))
-    constructors[type]
-      ? constructors[type](z, a, as[0] || (v => v))
-      : z.add(a, ...as);
+    const f = as[0];
+
+    if(a._isBoxArray){
+      z.bindChildren(f ?  a.map(f) : a);
+    } else if( a._isArr ) {
+      a.each((v, k) => z.add(f ? f(v, k) : v));
+    } else if( type === 'Array' || type === 'Object') {
+      _each(a, (v, k) => z.add(f ? f(v, k) : v));
+    } else {
+      z.add(a, ...as);
+    }
   })
     .about('Represents HTML <%s> element.', l);
 });
@@ -45,11 +50,3 @@ Html.extend('Img').by((z, src, x, y) => {
   y === undefined || z.height(y);
 })
   .about('Represents HTML <img> element.');
-
-
-const constructors = {
-  BoxArray: (z, b, f) => z.bindChildren(f ?  b.map(f) : b),
-  Object: (z, o, f) => _each(o, (v, k) => z.add(f(v, k))),
-  Arr: (z, a, f) => a.each((v, k) => z.add(f(v, k))),
-  Array: (z, a, f) => a.forEach((v, k) => z.add(f(v, k)))
-};
