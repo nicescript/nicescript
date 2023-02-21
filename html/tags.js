@@ -13,6 +13,10 @@ const Html = nice.Html;
 
     if(a._isBoxArray){
       z.bindChildren(f ?  a.map(f) : a);
+    } else if(a._isBoxSet){
+      const ba = nice.BoxArray();
+      a.subscribe((v, old) => v === null ? ba.removeValue(old) : ba.push(v));
+      z.bindChildren(f ?  ba.map(f) : ba);
     } else if( a._isArr ) {
       a.each((v, k) => z.add(f ? f(v, k) : v));
     } else if( type === 'Array' || type === 'Object') {
