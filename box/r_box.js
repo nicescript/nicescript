@@ -1,4 +1,5 @@
 //idea?? box always have value(even undefined); subscribe always produce call(even undefined)
+//TODO: cover RBox(input, []) with tests
 
 class Connection{
   constructor(cfg) {
@@ -40,20 +41,27 @@ nice.Type({
   initBy: (z, ...inputs) => {
     //TODO: throw error on wrong inputs
     z._version = -1;
-    z._by = inputs.pop();
+    let by = inputs.pop();
 
-    if(typeof z._by === 'object')
-      z._by = objectPointers[inputs.length](z._by);
+    if(Array.isArray(by)){
+      z._left = by[1];
+      by = by[0];
+    }
 
-    if(typeof z._by !== 'function')
+    if(typeof z.by === 'object')
+      by = objectPointers[inputs.length](by);
+
+    if(typeof by !== 'function')
       throw `Last argument to RBox should be function or object`;
+
+    z._by = by;
 
     z._ins = inputs.map((source, position) => new Connection({
       source, target:z, value: undefined, position
     }));
     z._isHot = false;
     z.warming = false;
-    z._inputValues = [];
+    z._inputValues = Array(inputs.length).fill(undefined);
   },
 
   customCall: (z, ...as) => {
@@ -90,12 +98,16 @@ nice.Type({
     },
 
     attemptCompute(){
+      let v;
       try {
-        const value = this._by(...this._inputValues);
-        this.setState(value);
+        if(this._inputValues.some(i => i === undefined))
+          v = typeof this._left === 'function' ? this._left() : this._left;
+        else
+          v = this._by(...this._inputValues);
       } catch (e) {
-        this.setState(e);
+        v = e;
       }
+      this.setState(v);
     },
 
     coldCompute(){
