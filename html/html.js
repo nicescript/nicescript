@@ -368,7 +368,7 @@ function createSubscription(box, state, dom){
         newState = newState._up_;
 
       let old = f.state;
-      while(old._isBox) old = old();
+      while(old && old._isBox) old = old();
 
       const newDom = refreshElement(newState, old, f.dom);
       if(newDom !== f.dom){

@@ -2936,17 +2936,22 @@ nice.Type({
   initBy: (z, ...inputs) => {
     
     z._version = -1;
-    z._by = inputs.pop();
-    if(typeof z._by === 'object')
-      z._by = objectPointers[inputs.length](z._by);
-    if(typeof z._by !== 'function')
+    let by = inputs.pop();
+    if(Array.isArray(by)){
+      z._left = by[1];
+      by = by[0];
+    }
+    if(typeof z.by === 'object')
+      by = objectPointers[inputs.length](by);
+    if(typeof by !== 'function')
       throw `Last argument to RBox should be function or object`;
+    z._by = by;
     z._ins = inputs.map((source, position) => new Connection({
       source, target:z, value: undefined, position
     }));
     z._isHot = false;
     z.warming = false;
-    z._inputValues = [];
+    z._inputValues = Array(inputs.length).fill(undefined);
   },
   customCall: (z, ...as) => {
     if(as.length === 0) {
@@ -2977,12 +2982,16 @@ nice.Type({
       this._isHot && this.attemptCompute();
     },
     attemptCompute(){
+      let v;
       try {
-        const value = this._by(...this._inputValues);
-        this.setState(value);
+        if(this._inputValues.some(i => i === undefined))
+          v = typeof this._left === 'function' ? this._left() : this._left;
+        else
+          v = this._by(...this._inputValues);
       } catch (e) {
-        this.setState(e);
+        v = e;
       }
+      this.setState(v);
     },
     coldCompute(){
       let needCompute = false;
@@ -5658,7 +5667,7 @@ function createSubscription(box, state, dom){
       while(newState !== undefined && newState._up_ && newState._up_ !== newState)
         newState = newState._up_;
       let old = f.state;
-      while(old._isBox) old = old();
+      while(old && old._isBox) old = old();
       const newDom = refreshElement(newState, old, f.dom);
       if(newDom !== f.dom){
         f.dom = newDom;
