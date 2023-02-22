@@ -15,6 +15,9 @@ nice.Type({
   },
 
   proto: {
+    [Symbol.iterator](){
+      return this._value[Symbol.iterator]();
+    },
     notify(v, old){
       if(this.subscribers)
         for (const f of this.subscribers) {

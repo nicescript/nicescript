@@ -25,7 +25,7 @@ nice.Type({
     const q = [{action: 'filter', args: [ query ] }];
 
     z.warmUp = () => {
-      model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
+      model.subscribe(q, ([v, oldV]) => v === null ? z.delete(oldV) : z.add(v));
     };
 
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));

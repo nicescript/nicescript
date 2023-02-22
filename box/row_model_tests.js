@@ -26,6 +26,7 @@ Test((Spy) => {
 
 
   Test(() => {
+    expect([...m.filter()]).deepEqual([joeId, janeId, jimId]);
 		expect(m.get(joeId)).deepEqual(o);
     expect([...qHome()]).deepEqual([janeId]);
     expect([...qStartWith()]).deepEqual([janeId]);

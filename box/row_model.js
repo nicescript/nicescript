@@ -29,6 +29,7 @@ const proto = {
 		this.rows.push(o);
 		this.writeLog(id, o);
     o._id = id;
+    this.ids && this.ids.add(id);
 		this.notifyIndexes(id, o);
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](this.rows[id]);
@@ -98,6 +99,7 @@ const proto = {
     const data = this.rows[id];
     delete this.rows[id];
 
+    this.ids && this.ids.delete(id);
     _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
 
 		if(id in this.rowBoxes)
@@ -178,26 +180,20 @@ const proto = {
 	},
 
 	change(id, o){
-		//check id
     let old;
 
-    if(id in this.rows){
-      _each(o, (v, k) => {
-        if(!(isValidValue(v) || v === undefined))
-          throw 'Invalid value ' + ('' + v) + ':' + typeof v;
-      });
-  		this.writeLog(id, o);
-      const row = this.rows[id];
-      old = _pick(row, Object.keys(o));
-//      Object.assign(row, o);
-      _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
-      _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
-    } else {
-      checkObject(o);
-  		this.writeLog(id, o);
-      this.rows[id] = o;
-  		this.notifyIndexes(id, o);
-    }
+    if(!(id in this.rows))
+      throw 'Row ' + id + " not found";
+
+    _each(o, (v, k) => {
+      if(!(isValidValue(v) || v === undefined))
+        throw 'Invalid value ' + ('' + v) + ':' + typeof v;
+    });
+    this.writeLog(id, o);
+    const row = this.rows[id];
+    old = _pick(row, Object.keys(o));
+    _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
+    _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
 
     this.notifyAllOptions(id, o, old);
     this.notifyAllSorts(id, o, old);
@@ -254,32 +250,34 @@ const proto = {
 	},
 
 	importLogRow(row) {
-		const m = this;
+		const z = this;
 		const templateId = row[0];
 		const id = row[1];
-    const rows = m.rows;
+    const rows = z.rows;
 
 		if(templateId === TEMPLATE){
-			m.templates[id] = row.slice(2);
+			z.templates[id] = row.slice(2);
 		} else if(templateId === DELETE){
       const oldData = rows[id];
       delete rows[id];
-      _each(oldData, (v, k) => m.notifyIndexOneValue(id, k, undefined, v));
+      z.ids && z.ids.delete(id);
+      _each(oldData, (v, k) => z.notifyIndexOneValue(id, k, undefined, v));
 		} else if(templateId === COMPRESS){
-      this.compressedFields[row[1]] = true;
+      z.compressedFields[row[1]] = true;
 		} else if(templateId === VALUE){
       const [,id, k, value] = row;
-      this.values[k] = this.values[k] || Object.create(null);
-      this.values[k][value] = id;
-      this.valuesIndex[id] = [k, value];
+      z.values[k] = z.values[k] || Object.create(null);
+      z.values[k][value] = id;
+      z.valuesIndex[id] = [k, value];
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
       const oldData = rows[id];
 			if(create){
 				rows[id] = { _id: id };
-        this.notifyIndexOneValue(id, '_id', id);
+        z.ids && z.ids.add(id);
+        z.notifyIndexOneValue(id, '_id', id);
       }
-			const template = m.templates[templateId];
+			const template = z.templates[templateId];
 
       let i = 2;
       for(const f of template){
@@ -288,21 +286,21 @@ const proto = {
           field = f;
           value = row[i++];
         } else {
-          [field, value] = this.valuesIndex[f];
+          [field, value] = z.valuesIndex[f];
         }
         const oldValue = create ? undefined : oldData[field];
         rows[id][field] = value;
-				this.notifyIndexOneValue(id, field, value, oldValue);
-        create || this.notifyOptions(id, field, value, oldValue);
-        create || this.notifySorts(id, field, value, oldValue);
+				z.notifyIndexOneValue(id, field, value, oldValue);
+        create || z.notifyOptions(id, field, value, oldValue);
+        create || z.notifySorts(id, field, value, oldValue);
       }
-			if(id in this.rowBoxes)
-				this.rowBoxes[id](rows[id]);
+			if(id in z.rowBoxes)
+				z.rowBoxes[id](rows[id]);
 		} else {
       throw 'Incorect row id';
     }
-		m.log.push(row.slice());
-    this.version++;
+		z.log.push(row.slice());
+    z.version++;
 	},
 
 	subscribeLog(f) {
@@ -321,6 +319,14 @@ const proto = {
 
   readOnly() {
     ['add', 'change'].forEach(a => this[a] = () => { throw "This model is readonly"; });
+  },
+
+  assertIds(){
+    if(!this.ids){
+      this.ids = nice.BoxSet();
+      this.rows.forEach((_, id) => this.ids.add(id));
+    }
+    return this.ids;
   }
 };
 
@@ -360,13 +366,16 @@ function RowModel(){
 //TODO:    filter({ jane }); //full-text
 //TODO: filter() | filter({})
   res.filter = function(o = {}) {
+    const entities = Object.entries(o);
+    if(!entities.length)
+      return this.assertIds();
 
     const f = ([field, q]) => typeof q === 'object'
       ? extractOp(q, field)
       : { field, opName: 'eq', value: q };
     const qs = Array.isArray(o)
       ? o.map(v => f(Object.entries(v)[0]))
-      : Object.entries(o).map(f);
+      : entities.map(f);
 
     const filters = qs.map(q => newFilter(res, q))
         .sort((a, b) => a._sortKey - b._sortKey);
