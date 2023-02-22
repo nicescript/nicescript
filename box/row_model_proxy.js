@@ -24,7 +24,7 @@ nice.Type({
     z.super();
     const q = [{action: 'filter', args: [ query ] }];
 
-    z.wormUp = () => {
+    z.warmUp = () => {
       model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
     };
 
@@ -41,7 +41,7 @@ nice.Type({
     const action = direction > 0 ? 'sortAsc' : 'sortDesc';
     const q = [...prefix, { action , args: [field] }];
 
-    z.wormUp = () => {
+    z.warmUp = () => {
       const f = BoxArray.subscribeFunction(z);
       model.subscribe(q, r => f(...r));
     };

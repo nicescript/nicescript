@@ -45,7 +45,7 @@ nice.Type({
     uniq(){
       this.setState = function(v){
         v === this._value || this.__proto__.setState.call(this, v);
-      }
+      };
       return this;
     },
 
@@ -55,29 +55,6 @@ nice.Type({
       }
       return this;
     },
-
-//    subscribe(f, v){
-//      this.warmUp && this.warmUp();
-//      if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
-//        const o = f;
-//        f = x => o[x]?.();
-//      }
-//
-//      this.on('state', f);
-//      if(v === -1)
-//        return;
-//
-//      if(v === undefined || v < this._version)
-//        f.notify ? f.notify(this._value) : f(this._value);
-//    },
-
-//    unsubscribe(f){
-//      this.off('state', f);
-//      if(!this.countListeners('state')){
-//        this.emit('noMoreSubscribers', this);
-//        this.coolDown && this.coolDown();
-//      }
-//    },
 
     assertId(){
       if(!this._id)

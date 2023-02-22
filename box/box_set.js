@@ -15,13 +15,27 @@ nice.Type({
   },
 
   proto: {
+    notify(v, old){
+      if(this.subscribers)
+        for (const f of this.subscribers) {
+          f.notify
+            ? f.notify(v, old)
+            : f(v, old);
+        }
+    },
+
+    notifyExisting(f){
+      this._value.forEach(v => f(v));
+    },
+
+
     add (v) {
       if(v === null)
         throw `BoxSet does not accept null`;
       const values = this._value;
       if(!values.has(v)) {
         values.add(v);
-        this.emit('value', v);
+        this.notify(v);
       }
       return this;
     },
@@ -31,7 +45,7 @@ nice.Type({
     },
 
     delete (v) {
-      this.emit('value', null, v);
+      this.notify(null, v);
       return this._value.delete(v);
     },
 
@@ -73,19 +87,14 @@ nice.Type({
       return res;
     },
 
-    subscribe (f) {
-      for (let v of this._value) f(v);
-      this.on('value', f);
-    },
-
-    subscribe (f) {
-      for (let v of this._value) f(v);
-      this.on('value', f);
-    },
-
-    unsubscribe (f) {
-      this.off('value', f);
-    },
+//    subscribe (f) {
+//      for (let v of this._value) f(v);
+//      this.on('value', f);
+//    },
+//
+//    unsubscribe (f) {
+//      this.off('value', f);
+//    },
   }
 });
 

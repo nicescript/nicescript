@@ -25,25 +25,23 @@ nice.Type({
           delete values[k];
         else
           values[k] = v;
-        this.emit('value', v, ''+k, oldValue);
+        this.notify(v, ''+k, oldValue);
       }
       return this;
     },
+    notify(q,w,e){
+      if(this.subscribers)
+        for (const f of this.subscribers) (f.notify || f)(q,w,e);
+    },
+
     delete (k) {
       return this.set(k, null);
     },
     get (k) {
       return this._value[k];
     },
-    subscribe (f) {
+    notifyExisting(f){
       _each(this._value, (v, k) => f(v, k, null));
-      this.on('value', f);
-    },
-    subscribeNew (f) {
-      this.on('value', f);
-    },
-    unsubscribe (f) {
-      this.off('value', f);
     },
     map (f) {
       const res = nice.BoxMap();

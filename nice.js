@@ -2121,23 +2121,27 @@ Test((Spy, calledWith) => {
     coolDownBy(f){ this.warmUp = f; return this; },
     coldComputeBy(f){ this.warmUp = f; return this; },
     subscribe(f, v){
-      if(!this.subscribers)
-        this.subscribers = new Set();
-      if(this.warmUp && this._isHot !== true){
-        this.warmUp();
-        this._isHot = true;
+      const z = this;
+      if(!z.subscribers)
+        z.subscribers = new Set();
+      if(z.warmUp && z._isHot !== true){
+        z.warmUp();
+        z._isHot = true;
       }
       if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
         const o = f;
         f = x => o[x]?.();
       }
-      this.subscribers.add(f);
+      z.subscribers.add(f);
       if(v === -1)
         return;
-      this.coldCompute && this.coldCompute();
-      if(v === undefined || v < this._version)
-        if(this._value !== undefined)
-          f.notify ? f.notify(this._value) : f(this._value);
+      z.coldCompute && z.coldCompute();
+      if(v === undefined || v < z._version)
+        z.notifyExisting(f);
+    },
+    notifyExisting(f){
+      if(this._value !== undefined)
+        f.notify ? f.notify(this._value) : f(this._value);
     },
     unsubscribe(f){
       this.subscribers.delete(f);
@@ -2185,7 +2189,7 @@ nice.eventEmitter(nice.DataSource.proto);
     uniq(){
       this.setState = function(v){
         v === this._value || this.__proto__.setState.call(this, v);
-      }
+      };
       return this;
     },
     deepUniq(){
@@ -2303,13 +2307,24 @@ Test((Box, Spy) => {
     z._value = new Set(a);
   },
   proto: {
+    notify(v, old){
+      if(this.subscribers)
+        for (const f of this.subscribers) {
+          f.notify
+            ? f.notify(v, old)
+            : f(v, old);
+        }
+    },
+    notifyExisting(f){
+      this._value.forEach(v => f(v));
+    },
     add (v) {
       if(v === null)
         throw `BoxSet does not accept null`;
       const values = this._value;
       if(!values.has(v)) {
         values.add(v);
-        this.emit('value', v);
+        this.notify(v);
       }
       return this;
     },
@@ -2317,7 +2332,7 @@ Test((Box, Spy) => {
       return this._value.has(v);
     },
     delete (v) {
-      this.emit('value', null, v);
+      this.notify(null, v);
       return this._value.delete(v);
     },
     get size() {
@@ -2349,17 +2364,6 @@ Test((Box, Spy) => {
           : av.has(v) && res.add(v);
       });
       return res;
-    },
-    subscribe (f) {
-      for (let v of this._value) f(v);
-      this.on('value', f);
-    },
-    subscribe (f) {
-      for (let v of this._value) f(v);
-      this.on('value', f);
-    },
-    unsubscribe (f) {
-      this.off('value', f);
     },
   }
 });
@@ -2425,9 +2429,13 @@ Test((BoxSet, intersection, Spy) => {
           delete values[k];
         else
           values[k] = v;
-        this.emit('value', v, ''+k, oldValue);
+        this.notify(v, ''+k, oldValue);
       }
       return this;
+    },
+    notify(q,w,e){
+      if(this.subscribers)
+        for (const f of this.subscribers) (f.notify || f)(q,w,e);
     },
     delete (k) {
       return this.set(k, null);
@@ -2435,15 +2443,8 @@ Test((BoxSet, intersection, Spy) => {
     get (k) {
       return this._value[k];
     },
-    subscribe (f) {
+    notifyExisting(f){
       _each(this._value, (v, k) => f(v, k, null));
-      this.on('value', f);
-    },
-    subscribeNew (f) {
-      this.on('value', f);
-    },
-    unsubscribe (f) {
-      this.off('value', f);
     },
     map (f) {
       const res = nice.BoxMap();
@@ -2630,6 +2631,14 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
     v && z.setAll(v);
   },
   proto: {
+    notify(q,w,e,r){
+      if(this.subscribers)
+        for (const f of this.subscribers) {
+          f.notify
+            ? f.notify(q,w,e,r)
+            : f(q,w,e,r);
+        }
+    },
     set (k, v) {
       if(v === null)
         throw `Can't be set to null`;
@@ -2638,7 +2647,7 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
         const old = k in values ? values[k] : null;
         const oldKey = k in values ? k : null;
         values[k] = v;
-        this.emit('element', v, k, old, oldKey);
+        this.notify(v, k, old, oldKey);
       }
       return this;
     },
@@ -2652,7 +2661,7 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
         return;
       const old = vs[i];
       this._value.splice(i, 1);
-      this.emit('element', null, null, old, i);
+      this.notify(null, null, old, i);
     },
     removeValue (v) {
       const vs = this._value;
@@ -2664,31 +2673,25 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
     insert (i, v) {
       const vs = this._value;
       this._value.splice(i, 0, v);
-      this.emit('element', v, i, null, null);
+      this.notify(v, i, null, null);
     },
     setAll (a) {
       if(!Array.isArray(a))
         throw 'setAll expect array';
-      const newLength = a.length;
-      const oldValues = this._value;
-      const oldLength = oldValues.length;
+      const newL = a.length;
+      const oldA = this._value;
+      const oldL = oldA.length;
       a.forEach((v, k) => {
-        this.emit('element', v, k,
-          k >= oldLength ? null : oldValues[k],
-          k >= oldLength ? null : k);
+        this.notify(v, k, k >= oldL ? null : oldA[k], k >= oldL ? null : k);
       });
-      if(newLength < oldLength) {
-        for(let i = newLength; i < oldLength ; i++)
-          this.emit('element', null, null, oldValues[newLength], newLength);
+      if(newL < oldL) {
+        for(let i = newL; i < oldL ; i++)
+          this.notify(null, null, oldA[newL], newL);
       }
       this._value = a;
     },
-    subscribe (f) {
+    notifyExisting(f){
       this._value.forEach((v, k) => f(v, k, null, null));
-      this.on('element', f);
-    },
-    unsubscribe (f) {
-      this.off('value', f);
     },
     map (f) {
       const res = nice.BoxArray();
@@ -4132,7 +4135,7 @@ nice.Type({
   initBy(z, query, model){
     z.super();
     const q = [{action: 'filter', args: [ query ] }];
-    z.wormUp = () => {
+    z.warmUp = () => {
       model.subscribe(q, (v, oldV) => v === null ? z.delete(oldV) : z.add(v));
     };
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
@@ -4146,7 +4149,7 @@ nice.Type({
     z.super();
     const action = direction > 0 ? 'sortAsc' : 'sortDesc';
     const q = [...prefix, { action , args: [field] }];
-    z.wormUp = () => {
+    z.warmUp = () => {
       const f = BoxArray.subscribeFunction(z);
       model.subscribe(q, r => f(...r));
     };
@@ -4219,7 +4222,7 @@ Test((Spy) => {
     expect(m.get(joeId).address).is("Home");
   });
   Test('delete field', () => {
-    m.change(janeId, { address:undefined });
+    m.change(janeId, { address: undefined });
     expect([...qHome()]).deepEqual([joeId]);
     expect(m.get(janeId).address).is(undefined);
   });

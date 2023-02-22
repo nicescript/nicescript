@@ -11,6 +11,15 @@ nice.Type({
   },
 
   proto: {
+    notify(q,w,e,r){
+      if(this.subscribers)
+        for (const f of this.subscribers) {
+          f.notify
+            ? f.notify(q,w,e,r)
+            : f(q,w,e,r);
+        }
+    },
+
     set (k, v) {
       if(v === null)
         throw `Can't be set to null`;
@@ -21,7 +30,7 @@ nice.Type({
         const old = k in values ? values[k] : null;
         const oldKey = k in values ? k : null;
         values[k] = v;
-        this.emit('element', v, k, old, oldKey);
+        this.notify(v, k, old, oldKey);
       }
       return this;
     },
@@ -35,7 +44,7 @@ nice.Type({
         return;
       const old = vs[i];
       this._value.splice(i, 1);
-      this.emit('element', null, null, old, i);
+      this.notify(null, null, old, i);
     },
     removeValue (v) {
       const vs = this._value;
@@ -47,35 +56,30 @@ nice.Type({
     insert (i, v) {
       const vs = this._value;
       this._value.splice(i, 0, v);
-      this.emit('element', v, i, null, null);
+      this.notify(v, i, null, null);
     },
     setAll (a) {
       if(!Array.isArray(a))
         throw 'setAll expect array';
 
-      const newLength = a.length;
-      const oldValues = this._value;
-      const oldLength = oldValues.length;
+      const newL = a.length;
+      const oldA = this._value;
+      const oldL = oldA.length;
 
       a.forEach((v, k) => {
-        this.emit('element', v, k,
-          k >= oldLength ? null : oldValues[k],
-          k >= oldLength ? null : k);
+        this.notify(v, k, k >= oldL ? null : oldA[k], k >= oldL ? null : k);
       });
 
-      if(newLength < oldLength) {
-        for(let i = newLength; i < oldLength ; i++)
-          this.emit('element', null, null, oldValues[newLength], newLength);
+      if(newL < oldL) {
+        for(let i = newL; i < oldL ; i++)
+          this.notify(null, null, oldA[newL], newL);
       }
 
       this._value = a;
     },
-    subscribe (f) {
+
+    notifyExisting(f){
       this._value.forEach((v, k) => f(v, k, null, null));
-      this.on('element', f);
-    },
-    unsubscribe (f) {
-      this.off('value', f);
     },
 
     map (f) {

@@ -18,25 +18,31 @@ nice.Type({
     coldComputeBy(f){ this.warmUp = f; return this; },
 
     subscribe(f, v){
-      if(!this.subscribers)
-        this.subscribers = new Set();
+      const z = this;
+      if(!z.subscribers)
+        z.subscribers = new Set();
 
-      if(this.warmUp && this._isHot !== true){
-        this.warmUp();
-        this._isHot = true;
+      if(z.warmUp && z._isHot !== true){
+        z.warmUp();
+        z._isHot = true;
       }
       if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
         const o = f;
         f = x => o[x]?.();
       }
-      this.subscribers.add(f);
+      z.subscribers.add(f);
+
       if(v === -1)
         return;
 
-      this.coldCompute && this.coldCompute();
-      if(v === undefined || v < this._version)
-        if(this._value !== undefined)
-          f.notify ? f.notify(this._value) : f(this._value);
+      z.coldCompute && z.coldCompute();
+      if(v === undefined || v < z._version)
+        z.notifyExisting(f);
+    },
+
+    notifyExisting(f){
+      if(this._value !== undefined)
+        f.notify ? f.notify(this._value) : f(this._value);
     },
 
     unsubscribe(f){

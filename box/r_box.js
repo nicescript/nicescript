@@ -89,19 +89,6 @@ nice.Type({
       this._isHot && this.attemptCompute();
     },
 
-//    subscribe(f, v) {
-//      this.warmUp();
-//      this.__proto__.__proto__.subscribe.call(this, f, v);
-//    },
-
-//    unsubscribe(f){
-//      this.off('state', f);
-//      if(!this.countListeners('state')){
-//        this.coolDown();
-//        this.emit('noMoreSubscribers', this);
-//      }
-//    },
-
     attemptCompute(){
       try {
         const value = this._by(...this._inputValues);
