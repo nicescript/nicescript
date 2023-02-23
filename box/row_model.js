@@ -209,7 +209,6 @@ const proto = {
     for(let field of template)
       typeof field === 'string' && data.push(o[field]);
     this._pushLog(data);
-//    this._pushLog([templateId, id, ...template.map(field => o[field])]);
 	},
 
   _assertValue(k, v){
@@ -304,14 +303,10 @@ const proto = {
 	},
 
 	subscribeLog(f) {
-//		if(this.logSubscriptions.includes(f))
-//			return;
 		this.logSubscriptions.add(f);
 	},
 
 	unsubscribeLog(f) {
-//		if(this.logSubscriptions.includes(f))
-//			return;
 		this.logSubscriptions.delete(f);
 	},
 
@@ -370,7 +365,6 @@ function RowModel(){
 //    filter({adress: 'home', age: { gt: 16 } });
 //    filter([{adress: 'home'}, { age: { gt: 16 } }]);
 //TODO:    filter({ jane }); //full-text
-//TODO: filter() | filter({})
   res.filter = function(o = {}) {
     const entities = Object.entries(o);
     if(!entities.length)
@@ -561,12 +555,10 @@ nice.Type({
 
     considerChange(id, newValue, oldValue) {
       //TODO: optimize
-//      console.log(s.query.has(id));
       const oldPosition = this._value.indexOf(id);
       if(oldPosition === -1 && (newValue === undefined || newValue !== null))
         return;
 
-//      const position = sortedPosition(this._value, id, this.sortFunction);
       const position = sortedPosition(this._value, newValue, this.sortValueFunction);
       if(oldPosition === position)
         return;
