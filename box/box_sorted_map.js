@@ -70,7 +70,8 @@ Test((BoxSortedMap, BoxMap, Spy) => {
 //  const array = sMap.map()
   const spy = Spy();
   sMap.subscribe(spy);
-  expect(spy).calledTimes(3);
+//  expect(spy).calledTimes(3);
+  expect([...sMap._value]).deepEqual([1,2,3]);
 
 
 

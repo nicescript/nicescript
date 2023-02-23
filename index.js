@@ -3363,7 +3363,7 @@ Test((BoxSortedMap, BoxMap, Spy) => {
   const sMap = BoxSortedMap(map, 'value');
   const spy = Spy();
   sMap.subscribe(spy);
-  expect(spy).calledTimes(3);
+  expect([...sMap._value]).deepEqual([1,2,3]);
 });
 })();
 (function(){"use strict";
@@ -3985,6 +3985,7 @@ function createOptions(filter, field){
   const res = nice.BoxMap();
   const model = filter.model;
   model.addOptions(field, res);
+  
   const add = value => {
     if(value !== undefined){
       const count = res.get(value) || 0;
@@ -4161,6 +4162,11 @@ nice.Type({
     };
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
+    z.options = memoize(field => {
+      const res = BoxMap();
+      model.subscribe([...q, {action: 'options', args: [field] }], r => f(...r));
+      return res;
+    });
   }
 });
 nice.Type({

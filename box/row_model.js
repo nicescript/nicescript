@@ -449,6 +449,7 @@ function createOptions(filter, field){
   const res = nice.BoxMap();
   const model = filter.model;
   model.addOptions(field, res);
+  //TODO: use indexes in case of empty filter
 
 //  res.sortByValue = once(() => {
 //    return ;

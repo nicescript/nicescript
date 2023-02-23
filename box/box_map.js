@@ -55,8 +55,7 @@ nice.Type({
           : k in res._value && res.set(k, null)
       );
       return res;
-
-    }
+    },
   }
 });
 

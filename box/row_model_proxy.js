@@ -30,6 +30,12 @@ nice.Type({
 
     z.sortAsc = memoize(field => nice.RowModelSortProxy(model, q, field, 1));
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
+    z.options = memoize(field => {
+      const res = BoxMap();
+      model.subscribe([...q, {action: 'options', args: [field] }], r => f(...r));
+      return res;
+    });
+
   }
 });
 
