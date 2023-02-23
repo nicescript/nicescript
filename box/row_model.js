@@ -304,9 +304,15 @@ const proto = {
 	},
 
 	subscribeLog(f) {
-		if(this.logSubscriptions.includes(f))
-			return;
-		this.logSubscriptions.push(f);
+//		if(this.logSubscriptions.includes(f))
+//			return;
+		this.logSubscriptions.add(f);
+	},
+
+	unsubscribeLog(f) {
+//		if(this.logSubscriptions.includes(f))
+//			return;
+		this.logSubscriptions.delete(f);
 	},
 
   addSortResult(field, sortResult) {
@@ -346,7 +352,7 @@ function RowModel(){
 		filters: {},
     sortResults: {},
     options: {},
-		logSubscriptions: [],
+		logSubscriptions: new Set(),
     filterCounter: 0,
     compositQueries: {},
 	});

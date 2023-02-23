@@ -149,6 +149,73 @@ Html.extend('Form', (z, handler) => {
   .about('Represents HTML Form element.');
 
 
+nice.Form.fromConfig = cfg => {
+  expect(cfg.handler).isFunction();
+  expect(cfg.fields).isArray();
+
+  const errors = memoize(() => Box(''));
+  const index = {};
+
+  const form = nice.Form((data) => {
+    _each(errors.cache, e => e(''));
+    _some(data, (v, k) => _if(index[k]?.check, check =>
+        _if(check(v), res => (errors(k)(res),res)))
+    ) || cfg.handler(data);
+//    ) || app.actions[action]({data, id}, r => r.error ? formError(r.error) : cb());
+  });
+  form.error = Box('');
+
+  _each(cfg.fields, f => {
+    expect(f.name).isString();
+    index[f.name] = f;
+    const editor = f.editor
+        ? f.editor(f)
+        : Input().name(f.name).value(f.value || '');
+
+    form.add(cfg.styling ? cfg.styling(f, editor, errors(name)) :
+      nice.P(f.title || f.name).div(editor).Div(errors(name)).color('red').up);
+  });
+
+
+  form.reportError = es => _each(es, (v, k) => errors(k)(v));
+
+  form.P()
+    .Submit().up
+    .div(form.error);
+
+
+  return form;
+};
+//function rowForm({ action, data, cb = () => app.router.go('/'), id }){
+//  const fs = BoxArray(Object.keys(data));
+//  const errors = memoize(() => Box(''));
+//  const formError = Box('');
+//
+//  const submit = (data) => {
+//    _each(errors.cache, e => e(''));
+//    _some(data, (v, k) => _if(fields[k]?.check, check =>
+//        _if(check(v), res => (errors(k)(res),res)))
+//    ) || app.actions[action]({data, id}, r => r.error ? formError(r.error) : cb());
+//  };
+//
+//  function showField(name){
+//    if(ignoreFields[name])
+//      return;
+//    const field = fields[name];
+//    return P().h3(name)
+//      .Div((fieldTypes[field.type]?.edit || defaultEdit)(field, data[name])).up
+//      .Div(errors(name)).color('red').up;
+//  }
+//
+//  return Form(submit)
+//      .div(fs, showField)
+//      .P()
+//        .Submit().up
+//        .div(formError);
+//}
+
+
+
 Input.extend('Checkbox', (z, status = false) => {
     let node;
     z.tag('input');
