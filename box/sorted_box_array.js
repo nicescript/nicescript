@@ -1,48 +1,54 @@
 nice.Type({
-  name: 'BoxArray',
+  name: 'SortedBoxArray',
 
-  extends: 'DataSource',
+  extends: 'BoxArray',
 
-  customCall: (z, ...as) => as.length === 0 ? z._value : z.setAll(as[0]),
+//  customCall: (z, ...as) => as.length === 0 ? z._value : z.setAll(as[0]),
 
-  initBy: (z, v) => {
+  initBy: (z, v, f) => {
     z._value = [];
+
+//    if(typeof f === 'function') {
+//      z._sortBy = (a, b) => {
+//        const _a = f(a), _b = f(b);
+//        _a === _b ? 0 : _a > _b ? 1 : -1;
+//      };
+//    } else if (typeof f === 'string' || typeof f === 'number') {
+      z._sortBy = (a, b) => {
+        const _a = a[1], _b = b[1];
+        _a === _b ? 0 : _a > _b ? 1 : -1;
+      };
+      z._isEqual = (a, b) => a[0] === b[0];
+//    };
+
+
+
     v && z.setAll(v);
   },
 
   proto: {
-    notify(q,w,e,r){
-      if(this.subscribers)
-        for (const f of this.subscribers) {
-          f.notify
-            ? f.notify(q,w,e,r)
-            : f(q,w,e,r);
-        }
+    set() {
+      throw `use add`;
     },
+    add(v){
+      const vs = this._value;
+      const i = nice.sortedIndex(vs, v, this._sortBy);
 
-    get (k) {
-      return this._value[k];
-    },
-
-    set (k, v) {
-      if(v === null)
-        throw `Can't be set to null`;
-
-      const values = this._value;
-
-      if(v !== values[k]) {
-        const old = k in values ? values[k] : null;
-        const oldKey = k in values ? k : null;
-        values[k] = v;
+      if(!this._isEqual(vs[i], v)){
+        const old = k in vs ? vs[k] : null;
+        const oldKey = k in vs ? k : null;
+        vs[k] = v;
         this.notify(v, k, old, oldKey);
       }
       return this;
     },
     push (v) {
-      this.set(this._value.length, v);
+      throw `use add`;
     },
-    remove (i) {
-      expect(i).isNumber();
+    removeValue (v) {
+      const vs = this._value;
+      const i = nice.sortedIndex(vs, v, this._sortBy);
+
       const vs = this._value;
       if(i >= vs.length)
         return;
@@ -50,18 +56,18 @@ nice.Type({
       this._value.splice(i, 1);
       this.notify(null, null, old, i);
     },
-    removeValue (v) {
-      const vs = this._value;
-			for(let i = vs.length - 1; i >= 0; i--){
-				if(vs[i] === v)
-					this.remove(i);
-			}
-    },
-    insert (i, v) {
-      const vs = this._value;
-      this._value.splice(i, 0, v);
-      this.notify(v, i, null, null);
-    },
+//    removeValue (v) {
+//      const vs = this._value;
+//			for(let i = vs.length - 1; i >= 0; i--){
+//				if(vs[i] === v)
+//					this.remove(i);
+//			}
+//    },
+//    insert (i, v) {
+//      const vs = this._value;
+//      this._value.splice(i, 0, v);
+//      this.notify(v, i, null, null);
+//    },
     setAll (a) {
       if(!Array.isArray(a))
         throw 'setAll expect array';

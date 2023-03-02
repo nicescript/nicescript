@@ -20,7 +20,7 @@ nice.Type('Router')
     const rurl = '/' + nice.trimRight(url, '/');
     let route = z.staticRoutes(url);
     route || z.queryRoutes.some(f => route = f(url, query));
-    return route || (() => `Page "${url}" not found`);
+    return route || false;
   });
 
 
@@ -114,7 +114,7 @@ nice.Type({
 
         const route = z.resolve(url);
 
-        let content = route();
+        let content = route ? route() : `Page "${url}" not found`;
         if(content === undefined)
           return '';
 

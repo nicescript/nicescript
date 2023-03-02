@@ -6,6 +6,7 @@ Test((Spy) => {
   const qHome2 = m.filter({address:'Home2'});
   const qStartWith = m.filter({name: {startsWith: 'jane'}});
   const optionsHome2age = qHome2.options('age');
+  const optionsHome = m.filter().options('address');
   const sortHome2 = qHome2.sort('age');
   const sortHome2desc = qHome2.sort('age', -1);
 
@@ -14,6 +15,7 @@ Test((Spy) => {
   expect(sortHome2()).deepEqual([]);
   expect(sortHome2desc()).deepEqual([]);
   expect(optionsHome2age()).deepEqual({});
+  expect(optionsHome()).deepEqual({});
 
   const o = { name: 'Joe', age: 34 };
   const joeId = m.add(o);
@@ -38,6 +40,7 @@ Test((Spy) => {
     expect(sortHome2desc()).deepEqual([jimId]);
 
     expect(optionsHome2age()).deepEqual({45:1});
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":1});
     expect(joeBox).is(m.rowBox(joeId));
   });
 
@@ -73,12 +76,14 @@ Test((Spy) => {
     expect([...qHome()]).deepEqual([janeId, joeId]);
     expect([...qHome2()]).deepEqual([jimId]);
     expect(m.get(joeId).address).is("Home");
+    expect(optionsHome()).deepEqual({"Home":2,"Home2":1});
   });
 
   Test('delete field', () => {
     m.change(janeId, { address: undefined });
     expect([...qHome()]).deepEqual([joeId]);
     expect(m.get(janeId).address).is(undefined);
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":1});
   });
 
 
@@ -89,6 +94,7 @@ Test((Spy) => {
     expect(optionsHome2age).deepEqual({23:1,45:1});
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":2});
   });
 
 
@@ -103,6 +109,7 @@ Test((Spy) => {
   Test((fromLog) => {
 		const m2 = RowModel.fromLog(m.log);
     expect(m2.get(joeId)).deepEqual(m.get(joeId));
+    expect(m2.filter().options("address")()).deepEqual({"Home":1,"Home2":2});
 //    expect(m2.get(joeId)).deepEqual(o);
 //    console.log(m.rows);
 //    console.log(m2.rows);
@@ -114,6 +121,9 @@ Test((Spy) => {
     const m2 = RowModel.shadow(m);
 
     expect(() => m2.add({q:1})).throws();
+
+    expect(m.filter().options("address")).deepEqual({"Home":1,"Home2":2});
+    expect(m2.filter().options("address")()).deepEqual({"Home":1,"Home2":2});
 
 		const asc = m2.filter({ address: "Home2" }).sort('age');
     expect(asc()).deepEqual([jimId,janeId]);

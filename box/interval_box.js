@@ -4,6 +4,7 @@ nice.Type({
   extends: 'Box',
 
   initBy: (z, ms, f) => {
+    z._version = 0;
     if(typeof ms !== 'number')
       throw `1st argument must be number`;
     if(typeof f !== 'function')

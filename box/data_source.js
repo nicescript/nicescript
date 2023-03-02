@@ -1,3 +1,18 @@
+//problem 1: _isHot = true, request.v = 5, state.v = 7
+//problem 2: _isHot = false, request.v = 5, state.v = 7
+
+/*
+
+isHot     v     reqV    ok?
+true      1     1       do nothing
+true      1     2       subscribe for future
+true      2     1       !!
+false     0     1       warmUp only
+false     1     1       warmUp only
+false     1     2
+false     2     1
+ */
+
 nice.Type({
   name: 'DataSource',
 
@@ -25,6 +40,8 @@ nice.Type({
       if(z.warmUp && z._isHot !== true){
         z.warmUp();
         z._isHot = true;
+      } else if (z.coldCompute){
+        z.coldCompute();
       }
       if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
         const o = f;
@@ -35,7 +52,6 @@ nice.Type({
       if(v === -1)
         return;
 
-      z.coldCompute && z.coldCompute();
       if(v === undefined || v < z._version)
         z.notifyExisting(f);
     },

@@ -1,21 +1,21 @@
-//idea?? box always have value(even undefined); subscribe always produce call(even undefined)
 //TODO: cover RBox(input, []) with tests
 
 class Connection{
   constructor(cfg) {
     Object.assign(this, cfg);
-    this.version = -1;
+    this.version = 0;
   }
 
   attach(){
     const { source } = this;
 
     if(source._isBox){
-      return source.subscribe(this);
+      const needUpdate = source._version === 0 || this.version < source._version;
+      source.subscribe(this, this.version);
+      return needUpdate;
     } else {
 //      throw '';
     }
-
   }
 
   detach() {
@@ -40,7 +40,7 @@ nice.Type({
 
   initBy: (z, ...inputs) => {
     //TODO: throw error on wrong inputs
-    z._version = -1;
+    z._version = 0;
     let by = inputs.pop();
 
     if(Array.isArray(by)){
@@ -48,7 +48,7 @@ nice.Type({
       by = by[0];
     }
 
-    if(typeof z.by === 'object')
+    if(typeof by === 'object')
       by = objectPointers[inputs.length](by);
 
     if(typeof by !== 'function')
@@ -114,7 +114,7 @@ nice.Type({
       let needCompute = false;
       for (let c of this._ins){
         const v = c.source();
-        if(c.version < 0 || c.version < c.source._version){
+        if(c.version === 0 || c.version < c.source._version){
           this._inputValues[c.position] = v;
           c.version = c.source._version;
           needCompute = true;
@@ -125,11 +125,13 @@ nice.Type({
     },
 
     warmUp(){
-			this.warming = true;
+      this.warming = true;
+      let needCompute = false;
       for (let c of this._ins)
-        c.attach();
+        needCompute |= c.attach();
 			this.warming = false;
-      this.attemptCompute();
+//      this.coldCompute();
+      needCompute && this.attemptCompute();
     },
 
     coolDown(){
@@ -142,9 +144,9 @@ nice.Type({
 
 
 const objectPointers = {
-  1: o => k => o[k],
-  2: o => (k1, k2) => o?.[k1]?.[k2],
-  2: o => (k1, k2, k3) => o?.[k1]?.[k2]?.[k3]
+  1: o => k => o[k](),
+  2: o => (k1, k2) => o?.[k1]?.[k2](),
+  2: o => (k1, k2, k3) => o?.[k1]?.[k2]?.[k3]()
 };
 
 
@@ -154,6 +156,33 @@ Test('RBox basic case', (Box, RBox) => {
   expect(rb()).is(2);
   b(3);
   expect(rb()).is(4);
+});
+
+
+Test('RBox cold compute', (Box, RBox, Spy) => {
+  const b = Box(1);
+  const spy = Spy(a => a + 1);
+  const spy2 = Spy();
+  const rb = RBox(b, spy);
+
+  expect(rb._value).is(undefined);
+  expect(rb()).is(2);
+  expect(spy).calledOnce();
+
+  expect(rb()).is(2);
+  expect(spy).calledOnce();
+
+  b(3);
+  expect(spy).calledOnce();
+  expect(rb._value).is(2);
+
+  expect(rb()).is(4);
+  expect(spy).calledTwice();
+
+  rb.subscribe(spy2);
+  expect(spy).calledTwice();
+  expect(spy2).calledOnce();
+  expect(spy2).calledWith(4);
 });
 
 

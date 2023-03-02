@@ -88,6 +88,8 @@ const proto = {
   },
 
   _pushLog(row){
+    if(this.loading)
+      throw `Can't write while loading`;
     this.log.push(row);
     expect(this.version).isNumber();
 		this.logSubscriptions.forEach(f => f(row, this.version));
@@ -216,10 +218,11 @@ const proto = {
     if(id !== undefined)
       return id;
 
-    id = this.lastValueId++;
+    id = this.valuesIndex.length;
+    this.valuesIndex[id] = [k, v];
+
     this.values[k] = this.values[k] || Object.create(null);
     this.values[k][v] = id;
-    this.valuesIndex[id] = [k, v];
     this._pushLog([VALUE, id, k, v]);
     return id;
   },
@@ -326,6 +329,7 @@ const proto = {
     if(!this.ids){
       this.ids = nice.BoxSet();
       this.rows.forEach((_, id) => this.ids.add(id));
+      this.ids.options = memoize(field => createOptions(this, this.ids, field));
     }
     return this.ids;
   }
@@ -333,6 +337,7 @@ const proto = {
 
 function RowModel(){
   const res = create(proto, {
+    loading: false,
 		lastId: -1,
     version: 0,
 		templates: [],
@@ -445,41 +450,58 @@ function checkObject(o){
 }
 
 
-function createOptions(filter, field){
-  const res = nice.BoxMap();
-  const model = filter.model;
-  model.addOptions(field, res);
-  //TODO: use indexes in case of empty filter
+nice.Type({
+  name: 'FilterOptions',
+  extends: 'BoxMap',
+  initBy: (z, model, filter, field) => {
+    z.super();
+    z.filter = filter;
+    model.addOptions(field, z);
+    //TODO: use indexes in case of empty filter
+    filter.subscribe((id, oldId) =>
+      id !== null
+        ? z.add(model.get(id)?.[field])
+        : z.remove(model.get(oldId)?.[field]));
+  },
+  proto: {
+    coldCompute(){
 
-//  res.sortByValue = once(() => {
-//    return ;
-//  });
-//  res.sortByCount = once(() => );
+    },
+    warmUp(){
+//      const { model, field } = this;
+//      this.filter.subscribe((id, oldId) =>
+//        id !== null
+//          ? this.add(model.get(id)?.[field])
+//          : this.remove(model.get(oldId)?.[field]));
+    },
+    add(value){
+      if(value !== undefined){
+        const count = this.get(value) || 0;
+        this.set(value, count + 1);
+      }
+    },
 
-  const add = value => {
-    if(value !== undefined){
-      const count = res.get(value) || 0;
-      res.set(value, count + 1);
+    remove(value){
+      if(value !== undefined){
+        const count = this.get(value) || 0;
+        const newCount = count - 1;
+        newCount ? this.set(value, count - 1) : this.delete(value);
+      }
+    },
+
+    considerChange(id, newValue, oldValue) {
+      if(this.filter.has(id)){
+        this.remove(oldValue);
+        this.add(newValue);
+      }
     }
-  };
+  }
+});
 
-  const remove = value => {
-    if(value !== undefined){
-      const count = res.get(value) || 0;
-      const newCount = count - 1;
-      newCount ? res.set(value, count - 1) : res.delete(value);
-    }
-  };
 
-  res.considerChange = (id, newValue, oldValue) => {
-    if(filter.has(id)){
-      remove(oldValue);
-      add(newValue);
-    }
-  };
 
-  filter.subscribe((id, oldId) =>
-    id ? add(model.get(id)?.[field]) : remove(model.get(oldId)?.[field]));
+function createOptions(model, filter, field){
+  const res = nice.FilterOptions(model, filter, field);
 
   return res;
 };
@@ -493,7 +515,7 @@ nice.Type({
     z.model = model;
     z.sortAsc = memoize(field => nice.SortResult(z, field, 1));
     z.sortDesc = memoize(field => nice.SortResult(z, field, -1));
-    z.options = memoize(field => createOptions(z, field));
+    z.options = memoize(field => createOptions(model, z, field));
   }
 });
 

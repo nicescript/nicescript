@@ -6,6 +6,7 @@ nice.Type({
   customCall: (z, ...as) => {
     if(as.length)
       throwF('Use access methods to change BoxMap');
+    z.coldCompute && !z._isHot && z.coldCompute();
     return z._value;
   },
 
@@ -56,6 +57,43 @@ nice.Type({
       );
       return res;
     },
+    sortedEntities(){
+      const res = nice.BoxArray();
+
+      const sortBy = (a, b) => {
+        const _a = a[1];
+        return _a === b ? 0 : _a > b ? 1 : -1;
+      };
+
+      const compareBy = (a, b) => a[0] === b[0];
+      const vs = res._value;
+
+      this.subscribe((v, k, oldV) => {
+        if(oldV === null) {
+          const i = nice.sortedIndex(vs, v, sortBy);
+          res.insert(i, [k, v]);
+        } else if (v === null) {
+          const i = nice.sortedIndex(vs, oldV, sortBy);
+          if(vs[i][0] === k)
+            res.remove(i);
+          else
+            throw '342f3f';
+        } else {
+          const oldI = nice.sortedIndex(vs, oldV, sortBy);
+          const newI = nice.sortedIndex(vs, v, sortBy);
+          if(oldI > newI){
+            res.remove(oldI);
+            res.insert(newI, [k, v]);
+          } else if (oldI < newI){
+            res.insert(newI, [k, v]);
+            res.remove(oldI);
+          }
+        }
+      });
+
+      return res;
+
+    }
   }
 });
 
@@ -268,3 +306,24 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
 //  index.set('c', null);
 //  expect(b()).deepEqual(['c', 'b', 'a', 'd']);
 });
+
+
+Test((BoxMap, sortedEntities) => {
+  const m = BoxMap({a:1, c: 3, b:2,d:1.5});
+  const se = m.sortedEntities();
+  expect(se()).deepEqual([['a',1],['d',1.5],['b',2],['c',3]]);
+
+  m.set('a', 2.5);
+  expect(se()).deepEqual([['d',1.5],['b',2],['a',2.5],['c',3]]);
+
+  m.delete('b');
+  expect(se()).deepEqual([['d',1.5],['a',2.5],['c',3]]);
+
+  m.set('e', 0);
+  expect(se()).deepEqual([['e',0],['d',1.5],['a',2.5],['c',3]]);
+
+  m.set('f', 5);
+  expect(se()).deepEqual([['e',0],['d',1.5],['a',2.5],['c',3],['f',5]]);
+});
+
+

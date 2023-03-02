@@ -1290,7 +1290,8 @@ reflect.on('type', type => {
   };
 });
 })();
-(function(){"use strict";def(nice, 'TestSet', (core) => {
+(function(){"use strict";
+def(nice, 'TestSet', (core) => {
   const tests = [];
   const res = (...a) => {
     const [description, body] = a.length === 2 ? a : [a[0].name, a[0]];
@@ -2106,7 +2107,8 @@ Test((Spy, calledWith) => {
   expect(spy).calledWith(1, 2);
 });
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";
+nice.Type({
   name: 'DataSource',
   extends: 'Something',
   abstract: true,
@@ -2127,6 +2129,8 @@ Test((Spy, calledWith) => {
       if(z.warmUp && z._isHot !== true){
         z.warmUp();
         z._isHot = true;
+      } else if (z.coldCompute){
+        z.coldCompute();
       }
       if(typeof f !== 'function' && typeof f === 'object' && !f.notify){
         const o = f;
@@ -2135,7 +2139,6 @@ Test((Spy, calledWith) => {
       z.subscribers.add(f);
       if(v === -1)
         return;
-      z.coldCompute && z.coldCompute();
       if(v === undefined || v < z._version)
         z.notifyExisting(f);
     },
@@ -2154,7 +2157,8 @@ Test((Spy, calledWith) => {
 });
 nice.eventEmitter(nice.DataSource.proto);
 })();
-(function(){"use strict";nice.Type({
+(function(){"use strict";
+nice.Type({
   name: 'Box',
   extends: 'DataSource',
   customCall: (z, ...as) => {
@@ -2415,6 +2419,7 @@ Test((BoxSet, intersection, Spy) => {
   customCall: (z, ...as) => {
     if(as.length)
       throwF('Use access methods to change BoxMap');
+    z.coldCompute && !z._isHot && z.coldCompute();
     return z._value;
   },
   initBy: (z, o) => {
@@ -2460,6 +2465,38 @@ Test((BoxSet, intersection, Spy) => {
           ? res.set(k, v)
           : k in res._value && res.set(k, null)
       );
+      return res;
+    },
+    sortedEntities(){
+      const res = nice.BoxArray();
+      const sortBy = (a, b) => {
+        const _a = a[1];
+        return _a === b ? 0 : _a > b ? 1 : -1;
+      };
+      const compareBy = (a, b) => a[0] === b[0];
+      const vs = res._value;
+      this.subscribe((v, k, oldV) => {
+        if(oldV === null) {
+          const i = nice.sortedIndex(vs, v, sortBy);
+          res.insert(i, [k, v]);
+        } else if (v === null) {
+          const i = nice.sortedIndex(vs, oldV, sortBy);
+          if(vs[i][0] === k)
+            res.remove(i);
+          else
+            throw '342f3f';
+        } else {
+          const oldI = nice.sortedIndex(vs, oldV, sortBy);
+          const newI = nice.sortedIndex(vs, v, sortBy);
+          if(oldI > newI){
+            res.remove(oldI);
+            res.insert(newI, [k, v]);
+          } else if (oldI < newI){
+            res.insert(newI, [k, v]);
+            res.remove(oldI);
+          }
+        }
+      });
       return res;
     }
   }
@@ -2624,6 +2661,19 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
   index.set('c', null);
   expect(b()).deepEqual(['c', 'b', 'a', 'd']);
 });
+Test((BoxMap, sortedEntities) => {
+  const m = BoxMap({a:1, c: 3, b:2,d:1.5});
+  const se = m.sortedEntities();
+  expect(se()).deepEqual([['a',1],['d',1.5],['b',2],['c',3]]);
+  m.set('a', 2.5);
+  expect(se()).deepEqual([['d',1.5],['b',2],['a',2.5],['c',3]]);
+  m.delete('b');
+  expect(se()).deepEqual([['d',1.5],['a',2.5],['c',3]]);
+  m.set('e', 0);
+  expect(se()).deepEqual([['e',0],['d',1.5],['a',2.5],['c',3]]);
+  m.set('f', 5);
+  expect(se()).deepEqual([['e',0],['d',1.5],['a',2.5],['c',3],['f',5]]);
+});
 })();
 (function(){"use strict";nice.Type({
   name: 'BoxArray',
@@ -2641,6 +2691,9 @@ Test('sort keys by values from another BoxMap', (BoxMap, sort) => {
             ? f.notify(q,w,e,r)
             : f(q,w,e,r);
         }
+    },
+    get (k) {
+      return this._value[k];
     },
     set (k, v) {
       if(v === null)
@@ -2913,12 +2966,14 @@ Test((BoxArray, window) => {
 class Connection{
   constructor(cfg) {
     Object.assign(this, cfg);
-    this.version = -1;
+    this.version = 0;
   }
   attach(){
     const { source } = this;
     if(source._isBox){
-      return source.subscribe(this);
+      const needUpdate = source._version === 0 || this.version < source._version;
+      source.subscribe(this, this.version);
+      return needUpdate;
     } else {
     }
   }
@@ -2938,13 +2993,13 @@ nice.Type({
   extends: 'Box',
   initBy: (z, ...inputs) => {
     
-    z._version = -1;
+    z._version = 0;
     let by = inputs.pop();
     if(Array.isArray(by)){
       z._left = by[1];
       by = by[0];
     }
-    if(typeof z.by === 'object')
+    if(typeof by === 'object')
       by = objectPointers[inputs.length](by);
     if(typeof by !== 'function')
       throw `Last argument to RBox should be function or object`;
@@ -3000,7 +3055,7 @@ nice.Type({
       let needCompute = false;
       for (let c of this._ins){
         const v = c.source();
-        if(c.version < 0 || c.version < c.source._version){
+        if(c.version === 0 || c.version < c.source._version){
           this._inputValues[c.position] = v;
           c.version = c.source._version;
           needCompute = true;
@@ -3009,11 +3064,12 @@ nice.Type({
       needCompute && this.attemptCompute();
     },
     warmUp(){
-			this.warming = true;
+      this.warming = true;
+      let needCompute = false;
       for (let c of this._ins)
-        c.attach();
+        needCompute |= c.attach();
 			this.warming = false;
-      this.attemptCompute();
+      needCompute && this.attemptCompute();
     },
     coolDown(){
       this._inputValues = [];
@@ -3023,9 +3079,9 @@ nice.Type({
   }
 });
 const objectPointers = {
-  1: o => k => o[k],
-  2: o => (k1, k2) => o?.[k1]?.[k2],
-  2: o => (k1, k2, k3) => o?.[k1]?.[k2]?.[k3]
+  1: o => k => o[k](),
+  2: o => (k1, k2) => o?.[k1]?.[k2](),
+  2: o => (k1, k2, k3) => o?.[k1]?.[k2]?.[k3]()
 };
 Test('RBox basic case', (Box, RBox) => {
   const b = Box(1);
@@ -3033,6 +3089,26 @@ Test('RBox basic case', (Box, RBox) => {
   expect(rb()).is(2);
   b(3);
   expect(rb()).is(4);
+});
+Test('RBox cold compute', (Box, RBox, Spy) => {
+  const b = Box(1);
+  const spy = Spy(a => a + 1);
+  const spy2 = Spy();
+  const rb = RBox(b, spy);
+  expect(rb._value).is(undefined);
+  expect(rb()).is(2);
+  expect(spy).calledOnce();
+  expect(rb()).is(2);
+  expect(spy).calledOnce();
+  b(3);
+  expect(spy).calledOnce();
+  expect(rb._value).is(2);
+  expect(rb()).is(4);
+  expect(spy).calledTwice();
+  rb.subscribe(spy2);
+  expect(spy).calledTwice();
+  expect(spy2).calledOnce();
+  expect(spy2).calledWith(4);
 });
 Test('RBox undefined input', (Box, RBox) => {
   const b = Box();
@@ -3133,6 +3209,7 @@ Test('RBox cold compute', (Box, RBox) => {
   name: 'IntervalBox',
   extends: 'Box',
   initBy: (z, ms, f) => {
+    z._version = 0;
     if(typeof ms !== 'number')
       throw `1st argument must be number`;
     if(typeof f !== 'function')
@@ -3690,6 +3767,8 @@ const proto = {
     this._pushLog([COMPRESS, f]);
   },
   _pushLog(row){
+    if(this.loading)
+      throw `Can't write while loading`;
     this.log.push(row);
     expect(this.version).isNumber();
 		this.logSubscriptions.forEach(f => f(row, this.version));
@@ -3795,10 +3874,10 @@ const proto = {
     let id = this.values[k]?.[v];
     if(id !== undefined)
       return id;
-    id = this.lastValueId++;
+    id = this.valuesIndex.length;
+    this.valuesIndex[id] = [k, v];
     this.values[k] = this.values[k] || Object.create(null);
     this.values[k][v] = id;
-    this.valuesIndex[id] = [k, v];
     this._pushLog([VALUE, id, k, v]);
     return id;
   },
@@ -3891,12 +3970,14 @@ const proto = {
     if(!this.ids){
       this.ids = nice.BoxSet();
       this.rows.forEach((_, id) => this.ids.add(id));
+      this.ids.options = memoize(field => createOptions(this, this.ids, field));
     }
     return this.ids;
   }
 };
 function RowModel(){
   const res = create(proto, {
+    loading: false,
 		lastId: -1,
     version: 0,
 		templates: [],
@@ -3981,32 +4062,47 @@ function checkObject(o){
 			throw 'Invalid value ' + ('' + v) + ':' + typeof v;
 	});
 }
-function createOptions(filter, field){
-  const res = nice.BoxMap();
-  const model = filter.model;
-  model.addOptions(field, res);
-  
-  const add = value => {
-    if(value !== undefined){
-      const count = res.get(value) || 0;
-      res.set(value, count + 1);
+nice.Type({
+  name: 'FilterOptions',
+  extends: 'BoxMap',
+  initBy: (z, model, filter, field) => {
+    z.super();
+    z.filter = filter;
+    model.addOptions(field, z);
+    
+    filter.subscribe((id, oldId) =>
+      id !== null
+        ? z.add(model.get(id)?.[field])
+        : z.remove(model.get(oldId)?.[field]));
+  },
+  proto: {
+    coldCompute(){
+    },
+    warmUp(){
+    },
+    add(value){
+      if(value !== undefined){
+        const count = this.get(value) || 0;
+        this.set(value, count + 1);
+      }
+    },
+    remove(value){
+      if(value !== undefined){
+        const count = this.get(value) || 0;
+        const newCount = count - 1;
+        newCount ? this.set(value, count - 1) : this.delete(value);
+      }
+    },
+    considerChange(id, newValue, oldValue) {
+      if(this.filter.has(id)){
+        this.remove(oldValue);
+        this.add(newValue);
+      }
     }
-  };
-  const remove = value => {
-    if(value !== undefined){
-      const count = res.get(value) || 0;
-      const newCount = count - 1;
-      newCount ? res.set(value, count - 1) : res.delete(value);
-    }
-  };
-  res.considerChange = (id, newValue, oldValue) => {
-    if(filter.has(id)){
-      remove(oldValue);
-      add(newValue);
-    }
-  };
-  filter.subscribe((id, oldId) =>
-    id ? add(model.get(id)?.[field]) : remove(model.get(oldId)?.[field]));
+  }
+});
+function createOptions(model, filter, field){
+  const res = nice.FilterOptions(model, filter, field);
   return res;
 };
 nice.Type({
@@ -4017,7 +4113,7 @@ nice.Type({
     z.model = model;
     z.sortAsc = memoize(field => nice.SortResult(z, field, 1));
     z.sortDesc = memoize(field => nice.SortResult(z, field, -1));
-    z.options = memoize(field => createOptions(z, field));
+    z.options = memoize(field => createOptions(model, z, field));
   }
 });
 nice.Mapping.RowsFilter.String('sort', (filter, field, direction = 1) => {
@@ -4164,7 +4260,10 @@ nice.Type({
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
     z.options = memoize(field => {
       const res = BoxMap();
-      model.subscribe([...q, {action: 'options', args: [field] }], r => f(...r));
+      res.warmUp = () => {
+        model.subscribe([...q, {action: 'options', args: [field] }],
+          ([v,k,oldV]) => res.set(k,v));
+      };
       return res;
     });
   }
@@ -4201,6 +4300,7 @@ Test((Spy) => {
   const qHome2 = m.filter({address:'Home2'});
   const qStartWith = m.filter({name: {startsWith: 'jane'}});
   const optionsHome2age = qHome2.options('age');
+  const optionsHome = m.filter().options('address');
   const sortHome2 = qHome2.sort('age');
   const sortHome2desc = qHome2.sort('age', -1);
   expect(qHome()).deepEqual([]);
@@ -4208,6 +4308,7 @@ Test((Spy) => {
   expect(sortHome2()).deepEqual([]);
   expect(sortHome2desc()).deepEqual([]);
   expect(optionsHome2age()).deepEqual({});
+  expect(optionsHome()).deepEqual({});
   const o = { name: 'Joe', age: 34 };
   const joeId = m.add(o);
   const janeId = m.add({ name: "Jane", age: 23, address: "Home"});
@@ -4225,6 +4326,7 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([jimId]);
     expect(sortHome2desc()).deepEqual([jimId]);
     expect(optionsHome2age()).deepEqual({45:1});
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":1});
     expect(joeBox).is(m.rowBox(joeId));
   });
   Test('find', () => {
@@ -4248,11 +4350,13 @@ Test((Spy) => {
     expect([...qHome()]).deepEqual([janeId, joeId]);
     expect([...qHome2()]).deepEqual([jimId]);
     expect(m.get(joeId).address).is("Home");
+    expect(optionsHome()).deepEqual({"Home":2,"Home2":1});
   });
   Test('delete field', () => {
     m.change(janeId, { address: undefined });
     expect([...qHome()]).deepEqual([joeId]);
     expect(m.get(janeId).address).is(undefined);
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":1});
   });
   Test('change home2', () => {
     m.change(janeId, {address:"Home2"});
@@ -4261,6 +4365,7 @@ Test((Spy) => {
     expect(optionsHome2age).deepEqual({23:1,45:1});
     expect(sortHome2()).deepEqual([janeId,jimId]);
     expect(sortHome2desc()).deepEqual([jimId,janeId]);
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":2});
   });
   Test('change age', () => {
     m.change(janeId, {age:46});
@@ -4271,11 +4376,14 @@ Test((Spy) => {
   Test((fromLog) => {
 		const m2 = RowModel.fromLog(m.log);
     expect(m2.get(joeId)).deepEqual(m.get(joeId));
+    expect(m2.filter().options("address")()).deepEqual({"Home":1,"Home2":2});
     expect(m2.find(o)).is(joeId);
 	});
   Test((shadow) => {
     const m2 = RowModel.shadow(m);
     expect(() => m2.add({q:1})).throws();
+    expect(m.filter().options("address")).deepEqual({"Home":1,"Home2":2});
+    expect(m2.filter().options("address")()).deepEqual({"Home":1,"Home2":2});
 		const asc = m2.filter({ address: "Home2" }).sort('age');
     expect(asc()).deepEqual([jimId,janeId]);
     m.change(jimId, {address:'Home'});
@@ -6309,7 +6417,7 @@ nice.Type('Router')
     const rurl = '/' + nice.trimRight(url, '/');
     let route = z.staticRoutes(url);
     route || z.queryRoutes.some(f => route = f(url, query));
-    return route || (() => `Page "${url}" not found`);
+    return route || false;
   });
 function addRoutes(router, rr) {
   _each(rr, (v, k) => addRoute(router, k, v));
@@ -6377,7 +6485,7 @@ nice.Type({
         if(lastHandlers !== null)
           _each(lastHandlers, (v, k) => window.removeEventListener(k, v));
         const route = z.resolve(url);
-        let content = route();
+        let content = route ? route() : `Page "${url}" not found`;
         if(content === undefined)
           return '';
         if(content.__proto__ === Object.prototype){

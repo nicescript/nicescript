@@ -32,7 +32,11 @@ nice.Type({
     z.sortDesc = memoize(field => nice.RowModelSortProxy(model, q, field, -1));
     z.options = memoize(field => {
       const res = BoxMap();
-      model.subscribe([...q, {action: 'options', args: [field] }], r => f(...r));
+      res.warmUp = () => {
+        model.subscribe([...q, {action: 'options', args: [field] }],
+          ([v,k,oldV]) => res.set(k,v));
+//          ([v,k,oldV]) => v === null ? res.delete(k) : res.set());
+      };
       return res;
     });
 

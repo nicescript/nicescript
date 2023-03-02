@@ -1,3 +1,5 @@
+//TODO: would be nice to have oldValue in notification
+//TODO: subscription to undefined values. Div -> undefined should delete node
 nice.Type({
   name: 'Box',
 
