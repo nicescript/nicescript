@@ -292,8 +292,11 @@ function html(z){
   });
 
   let body = '';
-  z._children &&
-      z._children.forEach(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
+  let cc = z._children;
+  if(cc){
+    cc._isAnything && (cc = cc());
+    cc.forEach(c => body += c._isAnything ? c.html : nice.htmlEscape(c));
+  }
 
   return `${selectors}<${tag}${as}>${body}</${tag}>`;
 };

@@ -49,7 +49,7 @@ function addRoute(router, pattern, f){
     if(!a)
       return false;
     params.forEach((v, k) => query[v.substr(1)] = a[k+1]);
-    return () => f(query);
+    return (...as) => f(query, ...as);
   };
   res.pattern = pattern;
 
