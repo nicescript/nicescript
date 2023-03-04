@@ -21,6 +21,8 @@ const Html = nice.Html;
       a.each((v, k) => z.add(f ? f(v, k) : v));
     } else if( type === 'Array' || type === 'Object') {
       _each(a, (v, k) => z.add(f ? f(v, k) : v));
+    } else if( a instanceof Set ) {
+      for(let c of a) z.add(f ? f(c) : c);
     } else {
       z.add(a, ...as);
     }

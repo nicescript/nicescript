@@ -3949,6 +3949,7 @@ const proto = {
       throw 'Incorect row id';
     }
 		z.log.push(row.slice());
+    this.logSubscriptions.forEach(f => f(row, this.version));
     z.version++;
 	},
 	subscribeLog(f) {
@@ -4002,6 +4003,12 @@ function RowModel(){
     const [opName, value] = Object.entries(o)[0];
     return { opName, value, field };
   }
+  res.history = memoize(id => {
+    const check = r => r[1] === id && r[0] > 0;
+    const h = BoxArray(res.log.filter(check));
+    res.subscribeLog(r => check(r) && h.push(r));
+    return h;
+  });
   res.filter = function(o = {}) {
     const entities = Object.entries(o);
     if(!entities.length)
@@ -4241,6 +4248,12 @@ nice.Type({
     z.rowBox = memoize(id => {
       const res = Box();
       z.subscribe([{action: 'rowBox', args: [id] }], (aa) => res(aa[0]));
+      return res;
+    });
+    z.history = memoize(id => {
+      const res = BoxArray();
+      const f = BoxArray.subscribeFunction(res);
+      z.subscribe([{action: 'history', args: [id] }], r => f(...r));
       return res;
     });
   },
@@ -5574,6 +5587,10 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
         return z._children.push(c);
       if(Array.isArray(c))
         return c.forEach(_c => z.add(_c));
+      if(c instanceof Set){
+        for(let _c of c) z.add(_c);
+        return;
+      }
       if(c._isArr)
         return c.each(_c => z.add(_c));
       if(c._isNum || typeof c === 'number')
@@ -6196,6 +6213,8 @@ IS_BROWSER && Test((Div) => {
       a.each((v, k) => z.add(f ? f(v, k) : v));
     } else if( type === 'Array' || type === 'Object') {
       _each(a, (v, k) => z.add(f ? f(v, k) : v));
+    } else if( a instanceof Set ) {
+      for(let c of a) z.add(f ? f(c) : c);
     } else {
       z.add(a, ...as);
     }

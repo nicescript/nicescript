@@ -71,6 +71,11 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
       if(Array.isArray(c))
         return c.forEach(_c => z.add(_c));
 
+      if(c instanceof Set){
+        for(let _c of c) z.add(_c);
+        return;
+      }
+
       if(c._isArr)
         return c.each(_c => z.add(_c));
 

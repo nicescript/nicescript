@@ -12,6 +12,12 @@ nice.Type({
       z.subscribe([{action: 'rowBox', args: [id] }], (aa) => res(aa[0]));
       return res;
     });
+    z.history = memoize(id => {
+      const res = BoxArray();
+      const f = BoxArray.subscribeFunction(res);
+      z.subscribe([{action: 'history', args: [id] }], r => f(...r));
+      return res;
+    });
   },
   proto: {
   }

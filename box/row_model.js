@@ -302,6 +302,7 @@ const proto = {
       throw 'Incorect row id';
     }
 		z.log.push(row.slice());
+    this.logSubscriptions.forEach(f => f(row, this.version));
     z.version++;
 	},
 
@@ -364,6 +365,14 @@ function RowModel(){
     const [opName, value] = Object.entries(o)[0];
     return { opName, value, field };
   }
+
+
+  res.history = memoize(id => {
+    const check = r => r[1] === id && r[0] > 0;
+    const h = BoxArray(res.log.filter(check));
+    res.subscribeLog(r => check(r) && h.push(r));
+    return h;
+  });
 
 
 //    filter({adress: 'home', gender: "male" });
