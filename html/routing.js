@@ -104,6 +104,9 @@ nice.Type({
 
   initBy: (z, div = nice.Div()) => {
     if(window && window.addEventListener){
+      if(nice.Html.linkRouter)
+        throw new Error('Only one WindowRouter per session is allowed');
+
       nice.Html.linkRouter = z;
       z.origin = window.location.origin;
       let lastHandlers = null;
