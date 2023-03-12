@@ -39,9 +39,13 @@ nice.Type({
   extends: 'Box',
 
   initBy: (z, ...inputs) => {
-    //TODO: throw error on wrong inputs
     z._version = 0;
     let by = inputs.pop();
+
+    inputs.forEach((v, k) => {
+      if(!v._isBox)
+        throw new Error(`Argument ${k} is not a Box`);
+    });
 
     if(Array.isArray(by)){
       z._left = by[1];
