@@ -1,4 +1,4 @@
-const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
+const { _eachEach, _pick, once, clone, memoize, sortedPosition } = nice;
 
 const TEMPLATE = -1;
 const DELETE = -2;
@@ -26,13 +26,14 @@ const proto = {
 		checkObject(o);
 		const id = this.rows.length;
 		this.lastId = id;
-		this.rows.push(o);
-		this.writeLog(id, o);
-    o._id = id;
+    const row = clone(o);
+		this.rows.push(row);
+		this.writeLog(id, row);
+    row._id = id;
     this.ids && this.ids.add(id);
-		this.notifyIndexes(id, o);
+		this.notifyIndexes(id, row);
 		if(id in this.rowBoxes)
-			this.rowBoxes[id](this.rows[id]);
+			this.rowBoxes[id](row);
 		return id;
 	},
 
@@ -150,12 +151,13 @@ const proto = {
   },
 
 	notifyAllSorts(id, newValues, oldValues) {
-		_each(oldValues, (v, field) => {
-      this.notifySorts(id, field, newValues[field], v);
-    });
+//		_each(oldValues, (v, field) => {
+//      this.notifySorts(id, field, newValues[field], v);
+//    });
 		_each(newValues, (v, field) => {
-      !(oldValues && field in oldValues)
-          && this.notifySorts(id, field, v);
+//      !(oldValues && field in oldValues)
+//          &&
+          this.notifySorts(id, field, v, oldValues[field]);
     });
 	},
 
@@ -164,12 +166,14 @@ const proto = {
   },
 
 	notifyAllOptions(id, newValues, oldValues) {
-		_each(oldValues, (v, field) => {
-      this.notifyOptions(id, field, newValues[field], v);
-    });
+//		_each(oldValues, (v, field) => {
+//      (field in newValues) &&
+//        this.notifyOptions(id, field, newValues[field], v);
+//    });
 		_each(newValues, (v, field) => {
-      !(oldValues && field in oldValues)
-          && this.notifyOptions(id, field, v);
+//      !(oldValues && field in oldValues)
+//          &&
+          this.notifyOptions(id, field, v, oldValues[field]);
     });
 	},
 
@@ -192,16 +196,25 @@ const proto = {
         throw 'Invalid value ' + ('' + v) + ':' + typeof v;
     });
     this.writeLog(id, o);
-    const row = this.rows[id];
-    old = _pick(row, Object.keys(o));
-    _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
-    _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
+    const oldRow = this.rows[id];
+    const newRow = this.rows[id] = {};
+    _each(oldRow, (v, k) => k in o || (newRow[k] = v));
+    _each(o, (v, k) => {
+      v === undefined || (newRow[k] = v);
+    });
+    _each(o, (v, k) => {
+      this.notifyIndexOneValue(id, k, v, oldRow[k]);
+    });
+//    this.rows[id] = newRow;
+//    old = _pick(row, Object.keys(o));
+//    _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
+//    _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, oldRow[k]));
 
-    this.notifyAllOptions(id, o, old);
-    this.notifyAllSorts(id, o, old);
+    this.notifyAllOptions(id, o, oldRow);
+    this.notifyAllSorts(id, o, oldRow);
 
 		if(id in this.rowBoxes)
-			this.rowBoxes[id](this.rows[id]);
+			this.rowBoxes[id](newRow);
 	},
 
 	writeLog(id, o) {

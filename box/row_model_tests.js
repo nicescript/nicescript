@@ -29,7 +29,7 @@ Test((Spy) => {
 
   Test(() => {
     expect([...m.filter()]).deepEqual([joeId, janeId, jimId]);
-		expect(m.get(joeId)).deepEqual(o);
+		expect(m.get(joeId)).deepEqual({ ...o, _id: joeId });
     expect([...qHome()]).deepEqual([janeId]);
     expect([...qStartWith()]).deepEqual([janeId]);
     expect([...qHome2()]).deepEqual([jimId]);
@@ -56,12 +56,11 @@ Test((Spy) => {
 
 
   Test(() => {
-		expect(joeBox()).deepEqual(o);
+		expect(joeBox()).deepEqual({ ...o, _id: joeId });
 		expect(joeSpy).calledTimes(1);
 
 		m.change(joeId, {age:33});
 		expect(joeSpy).calledTimes(2);
-		expect(joeSpy).calledWith(o);
 	});
 
 
@@ -113,7 +112,7 @@ Test((Spy) => {
 //    expect(m2.get(joeId)).deepEqual(o);
 //    console.log(m.rows);
 //    console.log(m2.rows);
-    expect(m2.find(o)).is(joeId);
+    expect(m2.find({name:'Joe',age:33})).is(joeId);
 	});
 
 

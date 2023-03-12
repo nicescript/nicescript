@@ -24,12 +24,8 @@ nice.Type({
 
   proto: {
     setState (v) {
-//      if(this._value !== v){
-//        this._version++;
-//        this._value = v;
-//        this.notify(v);
-//      }
-      this._value !== v && this._version++;
+      if(this._value === v) return;
+      this._version ++;
       this._value = v;
       this.notify(v);
     },
@@ -113,7 +109,7 @@ Test((Box, Spy) => {
 
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(3);
+  expect(spy).calledTimes(2);
 });
 
 

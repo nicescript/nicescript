@@ -2178,7 +2178,8 @@ nice.Type({
   },
   proto: {
     setState (v) {
-      this._value !== v && this._version++;
+      if(this._value === v) return;
+      this._version ++;
       this._value = v;
       this.notify(v);
     },
@@ -2242,7 +2243,7 @@ Test((Box, Spy) => {
   b(2);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  expect(spy).calledTimes(3);
+  expect(spy).calledTimes(2);
 });
 Test((Box, Spy, uniq) => {
   const b = Box().uniq();
@@ -3703,7 +3704,7 @@ Test((Model, Spy) => {
   expect(spy).calledTwice();
 });
 })();
-(function(){"use strict";const { _eachEach, _pick, once, memoize, sortedPosition } = nice;
+(function(){"use strict";const { _eachEach, _pick, once, clone, memoize, sortedPosition } = nice;
 const TEMPLATE = -1;
 const DELETE = -2;
 const COMPRESS = -3;
@@ -3713,13 +3714,14 @@ const proto = {
 		checkObject(o);
 		const id = this.rows.length;
 		this.lastId = id;
-		this.rows.push(o);
-		this.writeLog(id, o);
-    o._id = id;
+    const row = clone(o);
+		this.rows.push(row);
+		this.writeLog(id, row);
+    row._id = id;
     this.ids && this.ids.add(id);
-		this.notifyIndexes(id, o);
+		this.notifyIndexes(id, row);
 		if(id in this.rowBoxes)
-			this.rowBoxes[id](this.rows[id]);
+			this.rowBoxes[id](row);
 		return id;
 	},
   find(o) {
@@ -3818,24 +3820,16 @@ const proto = {
     inList.forEach(f => outList.includes(f) || f.add(id));
   },
 	notifyAllSorts(id, newValues, oldValues) {
-		_each(oldValues, (v, field) => {
-      this.notifySorts(id, field, newValues[field], v);
-    });
 		_each(newValues, (v, field) => {
-      !(oldValues && field in oldValues)
-          && this.notifySorts(id, field, v);
+          this.notifySorts(id, field, v, oldValues[field]);
     });
 	},
   notifySorts(id, field, newValue, oldValue){
     _each(this.sortResults[field], s => s.considerChange(id, newValue, oldValue));
   },
 	notifyAllOptions(id, newValues, oldValues) {
-		_each(oldValues, (v, field) => {
-      this.notifyOptions(id, field, newValues[field], v);
-    });
 		_each(newValues, (v, field) => {
-      !(oldValues && field in oldValues)
-          && this.notifyOptions(id, field, v);
+          this.notifyOptions(id, field, v, oldValues[field]);
     });
 	},
   notifyOptions(id, field, newValue, oldValue){
@@ -3853,14 +3847,19 @@ const proto = {
         throw 'Invalid value ' + ('' + v) + ':' + typeof v;
     });
     this.writeLog(id, o);
-    const row = this.rows[id];
-    old = _pick(row, Object.keys(o));
-    _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
-    _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, old[k]));
-    this.notifyAllOptions(id, o, old);
-    this.notifyAllSorts(id, o, old);
+    const oldRow = this.rows[id];
+    const newRow = this.rows[id] = {};
+    _each(oldRow, (v, k) => k in o || (newRow[k] = v));
+    _each(o, (v, k) => {
+      v === undefined || (newRow[k] = v);
+    });
+    _each(o, (v, k) => {
+      this.notifyIndexOneValue(id, k, v, oldRow[k]);
+    });
+    this.notifyAllOptions(id, o, oldRow);
+    this.notifyAllSorts(id, o, oldRow);
 		if(id in this.rowBoxes)
-			this.rowBoxes[id](this.rows[id]);
+			this.rowBoxes[id](newRow);
 	},
 	writeLog(id, o) {
 		const templateId = this.findTemplate(o);
@@ -4331,7 +4330,7 @@ Test((Spy) => {
   joeBox.subscribe(joeSpy);
   Test(() => {
     expect([...m.filter()]).deepEqual([joeId, janeId, jimId]);
-		expect(m.get(joeId)).deepEqual(o);
+		expect(m.get(joeId)).deepEqual({ ...o, _id: joeId });
     expect([...qHome()]).deepEqual([janeId]);
     expect([...qStartWith()]).deepEqual([janeId]);
     expect([...qHome2()]).deepEqual([jimId]);
@@ -4348,11 +4347,10 @@ Test((Spy) => {
     expect(m.assert({ name: "Jane" })).is(janeId);
   });
   Test(() => {
-		expect(joeBox()).deepEqual(o);
+		expect(joeBox()).deepEqual({ ...o, _id: joeId });
 		expect(joeSpy).calledTimes(1);
 		m.change(joeId, {age:33});
 		expect(joeSpy).calledTimes(2);
-		expect(joeSpy).calledWith(o);
 	});
   Test(() => {
 		expect(() => m.add({name:undefined})).throws();
@@ -4390,7 +4388,7 @@ Test((Spy) => {
 		const m2 = RowModel.fromLog(m.log);
     expect(m2.get(joeId)).deepEqual(m.get(joeId));
     expect(m2.filter().options("address")()).deepEqual({"Home":1,"Home2":2});
-    expect(m2.find(o)).is(joeId);
+    expect(m2.find({name:'Joe',age:33})).is(joeId);
 	});
   Test((shadow) => {
     const m2 = RowModel.shadow(m);
@@ -6500,6 +6498,8 @@ nice.Type({
   extends: 'Router',
   initBy: (z, div = nice.Div()) => {
     if(window && window.addEventListener){
+      if(nice.Html.linkRouter)
+        throw new Error('Only one WindowRouter per session is allowed');
       nice.Html.linkRouter = z;
       z.origin = window.location.origin;
       let lastHandlers = null;
