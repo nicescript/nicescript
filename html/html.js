@@ -915,13 +915,6 @@ IS_BROWSER && Test((Div) => {
   });
 
 
-  Test((Div, RBox, Box) => {
-    const b = Box();
-    const rb = RBox(b, v => '12');
-    expect(rb()).is('12');
-  });
-
-
   Test((Div, prop) => {
     expect(nice.Div().properties('qwe', 'asd').show().qwe).is('asd');
   });

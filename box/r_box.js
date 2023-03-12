@@ -104,7 +104,7 @@ nice.Type({
     attemptCompute(){
       let v;
       try {
-        if(this._inputValues.some(i => i === undefined))
+        if('_left' in this && this._inputValues.some(i => i === undefined))
           v = typeof this._left === 'function' ? this._left() : this._left;
         else
           v = this._by(...this._inputValues);
@@ -122,6 +122,7 @@ nice.Type({
           this._inputValues[c.position] = v;
           c.version = c.source._version;
           needCompute = true;
+          break;
         }
       }
 
@@ -306,3 +307,27 @@ Test('RBox cold compute', (Box, RBox) => {
   var b = RBox(a, x => x + 3);
   expect(b()).is(4);
 });
+
+
+Test('Array as subscriber', (Box, RBox, Spy) => {
+  var a = Box();
+  const spy = Spy();
+  var b = RBox(a, [x => x + 3, 0]);
+  b.subscribe(spy);
+
+  expect(b()).is(0);
+  expect(spy).calledWith(0);
+
+  a(1);
+  expect(b()).is(4);
+  expect(spy).calledWith(4);
+});
+
+
+Test((RBox, Box) => {
+  const b = Box();
+  const rb = RBox(b, v => '12');
+  expect(rb()).is('12');
+});
+
+

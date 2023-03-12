@@ -57,8 +57,7 @@ nice.Type({
     },
 
     notifyExisting(f){
-      if(this._value !== undefined)
-        f.notify ? f.notify(this._value) : f(this._value);
+      f.notify ? f.notify(this._value) : f(this._value);
     },
 
     unsubscribe(f){

@@ -2143,8 +2143,7 @@ nice.Type({
         z.notifyExisting(f);
     },
     notifyExisting(f){
-      if(this._value !== undefined)
-        f.notify ? f.notify(this._value) : f(this._value);
+      f.notify ? f.notify(this._value) : f(this._value);
     },
     unsubscribe(f){
       this.subscribers.delete(f);
@@ -2171,9 +2170,6 @@ nice.Type({
   },
   initBy: (z, v) => {
     z._version = 0;
-    if(v === undefined){
-      return z;
-    }
     z.setState(v);
   },
   proto: {
@@ -2190,12 +2186,6 @@ nice.Type({
             ? f.notify(v)
             : f(v);
         }
-    },
-    uniq(){
-      this.setState = function(v){
-        v === this._value || this.__proto__.setState.call(this, v);
-      };
-      return this;
     },
     deepUniq(){
       this.setState = function(v){
@@ -2219,9 +2209,10 @@ Test((Box, Spy) => {
   b(1);
   b(1);
   b(2);
+  expect(spy).calledWith(undefined);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  
+  expect(spy).calledTimes(3);
 });
 Test((Box) => {
   const b = Box();
@@ -2244,16 +2235,6 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(2);
-});
-Test((Box, Spy, uniq) => {
-  const b = Box().uniq();
-  const spy = Spy();
-  b.subscribe(spy);
-  b(1);
-  b(1);
-  b(2);
-  expect(spy).calledWith(1);
-  expect(spy).calledWith(2);
 });
 Test((Box, Spy, deepUniq) => {
   const b = Box({qwe:1, asd:2}).deepUniq();
@@ -2993,9 +2974,12 @@ nice.Type({
   name: 'RBox',
   extends: 'Box',
   initBy: (z, ...inputs) => {
-    
     z._version = 0;
     let by = inputs.pop();
+    inputs.forEach((v, k) => {
+      if(!v._isBox)
+        throw new Error(`Argument ${k} is not a Box`);
+    });
     if(Array.isArray(by)){
       z._left = by[1];
       by = by[0];
@@ -3043,7 +3027,7 @@ nice.Type({
     attemptCompute(){
       let v;
       try {
-        if(this._inputValues.some(i => i === undefined))
+        if('_left' in this && this._inputValues.some(i => i === undefined))
           v = typeof this._left === 'function' ? this._left() : this._left;
         else
           v = this._by(...this._inputValues);
@@ -3060,6 +3044,7 @@ nice.Type({
           this._inputValues[c.position] = v;
           c.version = c.source._version;
           needCompute = true;
+          break;
         }
       }
       needCompute && this.attemptCompute();
@@ -3204,6 +3189,22 @@ Test('RBox cold compute', (Box, RBox) => {
   var a = Box(1);
   var b = RBox(a, x => x + 3);
   expect(b()).is(4);
+});
+Test('Array as subscriber', (Box, RBox, Spy) => {
+  var a = Box();
+  const spy = Spy();
+  var b = RBox(a, [x => x + 3, 0]);
+  b.subscribe(spy);
+  expect(b()).is(0);
+  expect(spy).calledWith(0);
+  a(1);
+  expect(b()).is(4);
+  expect(spy).calledWith(4);
+});
+Test((RBox, Box) => {
+  const b = Box();
+  const rb = RBox(b, v => '12');
+  expect(rb()).is('12');
 });
 })();
 (function(){"use strict";nice.Type({
@@ -3383,325 +3384,6 @@ Test((BoxIndex, Spy) => {
   b.delete('a', 3);
   expect(del).calledTimes(3);
   expect(add).calledTimes(3);
-});
-})();
-(function(){"use strict";nice.Type({
-  name: 'BoxSortedMap',
-  extends: 'DataSource',
-  initBy (z, vs, f) {
-    expect(vs).isBoxMap();
-    const map = vs();
-    if(f === 'value') {
-      f = (k1, k2) => map[k1] > map[k2] ? 1 : -1;
-    } else if ('key') {
-      f = (k1, k2) => k1 > k2 ? 1 : -1;
-    } else {
-      f = (k1, k2) => f(k1, map[k1]) > f(k2, map[k2]) ? 1 : -1;
-    };
-    z.vs = vs;
-    z.f = f;
-  },
-  customCall: (z, ...as) => {
-    throw `Use access methods`;
-  },
-  proto: {
-    coldCompute(){
-      this._value = Object.keys(this.vs()).sort(this.f);
-    },
-    insertId(id) {
-      this.insert(sortedPosition(this._value, id, this.sortFunction), id);
-    },
-    deleteId(id) {
-      
-      this.removeValue(id);
-    },
-    considerChange(id, newValue, oldValue) {
-      
-      const oldPosition = this._value.indexOf(id);
-      if(oldPosition === -1 && (newValue === undefined || newValue !== null))
-        return;
-      const position = sortedPosition(this._value, newValue, this.sortValueFunction);
-      if(oldPosition === position)
-        return;
-      if(oldPosition > position) {
-        this.remove(oldPosition);
-        this.insert(position, id);
-      } else {
-        this.insert(position, id);
-        oldPosition >= 0 && this.remove(oldPosition);
-      }
-    },
-    subscribe(f){
-      _each(this._value, (index, position) => f())
-    }
-  }
-});
-Test((BoxSortedMap, BoxMap, Spy) => {
-  const map = BoxMap({q:1,a:2,b:3});
-  const sMap = BoxSortedMap(map, 'value');
-  const spy = Spy();
-  sMap.subscribe(spy);
-  expect([...sMap._value]).deepEqual([1,2,3]);
-});
-})();
-(function(){"use strict";
-nice.Type({
-  name: 'Model',
-  extends: 'DataSource',
-  initBy: (z, data = {}) => {
-    z._data = data;
-    z._meta = { listeners: {}, children: {} };
-  },
-  proto: {
-    set (...path) {
-      if(path.length === 1){
-        return this.setAll(path[0]);
-      }
-      const value = path.pop();
-      if(value === undefined)
-        throw `value is undefined`;
-      const lastKey = path.pop();
-      if(lastKey === undefined)
-        throw `path contains undefined`;
-      const [target, meta] = this.assertPath(...path);
-      if(value === null) {
-        delete target[lastKey];
-      } else {
-        target[lastKey] = value;
-      }
-      if(meta !== undefined) {
-        this.notifyDown(meta, lastKey, value);
-        this.addKeysDown(meta, lastKey, value);
-      }
-      this.notifyTop(path);
-    },
-    assertPath (...path) {
-      let target = this._data;
-      let meta = this._meta;
-      for(const key of path) {
-        if(key === undefined)
-          throw `path contains undefined`;
-        if(!(key in target)) {
-          target[key] = {};
-          this.addKey(meta, key);
-        }
-        meta = meta?.children?.[key];
-        target = target[key];
-      }
-      return [target, meta];
-    },
-    assign (...path) {
-      const value = path.pop();
-      if(value === undefined)
-        throw `value is undefined`;
-      const lastKey = path.pop();
-      if(lastKey === undefined)
-        throw `path contains undefined`;
-      const [target, meta] = this.assertPath(...path);
-      if(!target[lastKey] || typeof target[lastKey] !== 'object'){
-        this.set(...path, lastKey, value);
-      } else {
-        _each(value, (v, k) => {
-          this.assign(...path, lastKey, k, v);
-        });
-      }
-    },
-    setAll (value) {
-      expect(value).isObject();
-      const oldValue = this._data;
-      this._data = value;
-      if(this._meta.keyListener !== undefined){
-        _each(value, (v, k) => {
-          if(typeof oldValue !== 'object' || !(k in oldValue))
-            this._meta.keyListener.set(k, 1);
-        });
-        if(typeof oldValue === 'object')
-          _each(oldValue, (v, k) => {
-            if(typeof value !== 'object' || !(k in value))
-              this._meta.keyListener.delete(k);
-          });
-      };
-      this.notifyAllDown(value);
-    },
-    addKey (meta, key) {
-      meta !== undefined && meta.keyListener !== undefined
-          && meta.keyListener.set(key, 1);
-    },
-    addKeysDown (meta, key, value) {
-      if(meta.keyListener !== undefined){
-        meta.keyListener.set(key, 1);
-      }
-      const childMeta = meta?.children?.[key];
-      if(meta === undefined && typeof value !== 'object')
-        return;
-    },
-    notifyTop (path) {
-      let meta = this._meta;
-      let value = this._data;
-      for(const key of path) {
-        if(key in meta.listeners)
-          meta.listeners[key](value[key]);
-        if(!(key in meta.children)) {
-          return;
-        }
-        meta = meta.children[key];
-        value = value[key];
-      }
-    },
-    notifyDown (meta, key, value) {
-      if(meta.listeners[key])
-        meta.listeners[key](value);
-      if(typeof value !== 'object')
-        return;
-      const childMeta = meta.children[key];
-      if(childMeta !== undefined) {
-        for(const k in value) {
-          if(k in childMeta.listeners)
-            this.notifyDown(childMeta, k, value[k]);
-        }
-      }
-    },
-    notifyAllDown (value) {
-      const meta = this._meta
-      if(meta !== undefined) {
-        for(const k in value) {
-          if(k in meta.listeners)
-            this.notifyDown(meta, k, value[k]);
-        }
-      }
-    },
-    get (...path) {
-      let result = this._data;
-      for(const key of path) {
-        if(!(key in result)) {
-          return undefined;
-        }
-        result = result[key];
-      }
-      return result;
-    },
-    getMeta (...path) {
-      let meta = this._meta;
-      for(const key of path) {
-        if(!(key in meta.children)) {
-          return;
-        }
-        meta = meta.children[key];
-      }
-      return meta;
-    },
-    assertMeta (...path) {
-      let meta = this._meta;
-      for(const key of path) {
-        if(!(key in meta.children)) {
-          meta.children[key] = { listeners: {}, keyListener: undefined, children: {} };
-        }
-        meta = meta.children[key];
-      }
-      return meta;
-    },
-    getBox (...path) {
-      const key = path.pop();
-      const { listeners } = this.assertMeta(...path);
-      if(!(key in listeners)) {
-        listeners[key] = nice.Box(this.get(...path, key));
-      }
-      return listeners[key];
-    },
-    keys(...path) {
-      return Object.keys(this.get(...path));
-    },
-    keyBox(...path) {
-      const meta = this.assertMeta(...path);
-      if(!meta.keyBox){
-        if(!meta.keyListener){
-          meta.keyListener = nice.BoxMap();
-          const data = this.get(...path);
-          if(typeof data === 'object')
-            for(let i in data)
-              meta.keyListener.set(i, true);
-        }
-        meta.keyBox = meta.keyListener.sort()
-      }
-      return meta.keyBox;
-    }
-  }
-});
-Test(Model => {
-  const m = Model();
-  m.set('tasks', 1, {text: 'Go'});
-  expect(m.get('tasks', 1, 'text')).is('Go');
-});
-Test(Model => {
-  const m = Model();
-  m.set('tasks', 1, {text: 'Go'});
-  m.assign('tasks', 1, {status: 'Done'});
-  expect(m.get('tasks', 1, 'text')).is('Go');
-  expect(m.get('tasks', 1, 'status')).is('Done');
-});
-Test(Model => {
-  const m = Model();
-  m.set('tasks', 1, {text: 'Go'});
-  m.set('tasks', 2, {text: 'Run'});
-  expect(m.keys('tasks')).deepEqual(['1','2']);
-  m.set('tasks', 1, null);
-  expect(m.keys('tasks')).deepEqual(['2']);
-});
-Test((Model, getBox) => {
-  const m = Model();
-  const b = m.getBox('tasks', 1, 'text');
-  expect(b()).is(undefined);
-  m.set('tasks', 1, 'text', 'Go');
-  expect(b()).is('Go');
-  m.set('tasks', 1, {text: 'Run'});
-  expect(b()).is('Run');
-});
-Test('Notify up', (Model, getBox, Spy) => {
-  const m = Model();
-  let res;
-  const spy = Spy(v => res = v);
-  const b = m.getBox('tasks', 1);
-  b.subscribe(spy);
-  expect(b()).is(undefined);
-  m.set('tasks', 1, 'text', 'Go');
-  expect(spy).calledTwice();
-  expect(res).deepEqual({text:'Go'});
-});
-Test((Model, keyBox, Spy) => {
-  const m = Model();
-  m.set('tasks', 7, 'text', 'Wash');
-  const spy = Spy();
-  const keys = m.keyBox('tasks');
-  keys.subscribe(spy);
-  expect(spy).calledWith('7', 0);
-  expect(spy).calledOnce();
-  m.set('tasks', 11, 'text', 'Go');
-  expect(spy).calledTwice();
-  expect(spy).calledWith('11', 0);
-  m.set('tasks', 11, 'text', 'Go');
-  expect(spy).calledTwice();
-});
-Test((Model, Spy) => {
-  const m = Model();
-  const keys = m.keyBox();
-  const spy = Spy();
-  keys.subscribe(spy);
-  m.set({qwe:1});
-  expect(m._data).deepEqual({qwe:1});
-  expect(spy).calledWith('qwe');
-});
-Test((Model, Spy) => {
-  const m = Model();
-  m.set('tasks', 7, 'text', 'Wash');
-  let res;
-  const spy = Spy(v => res = v);
-  const box = m.getBox('tasks');
-  box.subscribe(spy);
-  expect(res).deepEqual({7:{text:'Wash'}});
-  expect(spy).calledOnce();
-  m.assign('tasks', 7, 'status', 'Done');
-  expect(res).deepEqual({7:{text:'Wash',status:'Done'}});
-  expect(spy).calledTwice();
 });
 })();
 (function(){"use strict";const { _eachEach, _pick, once, clone, memoize, sortedPosition } = nice;
@@ -6180,11 +5862,6 @@ IS_BROWSER && Test((Div) => {
     const div = Div('1').Div('2').Div('3');
     const node = div.show(testPane);
     expect(node.textContent).is('123');
-  });
-  Test((Div, RBox, Box) => {
-    const b = Box();
-    const rb = RBox(b, v => '12');
-    expect(rb()).is('12');
   });
   Test((Div, prop) => {
     expect(nice.Div().properties('qwe', 'asd').show().qwe).is('asd');

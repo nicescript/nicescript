@@ -309,7 +309,6 @@ Test((BoxArray, Spy, map) => {
 });
 
 
-//TODO:
 Test((BoxArray, Spy, filter) => {
   const a = BoxArray([1,2]);
   const b = a.filter(x => x % 2);

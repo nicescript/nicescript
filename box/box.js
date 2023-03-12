@@ -16,9 +16,9 @@ nice.Type({
 
   initBy: (z, v) => {
     z._version = 0;
-    if(v === undefined){
-      return z;
-    }
+//    if(v === undefined){
+//      return z;
+//    }
     z.setState(v);
   },
 
@@ -38,13 +38,6 @@ nice.Type({
             : f(v);
 //            : Function.prototype.call.call(f, this, v);
         }
-    },
-
-    uniq(){
-      this.setState = function(v){
-        v === this._value || this.__proto__.setState.call(this, v);
-      };
-      return this;
     },
 
     deepUniq(){
@@ -75,10 +68,10 @@ Test((Box, Spy) => {
   b(1);
   b(2);
 
-//  expect(spy).calledWith(undefined);
+  expect(spy).calledWith(undefined);
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
-  //TODO: expect(spy).calledTimes(4);
+  expect(spy).calledTimes(3);
 });
 
 
@@ -110,21 +103,6 @@ Test((Box, Spy) => {
   expect(spy).calledWith(1);
   expect(spy).calledWith(2);
   expect(spy).calledTimes(2);
-});
-
-
-Test((Box, Spy, uniq) => {
-  const b = Box().uniq();
-  const spy = Spy();
-  b.subscribe(spy);
-
-  b(1);
-  b(1);
-  b(2);
-
-  expect(spy).calledWith(1);
-  expect(spy).calledWith(2);
-//TODO:  expect(spy).calledTimes(3);
 });
 
 
