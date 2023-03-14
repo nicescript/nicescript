@@ -29,13 +29,15 @@ const proto = {
     const row = clone(o);
 		this.rows.push(row);
 		this.writeLog(id, row);
-    row._id = id;
-    this.ids && this.ids.add(id);
-		this.notifyIndexes(id, row);
-		if(id in this.rowBoxes)
-			this.rowBoxes[id](row);
+    this._newRow(id, row);
 		return id;
 	},
+
+  _newRow(id, row){
+    row._id = id;
+    this.ids && this.ids.add(id);
+    this._updateMeta(id, row);
+  },
 
   find(o) {
     let res = null;
@@ -103,7 +105,10 @@ const proto = {
     delete this.rows[id];
 
     this.ids && this.ids.delete(id);
-    _each(data, (v, k) => this.notifyIndexOneValue(id, k, undefined, v));
+
+    const o = {};
+    _each(data, (v, k) => o[k] = undefined);
+    this._updateMeta(id, o, data);
 
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](undefined);
@@ -124,15 +129,54 @@ const proto = {
     return fs;
   },
 
-	notifyIndexes(id, newValues, oldValues) {
-		_each(oldValues, (v, field) => {
-      this.notifyIndexOneValue(id, field, newValues[field], v);
+  _changeOptions(filter, newData, oldData){
+    _each(filter.options.cache, (ops, field) => {
+      if(field in newData && newData[field] !== oldData?.[field]){
+        ops.remove(oldData?.[field]);
+        ops.add(newData[field]);
+      }
     });
-		_each(newValues, (v, field) => {
-      !(oldValues && field in oldValues)
-          && this.notifyIndexOneValue(id, field, v);
+  },
+
+  _updateMeta(id, newData, oldData){
+    const rowData = this.rows[id];
+    this.ids && this._changeOptions(this.ids, newData, oldData);
+
+    _each(newData, (v, k) => {
+      const oldV = oldData?.[k];
+      this.notifyIndexOneValue(id, k, v, oldV);
+
+      const outFilters = this.matchingFilters(k, oldV);
+      const inFilters = this.matchingFilters(k, v);
+
+      outFilters.forEach(f => {
+        if(inFilters.includes(f)) {//still match filter
+          this._changeOptions(f, newData, oldData);
+        } else {
+          f.delete(id);
+          _each(f.options.cache, (ops, field) => ops.remove(oldData?.[field]));
+        }
+      });
+      inFilters.forEach(f => {
+        if(!outFilters.includes(f)){
+          f.add(id);
+          _each(f.options.cache, (ops, field) => ops.add(rowData[field]));
+        }
+      });
+
     });
-	},
+
+    //fields that not changed by update but their options might
+    _each(rowData, (v, k) => {
+      if(k in newData) return;
+      const ff = this.matchingFilters(k, v);
+      ff.forEach(f => this._changeOptions(f, newData, oldData));
+    });
+
+    this.notifyAllSorts(id, newData, oldData);
+    if(id in this.rowBoxes)
+			this.rowBoxes[id](rowData);
+  },
 
 	notifyIndexOneValue(id, field, newValue, oldValue) {
 		const ff = this.filters;
@@ -142,22 +186,11 @@ const proto = {
 		const index = this.assertIndex(field);
     oldValue !== undefined && index.delete(oldValue, id);
     newValue !== undefined && index.add(newValue, id);
-
-    const outList = this.matchingFilters(field, oldValue);
-    const inList = this.matchingFilters(field, newValue);
-
-    outList.forEach(f => inList.includes(f) || f.delete(id));
-    inList.forEach(f => outList.includes(f) || f.add(id));
   },
 
 	notifyAllSorts(id, newValues, oldValues) {
-//		_each(oldValues, (v, field) => {
-//      this.notifySorts(id, field, newValues[field], v);
-//    });
 		_each(newValues, (v, field) => {
-//      !(oldValues && field in oldValues)
-//          &&
-          this.notifySorts(id, field, v, oldValues[field]);
+      this.notifySorts(id, field, v, oldValues?.[field]);
     });
 	},
 
@@ -165,29 +198,11 @@ const proto = {
     _each(this.sortResults[field], s => s.considerChange(id, newValue, oldValue));
   },
 
-	notifyAllOptions(id, newValues, oldValues) {
-//		_each(oldValues, (v, field) => {
-//      (field in newValues) &&
-//        this.notifyOptions(id, field, newValues[field], v);
-//    });
-		_each(newValues, (v, field) => {
-//      !(oldValues && field in oldValues)
-//          &&
-          this.notifyOptions(id, field, v, oldValues[field]);
-    });
-	},
-
-  notifyOptions(id, field, newValue, oldValue){
-    _each(this.options[field], s => s.considerChange(id, newValue, oldValue));
-  },
-
 	get(id) {
 		return this.rows[id];
 	},
 
 	change(id, o){
-    let old;
-
     if(!(id in this.rows))
       throw 'Row ' + id + " not found";
 
@@ -199,22 +214,8 @@ const proto = {
     const oldRow = this.rows[id];
     const newRow = this.rows[id] = {};
     _each(oldRow, (v, k) => k in o || (newRow[k] = v));
-    _each(o, (v, k) => {
-      v === undefined || (newRow[k] = v);
-    });
-    _each(o, (v, k) => {
-      this.notifyIndexOneValue(id, k, v, oldRow[k]);
-    });
-//    this.rows[id] = newRow;
-//    old = _pick(row, Object.keys(o));
-//    _each(o, (v, k) => v === undefined ? delete row[k] : row[k] = v);
-//    _each(o, (v, k) => this.notifyIndexOneValue(id, k, v, oldRow[k]));
-
-    this.notifyAllOptions(id, o, oldRow);
-    this.notifyAllSorts(id, o, oldRow);
-
-		if(id in this.rowBoxes)
-			this.rowBoxes[id](newRow);
+    _each(o, (v, k) => v === undefined || (newRow[k] = v));
+    this._updateMeta(id, o, oldRow);
 	},
 
 	writeLog(id, o) {
@@ -287,11 +288,7 @@ const proto = {
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
       const oldData = rows[id];
-			if(create){
-				rows[id] = { _id: id };
-        z.ids && z.ids.add(id);
-        z.notifyIndexOneValue(id, '_id', id);
-      }
+      const newData = {};
 			const template = z.templates[templateId];
 
       let i = 2;
@@ -303,14 +300,19 @@ const proto = {
         } else {
           [field, value] = z.valuesIndex[f];
         }
-        const oldValue = create ? undefined : oldData[field];
-        rows[id][field] = value;
-				z.notifyIndexOneValue(id, field, value, oldValue);
-        create || z.notifyOptions(id, field, value, oldValue);
-        create || z.notifySorts(id, field, value, oldValue);
+        newData[field] = value;
+      };
+
+      if(create) {
+        rows[id] = newData;
+        z._newRow(id, newData);
+        z.lastId = id;
+      } else {
+        const newRow = rows[id] = {};
+        _each(oldData, (v, k) => k in newData || (newRow[k] = v));
+        _each(newData, (v, k) => v === undefined || (newRow[k] = v));
       }
-			if(id in z.rowBoxes)
-				z.rowBoxes[id](rows[id]);
+      z._updateMeta(id, newData, oldData);
 		} else {
       throw 'Incorect row id';
     }
@@ -336,14 +338,14 @@ const proto = {
   },
 
   readOnly() {
-    ['add', 'change'].forEach(a => this[a] = () => { throw "This model is readonly"; });
+    ['add', 'change', 'delete'].forEach(a => this[a] = () => { throw "This model is readonly"; });
   },
 
   assertIds(){
     if(!this.ids){
       this.ids = nice.BoxSet();
       this.rows.forEach((_, id) => this.ids.add(id));
-      this.ids.options = memoize(field => createOptions(this, this.ids, field));
+      this.ids.options = memoize(field => nice.FilterOptions(this, this.ids, field));
     }
     return this.ids;
   }
@@ -480,10 +482,7 @@ nice.Type({
     z.filter = filter;
     model.addOptions(field, z);
     //TODO: use indexes in case of empty filter
-    filter.subscribe((id, oldId) =>
-      id !== null
-        ? z.add(model.get(id)?.[field])
-        : z.remove(model.get(oldId)?.[field]));
+    filter().forEach(id => z.add(model.rows[id]?.[field]));
   },
   proto: {
     coldCompute(){
@@ -522,11 +521,11 @@ nice.Type({
 
 
 
-function createOptions(model, filter, field){
-  const res = nice.FilterOptions(model, filter, field);
-
-  return res;
-};
+//function createOptions(model, filter, field){
+//  const res = nice.FilterOptions(model, filter, field);
+//
+//  return res;
+//};
 
 
 nice.Type({
@@ -537,7 +536,7 @@ nice.Type({
     z.model = model;
     z.sortAsc = memoize(field => nice.SortResult(z, field, 1));
     z.sortDesc = memoize(field => nice.SortResult(z, field, -1));
-    z.options = memoize(field => createOptions(model, z, field));
+    z.options = memoize(field => nice.FilterOptions(model, z, field));
   }
 });
 

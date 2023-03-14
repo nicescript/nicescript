@@ -99,6 +99,7 @@ Test((Spy) => {
 
   Test('change age', () => {
     m.change(janeId, {age:46});
+    expect(optionsHome()).deepEqual({"Home":1,"Home2":2});
     expect(optionsHome2age()).deepEqual({46:1,45:1});
     expect(sortHome2()).deepEqual([jimId,janeId]);
     expect(sortHome2desc()).deepEqual([janeId,jimId]);
@@ -121,14 +122,19 @@ Test((Spy) => {
 
     expect(() => m2.add({q:1})).throws();
 
-    expect(m.filter().options("address")).deepEqual({"Home":1,"Home2":2});
     expect(m2.filter().options("address")()).deepEqual({"Home":1,"Home2":2});
 
 		const asc = m2.filter({ address: "Home2" }).sort('age');
     expect(asc()).deepEqual([jimId,janeId]);
 
+    expect([...qHome()]).deepEqual([joeId]);
     m.change(jimId, {address:'Home'});
     expect(asc()).deepEqual([janeId]);
+    expect([...qHome()]).deepEqual([joeId, jimId]);
+
+    m.change(jimId, {address:'Home2'});
+    expect([...qHome()]).deepEqual([joeId]);
+    expect(asc()).deepEqual([jimId,janeId]);
 	});
 
 
@@ -147,15 +153,15 @@ Test((Spy) => {
 //    expect([...filter2()]).deepEqual([...qHome2()]);
 //	});
 
-
+//TODO: aseert tested options a) when filter change b) when options field change
   Test('delete', () => {
     m.delete(joeId);
     expect(m.get(joeId)).is(undefined);
     expect(joeSpy).calledWith(undefined);
-    expect([...qHome()]).deepEqual([jimId]);
-    expect([...qHome2()]).deepEqual([janeId]);
-    expect(sortHome2()).deepEqual([janeId]);
-    expect(sortHome2desc()).deepEqual([janeId]);
+    expect([...qHome()]).deepEqual([]);
+    expect([...qHome2()].sort()).deepEqual([janeId, jimId]);
+    expect(sortHome2()).deepEqual([jimId, janeId]);
+    expect(sortHome2desc()).deepEqual([janeId, jimId]);
 
 
     m.delete(jimId);
@@ -164,7 +170,9 @@ Test((Spy) => {
     expect(sortHome2()).deepEqual([janeId]);
     expect(sortHome2desc()).deepEqual([janeId]);
     expect(optionsHome2age()).deepEqual({46:1});
+//    expect(optionsHome()).deepEqual({46:1});
 	});
+
 
 
   m.compressField('occupation');
