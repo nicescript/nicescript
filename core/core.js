@@ -47,8 +47,6 @@ defAll = nice.defineAll;
 
 defAll(nice, {
   TYPE_KEY: '_nt_',
-  SOURCE_ERROR: 'Source error',
-  LOCKED_ERROR: 'Item is closed for modification',
   curry: (f, arity = f.length) =>(...a) => a.length >= arity
       ? f(...a)
       : nice.curry((...a2) => f(...a, ...a2), arity - a.length),

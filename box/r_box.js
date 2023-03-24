@@ -43,6 +43,14 @@ nice.Type({
     let by = inputs.pop();
 
     inputs.forEach((v, k) => {
+      if(v instanceof Promise){
+        const b = Box();
+        v.then(b).catch(e => b(new Error(e)));
+        inputs[k] = b;
+      }
+    });
+
+    inputs.forEach((v, k) => {
       if(!v._isBox)
         throw new Error(`Argument ${k} is not a Box`);
     });

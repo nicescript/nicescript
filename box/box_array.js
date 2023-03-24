@@ -24,6 +24,10 @@ nice.Type({
       return this._value[k];
     },
 
+    last () {
+      return this._value[this._value.length - 1];
+    },
+
     set (k, v) {
       if(v === null)
         throw `Can't be set to null`;

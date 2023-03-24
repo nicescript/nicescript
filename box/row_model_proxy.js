@@ -6,6 +6,16 @@ nice.Type({
   initBy(z, subscribe){
     z.subscribe = subscribe;
     z.filters = {};
+
+    let error;
+    z.errorBox = () => {
+      if(!error){
+        error = Box();
+        z.subscribe([{action: 'errorBox', args: []}], r => error(r));
+      }
+      return error;
+    };
+
     z.filter = memoize(o => nice.RowModelFilterProxy(o, z), JSON.stringify);
     z.rowBox = memoize(id => {
       const res = Box();

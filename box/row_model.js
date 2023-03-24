@@ -1,4 +1,4 @@
-const { _eachEach, _pick, once, clone, memoize, sortedPosition } = nice;
+const { _eachEach, _pick, once, clone, memoize, sortedPosition, Box } = nice;
 
 const TEMPLATE = -1;
 const DELETE = -2;
@@ -39,7 +39,7 @@ const proto = {
     this._updateMeta(id, row);
   },
 
-  find(o) {
+  _find(o) {
     let res = null;
 
     for(let k in o) {
@@ -73,7 +73,19 @@ const proto = {
         }
       }
     }
+    return res;// instanceof Set ? firstOfSet(res) : res;
+  },
+
+  find(o){
+    const res = this._find(o);
     return res instanceof Set ? firstOfSet(res) : res;
+  },
+
+  findAll(o){
+    const res = this._find(o);
+    if(res === null)
+      return new Set();
+    return res instanceof Set ? res : new Set([res]);
   },
 
   assert(o) {
@@ -260,7 +272,7 @@ const proto = {
 
 	rowBox(id) {
 		if(!(id in this.rowBoxes)){
-			this.rowBoxes[id] = nice.Box(this.rows[id]);
+			this.rowBoxes[id] = Box(this.rows[id]);
 		}
 		return	this.rowBoxes[id];
 	},
@@ -288,20 +300,7 @@ const proto = {
 		} else if(templateId >= 0){
       const create = id in rows ? false : true;
       const oldData = rows[id];
-      const newData = {};
-			const template = z.templates[templateId];
-
-      let i = 2;
-      for(const f of template){
-        let field, value;
-        if(typeof f === 'string'){
-          field = f;
-          value = row[i++];
-        } else {
-          [field, value] = z.valuesIndex[f];
-        }
-        newData[field] = value;
-      };
+      const newData = z._decodeTemplate(row);
 
       if(create) {
         rows[id] = newData;
@@ -320,6 +319,24 @@ const proto = {
     this.logSubscriptions.forEach(f => f(row, this.version));
     z.version++;
 	},
+
+  _decodeTemplate(row){
+    const templateId = row[0];
+    const template = this.templates[templateId];
+    const data = {};
+    let i = 2;
+    for(const f of template){
+      let field, value;
+      if(typeof f === 'string'){
+        field = f;
+        value = row[i++];
+      } else {
+        [field, value] = this.valuesIndex[f];
+      }
+      data[field] = value;
+    };
+    return data;
+  },
 
 	subscribeLog(f) {
 		this.logSubscriptions.add(f);
@@ -348,6 +365,10 @@ const proto = {
       this.ids.options = memoize(field => nice.FilterOptions(this, this.ids, field));
     }
     return this.ids;
+  },
+
+  errorBox(){
+    return this.error;
   }
 };
 
@@ -371,6 +392,7 @@ function RowModel(){
 		logSubscriptions: new Set(),
     filterCounter: 0,
     compositQueries: {},
+    error: Box(),
 	});
 
   function extractOp(o, field) {
@@ -384,8 +406,9 @@ function RowModel(){
 
   res.history = memoize(id => {
     const check = r => r[1] === id && r[0] > 0;
-    const h = BoxArray(res.log.filter(check));
-    res.subscribeLog(r => check(r) && h.push(r));
+    const map = r => res._decodeTemplate(r);
+    const h = BoxArray(res.log.filter(check).map(map));
+    res.subscribeLog(r => check(r) && h.push(map(r)));
     return h;
   });
 
@@ -593,7 +616,9 @@ nice.Type({
     },
 
     deleteId(id) {
-      //TODO: replace with binary search
+      //TODO: replace with binary search (need access to old value for that)
+//      const i = sortedPosition(this._value, id, this.sortFunction);
+//      this.remove(i);
       this.removeValue(id);
     },
 
