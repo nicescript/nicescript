@@ -3400,6 +3400,21 @@ const DELETE = -2;
 const COMPRESS = -3;
 const VALUE = -4;
 const proto = {
+  startTransaction(){
+    if(this.transaction)
+      throw 'Already in transaction';
+    this.transaction = { rows: {} };
+  },
+  endTransaction(){
+    if(!this.transaction)
+      throw 'No transaction to end';
+    const tr = this.transaction;
+    delete this.transaction;
+    _each(tr.rows, (vs, id) => {
+      const newVs = nice._pick(this.rows[id], Object.keys(vs));
+      this._updateMeta(id, newVs, vs);
+    });
+  },
 	add(o) {
 		checkObject(o);
 		const id = this.rows.length;
@@ -3485,6 +3500,7 @@ const proto = {
     const o = {};
     _each(data, (v, k) => o[k] = undefined);
     this._updateMeta(id, o, data);
+    
 		if(id in this.rowBoxes)
 			this.rowBoxes[id](undefined);
 	},
@@ -3510,6 +3526,16 @@ const proto = {
     });
   },
   _updateMeta(id, newData, oldData){
+    const tr = this.transaction;
+    if(tr){
+      if(!(id in tr.rows)){
+        tr.rows[id] = tr.rows[id] || {};
+        _each(newData, (v, k) => {
+          tr.rows[id][k] = oldData?.[k];
+        });
+      }
+      return;
+    }
     const rowData = this.rows[id];
     this.ids && this._changeOptions(this.ids, newData, oldData);
     _each(newData, (v, k) => {
@@ -5258,11 +5284,19 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .object('eventHandlers')
   .object('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
-    if(name === 'domNode' && IS_BROWSER){
-      if(!e.id())
-        throw `Give element an id to use domNode event.`;
-      const el = document.getElementById(e.id());
-      el && f(el);
+    if(IS_BROWSER){
+      
+      if(name === 'domNode'){
+        if(!e.id())
+          throw `Give element an id to use domNode event.`;
+        const el = document.getElementById(e.id());
+        el && f(el);
+      }
+      if(name === 'detach'){
+        '__detachListeners' in e.properties()
+          ? e.properties('__detachListeners').push(f)
+          : e.properties('__detachListeners', [f]);
+      }
     }
     const hs = e.eventHandlers();
     hs[name] ? hs[name].push(f) : e.eventHandlers(name, [f]);
@@ -5510,7 +5544,7 @@ function createDom(e){
       ? attachBoxArrayChildren(res, e._children)
       : e._children.forEach(c => attachNode(c, res));
   _each(value.eventHandlers, (ls, type) => {
-    if(type === 'domNode')
+    if(type === 'domNode' || type === 'detach')
       return ls.forEach(f => f(res));
     ls.forEach(f => res.addEventListener(type, f, true));
   });
@@ -5572,12 +5606,15 @@ function attachNode(child, parent, position){
   }
 }
 function detachNode(dom, parentDom){
+  
   const bl = dom.__boxListener;
   bl !== undefined && bl.source.unsubscribe(bl);
   const cl = dom.__childrenListener;
   cl !== undefined && cl.source.unsubscribe(cl);
   emptyNode(dom);
   parentDom !== undefined && parentDom.removeChild(dom);
+  if(dom.__detachListeners)
+    dom.__detachListeners.forEach(l => l(dom));
 }
 function emptyNode(node){
   const children = node.childNodes;

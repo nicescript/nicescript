@@ -9,11 +9,19 @@ nice.Type('Html', (z, tag) => tag && z.tag(tag))
   .object('eventHandlers')
   .object('cssSelectors')
   .Action.about('Adds event handler to an element.')(function on(e, name, f){
-    if(name === 'domNode' && IS_BROWSER){
-      if(!e.id())
-        throw `Give element an id to use domNode event.`;
-      const el = document.getElementById(e.id());
-      el && f(el);
+    if(IS_BROWSER){
+      //TODO: check if adding those to eventHandlers is necessary
+      if(name === 'domNode'){
+        if(!e.id())
+          throw `Give element an id to use domNode event.`;
+        const el = document.getElementById(e.id());
+        el && f(el);
+      }
+      if(name === 'detach'){
+        '__detachListeners' in e.properties()
+          ? e.properties('__detachListeners').push(f)
+          : e.properties('__detachListeners', [f]);
+      }
     }
     const hs = e.eventHandlers();
     hs[name] ? hs[name].push(f) : e.eventHandlers(name, [f]);
@@ -334,7 +342,7 @@ function createDom(e){
       : e._children.forEach(c => attachNode(c, res));
 
   _each(value.eventHandlers, (ls, type) => {
-    if(type === 'domNode')
+    if(type === 'domNode' || type === 'detach')
       return ls.forEach(f => f(res));
 
     ls.forEach(f => res.addEventListener(type, f, true));
@@ -415,6 +423,7 @@ function attachNode(child, parent, position){
 
 
 function detachNode(dom, parentDom){
+  //optimization: consider using Mutation Observer
   const bl = dom.__boxListener;
   bl !== undefined && bl.source.unsubscribe(bl);
 
@@ -424,6 +433,9 @@ function detachNode(dom, parentDom){
   emptyNode(dom);
 
   parentDom !== undefined && parentDom.removeChild(dom);
+
+  if(dom.__detachListeners)
+    dom.__detachListeners.forEach(l => l(dom));
 }
 
 

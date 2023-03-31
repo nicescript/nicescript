@@ -21,6 +21,22 @@ const VALUE = -4;
 
 const proto = {
 //TODO: ?? dont store itemId|templateId in log
+  startTransaction(){
+    if(this.transaction)
+      throw 'Already in transaction';
+    this.transaction = { rows: {} };
+  },
+
+  endTransaction(){
+    if(!this.transaction)
+      throw 'No transaction to end';
+    const tr = this.transaction;
+    delete this.transaction;
+    _each(tr.rows, (vs, id) => {
+      const newVs = nice._pick(this.rows[id], Object.keys(vs));
+      this._updateMeta(id, newVs, vs);
+    });
+  },
 
 	add(o) {
 		checkObject(o);
@@ -121,9 +137,6 @@ const proto = {
     const o = {};
     _each(data, (v, k) => o[k] = undefined);
     this._updateMeta(id, o, data);
-
-		if(id in this.rowBoxes)
-			this.rowBoxes[id](undefined);
 	},
 
   assertIndex(field) {
@@ -151,6 +164,16 @@ const proto = {
   },
 
   _updateMeta(id, newData, oldData){
+    const tr = this.transaction;
+    if(tr){
+      if(!(id in tr.rows)){
+        tr.rows[id] = tr.rows[id] || {};
+        _each(newData, (v, k) => {
+          tr.rows[id][k] = oldData?.[k];
+        });
+      }
+      return;
+    }
     const rowData = this.rows[id];
     this.ids && this._changeOptions(this.ids, newData, oldData);
 
@@ -416,7 +439,7 @@ function RowModel(){
 //    filter({adress: 'home', gender: "male" });
 //    filter({adress: 'home', age: { gt: 16 } });
 //    filter([{adress: 'home'}, { age: { gt: 16 } }]);
-//TODO:    filter({ jane }); //full-text
+//TODO:    filter( jane ); //full-text
   res.filter = function(o = {}) {
     const entities = Object.entries(o);
     if(!entities.length)
