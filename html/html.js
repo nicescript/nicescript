@@ -493,15 +493,14 @@ function refreshElement(e, old, domNode){
     _each(newStyle, (v, k) => oldStyle[k] !== v && (domNode.style[k] = v));
 
     const newAtrs = newV.attributes || {}, oldAtrs = oldV.attributes || {};
-
     _each(oldAtrs, (v, k) => (k in newAtrs) || (domNode.removeAttribute(k)));
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
 
     e.needAutoClass === true && assertAutoClass(domNode);
     if(e.needAutoClass || domNode.assertedClass)
-      refreshSelectors(newV.cssSelectors, newV.cssSelectors, domNode);
+      refreshSelectors(newV.cssSelectors, oldV.cssSelectors, domNode);
 
-    const newHandlers = newV.eventHandlers || {}, oldHandlers = newV.eventHandlers || {};
+    const newHandlers = newV.eventHandlers || {}, oldHandlers = oldV.eventHandlers || {};
     nice._eachEach(oldHandlers, (f, i, type) => {
       if(!(newHandlers[type] && newHandlers[type].includes(f)))
         domNode.removeEventListener(type, f, true);

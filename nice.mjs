@@ -2286,7 +2286,7 @@ Test((Box, Spy) => {
       throw 'Use access methods';
     return z._value;
   },
-  initBy: (z, ...a) =>  {
+  initBy: (z, a) =>  {
     z._version = 0;
     z._value = new Set(a);
   },
@@ -2325,6 +2325,32 @@ Test((Box, Spy) => {
     get size() {
       return this._value.size;
     },
+    reduce (acc, f){
+      this.subscribe((v, oldV) => f(acc, v, oldV));
+      return acc;
+    },
+    map (f) {
+      const map = new Map();
+      return this.reduce(nice.BoxSet(), (r, v, oldV) => {
+        if(v === null){
+          r.delete(map.get(oldV));
+          map.delete(oldV);
+        } else {
+          const _v = f(v);
+          r.add(_v);
+          map.set(v, _v);
+        }
+      });
+    },
+    filter (f) {
+      return this.reduce(nice.BoxSet(), (r, v, oldV) => {
+        if(v === null){
+          r.delete(oldV);
+        } else if(f(v)) {
+          f(v) && r.add(v);
+        }
+      });
+    },
     forEach (f) {
       this._value.forEach(f);
     },
@@ -2351,7 +2377,7 @@ Test((Box, Spy) => {
           : av.has(v) && res.add(v);
       });
       return res;
-    },
+    }
   }
 });
 nice.defineCached(nice.BoxSet.proto, function boxArray() {
@@ -2360,11 +2386,12 @@ nice.defineCached(nice.BoxSet.proto, function boxArray() {
   return ba;
 });
 Test((BoxSet, Spy) => {
-  const b = BoxSet();
+  const b = BoxSet([1]);
   const spy = Spy();
-  b.add(1);
   b.subscribe(spy);
   expect(spy).calledWith(1);
+  b.add(1);
+  expect(spy).calledOnce();
   b.add('z');
   expect(spy).calledWith('z');
   expect(spy).calledTwice();
@@ -2380,9 +2407,35 @@ Test((BoxSet, Spy) => {
     expect(spy).calledWith(null, 1);
   });
 });
+Test((BoxSet, Spy, map) => {
+  const b = BoxSet([1,2]);
+  const b2 = b.map(x => x * 2);
+  const spy = Spy();
+  b2.subscribe(spy);
+  expect(spy).calledWith(2);
+  expect(spy).calledWith(4);
+  b.add(3);
+  expect(spy).calledWith(6);
+  expect(b.delete(1)).is(true);
+  expect(spy).calledWith(null, 2);
+});
+Test((BoxSet, Spy, filter) => {
+  const b = BoxSet([1,2,3]);
+  const b2 = b.filter(x => x % 2);
+  const spy = Spy();
+  b2.subscribe(spy);
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(3);
+  b.add(4);
+  b.add(5);
+  expect(spy).calledWith(5);
+  expect(spy).calledTimes(3);
+  expect(b.delete(1)).is(true);
+  expect(spy).calledWith(null, 1);
+});
 Test((BoxSet, intersection, Spy) => {
-  const a = BoxSet(1,2,3);
-  const b = BoxSet(2,4,6);
+  const a = BoxSet([1,2,3]);
+  const b = BoxSet([2,4,6]);
   const c = a.intersection(b);
   expect([...c()]).deepEqual([2]);
   a.add(4);
@@ -2434,18 +2487,18 @@ Test((BoxSet, intersection, Spy) => {
     notifyExisting(f){
       _each(this._value, (v, k) => f(v, k, null));
     },
+    reduce (acc, f){
+      this.subscribe((v,k,old) => f(acc, v, k, old));
+      return acc;
+    },
     map (f) {
-      const res = nice.BoxMap();
-      this.subscribe((v,k) => res.set(k, f(v)));
-      return res;
+      return this.reduce(nice.BoxMap(), (r, v, k) =>
+          v === null ? r.delete(k) : r.set(k, f(v)));
     },
     filter (f) {
-      const res = nice.BoxMap();
-      this.subscribe((v,k) => f(v, k)
-          ? res.set(k, v)
-          : k in res._value && res.set(k, null)
-      );
-      return res;
+      return this.reduce(nice.BoxMap(), (m, v, k) => f(v, k)
+        ? m.set(k, v)
+        : k in m._value && m.set(k, null));
     },
     sortedEntities(){
       const res = nice.BoxArray();
@@ -2487,11 +2540,11 @@ Test((BoxMap, Spy) => {
   b.set('a', 1);
   b.subscribe(spy);
   expect(spy).calledWith(1, 'a');
-  b.set('z', 3);
-  expect(spy).calledWith(3, 'z');
+  b.set('q', 3);
+  expect(spy).calledWith(3, 'q');
   b.set('a', null);
   expect(spy).calledWith(null, 'a');
-  expect(b()).deepEqual({z:3});
+  expect(b()).deepEqual({q:3});
 });
 Action.BoxMap('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
 Test((BoxMap, assign, Spy) => {
@@ -2500,10 +2553,10 @@ Test((BoxMap, assign, Spy) => {
   b.set('a', 1);
   b.subscribe(spy);
   expect(spy).calledWith(1, 'a');
-  b.assign({z: 3});
-  expect(spy).calledWith(3, 'z');
+  b.assign({b: 3});
+  expect(spy).calledWith(3, 'b');
   expect(spy).calledTwice();
-  expect(b()).deepEqual({a:1, z:3});
+  expect(b()).deepEqual({a:1, b:3});
 });
 Test((BoxMap, map, Spy) => {
   const a = BoxMap({a:1, b:2});
@@ -2518,6 +2571,8 @@ Test((BoxMap, map, Spy) => {
   expect(spy).calledTimes(3);
   a.set('c', 4);
   expect(b()).deepEqual({a:6, b:4, c:8});
+  a.delete('b')
+  expect(b()).deepEqual({a:6, c:8});
 });
 Test((BoxMap, filter) => {
   const a = BoxMap({a:1, b:2, c: 3});
@@ -2527,25 +2582,23 @@ Test((BoxMap, filter) => {
   expect(b()).deepEqual({c:3});
   a.set('d', 5);
   expect(b()).deepEqual({c:3, d:5});
-  a.set('z', null);
+  a.set('x', null);
   expect(b()).deepEqual({c:3, d:5});
 });
 Mapping.BoxMap('sort', (z) => {
-  const res = nice.BoxArray();
   const values = [];
-  z.subscribe((v, k, oldV) => {
+  return z.reduce(nice.BoxArray(), (r, v, k, oldV) => {
     if(oldV !== null) {
       const i = nice.sortedIndex(values, oldV);
       values.splice(i, 1);
-      res.remove(i);
+      r.remove(i);
     }
     if(v !== null) {
       const i = nice.sortedIndex(values, v);
       values.splice(i, 0, v);
-      res.insert(i, k);
+      r.insert(i, k);
     }
   });
-  return res;
 });
 Test('sort keys by values', (BoxMap, sort) => {
   const a = BoxMap({a:1, c: 3, b:2});
@@ -2868,6 +2921,15 @@ Test((BoxArray, Spy, insert) => {
   expect(spy).calledTimes(3);
   expect(a()).deepEqual([1,3,2]);
 });
+Test((BoxArray, Spy, push) => {
+  const a = BoxArray([1,2]);
+  const spy = Spy();
+  a.subscribe(spy);
+  a.push(3);
+  expect(spy).calledWith(3, 2, null, null);
+  expect(spy).calledTimes(3);
+  expect(a()).deepEqual([1,2,3]);
+});
 Test((BoxArray, Spy, remove) => {
   const a = BoxArray([1,2,3]);
   const spy = Spy();
@@ -3051,8 +3113,7 @@ nice.Type({
         if(c.version === 0 || c.version < c.source._version){
           this._inputValues[c.position] = v;
           c.version = c.source._version;
-          needCompute = true;
-          break;
+          needCompute |= true;
         }
       }
       needCompute && this.attemptCompute();
@@ -3412,7 +3473,7 @@ const proto = {
     delete this.transaction;
     _each(tr.rows, (vs, id) => {
       const newVs = nice._pick(this.rows[id], Object.keys(vs));
-      this._updateMeta(id, newVs, vs);
+      this._updateMeta(+ id, newVs, vs);
     });
   },
 	add(o) {
@@ -3500,9 +3561,6 @@ const proto = {
     const o = {};
     _each(data, (v, k) => o[k] = undefined);
     this._updateMeta(id, o, data);
-    
-		if(id in this.rowBoxes)
-			this.rowBoxes[id](undefined);
 	},
   assertIndex(field) {
 		const ii = this.indexes;
@@ -3526,6 +3584,8 @@ const proto = {
     });
   },
   _updateMeta(id, newData, oldData){
+    if(typeof id !== 'number')
+      throw new Error(`Wrong block id type: ` + typeof id);
     const tr = this.transaction;
     if(tr){
       if(!(id in tr.rows)){
@@ -5662,8 +5722,8 @@ function refreshElement(e, old, domNode){
     _each(newAtrs, (v, k) => oldAtrs[k] !== v && (domNode.setAttribute(k, v)));
     e.needAutoClass === true && assertAutoClass(domNode);
     if(e.needAutoClass || domNode.assertedClass)
-      refreshSelectors(newV.cssSelectors, newV.cssSelectors, domNode);
-    const newHandlers = newV.eventHandlers || {}, oldHandlers = newV.eventHandlers || {};
+      refreshSelectors(newV.cssSelectors, oldV.cssSelectors, domNode);
+    const newHandlers = newV.eventHandlers || {}, oldHandlers = oldV.eventHandlers || {};
     nice._eachEach(oldHandlers, (f, i, type) => {
       if(!(newHandlers[type] && newHandlers[type].includes(f)))
         domNode.removeEventListener(type, f, true);

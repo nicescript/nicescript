@@ -264,6 +264,21 @@ Test((BoxArray, Spy, insert) => {
 });
 
 
+Test((BoxArray, Spy, push) => {
+  const a = BoxArray([1,2]);
+  const spy = Spy();
+
+  a.subscribe(spy);
+
+  a.push(3);
+
+  expect(spy).calledWith(3, 2, null, null);
+
+  expect(spy).calledTimes(3);
+  expect(a()).deepEqual([1,2,3]);
+});
+
+
 Test((BoxArray, Spy, remove) => {
   const a = BoxArray([1,2,3]);
   const spy = Spy();

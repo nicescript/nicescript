@@ -129,8 +129,7 @@ nice.Type({
         if(c.version === 0 || c.version < c.source._version){
           this._inputValues[c.position] = v;
           c.version = c.source._version;
-          needCompute = true;
-          break;
+          needCompute |= true;
         }
       }
 

@@ -61,6 +61,3 @@ Img('logo.png').html
 
 ```
 
-//TODO: deside if to use nice.format on tag input Div('%n: %d', a, b);
-//TODO: deside if only use first argument in: Div([], Div);
-

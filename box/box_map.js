@@ -44,18 +44,18 @@ nice.Type({
     notifyExisting(f){
       _each(this._value, (v, k) => f(v, k, null));
     },
+    reduce (acc, f){
+      this.subscribe((v,k,old) => f(acc, v, k, old));
+      return acc;
+    },
     map (f) {
-      const res = nice.BoxMap();
-      this.subscribe((v,k) => res.set(k, f(v)));
-      return res;
+      return this.reduce(nice.BoxMap(), (r, v, k) =>
+          v === null ? r.delete(k) : r.set(k, f(v)));
     },
     filter (f) {
-      const res = nice.BoxMap();
-      this.subscribe((v,k) => f(v, k)
-          ? res.set(k, v)
-          : k in res._value && res.set(k, null)
-      );
-      return res;
+      return this.reduce(nice.BoxMap(), (m, v, k) => f(v, k)
+        ? m.set(k, v)
+        : k in m._value && m.set(k, null));
     },
     sortedEntities(){
       const res = nice.BoxArray();
@@ -104,11 +104,11 @@ Test((BoxMap, Spy) => {
   b.set('a', 1);
   b.subscribe(spy);
   expect(spy).calledWith(1, 'a');
-  b.set('z', 3);
-  expect(spy).calledWith(3, 'z');
+  b.set('q', 3);
+  expect(spy).calledWith(3, 'q');
   b.set('a', null);
   expect(spy).calledWith(null, 'a');
-  expect(b()).deepEqual({z:3});
+  expect(b()).deepEqual({q:3});
 });
 
 Action.BoxMap('assign', (z, o) => _each(o, (v, k) => z.set(k, v)));
@@ -119,10 +119,10 @@ Test((BoxMap, assign, Spy) => {
   b.set('a', 1);
   b.subscribe(spy);
   expect(spy).calledWith(1, 'a');
-  b.assign({z: 3});
-  expect(spy).calledWith(3, 'z');
+  b.assign({b: 3});
+  expect(spy).calledWith(3, 'b');
   expect(spy).calledTwice();
-  expect(b()).deepEqual({a:1, z:3});
+  expect(b()).deepEqual({a:1, b:3});
 });
 
 
@@ -139,6 +139,9 @@ Test((BoxMap, map, Spy) => {
   expect(spy).calledTimes(3);
   a.set('c', 4);
   expect(b()).deepEqual({a:6, b:4, c:8});
+
+  a.delete('b')
+  expect(b()).deepEqual({a:6, c:8});
 });
 
 
@@ -154,29 +157,26 @@ Test((BoxMap, filter) => {
   a.set('d', 5);
   expect(b()).deepEqual({c:3, d:5});
 
-  a.set('z', null);
+  a.set('x', null);
   expect(b()).deepEqual({c:3, d:5});
 });
 
 
 Mapping.BoxMap('sort', (z) => {
-  const res = nice.BoxArray();
   const values = [];
 
-  z.subscribe((v, k, oldV) => {
+  return z.reduce(nice.BoxArray(), (r, v, k, oldV) => {
     if(oldV !== null) {
       const i = nice.sortedIndex(values, oldV);
       values.splice(i, 1);
-      res.remove(i);
+      r.remove(i);
     }
     if(v !== null) {
       const i = nice.sortedIndex(values, v);
       values.splice(i, 0, v);
-      res.insert(i, k);
+      r.insert(i, k);
     }
   });
-
-  return res;
 });
 
 

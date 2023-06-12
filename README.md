@@ -4,10 +4,10 @@ NiceScript
 Set of JavaScript functions that provide following features without compilation 
 or configuration:
 
-* [Reactive data flow](#boxes) //TODO
-* [Type System](#types) //TODO
+* [Reactive state management](./doc/boxes.md)
+* [Type System](#types) //TODO:
 * [HTML and CSS](./doc/html.md)
-* [Unit tests](#tests) //TODO
+* [Unit tests](#tests) //TODO:
 * Utility functions and control structues
 
 
@@ -266,50 +266,6 @@ b();                  // read value
 const b2 = RBox(b, n => n * 2);
 b(3);                 // b2() === 6
 ```
-
-#### BoxSet
-
-
-
-### Html
-```javascript
-const div = nice.Div('Normal ', 'text ')
-  .i('italic ')
-  .add('normal ')
-  .B('red bold').color('red').up
-  .margin('10px')
-  .fontSize('20px');
-
-// browser and server
-div.html
-// <div style="margin:10px;font-size:20px">Normal text <i>italic </i>normal <b style="color:red">red bold</b></div>
-
-// browser only
-div.show(); // attach dom node to document.body or provided node 
-```
-
-Add some [Boxes](#boxes) to handle asynchronous cases.
-```javascript
-const { Box, Div, Switch, Nothing } = nice;
-
-const data = Box(Nothing);
-
-const div = RBox(data, Switch
-      .isString.use(s => Div('Data: ', s))
-      .default(Div('Loading...')));
-
-div.listen(d => console.log(d.html));
-// <div>Loading...</div>
-
-
-
-data('Some data');
-// <div>Data: Some data</div>
-
-
-div.show(); // will create and attach dome node and update it's state according to boxes states
-```
-
 
 ## Tests
 

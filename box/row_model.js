@@ -34,7 +34,7 @@ const proto = {
     delete this.transaction;
     _each(tr.rows, (vs, id) => {
       const newVs = nice._pick(this.rows[id], Object.keys(vs));
-      this._updateMeta(id, newVs, vs);
+      this._updateMeta(+ id, newVs, vs);
     });
   },
 
@@ -164,6 +164,9 @@ const proto = {
   },
 
   _updateMeta(id, newData, oldData){
+    if(typeof id !== 'number')
+      throw new Error(`Wrong block id type: ` + typeof id);
+
     const tr = this.transaction;
     if(tr){
       if(!(id in tr.rows)){

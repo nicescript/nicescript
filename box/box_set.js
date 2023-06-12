@@ -9,7 +9,7 @@ nice.Type({
     return z._value;
   },
 
-  initBy: (z, ...a) =>  {
+  initBy: (z, a) =>  {
     z._version = 0;
     z._value = new Set(a);
   },
@@ -56,6 +56,35 @@ nice.Type({
       return this._value.size;
     },
 
+    reduce (acc, f){
+      this.subscribe((v, oldV) => f(acc, v, oldV));
+      return acc;
+    },
+
+    map (f) {
+      const map = new Map();
+      return this.reduce(nice.BoxSet(), (r, v, oldV) => {
+        if(v === null){
+          r.delete(map.get(oldV));
+          map.delete(oldV);
+        } else {
+          const _v = f(v);
+          r.add(_v);
+          map.set(v, _v);
+        }
+      });
+    },
+
+    filter (f) {
+      return this.reduce(nice.BoxSet(), (r, v, oldV) => {
+        if(v === null){
+          r.delete(oldV);
+        } else if(f(v)) {
+          f(v) && r.add(v);
+        }
+      });
+    },
+
     forEach (f) {
       this._value.forEach(f);
     },
@@ -88,16 +117,7 @@ nice.Type({
       });
 
       return res;
-    },
-
-//    subscribe (f) {
-//      for (let v of this._value) f(v);
-//      this.on('value', f);
-//    },
-//
-//    unsubscribe (f) {
-//      this.off('value', f);
-//    },
+    }
   }
 });
 
@@ -109,11 +129,14 @@ nice.defineCached(nice.BoxSet.proto, function boxArray() {
 
 
 Test((BoxSet, Spy) => {
-  const b = BoxSet();
+  const b = BoxSet([1]);
   const spy = Spy();
-  b.add(1);
+
   b.subscribe(spy);
   expect(spy).calledWith(1);
+  b.add(1);
+  expect(spy).calledOnce();
+
   b.add('z');
   expect(spy).calledWith('z');
   expect(spy).calledTwice();
@@ -133,9 +156,46 @@ Test((BoxSet, Spy) => {
 });
 
 
+Test((BoxSet, Spy, map) => {
+  const b = BoxSet([1,2]);
+  const b2 = b.map(x => x * 2);
+  const spy = Spy();
+  b2.subscribe(spy);
+
+  expect(spy).calledWith(2);
+  expect(spy).calledWith(4);
+
+  b.add(3);
+  expect(spy).calledWith(6);
+
+  expect(b.delete(1)).is(true);
+  expect(spy).calledWith(null, 2);
+});
+
+
+Test((BoxSet, Spy, filter) => {
+  const b = BoxSet([1,2,3]);
+  const b2 = b.filter(x => x % 2);
+  const spy = Spy();
+  b2.subscribe(spy);
+
+  expect(spy).calledWith(1);
+  expect(spy).calledWith(3);
+
+  b.add(4);
+  b.add(5);
+  expect(spy).calledWith(5);
+  expect(spy).calledTimes(3);
+
+  expect(b.delete(1)).is(true);
+  expect(spy).calledWith(null, 1);
+});
+
+
+
 Test((BoxSet, intersection, Spy) => {
-  const a = BoxSet(1,2,3);
-  const b = BoxSet(2,4,6);
+  const a = BoxSet([1,2,3]);
+  const b = BoxSet([2,4,6]);
   const c = a.intersection(b);
 
   expect([...c()]).deepEqual([2]);

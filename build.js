@@ -1,4 +1,7 @@
-//TODO: automaticaly unsubscribe reactive boxes //??resubscribe
+//TODO: nicescript.org
+
+
+////TODO: automaticaly unsubscribe reactive boxes //??resubscribe
 //TODO: remova singular nice values (e.g. nice.Num()) or make them useful
 
 const fs = require('fs');
@@ -72,29 +75,37 @@ let src = 'let nice;(function(){const IS_BROWSER = typeof window !== "undefined"
 
 src += `;nice.version = "${pachageInfo.version}";})();`;
 
-fs.writeFileSync('nice.js', src);
+const files = { 'nice.js': src };
 //TODO: BUG: donesn't work: "Uncaught SyntaxError: Unexpected token ';'"
-fs.writeFileSync('nice.min.js', removeTests(src));
+//const srcNoTests = removeTests(src);
+
 //TODO: fix or remove
 //terser.minify(removeTests(src))
 //  .then(min => fs.writeFileSync('nice.min.js', min.code));
 
 const nodeSrc = 'module.exports = function(){' + src + '; return nice;}';
+files['index.js'] = nodeSrc;
 fs.writeFileSync('index.js', nodeSrc);
-
 
 const nice = require('./index.js')();
 
 const blackList = ['class', 'try', 'with','super'];
-fs.writeFileSync( 'nice.mjs',
+files['nice.mjs'] =
   src + '; export let '
   + Object.getOwnPropertyNames(nice)
       .filter(k => !blackList.includes(k))
       .map(k => `${k} = nice.${k}`).join(',')
-  + '; export default nice;' );
+  + '; export default nice;';
 
 
-//nice.runTests();
+for(let name in files){
+  fs.writeFileSync(name, files[name]);
+  const distDir = '../nicescript';
+  if(fs.existsSync(distDir)){
+    fs.writeFileSync(distDir + '/' + name, files[name]);
+  }
+};
+
 nice.Test.run();
 
 fs.writeFileSync('./doc/doc.json', JSON.stringify(nice.generateDoc()));
