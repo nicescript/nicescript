@@ -116,3 +116,24 @@ a.push(5);
 expect(spy).calledWith(5, 3, null, null);
 expect(a()).deepEqual([3,4,2,5]);
 ```
+
+
+<!--
+TODO:
+
+Calling [mapping](#mapping) on box will create new box that follows changes in the original.
+```javascript
+const a = nice.Box('qwe');
+// qwe!
+a('asd');
+// asd!
+```
+
+Calling [action](#action) on box will change its content.
+```javascript
+const a = nice.Box([1, 2]).listen(console.log);
+// [1, 2];
+a.push(3);
+// [1, 2, 3];
+```
+-->

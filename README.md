@@ -79,51 +79,9 @@ use:
 &nbsp;
 
 Browser:
-//TODO: check sourse
+<!--//TODO: check sourse-->
 `<script src="https://unpkg.com/nicescript/nice.js"></script>`
 
 or
 
 `<script src="https://cdn.jsdelivr.net/npm/nicescript/nice.js"></script>`
-
-<!--
-
- 
-### Boxes
-Stateful observable components. 
-
-```javascript
-const { Box, RBox } = nice;
-const b = Box(1);     // create box with 1 in it
-b.subscribe(v => console.log('b:', v));
-//b: 1
-
-b(2);                 // write value
-//b: 2
-b();                  // read value
-//2
-
-// create reactive Box that follows changes in b
-const b2 = RBox(b, n => n * 2);
-b(3);                 // b2() === 6
-```
-
-
-
----------------
-Calling [mapping](#mapping) on box will create new box that follows changes in the original.
-```javascript
-const a = nice.Box('qwe');
-// qwe!
-a('asd');
-// asd!
-```
-
-Calling [action](#action) on box will change its content.
-```javascript
-const a = nice.Box([1, 2]).listen(console.log);
-// [1, 2];
-a.push(3);
-// [1, 2, 3];
-```
--->
