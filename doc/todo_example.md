@@ -21,7 +21,7 @@ const list = RBox(tasks, input.boxValue, (tt, s) =>
   
 Div(input, list).font('1.2rem Arial').show();
 ```
-[JS Bin](https://jsbin.com/setizekuqu/edit?html,output) TODO: update source
+[JS Bin](https://jsbin.com/gajowevuvo/edit?html,output)
 
 Let's look at it step by step:
 ```javascript
