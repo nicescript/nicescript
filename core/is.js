@@ -1,3 +1,4 @@
+//TODO: is.not.
 ['Check', 'Action', 'Mapping'].forEach(t => Check
   .about(`Checks if value is function and it's type is ${t}.`)
   ('is' + t, v => v.functionType === t));

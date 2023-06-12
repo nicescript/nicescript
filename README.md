@@ -5,9 +5,9 @@ Set of JavaScript functions that provide following features without compilation
 or configuration:
 
 * [Reactive state management](./doc/boxes.md)
-* [Type System](#types) //TODO:
+* [Type System](./doc/types.md)
 * [HTML and CSS](./doc/html.md)
-* [Unit tests](#tests) //TODO:
+* [Unit tests](./doc/tests.md)
 * Utility functions and control structues
 
 
@@ -57,7 +57,7 @@ Div(input, list).font('1.2rem Arial').show();
 
 
 
-
+<!--
 More examples:
 
 * [Ball game](./examples/ball.html) ( [JS Bin](https://jsbin.com/wimayanovu/1/edit?html,output) )
@@ -65,6 +65,7 @@ More examples:
 * [Tic Tac Toe](./examples/tictactoe.html) 
   ( [JS Bin](https://jsbin.com/yozupufaci/edit?html,output) )
   ( [Tutorial](https://medium.com/@sergey.kashulin/creating-web-applications-with-nicescript-338184d18331) )
+-->
 
 ## Install
 Node.js:
@@ -86,166 +87,6 @@ or
 `<script src="https://cdn.jsdelivr.net/npm/nicescript/nice.js"></script>`
 
 <!--
-## Basic features
-
-
-
-### Nice values
-
-### Types
-
-Each value in NiceScript has a type. Here is a root of types hierarchy:  
-
-+ Anything
-  + Something
-    + Value
-      + Obj
-        + Arr
-        + [Html](#html)
-      + Single
-        + Str
-        + Num
-        + Bool
-    + [Function](#functions)
-    + [Box](#boxes)
-    + Ok
-  + Nothing
-    + Error
-    + Undefined
-    + Null
-    + Fail
-    + ...
-
-
-#### Wrapping values
-Call nice with js value to wrap it with most appropriate type.
-```javascript
-const nice = require('nicescript')();
-nice(4);        // nice.Num;
-nice("");       // nice.Str;
-nice(true);     // nice.Bool;
-nice({});       // nice.Obj;
-nice([]);       // nice.Arr;
-nice(1, 2, 3);  // nice.Arr;
-nice(null);     // nice.Null;
-```
-
-
-#### User types
-```javascript
-nice.Type('Dog')
-  .str('title')
-  .num('weight')
-  .by((z, title) => z.title(title));
-
-const d = nice.Dog('Jim').weight(5);
-d.name();       // Jim 
-d.weight();     // 5
-
-// by default created type extends nice.Obj
-d.isObj()   // true
-
-```
-Type name should start with capital letter.
-
-
-### Functions
-
-```javascript
-// Creating anonymous function
-const f = nice.Func(n => n + 1);
-f(1);               // 2
-
-// Named functions will be added to nice
-const plusTwo = nice.Func('plusTwo', n => n + 2);
-//or nice.Func(function plusTwo(n) { return n + 2; });
-plusTwo(1);         // 3
-nice.plusTwo(1);    // 3
-
-// Check argument type
-const x2 = nice.Func.Number('x2', n => n * 2);
-x2(21);             // 42
-nice.x2(21);        // 42
-nice.Num(1).x2();// 42
-x2('q');            // throws "Function  can't handle (Str)"
-
-// now let's overload x2 for strings
-x2.String(s => s + '!');
-x2(21);             // 42
-x2('q');            // q!
-
-```
-Function name should start with lowercase letter. 
-
-#### Function types
-
-##### Mapping
-Clean function that do not changes it's arguments. 
-NiceScript will always [wrap](#wrapping-values) result of Mapping. 
-
-```javascript
-nice.Mapping.Num.Num('times', (a, b) => a * b);
-const n = nice(5);
-const n2 = n.times(3).times(2); // nice.Num(30)
-n()                             // 5
-n2()                            // 30;
-```
- 
-##### Check
-Returns boolean. Never changes it's arguments. 
-After definition named Check can be used in [Switch](#switch) and 'is' statements. 
-
-##### Action
-Changes first argument. Action always returns it's first argument so you can 
-call multiple actions in a row.
-
-```javascript
-nice.Action.Num.Num('times', (a, b) => a * b);
-const n = nice(5);
-n.times(3).times(2);            // n
-n();                            // 30;
-```
-
-
-### Switch
-Delayed argumet
-```javascript
-const f = nice.Switch
-  .equal(1)(11)
-  .isNumber(22)
-  .isString.use(s => s + '!')
-  .isNothing(':(')
-  .default(42);
-f(1);           // 11
-f(3);           // 22
-f('qwe');       // "qwe!"
-f([]);          // 42
-f(0);           // 42
-f(undefined);   // :(
-f(null);        // :(
-```
-Instant argument
-```javascript
-nice.Check('isMeat', v => ['pork', 'beef'].includes(v));
-const tiger = { say: console.log };
-function feedTiger(tiger, food){
-  tiger.hungry = nice.Switch(food)
-    .isMeat(false)
-    .default.use(name => tiger.say('I do not like ' + name) || true);
-}
-
-feedTiger(tiger, 'apple');   // tiger.hungry === true
-// > I do not like apple
-
-feedTiger(tiger, 'beef');    // tiger.hungry === false
-```
-#### Switch vs Function overload
-Overloaded Function will search for best match while Switch will use first match.
-```javascript
-nice.Func.Nothing(() => 1).Null(() => 2)(null);                 // 2
-nice.Switch(null).isNothing.use(() => 1).isNull.use(() => 2);   // 1
-```
-Besides current implementation of Switch use only first argument.
 
  
 ### Boxes
@@ -267,51 +108,6 @@ const b2 = RBox(b, n => n * 2);
 b(3);                 // b2() === 6
 ```
 
-## Tests
-
-```javascript
-const { expect, TestSet } = nice;
-const app = {};
-
-// Create test set
-const test = nice.TestSet(app);
-
-obj.x2 = x => x*2;
-
-// Create test
-test("Double value", (x2) => { // x2 found in app 
-  expect(x2(3)).is(6);
-  
-  // nested tests are ok
-  test("Double mapping", (Spy) => { // no app.Spy found so nice.Spy provided
-    const f = Spy(x2);
-    expect([1,2].map(f)).deepEqual([2,4]);
-    expect(f).calledTwice();
-  })
-});
-
-// Create custom check
-nice.Check('isBig', n => n > 10);
-
-test((x2) => {
-  expect(x2(6)).isBig();
-  expect(x2(4)).not.isBig();
-});
-
-// Run tests
-test.run();
-//Tests done. OK: 3, Error: 0 (1ms)
-
-```
-
-You can use any created `Check` after `expect(value)`
-
-[Top](#nicescript)
-
-### Old
-
-* [Functions](#functions) - adds couple features to regular JS functions.
-* [Switch](#switch) - finally convenient.
 
 
 ---------------
