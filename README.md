@@ -79,9 +79,16 @@ use:
 &nbsp;
 
 Browser:
-<!--//TODO: check sourse-->
+
 `<script src="https://unpkg.com/nicescript/nice.js"></script>`
 
 or
 
 `<script src="https://cdn.jsdelivr.net/npm/nicescript/nice.js"></script>`
+
+&nbsp;
+
+Npm package is shipped with 3 versions:
+* index.js  - Node module
+* nice.mjs  - ECMAScript module
+* nice.js   - to use with html `<script>` tag
